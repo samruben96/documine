@@ -39,6 +39,44 @@ AI-powered document analysis platform with trust transparency.
 
 Open [http://localhost:3000](http://localhost:3000) to see the result.
 
+## Testing
+
+Run all tests:
+```bash
+npm run test
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+Run tests with coverage:
+```bash
+npm run test:coverage
+```
+
+### Test Structure
+
+```
+__tests__/
+├── unit/              # Unit tests (no external deps)
+│   └── lib/
+│       ├── errors.test.ts
+│       └── utils/
+│           ├── api-response.test.ts
+│           └── logger.test.ts
+├── integration/       # Integration tests (mocked services)
+│   └── lib/utils/
+│       └── storage.test.ts
+└── mocks/             # Shared mock utilities
+    └── supabase.ts
+```
+
+### Coverage Thresholds
+
+80% coverage required for tested modules (errors, api-response, logger, storage).
+
 ## Deployment
 
 ### Production Deployment
@@ -85,18 +123,23 @@ Required environment variables (configure in Vercel dashboard):
 ## Project Structure
 
 ```
-src/
-├── app/                  # Next.js App Router pages
-│   ├── (auth)/          # Authentication routes
-│   ├── (dashboard)/     # Protected dashboard routes
-│   └── api/             # API routes
-├── components/          # React components
-│   ├── ui/              # shadcn/ui components
-│   ├── chat/            # Chat interface components
-│   ├── documents/       # Document management components
-│   └── compare/         # Quote comparison components
-├── lib/                 # Shared utilities
-│   ├── supabase/        # Supabase client configuration
-│   └── utils/           # Helper functions
-└── types/               # TypeScript type definitions
+├── __tests__/            # Test files (excluded from Next.js build)
+│   ├── unit/            # Unit tests
+│   ├── integration/     # Integration tests
+│   └── mocks/           # Mock utilities
+├── src/
+│   ├── app/             # Next.js App Router pages
+│   │   ├── (auth)/      # Authentication routes
+│   │   ├── (dashboard)/ # Protected dashboard routes
+│   │   └── api/         # API routes
+│   ├── components/      # React components
+│   │   ├── ui/          # shadcn/ui components
+│   │   ├── chat/        # Chat interface components
+│   │   ├── documents/   # Document management components
+│   │   └── compare/     # Quote comparison components
+│   ├── lib/             # Shared utilities
+│   │   ├── supabase/    # Supabase client configuration
+│   │   └── utils/       # Helper functions
+│   └── types/           # TypeScript type definitions
+└── vitest.config.ts      # Vitest configuration (excluded from Next.js build)
 ```
