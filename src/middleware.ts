@@ -60,7 +60,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is authenticated and trying to access auth pages, redirect to documents
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  // Per AC-2.4.5: Authenticated users redirected from auth pages (/login, /signup, /reset-password)
+  if (
+    user &&
+    (pathname === '/login' ||
+      pathname === '/signup' ||
+      pathname === '/reset-password')
+  ) {
     return NextResponse.redirect(new URL('/documents', request.url));
   }
 

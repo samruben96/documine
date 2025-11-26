@@ -49,3 +49,13 @@ export async function login(
   // Per AC-2.3.3: Use ?redirect query param if present
   redirect(redirectTo);
 }
+
+/**
+ * Logout server action
+ * Per AC-2.4.6: Clears session and redirects to /login
+ */
+export async function logout(): Promise<void> {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
+}
