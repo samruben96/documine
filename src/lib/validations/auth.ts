@@ -1,6 +1,23 @@
 import { z } from 'zod';
 
 /**
+ * Password validation schema
+ * Per AC-2.5.4 and Architecture Doc:
+ * - Minimum 8 characters
+ * - At least 1 uppercase letter
+ * - At least 1 number
+ * - At least 1 special character
+ *
+ * Extracted for reuse in signup and password reset flows.
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least 1 number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least 1 special character');
+
+/**
  * Signup form validation schema
  * Per AC-2.1.3:
  * - Full name: 2-100 characters
@@ -16,12 +33,7 @@ export const signupSchema = z.object({
   email: z
     .string()
     .email('Invalid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
-    .regex(/[0-9]/, 'Password must contain at least 1 number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain at least 1 special character'),
+  password: passwordSchema,
   agencyName: z
     .string()
     .min(2, 'Agency name must be at least 2 characters')

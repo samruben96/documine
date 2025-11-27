@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signupSchema } from '@/lib/validations/auth';
+import { signupSchema, passwordSchema } from '@/lib/validations/auth';
 
 describe('signupSchema', () => {
   describe('fullName validation', () => {
@@ -154,6 +154,57 @@ describe('signupSchema', () => {
       if (result.success) {
         expect(result.data).toEqual(validData);
       }
+    });
+  });
+});
+
+/**
+ * Tests for passwordSchema (AC-2.5.4)
+ * Extracted password validation for reuse in signup and password reset flows
+ */
+describe('passwordSchema', () => {
+  it('rejects passwords shorter than 8 characters', () => {
+    const result = passwordSchema.safeParse('Pass1!');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Password must be at least 8 characters');
+    }
+  });
+
+  it('rejects passwords without uppercase letter', () => {
+    const result = passwordSchema.safeParse('password1!');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Password must contain at least 1 uppercase letter');
+    }
+  });
+
+  it('rejects passwords without number', () => {
+    const result = passwordSchema.safeParse('Password!');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Password must contain at least 1 number');
+    }
+  });
+
+  it('rejects passwords without special character', () => {
+    const result = passwordSchema.safeParse('Password1');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Password must contain at least 1 special character');
+    }
+  });
+
+  it('accepts password with all requirements met', () => {
+    const result = passwordSchema.safeParse('Password1!');
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts password with various special characters', () => {
+    const testCases = ['Password1@', 'Password1#', 'Password1$', 'Password1%'];
+    testCases.forEach(password => {
+      const result = passwordSchema.safeParse(password);
+      expect(result.success).toBe(true);
     });
   });
 });

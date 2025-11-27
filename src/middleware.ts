@@ -2,17 +2,18 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database.types';
 
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/reset-password'];
-const PUBLIC_API_ROUTES = ['/api/auth'];
+// Public routes that don't require authentication (exact match)
+const PUBLIC_ROUTES = ['/', '/login', '/signup'];
+// Public route prefixes (startsWith match)
+const PUBLIC_ROUTE_PREFIXES = ['/reset-password', '/api/auth', '/auth/callback'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if route is public
+  // Check if route is public (exact match or prefix match)
   const isPublicRoute =
     PUBLIC_ROUTES.includes(pathname) ||
-    PUBLIC_API_ROUTES.some((route) => pathname.startsWith(route));
+    PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   // Create response to modify cookies if needed
   let response = NextResponse.next({
@@ -60,7 +61,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is authenticated and trying to access auth pages, redirect to documents
-  // Per AC-2.4.5: Authenticated users redirected from auth pages (/login, /signup, /reset-password)
+  // Per AC-2.4.5: Authenticated users redirected from auth pages (/login, /signup)
+  // Note: /reset-password/update must remain accessible for password recovery flow
   if (
     user &&
     (pathname === '/login' ||

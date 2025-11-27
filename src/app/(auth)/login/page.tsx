@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -49,8 +49,22 @@ function LoginFormSkeleton() {
 function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/documents';
+
+  // Check for password reset success message (AC-2.5.6)
+  useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setResetSuccess(true);
+      toast.success('Password updated successfully. Please sign in.', {
+        duration: 5000,
+      });
+      // Clear the query param from URL
+      router.replace('/login', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const {
     register,
@@ -108,6 +122,18 @@ function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Password reset success message (AC-2.5.6) */}
+        {resetSuccess && (
+          <div className="rounded-md bg-emerald-50 border border-emerald-200 p-3">
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 text-emerald-500 mr-2 flex-shrink-0" />
+              <p className="text-sm text-emerald-700 font-medium">
+                Password updated successfully. Please sign in.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Inline error message for failed login */}
         {loginError && (
           <div className="rounded-md bg-red-50 border border-red-200 p-3">
