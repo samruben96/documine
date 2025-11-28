@@ -120,6 +120,7 @@ export default async function SettingsPage() {
             user={userData}
             members={teamMembers}
             invitations={invitations}
+            agencyName={userData.agency?.name || 'Unknown Agency'}
           />
         </TabsContent>
 

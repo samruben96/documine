@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Mail, RefreshCw, X, UserPlus } from 'lucide-react';
+import { Loader2, Mail, RefreshCw, X, UserPlus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { InviteUserModal } from './invite-user-modal';
-import { resendInvitation, cancelInvitation } from '@/app/(dashboard)/settings/actions';
+import { RemoveUserModal } from './remove-user-modal';
+import { resendInvitation, cancelInvitation, changeUserRole } from '@/app/(dashboard)/settings/actions';
 
 interface TeamMember {
   id: string;
@@ -43,6 +44,7 @@ interface TeamTabProps {
   };
   members: TeamMember[];
   invitations: Invitation[];
+  agencyName: string;
 }
 
 function formatDate(dateString: string): string {
@@ -64,15 +66,49 @@ const defaultRole = roleDisplay.member;
  * Team Tab Component
  * Per AC-3.2.7: Displays pending invitations with email, role, invited date, status
  * Per AC-3.2.8, AC-3.2.9: Resend and Cancel actions
+ * Per AC-3.3.1-8: Team member management with role toggle and remove functionality
  */
-export function TeamTab({ user, members, invitations: initialInvitations }: TeamTabProps) {
+export function TeamTab({ user, members: initialMembers, invitations: initialInvitations, agencyName }: TeamTabProps) {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [removeModalOpen, setRemoveModalOpen] = useState(false);
+  const [userToRemove, setUserToRemove] = useState<TeamMember | null>(null);
+  const [members, setMembers] = useState(initialMembers);
   const [invitations, setInvitations] = useState(initialInvitations);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isAdmin = user.role === 'admin';
 
   const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
+
+  const handleRoleChange = (memberId: string, newRole: 'admin' | 'member') => {
+    setPendingAction(`role-${memberId}`);
+    startTransition(async () => {
+      const result = await changeUserRole(memberId, newRole);
+      setPendingAction(null);
+
+      if (result.success) {
+        toast.success(`Role updated to ${newRole}`);
+        // Update local state
+        setMembers(prev => prev.map(m =>
+          m.id === memberId ? { ...m, role: newRole } : m
+        ));
+      } else {
+        toast.error(result.error || 'Failed to update role');
+      }
+    });
+  };
+
+  const handleRemoveClick = (member: TeamMember) => {
+    setUserToRemove(member);
+    setRemoveModalOpen(true);
+  };
+
+  const handleRemoveSuccess = () => {
+    if (userToRemove) {
+      setMembers(prev => prev.filter(m => m.id !== userToRemove.id));
+      setUserToRemove(null);
+    }
+  };
 
   const handleResend = (invitationId: string, email: string) => {
     setPendingAction(`resend-${invitationId}`);
@@ -134,26 +170,59 @@ export function TeamTab({ user, members, invitations: initialInvitations }: Team
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {members.map((member) => {
                 const role = roleDisplay[member.role as keyof typeof roleDisplay] ?? defaultRole;
+                const isCurrentUser = member.id === user.id;
+                const isChangingRole = pendingAction === `role-${member.id}`;
+
                 return (
                   <TableRow key={member.id}>
                     <TableCell className="font-medium">
                       {member.full_name || 'No name set'}
-                      {member.id === user.id && (
+                      {isCurrentUser && (
                         <span className="ml-2 text-xs text-slate-500">(You)</span>
                       )}
                     </TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${role.color}`}>
-                        {role.label}
-                      </span>
+                      {isAdmin && !isCurrentUser ? (
+                        <select
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value as 'admin' | 'member')}
+                          disabled={isPending}
+                          className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs font-medium shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="member">Member</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      ) : (
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${role.color}`}>
+                          {role.label}
+                        </span>
+                      )}
+                      {isChangingRole && (
+                        <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />
+                      )}
                     </TableCell>
                     <TableCell>{formatDate(member.created_at)}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveClick(member)}
+                          disabled={isCurrentUser || isPending}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          title={isCurrentUser ? 'You cannot remove yourself' : 'Remove member'}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -257,6 +326,16 @@ export function TeamTab({ user, members, invitations: initialInvitations }: Team
         onOpenChange={setInviteModalOpen}
         onSuccess={handleInviteSuccess}
       />
+
+      {userToRemove && (
+        <RemoveUserModal
+          open={removeModalOpen}
+          onOpenChange={setRemoveModalOpen}
+          user={userToRemove}
+          agencyName={agencyName}
+          onSuccess={handleRemoveSuccess}
+        />
+      )}
     </>
   );
 }

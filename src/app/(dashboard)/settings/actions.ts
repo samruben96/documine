@@ -377,3 +377,171 @@ export async function cancelInvitation(invitationId: string): Promise<{
   revalidatePath('/settings');
   return { success: true };
 }
+
+/**
+ * Remove team member from agency
+ * Per AC-3.3.2 to AC-3.3.5: Validates admin role, prevents self-removal, prevents removing last admin
+ */
+export async function removeTeamMember(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  // 1. Get authenticated user
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  // 2. Get current user's role and agency_id
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from('users')
+    .select('role, agency_id')
+    .eq('id', user.id)
+    .single();
+
+  if (currentUserError || !currentUser) {
+    return { success: false, error: 'Failed to get user data' };
+  }
+
+  // 3. Verify admin role (AC-3.3.2)
+  if (currentUser.role !== 'admin') {
+    return { success: false, error: 'Only admins can remove team members' };
+  }
+
+  // 4. Prevent self-removal (AC-3.3.4)
+  if (userId === user.id) {
+    return { success: false, error: 'You cannot remove yourself from the agency' };
+  }
+
+  const agencyId = currentUser.agency_id;
+
+  // 5. Get target user info and verify they belong to same agency
+  const { data: targetUser, error: targetUserError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .eq('agency_id', agencyId)
+    .single();
+
+  if (targetUserError || !targetUser) {
+    return { success: false, error: 'User not found in your agency' };
+  }
+
+  // 6. If removing an admin, check admin count (AC-3.3.5)
+  if (targetUser.role === 'admin') {
+    const { count: adminCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', agencyId)
+      .eq('role', 'admin');
+
+    if ((adminCount ?? 0) <= 1) {
+      return { success: false, error: 'Cannot remove the last admin. Promote another member to admin first.' };
+    }
+  }
+
+  // 7. Delete user record from users table
+  const { error: deleteError } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', userId);
+
+  if (deleteError) {
+    return { success: false, error: 'Failed to remove user' };
+  }
+
+  // 8. Delete auth user via admin API
+  const serviceClient = createServiceClient();
+  const { error: authDeleteError } = await serviceClient.auth.admin.deleteUser(userId);
+
+  if (authDeleteError) {
+    // Log error but don't fail - user record already deleted
+    console.error('Failed to delete auth user:', authDeleteError);
+  }
+
+  revalidatePath('/settings');
+  return { success: true };
+}
+
+/**
+ * Change user role in agency
+ * Per AC-3.3.5 to AC-3.3.7: Validates admin role, prevents self-role-change, prevents demoting last admin
+ */
+export async function changeUserRole(
+  userId: string,
+  newRole: 'admin' | 'member'
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  // 1. Get authenticated user
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  // 2. Get current user's role and agency_id
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from('users')
+    .select('role, agency_id')
+    .eq('id', user.id)
+    .single();
+
+  if (currentUserError || !currentUser) {
+    return { success: false, error: 'Failed to get user data' };
+  }
+
+  // 3. Verify admin role (AC-3.3.6)
+  if (currentUser.role !== 'admin') {
+    return { success: false, error: 'Only admins can change user roles' };
+  }
+
+  // 4. Prevent self-role-change (AC-3.3.7)
+  if (userId === user.id) {
+    return { success: false, error: 'You cannot change your own role' };
+  }
+
+  const agencyId = currentUser.agency_id;
+
+  // 5. Get target user's current role and verify they belong to same agency
+  const { data: targetUser, error: targetUserError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .eq('agency_id', agencyId)
+    .single();
+
+  if (targetUserError || !targetUser) {
+    return { success: false, error: 'User not found in your agency' };
+  }
+
+  // 6. If demoting admin to member, check admin count (AC-3.3.5)
+  if (targetUser.role === 'admin' && newRole === 'member') {
+    const { count: adminCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', agencyId)
+      .eq('role', 'admin');
+
+    if ((adminCount ?? 0) <= 1) {
+      return { success: false, error: 'Cannot demote the last admin. Promote another member to admin first.' };
+    }
+  }
+
+  // 7. Update role
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ role: newRole })
+    .eq('id', userId);
+
+  if (updateError) {
+    return { success: false, error: 'Failed to update role' };
+  }
+
+  revalidatePath('/settings');
+  return { success: true };
+}
