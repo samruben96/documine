@@ -271,6 +271,57 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          id: string
+          agency_id: string
+          email: string
+          role: string
+          status: string
+          invited_by: string
+          expires_at: string
+          created_at: string
+          accepted_at: string | null
+        }
+        Insert: {
+          id?: string
+          agency_id: string
+          email: string
+          role?: string
+          status?: string
+          invited_by: string
+          expires_at: string
+          created_at?: string
+          accepted_at?: string | null
+        }
+        Update: {
+          id?: string
+          agency_id?: string
+          email?: string
+          role?: string
+          status?: string
+          invited_by?: string
+          expires_at?: string
+          created_at?: string
+          accepted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_jobs: {
         Row: {
           completed_at: string | null

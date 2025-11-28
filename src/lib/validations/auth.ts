@@ -78,3 +78,14 @@ export const agencySchema = z.object({
 });
 
 export type AgencyFormData = z.infer<typeof agencySchema>;
+
+/**
+ * Invite user validation schema
+ * Per AC-3.2.1: Email field and role selector (Member/Admin)
+ */
+export const inviteUserSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['admin', 'member']),
+});
+
+export type InviteUserFormData = z.infer<typeof inviteUserSchema>;

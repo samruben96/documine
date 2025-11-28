@@ -1,34 +1,89 @@
 /**
  * Tests for settings server actions
  * Tests AC-2.6.2, AC-2.6.3, AC-3.1.2, AC-3.1.3, AC-3.1.4
+ * Tests AC-3.2.1 to AC-3.2.9 (invitation actions)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the server supabase client
 const mockUpdateEq = vi.fn(() => ({ data: null, error: null }));
 const mockSelectSingle = vi.fn(() => ({ data: null, error: null }));
+const mockSelectMaybeSingle = vi.fn(() => ({ data: null, error: null }));
+const mockSelectCount = vi.fn(() => ({ count: 0, error: null }));
+const mockInsertSelect = vi.fn(() => ({ data: { id: 'inv-123' }, error: null }));
+const mockDeleteEq = vi.fn(() => ({ error: null }));
 const mockGetUser = vi.fn();
+const mockInviteUserByEmail = vi.fn(() => ({ error: null }));
+
+// Track which table is being queried
+let currentTable = '';
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => ({
     auth: {
       getUser: mockGetUser,
     },
+    from: vi.fn((tableName: string) => {
+      currentTable = tableName;
+      return {
+        update: vi.fn(() => ({
+          eq: mockUpdateEq,
+        })),
+        select: vi.fn((columns?: string, opts?: { count?: string; head?: boolean }) => {
+          if (opts?.count === 'exact' && opts?.head === true) {
+            return {
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => mockSelectCount()),
+              })),
+            };
+          }
+          return {
+            eq: vi.fn(() => ({
+              single: mockSelectSingle,
+              eq: vi.fn(() => ({
+                single: mockSelectSingle,
+                eq: vi.fn(() => ({
+                  maybeSingle: mockSelectMaybeSingle,
+                })),
+                maybeSingle: mockSelectMaybeSingle,
+              })),
+              maybeSingle: mockSelectMaybeSingle,
+            })),
+            single: mockSelectSingle,
+          };
+        }),
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: mockInsertSelect,
+          })),
+        })),
+        delete: vi.fn(() => ({
+          eq: mockDeleteEq,
+        })),
+      };
+    }),
+  })),
+  createServiceClient: vi.fn(() => ({
+    auth: {
+      admin: {
+        inviteUserByEmail: mockInviteUserByEmail,
+      },
+    },
     from: vi.fn(() => ({
       update: vi.fn(() => ({
-        eq: mockUpdateEq,
-      })),
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: mockSelectSingle,
-        })),
+        eq: vi.fn(() => ({ error: null })),
       })),
     })),
   })),
 }));
 
+// Mock revalidatePath
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
 // Must import after mocks
-import { updateProfile, updateAgency } from '@/app/(dashboard)/settings/actions';
+import { updateProfile, updateAgency, inviteUser, resendInvitation, cancelInvitation } from '@/app/(dashboard)/settings/actions';
 
 describe('updateProfile server action', () => {
   beforeEach(() => {
@@ -272,6 +327,146 @@ describe('updateAgency server action', () => {
 
       expect(result.success).toBe(true);
       expect(result.error).toBeUndefined();
+    });
+  });
+});
+
+describe('inviteUser server action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('AC-3.2.1: Email validation', () => {
+    beforeEach(() => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'admin@example.com' } },
+      });
+      mockSelectSingle.mockResolvedValue({
+        data: { role: 'admin', agency_id: 'agency-1', seat_limit: 10 },
+        error: null
+      });
+      mockSelectCount.mockResolvedValue({ count: 1, error: null });
+      mockSelectMaybeSingle.mockResolvedValue({ data: null, error: null });
+      mockInsertSelect.mockResolvedValue({ data: { id: 'inv-123' }, error: null });
+      mockInviteUserByEmail.mockResolvedValue({ error: null });
+    });
+
+    it('rejects invalid email format', async () => {
+      const result = await inviteUser({ email: 'not-an-email', role: 'member' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid email address');
+    });
+
+    it('accepts valid email format', async () => {
+      const result = await inviteUser({ email: 'test@example.com', role: 'member' });
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('AC-3.2.4: Admin-only access', () => {
+    beforeEach(() => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'member@example.com' } },
+      });
+    });
+
+    it('rejects non-admin users', async () => {
+      mockSelectSingle.mockResolvedValue({
+        data: { role: 'member', agency_id: 'agency-1' },
+        error: null
+      });
+
+      const result = await inviteUser({ email: 'test@example.com', role: 'member' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Only admins can invite users');
+    });
+  });
+
+  describe('Authentication checks', () => {
+    it('returns error when user is not authenticated', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null } });
+
+      const result = await inviteUser({ email: 'test@example.com', role: 'member' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not authenticated');
+    });
+  });
+});
+
+describe('resendInvitation server action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('AC-3.2.8: Resend functionality', () => {
+    beforeEach(() => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'admin@example.com' } },
+      });
+    });
+
+    it('requires admin role', async () => {
+      mockSelectSingle.mockResolvedValueOnce({
+        data: { role: 'member', agency_id: 'agency-1' },
+        error: null
+      });
+
+      const result = await resendInvitation('inv-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Only admins can resend invitations');
+    });
+  });
+
+  describe('Authentication checks', () => {
+    it('returns error when user is not authenticated', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null } });
+
+      const result = await resendInvitation('inv-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not authenticated');
+    });
+  });
+});
+
+describe('cancelInvitation server action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('AC-3.2.9: Cancel functionality', () => {
+    beforeEach(() => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'admin@example.com' } },
+      });
+    });
+
+    it('requires admin role', async () => {
+      mockSelectSingle.mockResolvedValueOnce({
+        data: { role: 'member', agency_id: 'agency-1' },
+        error: null
+      });
+
+      const result = await cancelInvitation('inv-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Only admins can cancel invitations');
+    });
+  });
+
+  describe('Authentication checks', () => {
+    it('returns error when user is not authenticated', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null } });
+
+      const result = await cancelInvitation('inv-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not authenticated');
     });
   });
 });

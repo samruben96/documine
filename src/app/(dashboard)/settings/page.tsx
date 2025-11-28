@@ -1,14 +1,16 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
+import { TeamTab } from '@/components/settings/team-tab';
 import { ComingSoonTab } from '@/components/settings/coming-soon-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 /**
  * Settings Page
- * Per AC-2.6.4: Settings page layout with tabs for Profile, Agency, Billing
+ * Per AC-2.6.4: Settings page layout with tabs for Profile, Agency, Team, Billing
  * Per AC-3.1.1: Agency tab displays name, tier, seats, created date
+ * Per AC-3.2.7: Team tab displays members and pending invitations
  */
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -44,12 +46,48 @@ export default async function SettingsPage() {
 
   // Get current seat count for agency (per AC-3.1.1)
   let currentSeats = 0;
+  let teamMembers: Array<{
+    id: string;
+    email: string;
+    full_name: string | null;
+    role: string;
+    created_at: string;
+  }> = [];
+  let invitations: Array<{
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    created_at: string;
+    expires_at: string;
+  }> = [];
+
   if (userData.agency_id) {
+    // Get seat count
     const { count } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('agency_id', userData.agency_id);
     currentSeats = count || 0;
+
+    // Get team members (per AC-3.2.7)
+    const { data: members } = await supabase
+      .from('users')
+      .select('id, email, full_name, role, created_at')
+      .eq('agency_id', userData.agency_id)
+      .order('created_at', { ascending: true });
+    teamMembers = members || [];
+
+    // Get pending invitations (per AC-3.2.7) - admin only
+    if (userData.role === 'admin') {
+      const { data: invites } = await supabase
+        .from('invitations')
+        .select('id, email, role, status, created_at, expires_at')
+        .eq('agency_id', userData.agency_id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      invitations = invites || [];
+    }
   }
 
   return (
@@ -65,6 +103,7 @@ export default async function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="agency">Agency</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
@@ -74,6 +113,14 @@ export default async function SettingsPage() {
 
         <TabsContent value="agency">
           <AgencyTab user={userData} currentSeats={currentSeats} />
+        </TabsContent>
+
+        <TabsContent value="team">
+          <TeamTab
+            user={userData}
+            members={teamMembers}
+            invitations={invitations}
+          />
         </TabsContent>
 
         <TabsContent value="billing">
