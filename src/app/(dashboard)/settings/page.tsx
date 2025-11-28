@@ -2,9 +2,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
 import { TeamTab } from '@/components/settings/team-tab';
-import { ComingSoonTab } from '@/components/settings/coming-soon-tab';
+import { BillingTab } from '@/components/settings/billing-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { type PlanTier } from '@/lib/constants/plans';
 
 /**
  * Settings Page
@@ -125,9 +126,11 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="billing">
-          <ComingSoonTab
-            title="Billing"
-            description="Manage your subscription and payment methods"
+          <BillingTab
+            tier={(userData.agency?.subscription_tier as PlanTier) || 'starter'}
+            seatLimit={userData.agency?.seat_limit ?? 3}
+            currentSeats={currentSeats}
+            isAdmin={userData.role === 'admin'}
           />
         </TabsContent>
       </Tabs>

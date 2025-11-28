@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { profileSchema, agencySchema, inviteUserSchema } from '@/lib/validations/auth';
 import { revalidatePath } from 'next/cache';
+import { type PlanTier, getSeatLimit } from '@/lib/constants/plans';
 
 /**
  * Update user profile
@@ -540,6 +541,128 @@ export async function changeUserRole(
 
   if (updateError) {
     return { success: false, error: 'Failed to update role' };
+  }
+
+  revalidatePath('/settings');
+  return { success: true };
+}
+
+/**
+ * Get billing information for current user's agency
+ * Per AC-3.4.1, AC-3.4.2: Returns tier, seat limit, current usage
+ */
+export async function getBillingInfo(): Promise<{
+  tier: PlanTier;
+  seatLimit: number;
+  currentSeats: number;
+  agencyName: string;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Not authenticated');
+  }
+
+  // Get user's agency
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('agency_id')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData?.agency_id) {
+    throw new Error('No agency found');
+  }
+
+  // Get agency details
+  const { data: agency, error: agencyError } = await supabase
+    .from('agencies')
+    .select('name, subscription_tier, seat_limit')
+    .eq('id', userData.agency_id)
+    .single();
+
+  if (agencyError || !agency) {
+    throw new Error('Failed to load agency');
+  }
+
+  // Count current users
+  const { count: currentSeats } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', userData.agency_id);
+
+  return {
+    tier: (agency.subscription_tier as PlanTier) || 'starter',
+    seatLimit: agency.seat_limit ?? 3,
+    currentSeats: currentSeats ?? 0,
+    agencyName: agency.name ?? '',
+  };
+}
+
+/**
+ * Update agency subscription tier (internal/support use only for MVP)
+ * Per AC-3.4.6: Admin can manually change tier, validates seat limits
+ */
+export async function updateSubscriptionTier(
+  tier: PlanTier
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  // Get current user's role and agency
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from('users')
+    .select('role, agency_id')
+    .eq('id', user.id)
+    .single();
+
+  if (currentUserError || !currentUser) {
+    return { success: false, error: 'Failed to get user data' };
+  }
+
+  // Verify admin role
+  if (currentUser.role !== 'admin') {
+    return { success: false, error: 'Only admins can change subscription tier' };
+  }
+
+  const agencyId = currentUser.agency_id;
+
+  // Get new seat limit from plan constants
+  const newSeatLimit = getSeatLimit(tier);
+
+  // Check current user count doesn't exceed new limit
+  const { count: currentSeats } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId);
+
+  if ((currentSeats ?? 0) > newSeatLimit) {
+    return {
+      success: false,
+      error: `Cannot downgrade to ${tier}. Current users (${currentSeats}) exceed the ${newSeatLimit} seat limit.`,
+    };
+  }
+
+  // Update tier and seat limit
+  const { error: updateError } = await supabase
+    .from('agencies')
+    .update({
+      subscription_tier: tier,
+      seat_limit: newSeatLimit,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', agencyId);
+
+  if (updateError) {
+    return { success: false, error: 'Failed to update subscription tier' };
   }
 
   revalidatePath('/settings');
