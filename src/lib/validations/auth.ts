@@ -65,3 +65,16 @@ export const profileSchema = z.object({
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
+
+/**
+ * Agency update validation schema
+ * Per AC-3.1.2: Name must be 2-100 characters
+ */
+export const agencySchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Agency name must be at least 2 characters')
+    .max(100, 'Agency name must be at most 100 characters'),
+});
+
+export type AgencyFormData = z.infer<typeof agencySchema>;

@@ -208,3 +208,57 @@ describe('passwordSchema', () => {
     });
   });
 });
+
+/**
+ * Tests for agencySchema (AC-3.1.2)
+ * Agency name validation for agency settings update
+ */
+import { agencySchema } from '@/lib/validations/auth';
+
+describe('agencySchema', () => {
+  describe('AC-3.1.2: Agency name validation (2-100 chars)', () => {
+    it('rejects empty agency names', () => {
+      const result = agencySchema.safeParse({ name: '' });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Agency name must be at least 2 characters');
+      }
+    });
+
+    it('rejects names shorter than 2 characters', () => {
+      const result = agencySchema.safeParse({ name: 'A' });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Agency name must be at least 2 characters');
+      }
+    });
+
+    it('rejects names longer than 100 characters', () => {
+      const longName = 'A'.repeat(101);
+      const result = agencySchema.safeParse({ name: longName });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Agency name must be at most 100 characters');
+      }
+    });
+
+    it('accepts minimum valid name (2 chars)', () => {
+      const result = agencySchema.safeParse({ name: 'AB' });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts maximum valid name (100 chars)', () => {
+      const maxName = 'A'.repeat(100);
+      const result = agencySchema.safeParse({ name: maxName });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts valid agency names', () => {
+      const result = agencySchema.safeParse({ name: 'Smith Insurance Agency' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.name).toBe('Smith Insurance Agency');
+      }
+    });
+  });
+});

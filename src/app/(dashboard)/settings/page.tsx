@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileTab } from '@/components/settings/profile-tab';
+import { AgencyTab } from '@/components/settings/agency-tab';
 import { ComingSoonTab } from '@/components/settings/coming-soon-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -7,8 +8,7 @@ import { redirect } from 'next/navigation';
 /**
  * Settings Page
  * Per AC-2.6.4: Settings page layout with tabs for Profile, Agency, Billing
- * - Profile tab active by default
- * - Agency and Billing tabs show "Coming soon" placeholder
+ * Per AC-3.1.1: Agency tab displays name, tier, seats, created date
  */
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -18,7 +18,7 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  // Fetch user with agency data (per AC-2.6.1)
+  // Fetch user with agency data including subscription info (per AC-2.6.1, AC-3.1.1)
   const { data: userData, error } = await supabase
     .from('users')
     .select(`
@@ -26,9 +26,13 @@ export default async function SettingsPage() {
       email,
       full_name,
       role,
+      agency_id,
       agency:agencies (
         id,
-        name
+        name,
+        subscription_tier,
+        seat_limit,
+        created_at
       )
     `)
     .eq('id', user.id)
@@ -36,6 +40,16 @@ export default async function SettingsPage() {
 
   if (error || !userData) {
     redirect('/login');
+  }
+
+  // Get current seat count for agency (per AC-3.1.1)
+  let currentSeats = 0;
+  if (userData.agency_id) {
+    const { count } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('agency_id', userData.agency_id);
+    currentSeats = count || 0;
   }
 
   return (
@@ -59,10 +73,7 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="agency">
-          <ComingSoonTab
-            title="Agency Settings"
-            description="Manage your agency details and team"
-          />
+          <AgencyTab user={userData} currentSeats={currentSeats} />
         </TabsContent>
 
         <TabsContent value="billing">
