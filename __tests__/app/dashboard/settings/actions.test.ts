@@ -2,6 +2,7 @@
  * Tests for settings server actions
  * Tests AC-2.6.2, AC-2.6.3, AC-3.1.2, AC-3.1.3, AC-3.1.4
  * Tests AC-3.2.1 to AC-3.2.9 (invitation actions)
+ * Tests AC-3.5.1 to AC-3.5.6 (usage metrics)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -32,29 +33,28 @@ vi.mock('@/lib/supabase/server', () => ({
         })),
         select: vi.fn((columns?: string, opts?: { count?: string; head?: boolean }) => {
           if (opts?.count === 'exact' && opts?.head === true) {
+            // For count queries with filtering (eq, eq.eq, eq.gte, eq.eq.gte)
+            // Create a thenable object that only resolves mockSelectCount when awaited
+            const createThenable = () => ({
+              eq: vi.fn(() => createThenable()),
+              gte: vi.fn(() => createThenable()),
+              then: (resolve: (value: { count: number | null; error: null }) => void) => {
+                resolve(mockSelectCount());
+              },
+            });
             return {
-              eq: vi.fn(() => {
-                // Return an object that works for both single eq() and chained eq().eq()
-                const countResult = mockSelectCount();
-                return {
-                  ...countResult,
-                  eq: vi.fn(() => countResult),
-                };
-              }),
+              eq: vi.fn(() => createThenable()),
             };
           }
+          // For regular select queries
+          const buildSelectChain = () => ({
+            single: mockSelectSingle,
+            maybeSingle: mockSelectMaybeSingle,
+            eq: vi.fn(() => buildSelectChain()),
+            gte: vi.fn(() => ({ data: [], error: null })),
+          });
           return {
-            eq: vi.fn(() => ({
-              single: mockSelectSingle,
-              eq: vi.fn(() => ({
-                single: mockSelectSingle,
-                eq: vi.fn(() => ({
-                  maybeSingle: mockSelectMaybeSingle,
-                })),
-                maybeSingle: mockSelectMaybeSingle,
-              })),
-              maybeSingle: mockSelectMaybeSingle,
-            })),
+            eq: vi.fn(() => buildSelectChain()),
             single: mockSelectSingle,
           };
         }),
@@ -90,7 +90,7 @@ vi.mock('next/cache', () => ({
 }));
 
 // Must import after mocks
-import { updateProfile, updateAgency, inviteUser, resendInvitation, cancelInvitation, removeTeamMember, changeUserRole, getBillingInfo, updateSubscriptionTier } from '@/app/(dashboard)/settings/actions';
+import { updateProfile, updateAgency, inviteUser, resendInvitation, cancelInvitation, removeTeamMember, changeUserRole, getBillingInfo, updateSubscriptionTier, getUsageMetrics } from '@/app/(dashboard)/settings/actions';
 
 describe('updateProfile server action', () => {
   beforeEach(() => {
@@ -716,6 +716,8 @@ describe('changeUserRole server action', () => {
 describe('getBillingInfo server action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset mockSelectCount to default implementation
+    mockSelectCount.mockImplementation(() => ({ count: 0, error: null }));
   });
 
   describe('AC-3.4.1, AC-3.4.2: Returns billing information', () => {
@@ -943,6 +945,116 @@ describe('updateSubscriptionTier server action', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to update subscription tier');
+    });
+  });
+});
+
+describe('getUsageMetrics server action', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Ensure mockSelectCount returns default value (reset any previous mockReturnValue)
+    mockSelectCount.mockImplementation(() => ({ count: 0, error: null }));
+  });
+
+  describe('AC-3.5.6: Admin-only access', () => {
+    it('returns null when user is not authenticated', async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null } });
+
+      const result = await getUsageMetrics();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when user is not an admin', async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'member@example.com' } },
+      });
+      mockSelectSingle.mockResolvedValueOnce({
+        data: { role: 'member', agency_id: 'agency-1' },
+        error: null
+      });
+
+      const result = await getUsageMetrics();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when user has no agency_id', async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'test@example.com' } },
+      });
+      mockSelectSingle.mockResolvedValueOnce({
+        data: { role: 'admin', agency_id: null },
+        error: null
+      });
+
+      const result = await getUsageMetrics();
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('AC-3.5.1 to AC-3.5.4: Returns usage metrics for admin', () => {
+    beforeEach(() => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'admin@example.com' } },
+      });
+      mockSelectSingle.mockResolvedValueOnce({
+        data: { role: 'admin', agency_id: 'agency-1' },
+        error: null
+      });
+      // Default mockSelectCount already returns { count: 0, error: null }
+    });
+
+    it('returns correct structure with all metrics', async () => {
+      const result = await getUsageMetrics();
+
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('documentsUploaded');
+      expect(result).toHaveProperty('queriesAsked');
+      expect(result).toHaveProperty('activeUsers');
+      expect(result).toHaveProperty('storageUsedBytes');
+    });
+
+    it('returns documentsUploaded with thisMonth and allTime (AC-3.5.1)', async () => {
+      const result = await getUsageMetrics();
+
+      expect(result?.documentsUploaded).toHaveProperty('thisMonth');
+      expect(result?.documentsUploaded).toHaveProperty('allTime');
+      expect(typeof result?.documentsUploaded.thisMonth).toBe('number');
+      expect(typeof result?.documentsUploaded.allTime).toBe('number');
+    });
+
+    it('returns queriesAsked with thisMonth and allTime (AC-3.5.2)', async () => {
+      const result = await getUsageMetrics();
+
+      expect(result?.queriesAsked).toHaveProperty('thisMonth');
+      expect(result?.queriesAsked).toHaveProperty('allTime');
+      expect(typeof result?.queriesAsked.thisMonth).toBe('number');
+      expect(typeof result?.queriesAsked.allTime).toBe('number');
+    });
+
+    it('returns activeUsers as a number (AC-3.5.3)', async () => {
+      const result = await getUsageMetrics();
+
+      expect(typeof result?.activeUsers).toBe('number');
+    });
+
+    it('returns storageUsedBytes as a number (AC-3.5.4)', async () => {
+      const result = await getUsageMetrics();
+
+      expect(typeof result?.storageUsedBytes).toBe('number');
+    });
+
+    it('defaults counts to 0 when database returns null', async () => {
+      mockSelectCount.mockImplementation(() => ({ count: null, error: null }));
+
+      const result = await getUsageMetrics();
+
+      expect(result?.documentsUploaded.thisMonth).toBe(0);
+      expect(result?.documentsUploaded.allTime).toBe(0);
+      expect(result?.queriesAsked.thisMonth).toBe(0);
+      expect(result?.queriesAsked.allTime).toBe(0);
     });
   });
 });

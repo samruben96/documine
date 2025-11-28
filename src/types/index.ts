@@ -15,3 +15,14 @@ export type DocumentStatus = 'processing' | 'ready' | 'failed';
 export type Confidence = 'high' | 'needs_review' | 'not_found';
 
 export type SubscriptionTier = 'starter' | 'professional' | 'enterprise';
+
+/**
+ * Usage metrics for agency dashboard
+ * Per AC-3.5.1 to AC-3.5.4
+ */
+export interface UsageMetrics {
+  documentsUploaded: { thisMonth: number; allTime: number };
+  queriesAsked: { thisMonth: number; allTime: number };
+  activeUsers: number;
+  storageUsedBytes: number;
+}

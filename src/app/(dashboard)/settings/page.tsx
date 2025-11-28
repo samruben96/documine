@@ -3,15 +3,18 @@ import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
 import { TeamTab } from '@/components/settings/team-tab';
 import { BillingTab } from '@/components/settings/billing-tab';
+import { UsageTab } from '@/components/settings/usage-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { type PlanTier } from '@/lib/constants/plans';
+import { getUsageMetrics } from './actions';
 
 /**
  * Settings Page
  * Per AC-2.6.4: Settings page layout with tabs for Profile, Agency, Team, Billing
  * Per AC-3.1.1: Agency tab displays name, tier, seats, created date
  * Per AC-3.2.7: Team tab displays members and pending invitations
+ * Per AC-3.5.5, AC-3.5.6: Usage tab (admin only) displays usage metrics on page load
  */
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -91,6 +94,12 @@ export default async function SettingsPage() {
     }
   }
 
+  // Check if user is admin for Usage tab visibility (AC-3.5.6)
+  const isAdmin = userData.role === 'admin';
+
+  // Fetch usage metrics for admins only (AC-3.5.5, AC-3.5.6)
+  const usageMetrics = isAdmin ? await getUsageMetrics() : null;
+
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
@@ -106,6 +115,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="agency">Agency</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          {isAdmin && <TabsTrigger value="usage">Usage</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="profile">
@@ -130,9 +140,15 @@ export default async function SettingsPage() {
             tier={(userData.agency?.subscription_tier as PlanTier) || 'starter'}
             seatLimit={userData.agency?.seat_limit ?? 3}
             currentSeats={currentSeats}
-            isAdmin={userData.role === 'admin'}
+            isAdmin={isAdmin}
           />
         </TabsContent>
+
+        {isAdmin && usageMetrics && (
+          <TabsContent value="usage">
+            <UsageTab metrics={usageMetrics} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

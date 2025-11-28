@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { profileSchema, agencySchema, inviteUserSchema } from '@/lib/validations/auth';
 import { revalidatePath } from 'next/cache';
 import { type PlanTier, getSeatLimit } from '@/lib/constants/plans';
+import { type UsageMetrics } from '@/types';
 
 /**
  * Update user profile
@@ -667,4 +668,115 @@ export async function updateSubscriptionTier(
 
   revalidatePath('/settings');
   return { success: true };
+}
+
+/**
+ * Get usage metrics for agency
+ * Per AC-3.5.1 to AC-3.5.4: Returns documents, queries, active users, storage
+ * Per AC-3.5.6: Returns null for non-admin users
+ */
+export async function getUsageMetrics(): Promise<UsageMetrics | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  // Get user's agency and verify admin role
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('agency_id, role')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData?.agency_id || userData.role !== 'admin') {
+    return null;
+  }
+
+  const agencyId = userData.agency_id;
+
+  // Calculate start of current month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  // Calculate 7 days ago
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Documents all time (AC-3.5.1)
+  const { count: docsAllTime } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId);
+
+  // Documents this month (AC-3.5.1)
+  const { count: docsThisMonth } = await supabase
+    .from('documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
+    .gte('created_at', startOfMonth.toISOString());
+
+  // Queries all time - count chat_messages with role='user' (AC-3.5.2)
+  const { count: queriesAllTime } = await supabase
+    .from('chat_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
+    .eq('role', 'user');
+
+  // Queries this month (AC-3.5.2)
+  const { count: queriesThisMonth } = await supabase
+    .from('chat_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
+    .eq('role', 'user')
+    .gte('created_at', startOfMonth.toISOString());
+
+  // Active users - distinct users with activity in last 7 days (AC-3.5.3)
+  // Activity = uploaded document OR had conversation activity
+  const { data: docUploaders } = await supabase
+    .from('documents')
+    .select('uploaded_by')
+    .eq('agency_id', agencyId)
+    .gte('created_at', sevenDaysAgo.toISOString());
+
+  const { data: conversationUsers } = await supabase
+    .from('conversations')
+    .select('user_id')
+    .eq('agency_id', agencyId)
+    .gte('updated_at', sevenDaysAgo.toISOString());
+
+  const activeUserIds = new Set([
+    ...(docUploaders?.map(d => d.uploaded_by) || []),
+    ...(conversationUsers?.map(c => c.user_id) || []),
+  ]);
+
+  // Storage - sum from documents metadata (AC-3.5.4)
+  const { data: storageData } = await supabase
+    .from('documents')
+    .select('metadata')
+    .eq('agency_id', agencyId);
+
+  let storageUsedBytes = 0;
+  if (storageData) {
+    for (const doc of storageData) {
+      if (doc.metadata && typeof doc.metadata === 'object' && 'size' in doc.metadata) {
+        storageUsedBytes += Number(doc.metadata.size) || 0;
+      }
+    }
+  }
+
+  return {
+    documentsUploaded: {
+      thisMonth: docsThisMonth ?? 0,
+      allTime: docsAllTime ?? 0,
+    },
+    queriesAsked: {
+      thisMonth: queriesThisMonth ?? 0,
+      allTime: queriesAllTime ?? 0,
+    },
+    activeUsers: activeUserIds.size,
+    storageUsedBytes,
+  };
 }
