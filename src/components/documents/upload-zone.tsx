@@ -1,0 +1,220 @@
+'use client';
+
+import { useCallback, useState } from 'react';
+import { useDropzone, FileRejection } from 'react-dropzone';
+import { toast } from 'sonner';
+import { Upload, FileText, Loader2, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Constants for file validation
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILES = 5;
+const ACCEPTED_MIME_TYPES = { 'application/pdf': ['.pdf'] };
+
+export interface UploadingFile {
+  id: string;
+  file: File;
+  progress: number;
+  status: 'uploading' | 'processing' | 'ready' | 'failed';
+  error?: string;
+}
+
+interface UploadZoneProps {
+  onFilesAccepted: (files: File[]) => void;
+  uploadingFiles?: UploadingFile[];
+  onCancelUpload?: (fileId: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+/**
+ * Upload Zone Component
+ *
+ * Implements drag-and-drop file upload with validation:
+ * - AC-4.1.1: Dashed border with instructional text
+ * - AC-4.1.2: Drag hover state with primary color highlight
+ * - AC-4.1.3: Click opens file picker filtered to PDF
+ * - AC-4.1.4: Rejects non-PDF files with toast
+ * - AC-4.1.5: Rejects files over 50MB with toast
+ * - AC-4.1.6: Supports up to 5 simultaneous uploads
+ */
+export function UploadZone({
+  onFilesAccepted,
+  uploadingFiles = [],
+  onCancelUpload,
+  disabled = false,
+  className,
+}: UploadZoneProps) {
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+      // Handle rejected files
+      for (const rejection of rejectedFiles) {
+        const { file, errors } = rejection;
+
+        for (const error of errors) {
+          if (error.code === 'file-too-large') {
+            toast.error('File too large. Maximum size is 50MB');
+          } else if (error.code === 'file-invalid-type') {
+            toast.error('Only PDF files are supported');
+          } else if (error.code === 'too-many-files') {
+            toast.error('Maximum 5 files at once');
+          } else {
+            toast.error(`Error with ${file.name}: ${error.message}`);
+          }
+        }
+      }
+
+      // Handle accepted files
+      if (acceptedFiles.length > 0) {
+        onFilesAccepted(acceptedFiles);
+      }
+    },
+    [onFilesAccepted]
+  );
+
+  const onDragEnter = useCallback(() => {
+    setIsDragActive(true);
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    setIsDragActive(false);
+  }, []);
+
+  const { getRootProps, getInputProps, open } = useDropzone({
+    onDrop,
+    onDragEnter,
+    onDragLeave,
+    accept: ACCEPTED_MIME_TYPES,
+    maxSize: MAX_FILE_SIZE,
+    maxFiles: MAX_FILES,
+    disabled,
+    noClick: false,
+    noKeyboard: false,
+  });
+
+  const hasUploadingFiles = uploadingFiles.length > 0;
+
+  return (
+    <div className={cn('w-full', className)}>
+      {/* Drop Zone */}
+      <div
+        {...getRootProps()}
+        className={cn(
+          'relative flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed p-8 transition-all duration-100 cursor-pointer',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          isDragActive
+            ? 'border-slate-600 bg-slate-50'
+            : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50/50',
+          disabled && 'cursor-not-allowed opacity-50',
+          hasUploadingFiles && 'pb-4'
+        )}
+      >
+        <input {...getInputProps()} aria-label="Upload PDF files" />
+
+        <div
+          className={cn(
+            'rounded-full p-3 transition-colors',
+            isDragActive ? 'bg-slate-200' : 'bg-slate-100'
+          )}
+        >
+          <Upload
+            className={cn(
+              'h-6 w-6 transition-colors',
+              isDragActive ? 'text-slate-700' : 'text-slate-500'
+            )}
+          />
+        </div>
+
+        <div className="text-center">
+          <p
+            className={cn(
+              'text-sm font-medium transition-colors',
+              isDragActive ? 'text-slate-700' : 'text-slate-600'
+            )}
+          >
+            Drop a document here or click to upload
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            PDF files only, up to 50MB each (max 5 files)
+          </p>
+        </div>
+      </div>
+
+      {/* Uploading Files List */}
+      {hasUploadingFiles && (
+        <div className="mt-4 space-y-2">
+          {uploadingFiles.map((uploadFile) => (
+            <UploadingFileItem
+              key={uploadFile.id}
+              file={uploadFile}
+              onCancel={onCancelUpload}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface UploadingFileItemProps {
+  file: UploadingFile;
+  onCancel?: (fileId: string) => void;
+}
+
+function UploadingFileItem({ file, onCancel }: UploadingFileItemProps) {
+  const { id, file: fileData, progress, status, error } = file;
+
+  return (
+    <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white p-3">
+      <div className="flex-shrink-0">
+        <FileText className="h-5 w-5 text-slate-500" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-700">
+          {fileData.name}
+        </p>
+
+        {status === 'uploading' && (
+          <div className="mt-1.5">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full bg-slate-600 transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{progress}% uploaded</p>
+          </div>
+        )}
+
+        {status === 'processing' && (
+          <div className="mt-1 flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
+            <p className="text-xs text-slate-500">Analyzing...</p>
+          </div>
+        )}
+
+        {status === 'ready' && (
+          <p className="mt-1 text-xs text-emerald-600">Ready</p>
+        )}
+
+        {status === 'failed' && (
+          <p className="mt-1 text-xs text-red-600">{error || 'Upload failed'}</p>
+        )}
+      </div>
+
+      {status === 'uploading' && onCancel && (
+        <button
+          type="button"
+          onClick={() => onCancel(id)}
+          className="flex-shrink-0 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`Cancel upload of ${fileData.name}`}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
