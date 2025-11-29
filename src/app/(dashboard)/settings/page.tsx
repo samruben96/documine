@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
 import { TeamTab } from '@/components/settings/team-tab';
+import { TeamTabSkeleton } from '@/components/settings/team-tab-skeleton';
 import { BillingTab } from '@/components/settings/billing-tab';
 import { UsageTab } from '@/components/settings/usage-tab';
 import { createClient } from '@/lib/supabase/server';
@@ -126,13 +128,16 @@ export default async function SettingsPage() {
           <AgencyTab user={userData} currentSeats={currentSeats} />
         </TabsContent>
 
+        {/* AC-3.6.5: Suspense with skeleton loading for Team tab */}
         <TabsContent value="team">
-          <TeamTab
-            user={userData}
-            members={teamMembers}
-            invitations={invitations}
-            agencyName={userData.agency?.name || 'Unknown Agency'}
-          />
+          <Suspense fallback={<TeamTabSkeleton />}>
+            <TeamTab
+              user={userData}
+              members={teamMembers}
+              invitations={invitations}
+              agencyName={userData.agency?.name || 'Unknown Agency'}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="billing">

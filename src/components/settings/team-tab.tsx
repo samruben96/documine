@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useOptimistic } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, Mail, RefreshCw, X, UserPlus, Trash2 } from 'lucide-react';
+import { Loader2, Mail, RefreshCw, X, UserPlus, Trash2, Eye } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,31 +70,51 @@ const defaultRole = roleDisplay.member;
  * Per AC-3.3.1-8: Team member management with role toggle and remove functionality
  */
 export function TeamTab({ user, members: initialMembers, invitations: initialInvitations, agencyName }: TeamTabProps) {
+  const router = useRouter();
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [removeModalOpen, setRemoveModalOpen] = useState(false);
   const [userToRemove, setUserToRemove] = useState<TeamMember | null>(null);
-  const [members, setMembers] = useState(initialMembers);
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [invitations, setInvitations] = useState(initialInvitations);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [highlightedMemberId, setHighlightedMemberId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const isAdmin = user.role === 'admin';
 
+  // AC-3.6.1: Optimistic updates for role changes
+  const [optimisticMembers, setOptimisticMember] = useOptimistic(
+    initialMembers,
+    (state, { memberId, newRole }: { memberId: string; newRole: string }) =>
+      state.map(m => m.id === memberId ? { ...m, role: newRole } : m)
+  );
+
   const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
 
+  // AC-3.6.1: Optimistic role change with error rollback
   const handleRoleChange = (memberId: string, newRole: 'admin' | 'member') => {
+    const member = optimisticMembers.find(m => m.id === memberId);
+    const previousRole = member?.role || 'member';
+
     setPendingAction(`role-${memberId}`);
+
     startTransition(async () => {
+      // Optimistic update - UI updates immediately
+      setOptimisticMember({ memberId, newRole });
+
       const result = await changeUserRole(memberId, newRole);
       setPendingAction(null);
 
       if (result.success) {
         toast.success(`Role updated to ${newRole}`);
-        // Update local state
-        setMembers(prev => prev.map(m =>
-          m.id === memberId ? { ...m, role: newRole } : m
-        ));
+        // AC-3.6.6: Brief highlight animation on success
+        setHighlightedMemberId(memberId);
+        setTimeout(() => setHighlightedMemberId(null), 300);
+        // Refresh to sync server state
+        router.refresh();
       } else {
+        // Revert on error - useOptimistic handles this automatically on re-render
         toast.error(result.error || 'Failed to update role');
+        router.refresh(); // Force re-render to revert optimistic update
       }
     });
   };
@@ -103,10 +124,17 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
     setRemoveModalOpen(true);
   };
 
+  // AC-3.6.6: Fade-out animation on member removal
   const handleRemoveSuccess = () => {
     if (userToRemove) {
-      setMembers(prev => prev.filter(m => m.id !== userToRemove.id));
-      setUserToRemove(null);
+      // Start fade-out animation
+      setRemovingMemberId(userToRemove.id);
+      // After animation completes, refresh to get updated data
+      setTimeout(() => {
+        setRemovingMemberId(null);
+        setUserToRemove(null);
+        router.refresh();
+      }, 300);
     }
   };
 
@@ -140,9 +168,10 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
     });
   };
 
+  // AC-3.6.2: Use router.refresh() instead of full page reload
   const handleInviteSuccess = () => {
-    // Refresh page to get updated invitations
-    window.location.reload();
+    // Refresh server components without losing client state or scroll position
+    router.refresh();
   };
 
   return (
@@ -150,9 +179,24 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Team Members</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Team Members
+              {/* AC-3.6.7: View-only mode indicator for non-admin users */}
+              {!isAdmin && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                  <Eye className="h-3 w-3" />
+                  View only
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
-              {members.length} {members.length === 1 ? 'member' : 'members'} in your agency
+              {optimisticMembers.length} {optimisticMembers.length === 1 ? 'member' : 'members'} in your agency
+              {/* AC-3.6.7: Explanation for non-admin users */}
+              {!isAdmin && (
+                <span className="block text-xs text-slate-500 mt-1">
+                  Contact an admin to manage team members
+                </span>
+              )}
             </CardDescription>
           </div>
           {isAdmin && (
@@ -174,13 +218,22 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((member) => {
+              {optimisticMembers.map((member) => {
                 const role = roleDisplay[member.role as keyof typeof roleDisplay] ?? defaultRole;
                 const isCurrentUser = member.id === user.id;
                 const isChangingRole = pendingAction === `role-${member.id}`;
+                const isBeingRemoved = removingMemberId === member.id;
+                const isHighlighted = highlightedMemberId === member.id;
 
                 return (
-                  <TableRow key={member.id}>
+                  <TableRow
+                    key={member.id}
+                    className={`
+                      group transition-all duration-300
+                      ${isBeingRemoved ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+                      ${isHighlighted ? 'bg-green-50' : ''}
+                    `}
+                  >
                     <TableCell className="font-medium">
                       {member.full_name || 'No name set'}
                       {isCurrentUser && (
@@ -190,33 +243,42 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
                       {isAdmin && !isCurrentUser ? (
-                        <select
-                          value={member.role}
-                          onChange={(e) => handleRoleChange(member.id, e.target.value as 'admin' | 'member')}
-                          disabled={isPending}
-                          className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs font-medium shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="member">Member</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleRoleChange(member.id, e.target.value as 'admin' | 'member')}
+                            disabled={isPending}
+                            className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs font-medium shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          {/* AC-3.6.1: Inline loading indicator */}
+                          {isChangingRole && (
+                            <Loader2 className="h-3 w-3 animate-spin text-slate-500" />
+                          )}
+                        </div>
                       ) : (
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${role.color}`}>
                           {role.label}
                         </span>
                       )}
-                      {isChangingRole && (
-                        <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />
-                      )}
                     </TableCell>
                     <TableCell>{formatDate(member.created_at)}</TableCell>
                     {isAdmin && (
                       <TableCell className="text-right">
+                        {/* AC-3.6.3: Hover-reveal remove button (desktop) / Always visible (mobile) */}
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveClick(member)}
                           disabled={isCurrentUser || isPending}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          className={`
+                            text-red-600 hover:text-red-700 hover:bg-red-50
+                            transition-opacity duration-200
+                            ${isCurrentUser ? 'opacity-50 cursor-not-allowed' : ''}
+                            [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100
+                          `}
                           title={isCurrentUser ? 'You cannot remove yourself' : 'Remove member'}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -245,8 +307,17 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
                 : `${pendingInvitations.length} pending ${pendingInvitations.length === 1 ? 'invitation' : 'invitations'}`}
             </CardDescription>
           </CardHeader>
-          {pendingInvitations.length > 0 && (
-            <CardContent>
+          <CardContent>
+            {/* AC-3.6.4: Helpful empty state for invitations */}
+            {pendingInvitations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-slate-100 p-3 mb-3">
+                  <UserPlus className="h-6 w-6 text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-600 font-medium">No pending invitations</p>
+                <p className="text-xs text-slate-500 mt-1">Invite team members to get started</p>
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -265,7 +336,10 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
                     const isCancelling = pendingAction === `cancel-${invitation.id}`;
 
                     return (
-                      <TableRow key={invitation.id}>
+                      <TableRow
+                        key={invitation.id}
+                        className="transition-opacity duration-300"
+                      >
                         <TableCell className="font-medium">{invitation.email}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${role.color}`}>
@@ -316,8 +390,8 @@ export function TeamTab({ user, members: initialMembers, invitations: initialInv
                   })}
                 </TableBody>
               </Table>
-            </CardContent>
-          )}
+            )}
+          </CardContent>
         </Card>
       )}
 
