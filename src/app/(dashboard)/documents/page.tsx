@@ -1,28 +1,69 @@
 'use client';
 
-import { useState, useCallback, useTransition, useEffect } from 'react';
+import { useState, useCallback, useTransition, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
-import { uploadDocument, getDocuments, type Document } from './actions';
+import { DocumentStatus, type DocumentStatusType } from '@/components/documents/document-status';
+import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
+import {
+  getDocuments,
+  getUserAgencyInfo,
+  createDocumentFromUpload,
+  retryDocumentProcessing,
+  deleteDocumentAction,
+  type Document,
+  type UserAgencyInfo,
+} from './actions';
+import { createClient } from '@/lib/supabase/client';
+import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } from '@/lib/documents/upload';
 
 /**
  * Documents Page
  *
  * Main document management interface with upload zone integration.
- * Implements AC-4.1.1 through AC-4.1.8.
+ * Implements AC-4.1.1 through AC-4.1.8, AC-4.2.1 through AC-4.2.8.
  */
 export default function DocumentsPage() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
 
-  // Load documents on mount
+  // Use ref to access current userAgencyInfo in callbacks without stale closures
+  const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
+  userAgencyInfoRef.current = userAgencyInfo;
+
+  // Track active upload controllers for cancellation (AC-4.2.3)
+  const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
+
+  // Get agency ID for realtime subscription
+  const { agencyId } = useAgencyId();
+
+  // Realtime document status subscription (AC-4.2.8)
+  const { documents, setDocuments, isConnected } = useDocumentStatus({
+    agencyId: agencyId || '',
+    onDocumentReady: (doc) => {
+      // Toast already handled in the hook per AC-4.2.6
+    },
+    onDocumentFailed: (doc) => {
+      // Toast already handled in the hook
+    },
+  });
+
+  // Load initial documents and user info on mount
   useEffect(() => {
     loadDocuments();
+    loadUserAgencyInfo();
   }, []);
+
+  async function loadUserAgencyInfo() {
+    const result = await getUserAgencyInfo();
+    if (result.success && result.data) {
+      setUserAgencyInfo(result.data);
+    }
+  }
 
   async function loadDocuments() {
     setIsLoading(true);
@@ -38,10 +79,8 @@ export default function DocumentsPage() {
 
   /**
    * Handle accepted files from upload zone
-   * Creates FormData for each file and calls server action
    */
   const handleFilesAccepted = useCallback((files: File[]) => {
-    // Create uploading file entries for each file
     const newUploadingFiles: UploadingFile[] = files.map((file) => ({
       id: crypto.randomUUID(),
       file,
@@ -51,50 +90,68 @@ export default function DocumentsPage() {
 
     setUploadingFiles((prev) => [...prev, ...newUploadingFiles]);
 
-    // Upload each file
     newUploadingFiles.forEach((uploadingFile) => {
       uploadFile(uploadingFile);
     });
   }, []);
 
   /**
-   * Upload a single file using server action
+   * Upload a single file using client-side Supabase with progress tracking
+   * Implements AC-4.2.1 (real-time progress) and AC-4.2.3 (cancellation)
    */
   async function uploadFile(uploadingFile: UploadingFile) {
     const { id, file } = uploadingFile;
 
+    const agencyInfo = userAgencyInfoRef.current;
+    if (!agencyInfo) {
+      setUploadingFiles((prev) =>
+        prev.map((f) =>
+          f.id === id
+            ? { ...f, status: 'failed' as const, error: 'User info not loaded' }
+            : f
+        )
+      );
+      toast.error('Failed to get user info. Please refresh the page.');
+      return;
+    }
+
+    const controller = new AbortController();
+    uploadControllersRef.current.set(id, controller);
+
+    const supabase = createClient();
+    const documentId = crypto.randomUUID();
+    const safeFilename = sanitizeFilename(file.name);
+    const storagePath = `${agencyInfo.agencyId}/${documentId}/${safeFilename}`;
+
     try {
-      // Update progress to simulate upload (actual progress tracking requires different approach)
+      // Upload with real-time progress (AC-4.2.1)
+      await uploadDocumentToStorage(supabase, file, agencyInfo.agencyId, documentId, {
+        onProgress: (percent) => {
+          setUploadingFiles((prev) =>
+            prev.map((f) =>
+              f.id === id ? { ...f, progress: percent, status: 'uploading' as const } : f
+            )
+          );
+        },
+        signal: controller.signal,
+      });
+
+      // Transition to processing state (AC-4.2.4)
       setUploadingFiles((prev) =>
         prev.map((f) =>
-          f.id === id ? { ...f, progress: 30, status: 'uploading' as const } : f
+          f.id === id ? { ...f, progress: 100, status: 'processing' as const } : f
         )
       );
 
-      // Create FormData and call server action
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Update to processing state
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === id ? { ...f, progress: 80, status: 'uploading' as const } : f
-        )
-      );
-
-      const result = await uploadDocument(formData);
+      // Create document record
+      const result = await createDocumentFromUpload({
+        documentId,
+        filename: file.name,
+        storagePath,
+      });
 
       if (result.success && result.document) {
-        // Mark as ready and show success
-        setUploadingFiles((prev) =>
-          prev.map((f) =>
-            f.id === id ? { ...f, progress: 100, status: 'ready' as const } : f
-          )
-        );
-
-        toast.success(`${file.name} is ready`);
-
-        // Add to documents list
+        // Add to documents list (realtime will update status changes)
         setDocuments((prev) => [result.document!, ...prev]);
 
         // Remove from uploading list after delay
@@ -102,7 +159,7 @@ export default function DocumentsPage() {
           setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
         }, 2000);
       } else {
-        // Mark as failed
+        await deleteDocumentFromStorage(supabase, storagePath);
         setUploadingFiles((prev) =>
           prev.map((f) =>
             f.id === id
@@ -113,29 +170,71 @@ export default function DocumentsPage() {
         toast.error(result.error || 'Upload failed');
       }
     } catch (error) {
-      // Mark as failed on exception
-      setUploadingFiles((prev) =>
-        prev.map((f) =>
-          f.id === id
-            ? {
-                ...f,
-                status: 'failed' as const,
-                error: error instanceof Error ? error.message : 'Upload failed',
-              }
-            : f
-        )
-      );
-      toast.error('Upload failed');
+      const isCancelled = error instanceof Error && error.message === 'Upload cancelled';
+
+      if (isCancelled) {
+        await deleteDocumentFromStorage(supabase, storagePath);
+      } else {
+        setUploadingFiles((prev) =>
+          prev.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  status: 'failed' as const,
+                  error: error instanceof Error ? error.message : 'Upload failed',
+                }
+              : f
+          )
+        );
+        toast.error('Upload failed');
+      }
+    } finally {
+      uploadControllersRef.current.delete(id);
     }
   }
 
   /**
-   * Cancel an in-progress upload
+   * Cancel an in-progress upload (AC-4.2.3)
    */
   const handleCancelUpload = useCallback((fileId: string) => {
+    const controller = uploadControllersRef.current.get(fileId);
+    if (controller) {
+      controller.abort();
+    }
     setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
     toast.info('Upload cancelled');
   }, []);
+
+  /**
+   * Retry processing for a failed document (AC-4.2.7)
+   */
+  const handleRetry = useCallback(async (documentId: string) => {
+    const result = await retryDocumentProcessing(documentId);
+    if (result.success) {
+      toast.info('Retrying document processing...');
+      // Update local state immediately
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === documentId ? { ...doc, status: 'processing' } : doc
+        )
+      );
+    } else {
+      toast.error(result.error || 'Retry failed');
+    }
+  }, [setDocuments]);
+
+  /**
+   * Delete a failed document (AC-4.2.7)
+   */
+  const handleDelete = useCallback(async (documentId: string) => {
+    const result = await deleteDocumentAction(documentId);
+    if (result.success) {
+      toast.success('Document deleted');
+      setDocuments((prev) => prev.filter((doc) => doc.id !== documentId));
+    } else {
+      toast.error(result.error || 'Delete failed');
+    }
+  }, [setDocuments]);
 
   /**
    * Format relative date for display
@@ -157,22 +256,6 @@ export default function DocumentsPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  /**
-   * Get status icon for document
-   */
-  function getStatusIcon(status: string) {
-    switch (status) {
-      case 'ready':
-        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-      case 'processing':
-        return <Loader2 className="h-4 w-4 text-slate-500 animate-spin" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <FileText className="h-4 w-4 text-slate-500" />;
-    }
-  }
-
   const hasDocuments = documents.length > 0 || uploadingFiles.length > 0;
 
   return (
@@ -180,6 +263,19 @@ export default function DocumentsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Documents</h1>
+        {/* Realtime connection indicator */}
+        {agencyId && (
+          <div className="flex items-center gap-1.5">
+            <div
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? 'bg-emerald-500' : 'bg-slate-300'
+              }`}
+            />
+            <span className="text-xs text-slate-500">
+              {isConnected ? 'Live' : 'Connecting...'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Upload Zone */}
@@ -203,14 +299,17 @@ export default function DocumentsPage() {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+              className="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors"
             >
               <div className="flex-shrink-0">
                 <FileText className="h-5 w-5 text-slate-500" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-700">
+                <p
+                  className="truncate text-sm font-medium text-slate-700"
+                  title={doc.display_name || doc.filename}
+                >
                   {doc.display_name || doc.filename}
                 </p>
                 <p className="text-xs text-slate-500">
@@ -218,8 +317,14 @@ export default function DocumentsPage() {
                 </p>
               </div>
 
+              {/* Document Status with actions (AC-4.2.4, AC-4.2.5, AC-4.2.7) */}
               <div className="flex-shrink-0">
-                {getStatusIcon(doc.status)}
+                <DocumentStatus
+                  status={doc.status as DocumentStatusType}
+                  errorMessage={doc.status === 'failed' ? 'Processing failed' : undefined}
+                  onRetry={doc.status === 'failed' ? () => handleRetry(doc.id) : undefined}
+                  onDelete={doc.status === 'failed' ? () => handleDelete(doc.id) : undefined}
+                />
               </div>
             </div>
           ))}

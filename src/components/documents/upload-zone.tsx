@@ -10,6 +10,33 @@ import { cn } from '@/lib/utils';
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_FILES = 5;
 const ACCEPTED_MIME_TYPES = { 'application/pdf': ['.pdf'] };
+const FILENAME_MAX_LENGTH = 30;
+
+/**
+ * Truncate filename with ellipsis if too long
+ * Implements AC-4.2.2: Long filenames truncated with ellipsis (max ~30 chars)
+ */
+function truncateFilename(filename: string, maxLength: number = FILENAME_MAX_LENGTH): string {
+  if (filename.length <= maxLength) return filename;
+
+  // Find extension
+  const lastDot = filename.lastIndexOf('.');
+  if (lastDot === -1 || lastDot === 0) {
+    // No extension or dot at start, just truncate
+    return filename.slice(0, maxLength - 3) + '...';
+  }
+
+  const extension = filename.slice(lastDot);
+  const name = filename.slice(0, lastDot);
+
+  // Keep extension visible, truncate name
+  const availableLength = maxLength - extension.length - 3; // 3 for '...'
+  if (availableLength <= 0) {
+    return filename.slice(0, maxLength - 3) + '...';
+  }
+
+  return name.slice(0, availableLength) + '...' + extension;
+}
 
 export interface UploadingFile {
   id: string;
@@ -173,8 +200,12 @@ function UploadingFileItem({ file, onCancel }: UploadingFileItemProps) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-slate-700">
-          {fileData.name}
+        {/* Filename with truncation and tooltip per AC-4.2.2 */}
+        <p
+          className="truncate text-sm font-medium text-slate-700"
+          title={fileData.name}
+        >
+          {truncateFilename(fileData.name)}
         </p>
 
         {status === 'uploading' && (

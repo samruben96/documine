@@ -6,12 +6,18 @@ import {
   createDocumentRecord,
   createProcessingJob,
   deleteDocument as deleteDocumentService,
+  updateDocumentStatus,
 } from '@/lib/documents/service';
 import { validateUploadFile } from '@/lib/validations/documents';
 import { revalidatePath } from 'next/cache';
 import type { Tables } from '@/types/database.types';
 
 export type Document = Tables<'documents'>;
+
+export interface UserAgencyInfo {
+  userId: string;
+  agencyId: string;
+}
 
 /**
  * Upload Document Server Action
@@ -173,6 +179,149 @@ export async function getDocuments(): Promise<{
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to load documents',
+    };
+  }
+}
+
+/**
+ * Get User Agency Info Server Action
+ *
+ * Returns the current user's ID and agency ID for client-side upload.
+ * Used to construct storage paths before uploading.
+ */
+export async function getUserAgencyInfo(): Promise<{
+  success: boolean;
+  data?: UserAgencyInfo;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return { success: false, error: 'Failed to get user data' };
+    }
+
+    return {
+      success: true,
+      data: {
+        userId: user.id,
+        agencyId: userData.agency_id,
+      },
+    };
+  } catch (error) {
+    console.error('Get user agency info failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get user info',
+    };
+  }
+}
+
+/**
+ * Create Document From Upload Server Action
+ *
+ * Creates document record after client-side upload completes.
+ * Used with client-side progress tracking upload flow.
+ *
+ * Implements AC-4.1.8, AC-4.2.1
+ */
+export async function createDocumentFromUpload(input: {
+  documentId: string;
+  filename: string;
+  storagePath: string;
+}): Promise<{
+  success: boolean;
+  document?: Document;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return { success: false, error: 'Failed to get user data' };
+    }
+
+    // Create document record with status='processing'
+    const document = await createDocumentRecord(supabase, {
+      id: input.documentId,
+      agencyId: userData.agency_id,
+      uploadedBy: user.id,
+      filename: input.filename,
+      storagePath: input.storagePath,
+    });
+
+    // Create processing job to trigger Edge Function
+    await createProcessingJob(supabase, input.documentId);
+
+    // Revalidate documents page
+    revalidatePath('/documents');
+
+    return { success: true, document };
+  } catch (error) {
+    console.error('Create document from upload failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create document',
+    };
+  }
+}
+
+/**
+ * Retry Document Processing Server Action
+ *
+ * Retries processing for a failed document by creating a new processing job.
+ *
+ * Implements AC-4.2.7
+ */
+export async function retryDocumentProcessing(documentId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Update document status back to processing
+    await updateDocumentStatus(supabase, documentId, 'processing');
+
+    // Create new processing job
+    await createProcessingJob(supabase, documentId);
+
+    // Revalidate documents page
+    revalidatePath('/documents');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Retry document processing failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Retry failed',
     };
   }
 }
