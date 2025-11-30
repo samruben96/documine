@@ -271,6 +271,71 @@ export type Database = {
           },
         ]
       }
+      document_labels: {
+        Row: {
+          created_at: string
+          document_id: string
+          label_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          label_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_labels_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labels: {
+        Row: {
+          agency_id: string
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          agency_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          agency_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labels_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           id: string

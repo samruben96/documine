@@ -325,3 +325,414 @@ export async function retryDocumentProcessing(documentId: string): Promise<{
     };
   }
 }
+
+/**
+ * Rename Document Server Action
+ *
+ * Updates the display_name of a document. Original filename is preserved.
+ *
+ * Implements AC-4.5.3, AC-4.5.4
+ */
+export async function renameDocument(
+  documentId: string,
+  displayName: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Validate input
+    const trimmedName = displayName.trim();
+
+    if (!trimmedName) {
+      return { success: false, error: 'Name cannot be empty' };
+    }
+
+    if (trimmedName.length > 255) {
+      return { success: false, error: 'Name too long (max 255 characters)' };
+    }
+
+    if (trimmedName.includes('/') || trimmedName.includes('\\')) {
+      return { success: false, error: 'Name cannot contain path separators' };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Update display_name (RLS ensures agency isolation)
+    const { error } = await supabase
+      .from('documents')
+      .update({ display_name: trimmedName })
+      .eq('id', documentId);
+
+    if (error) {
+      console.error('Rename document failed:', error);
+      return { success: false, error: 'Failed to rename document' };
+    }
+
+    // Revalidate documents page
+    revalidatePath('/documents');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Rename document failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Rename failed',
+    };
+  }
+}
+
+// ============================================================================
+// Label Server Actions - AC-4.5.5, AC-4.5.6, AC-4.5.8, AC-4.5.10
+// ============================================================================
+
+export type Label = Tables<'labels'>;
+
+/**
+ * Label color palette - auto-assigned based on hash of label name
+ * Muted Tailwind colors for consistent appearance
+ */
+const LABEL_COLORS = [
+  '#64748b', // slate-500 (default)
+  '#3b82f6', // blue-500
+  '#22c55e', // green-500
+  '#eab308', // yellow-500
+  '#a855f7', // purple-500
+  '#ec4899', // pink-500
+  '#f97316', // orange-500
+  '#14b8a6', // teal-500
+];
+
+/**
+ * Get color for a label based on name hash
+ */
+function getLabelColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    const char = name.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  const index = Math.abs(hash) % LABEL_COLORS.length;
+  return LABEL_COLORS[index] ?? '#64748b';
+}
+
+/**
+ * Get Labels Server Action
+ *
+ * Fetches all labels for the current user's agency.
+ *
+ * Implements AC-4.5.5, AC-4.5.10
+ */
+export async function getLabels(): Promise<{
+  success: boolean;
+  labels?: Label[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // RLS policies ensure we only get agency-scoped labels
+    const { data, error } = await supabase
+      .from('labels')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Get labels failed:', error);
+      return { success: false, error: 'Failed to load labels' };
+    }
+
+    return { success: true, labels: data ?? [] };
+  } catch (error) {
+    console.error('Get labels failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load labels',
+    };
+  }
+}
+
+/**
+ * Create Label Server Action
+ *
+ * Creates a new label for the current agency.
+ * Handles duplicate prevention (case-insensitive).
+ *
+ * Implements AC-4.5.6, AC-4.5.10
+ */
+export async function createLabel(name: string): Promise<{
+  success: boolean;
+  label?: Label;
+  error?: string;
+}> {
+  try {
+    // Validate input
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return { success: false, error: 'Label name cannot be empty' };
+    }
+
+    if (trimmedName.length > 50) {
+      return { success: false, error: 'Label name too long (max 50 characters)' };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Get user's agency_id
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return { success: false, error: 'Failed to get user data' };
+    }
+
+    // Create label with auto-assigned color
+    const color = getLabelColor(trimmedName);
+    const { data, error } = await supabase
+      .from('labels')
+      .insert({
+        agency_id: userData.agency_id,
+        name: trimmedName,
+        color,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // Handle duplicate (unique constraint on agency_id + LOWER(name))
+      if (error.code === '23505') {
+        return { success: false, error: 'Label already exists' };
+      }
+      console.error('Create label failed:', error);
+      return { success: false, error: 'Failed to create label' };
+    }
+
+    return { success: true, label: data };
+  } catch (error) {
+    console.error('Create label failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create label',
+    };
+  }
+}
+
+/**
+ * Add Label to Document Server Action
+ *
+ * Associates a label with a document.
+ *
+ * Implements AC-4.5.5
+ */
+export async function addLabelToDocument(
+  documentId: string,
+  labelId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Insert junction record (RLS ensures agency isolation)
+    const { error } = await supabase
+      .from('document_labels')
+      .insert({
+        document_id: documentId,
+        label_id: labelId,
+      });
+
+    if (error) {
+      // Handle duplicate (already has this label)
+      if (error.code === '23505') {
+        return { success: true }; // Silently succeed - already has label
+      }
+      console.error('Add label to document failed:', error);
+      return { success: false, error: 'Failed to add label' };
+    }
+
+    // Revalidate documents page
+    revalidatePath('/documents');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Add label to document failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to add label',
+    };
+  }
+}
+
+/**
+ * Remove Label from Document Server Action
+ *
+ * Removes a label association from a document.
+ * Does not delete the label from the agency pool.
+ *
+ * Implements AC-4.5.8
+ */
+export async function removeLabelFromDocument(
+  documentId: string,
+  labelId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Delete junction record (RLS ensures agency isolation)
+    const { error } = await supabase
+      .from('document_labels')
+      .delete()
+      .eq('document_id', documentId)
+      .eq('label_id', labelId);
+
+    if (error) {
+      console.error('Remove label from document failed:', error);
+      return { success: false, error: 'Failed to remove label' };
+    }
+
+    // Revalidate documents page
+    revalidatePath('/documents');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Remove label from document failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to remove label',
+    };
+  }
+}
+
+/**
+ * Get Document Labels Server Action
+ *
+ * Fetches all labels associated with a specific document.
+ *
+ * Implements AC-4.5.7
+ */
+export async function getDocumentLabels(documentId: string): Promise<{
+  success: boolean;
+  labels?: Label[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Join through document_labels to get labels
+    const { data, error } = await supabase
+      .from('document_labels')
+      .select('labels(*)')
+      .eq('document_id', documentId);
+
+    if (error) {
+      console.error('Get document labels failed:', error);
+      return { success: false, error: 'Failed to load document labels' };
+    }
+
+    // Extract labels from nested structure
+    const labels = data
+      ?.map((dl) => dl.labels)
+      .filter((l): l is Label => l !== null) ?? [];
+
+    return { success: true, labels };
+  } catch (error) {
+    console.error('Get document labels failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load document labels',
+    };
+  }
+}
+
+/**
+ * Get Documents with Labels Server Action
+ *
+ * Returns list of documents with their associated labels for the current user's agency.
+ * Enhanced version of getDocuments that includes label data.
+ */
+export async function getDocumentsWithLabels(): Promise<{
+  success: boolean;
+  documents?: (Document & { labels: Label[] })[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Get documents with their labels via junction table
+    const { data, error } = await supabase
+      .from('documents')
+      .select(`
+        *,
+        document_labels(
+          labels(*)
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Get documents with labels failed:', error);
+      return { success: false, error: 'Failed to load documents' };
+    }
+
+    // Transform data to flatten labels
+    const documents = (data ?? []).map((doc) => ({
+      ...doc,
+      labels: doc.document_labels
+        ?.map((dl: { labels: Label | null }) => dl.labels)
+        .filter((l: Label | null): l is Label => l !== null) ?? [],
+      document_labels: undefined, // Remove nested structure
+    }));
+
+    return { success: true, documents };
+  } catch (error) {
+    console.error('Get documents with labels failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load documents',
+    };
+  }
+}

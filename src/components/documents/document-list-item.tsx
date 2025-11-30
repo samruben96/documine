@@ -1,6 +1,7 @@
 'use client';
 
-import { FileText, MoreVertical, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { FileText, MoreVertical, Trash2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
@@ -8,8 +9,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { renameDocument, type Label } from '@/app/(dashboard)/documents/actions';
+import { toast } from 'sonner';
+import { LabelPill } from './label-pill';
 
 interface DocumentListItemProps {
   id: string;
@@ -17,6 +22,7 @@ interface DocumentListItemProps {
   displayName?: string | null;
   status: string;
   createdAt: string;
+  labels?: Label[];
   isSelected?: boolean;
   onClick?: () => void;
   onDeleteClick?: () => void;
@@ -31,6 +37,10 @@ interface DocumentListItemProps {
  * - AC-4.3.2: Relative date formatting
  * - AC-4.3.3: Status indicator
  * - AC-4.3.8: Selected document styling
+ * - AC-4.5.1: Inline rename trigger (edit icon, context menu, double-click)
+ * - AC-4.5.2: Inline rename behavior (Enter saves, Escape cancels, blur saves)
+ * - AC-4.5.3: Rename validation
+ * - AC-4.5.4: Rename persistence
  */
 export function DocumentListItem({
   id,
@@ -38,11 +48,105 @@ export function DocumentListItem({
   displayName,
   status,
   createdAt,
+  labels = [],
   isSelected = false,
   onClick,
   onDeleteClick,
 }: DocumentListItemProps) {
   const name = displayName || filename;
+
+  // Inline rename state - AC-4.5.1, AC-4.5.2
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(name);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus and select text when entering edit mode
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  // Validate rename input - AC-4.5.3
+  const validate = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return 'Name cannot be empty';
+    if (trimmed.length > 255) return 'Name too long (max 255 characters)';
+    if (trimmed.includes('/') || trimmed.includes('\\')) {
+      return 'Name cannot contain path separators';
+    }
+    return null;
+  };
+
+  // Start editing
+  const startEditing = () => {
+    setEditValue(name);
+    setError(null);
+    setIsEditing(true);
+  };
+
+  // Cancel editing - AC-4.5.2
+  const cancelEditing = () => {
+    setEditValue(name);
+    setError(null);
+    setIsEditing(false);
+  };
+
+  // Save rename - AC-4.5.4
+  const saveRename = async () => {
+    const trimmed = editValue.trim();
+
+    // Skip if unchanged
+    if (trimmed === name) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Validate
+    const validationError = validate(trimmed);
+    if (validationError) {
+      setError(validationError);
+      inputRef.current?.focus();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await renameDocument(id, trimmed);
+      if (result.success) {
+        setIsEditing(false);
+        setError(null);
+        // Show success feedback
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1000);
+      } else {
+        setError(result.error || 'Rename failed');
+        toast.error(result.error || 'Failed to rename document');
+        inputRef.current?.focus();
+      }
+    } catch {
+      setError('Rename failed');
+      toast.error('Failed to rename document');
+      inputRef.current?.focus();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle keyboard events - AC-4.5.2
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveRename();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEditing();
+    }
+  };
 
   return (
     <div
@@ -51,45 +155,110 @@ export function DocumentListItem({
         'hover:bg-slate-100',
         // AC-4.3.8: Selected document styling
         isSelected && 'bg-[#f1f5f9] border-l-2 border-l-[#475569]',
-        !isSelected && 'border-l-2 border-l-transparent'
+        !isSelected && 'border-l-2 border-l-transparent',
+        // Success highlight animation - AC-4.5.4
+        showSuccess && 'bg-green-50'
       )}
     >
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          'flex-1 flex items-center gap-3 text-left',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
-        )}
-        aria-current={isSelected ? 'page' : undefined}
-      >
-        {/* Document icon */}
-        <div className="flex-shrink-0">
-          <FileText className="h-4 w-4 text-slate-500" />
-        </div>
+      {isEditing ? (
+        // Edit mode - AC-4.5.2
+        <div className="flex-1 flex items-center gap-3">
+          {/* Document icon */}
+          <div className="flex-shrink-0">
+            <FileText className="h-4 w-4 text-slate-500" />
+          </div>
 
-        {/* Document info */}
-        <div className="min-w-0 flex-1">
-          <p
-            className="truncate text-sm font-medium text-slate-700"
-            title={name}
-          >
-            {name}
-          </p>
-          <p className="text-xs text-slate-500">
-            {formatRelativeDate(createdAt)}
-          </p>
+          {/* Inline input */}
+          <div className="min-w-0 flex-1">
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => {
+                setEditValue(e.target.value);
+                setError(null);
+              }}
+              onBlur={saveRename}
+              onKeyDown={handleKeyDown}
+              disabled={isSaving}
+              className={cn(
+                'w-full px-1.5 py-0.5 text-sm font-medium rounded border',
+                'focus:outline-none focus:ring-2 focus:ring-slate-400',
+                error ? 'border-red-500 text-red-700' : 'border-slate-300 text-slate-700',
+                isSaving && 'opacity-50'
+              )}
+              aria-label="Document name"
+              aria-invalid={!!error}
+            />
+            {error && (
+              <p className="text-xs text-red-500 mt-0.5">{error}</p>
+            )}
+          </div>
         </div>
+      ) : (
+        // Display mode
+        <button
+          type="button"
+          onClick={onClick}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            startEditing();
+          }}
+          className={cn(
+            'flex-1 flex items-center gap-3 text-left',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
+          )}
+          aria-current={isSelected ? 'page' : undefined}
+        >
+          {/* Document icon */}
+          <div className="flex-shrink-0">
+            <FileText className="h-4 w-4 text-slate-500" />
+          </div>
 
-        {/* Status indicator - AC-4.3.3 */}
-        <div className="flex-shrink-0">
-          <DocumentStatusBadge status={status as DocumentStatusType} />
-        </div>
-      </button>
+          {/* Document info */}
+          <div className="min-w-0 flex-1">
+            <p
+              className="truncate text-sm font-medium text-slate-700"
+              title={name}
+            >
+              {name}
+            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500">
+                {formatRelativeDate(createdAt)}
+              </p>
+              {/* Labels - AC-4.5.7 */}
+              {labels.length > 0 && (
+                <div className="flex items-center gap-1 overflow-hidden">
+                  {labels.slice(0, 2).map((label) => (
+                    <LabelPill
+                      key={label.id}
+                      id={label.id}
+                      name={label.name}
+                      color={label.color}
+                      className="text-[10px] px-1.5 py-0"
+                    />
+                  ))}
+                  {labels.length > 2 && (
+                    <span className="text-[10px] text-slate-400">
+                      +{labels.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-      {/* Actions - AC-4.4.1 */}
+          {/* Status indicator - AC-4.3.3 */}
+          <div className="flex-shrink-0">
+            <DocumentStatusBadge status={status as DocumentStatusType} />
+          </div>
+        </button>
+      )}
+
+      {/* Actions - AC-4.4.1, AC-4.5.1 */}
       {/* Show on hover (desktop) or always visible (touch devices) */}
-      {onDeleteClick && (
+      {!isEditing && (onDeleteClick || true) && (
         <div
           className={cn(
             'flex-shrink-0 flex items-center gap-0.5',
@@ -99,23 +268,41 @@ export function DocumentListItem({
             'max-md:opacity-100'
           )}
         >
-          {/* Direct delete button - trash icon */}
+          {/* Edit/rename button - pencil icon - AC-4.5.1 */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onDeleteClick();
+              startEditing();
             }}
             className={cn(
-              'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors',
+              'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
             )}
-            aria-label={`Delete ${name}`}
+            aria-label={`Rename ${name}`}
           >
-            <Trash2 className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           </button>
 
-          {/* Context menu - three-dot menu */}
+          {/* Direct delete button - trash icon */}
+          {onDeleteClick && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteClick();
+              }}
+              className={cn(
+                'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+              )}
+              aria-label={`Delete ${name}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Context menu - three-dot menu - AC-4.5.1 */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -132,15 +319,29 @@ export function DocumentListItem({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuItem
-                variant="destructive"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDeleteClick();
+                  startEditing();
                 }}
               >
-                <Trash2 className="h-4 w-4" />
-                Delete
+                <Pencil className="h-4 w-4" />
+                Rename
               </DropdownMenuItem>
+              {onDeleteClick && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteClick();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
