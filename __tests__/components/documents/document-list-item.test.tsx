@@ -77,9 +77,10 @@ describe('DocumentListItem', () => {
         <DocumentListItem {...defaultProps} isSelected={true} />
       );
 
-      const button = container.querySelector('button');
-      expect(button).toHaveClass('bg-[#f1f5f9]');
-      expect(button).toHaveClass('border-l-[#475569]');
+      // Styling is on the wrapper div, not the button
+      const wrapper = container.querySelector('.group');
+      expect(wrapper).toHaveClass('bg-[#f1f5f9]');
+      expect(wrapper).toHaveClass('border-l-[#475569]');
     });
 
     it('does not apply selected styling when isSelected is false', () => {
@@ -87,23 +88,26 @@ describe('DocumentListItem', () => {
         <DocumentListItem {...defaultProps} isSelected={false} />
       );
 
-      const button = container.querySelector('button');
-      expect(button).not.toHaveClass('bg-[#f1f5f9]');
-      expect(button).toHaveClass('border-l-transparent');
+      // Styling is on the wrapper div, not the button
+      const wrapper = container.querySelector('.group');
+      expect(wrapper).not.toHaveClass('bg-[#f1f5f9]');
+      expect(wrapper).toHaveClass('border-l-transparent');
     });
 
     it('sets aria-current="page" when selected', () => {
       render(<DocumentListItem {...defaultProps} isSelected={true} />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-current', 'page');
+      // The first button is the main document button
+      const buttons = screen.getAllByRole('button');
+      expect(buttons[0]).toHaveAttribute('aria-current', 'page');
     });
 
     it('does not set aria-current when not selected', () => {
       render(<DocumentListItem {...defaultProps} isSelected={false} />);
 
-      const button = screen.getByRole('button');
-      expect(button).not.toHaveAttribute('aria-current');
+      // The first button is the main document button
+      const buttons = screen.getAllByRole('button');
+      expect(buttons[0]).not.toHaveAttribute('aria-current');
     });
   });
 
@@ -112,8 +116,9 @@ describe('DocumentListItem', () => {
       const onClick = vi.fn();
       render(<DocumentListItem {...defaultProps} onClick={onClick} />);
 
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
+      // The first button is the main document button
+      const buttons = screen.getAllByRole('button');
+      fireEvent.click(buttons[0]);
 
       expect(onClick).toHaveBeenCalledTimes(1);
     });
@@ -129,6 +134,76 @@ describe('DocumentListItem', () => {
 
       const filenameElement = screen.getByText(longFilename);
       expect(filenameElement).toHaveAttribute('title', longFilename);
+    });
+  });
+
+  describe('AC-4.4.1: Delete Action', () => {
+    it('renders delete button when onDeleteClick is provided', () => {
+      const onDeleteClick = vi.fn();
+      render(
+        <DocumentListItem {...defaultProps} onDeleteClick={onDeleteClick} />
+      );
+
+      expect(screen.getByLabelText('Delete test-document.pdf')).toBeInTheDocument();
+    });
+
+    it('does not render delete button when onDeleteClick is not provided', () => {
+      render(<DocumentListItem {...defaultProps} />);
+
+      expect(screen.queryByLabelText(/Delete/)).not.toBeInTheDocument();
+    });
+
+    it('calls onDeleteClick when delete button is clicked', () => {
+      const onDeleteClick = vi.fn();
+      render(
+        <DocumentListItem {...defaultProps} onDeleteClick={onDeleteClick} />
+      );
+
+      const deleteButton = screen.getByLabelText('Delete test-document.pdf');
+      fireEvent.click(deleteButton);
+
+      expect(onDeleteClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not trigger onClick when delete button is clicked', () => {
+      const onClick = vi.fn();
+      const onDeleteClick = vi.fn();
+      render(
+        <DocumentListItem
+          {...defaultProps}
+          onClick={onClick}
+          onDeleteClick={onDeleteClick}
+        />
+      );
+
+      const deleteButton = screen.getByLabelText('Delete test-document.pdf');
+      fireEvent.click(deleteButton);
+
+      expect(onDeleteClick).toHaveBeenCalledTimes(1);
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('uses displayName in delete button label when available', () => {
+      const onDeleteClick = vi.fn();
+      render(
+        <DocumentListItem
+          {...defaultProps}
+          displayName="Custom Name"
+          onDeleteClick={onDeleteClick}
+        />
+      );
+
+      expect(screen.getByLabelText('Delete Custom Name')).toBeInTheDocument();
+    });
+
+    it('renders context menu with delete option', () => {
+      const onDeleteClick = vi.fn();
+      render(
+        <DocumentListItem {...defaultProps} onDeleteClick={onDeleteClick} />
+      );
+
+      // Check for the more options button (three-dot menu)
+      expect(screen.getByLabelText('More options for test-document.pdf')).toBeInTheDocument();
     });
   });
 });

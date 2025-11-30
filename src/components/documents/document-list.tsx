@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Search, X, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDebouncedValue } from '@/hooks/use-debounce';
 import { DocumentListItem } from './document-list-item';
 import { DocumentListEmpty } from './document-list-empty';
+import { DeleteDocumentModal } from './delete-document-modal';
 import type { Tables } from '@/types/database.types';
 
 type Document = Tables<'documents'>;
@@ -45,6 +46,14 @@ export function DocumentList({
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
 
+  // Delete modal state - AC-4.4.1, AC-4.4.8
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{
+    id: string;
+    filename: string;
+    display_name: string | null;
+  } | null>(null);
+
   // Filter documents by search query - AC-4.3.6
   const filteredDocuments = useMemo(() => {
     if (!debouncedQuery.trim()) return documents;
@@ -65,6 +74,25 @@ export function DocumentList({
   const handleClearSearch = () => {
     setSearchQuery('');
   };
+
+  // Handle delete button click - AC-4.4.1
+  const handleDeleteClick = useCallback((doc: Document) => {
+    setDocumentToDelete({
+      id: doc.id,
+      filename: doc.filename,
+      display_name: doc.display_name,
+    });
+    setDeleteModalOpen(true);
+  }, []);
+
+  // Handle successful deletion - AC-4.4.7, AC-4.4.8
+  const handleDeleteSuccess = useCallback(() => {
+    // If we deleted the currently viewed document, navigate to /documents
+    if (documentToDelete && documentToDelete.id === selectedId) {
+      router.push('/documents');
+    }
+    setDocumentToDelete(null);
+  }, [documentToDelete, selectedId, router]);
 
   // Show empty state when no documents exist
   if (!isLoading && documents.length === 0) {
@@ -128,6 +156,7 @@ export function DocumentList({
                 createdAt={doc.created_at}
                 isSelected={doc.id === selectedId}
                 onClick={() => handleDocumentClick(doc.id)}
+                onDeleteClick={() => handleDeleteClick(doc)}
               />
             ))}
           </div>
@@ -173,6 +202,14 @@ export function DocumentList({
           Upload document
         </button>
       </div>
+
+      {/* Delete confirmation modal - AC-4.4.2, AC-4.4.3, AC-4.4.4 */}
+      <DeleteDocumentModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        document={documentToDelete}
+        onSuccess={handleDeleteSuccess}
+      />
     </div>
   );
 }
