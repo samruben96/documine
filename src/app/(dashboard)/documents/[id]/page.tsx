@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useCallback, useTransition, useEffect, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
-import { SplitView, DocumentViewPlaceholder, ChatPanelPlaceholder } from '@/components/layout/split-view';
+import { SplitView, ChatPanelPlaceholder } from '@/components/layout/split-view';
 import { DocumentList } from '@/components/documents/document-list';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
-import { DocumentStatus, type DocumentStatusType } from '@/components/documents/document-status';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import {
   getDocuments,
@@ -18,20 +18,24 @@ import {
   deleteDocumentAction,
   type Document,
   type UserAgencyInfo,
-} from './actions';
+} from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } from '@/lib/documents/upload';
 
 /**
- * Documents Page
+ * Document Detail Page
  *
- * Main document management interface with sidebar layout.
- * Implements AC-4.3.7: Split view layout with document list in sidebar.
+ * Implements AC-4.3.7: Split view with document viewer + chat panel placeholder
+ * Route: /documents/[id]
  */
-export default function DocumentsPage() {
+export default function DocumentDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const documentId = params?.id;
+
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
 
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
@@ -40,17 +44,23 @@ export default function DocumentsPage() {
   const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   const { agencyId } = useAgencyId();
-
   const { documents, setDocuments, isConnected } = useDocumentStatus({
     agencyId: agencyId || '',
-    onDocumentReady: () => {},
-    onDocumentFailed: () => {},
   });
 
+  // Load documents and user info
   useEffect(() => {
     loadDocuments();
     loadUserAgencyInfo();
   }, []);
+
+  // Find selected document when documents or ID changes
+  useEffect(() => {
+    if (documentId && documents.length > 0) {
+      const doc = documents.find((d) => d.id === documentId);
+      setSelectedDocument(doc || null);
+    }
+  }, [documentId, documents]);
 
   async function loadUserAgencyInfo() {
     const result = await getUserAgencyInfo();
@@ -80,7 +90,6 @@ export default function DocumentsPage() {
     }));
 
     setUploadingFiles((prev) => [...prev, ...newUploadingFiles]);
-
     newUploadingFiles.forEach((uploadingFile) => {
       uploadFile(uploadingFile);
     });
@@ -106,12 +115,12 @@ export default function DocumentsPage() {
     uploadControllersRef.current.set(id, controller);
 
     const supabase = createClient();
-    const documentId = crypto.randomUUID();
+    const newDocumentId = crypto.randomUUID();
     const safeFilename = sanitizeFilename(file.name);
-    const storagePath = `${agencyInfo.agencyId}/${documentId}/${safeFilename}`;
+    const storagePath = `${agencyInfo.agencyId}/${newDocumentId}/${safeFilename}`;
 
     try {
-      await uploadDocumentToStorage(supabase, file, agencyInfo.agencyId, documentId, {
+      await uploadDocumentToStorage(supabase, file, agencyInfo.agencyId, newDocumentId, {
         onProgress: (percent) => {
           setUploadingFiles((prev) =>
             prev.map((f) =>
@@ -129,14 +138,13 @@ export default function DocumentsPage() {
       );
 
       const result = await createDocumentFromUpload({
-        documentId,
+        documentId: newDocumentId,
         filename: file.name,
         storagePath,
       });
 
       if (result.success && result.document) {
         setDocuments((prev) => [result.document!, ...prev]);
-
         setTimeout(() => {
           setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
         }, 2000);
@@ -198,46 +206,59 @@ export default function DocumentsPage() {
         }
         main={
           <div className="h-full flex">
-            {/* Main content - Welcome/Upload area */}
-            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
-              <div className="text-center max-w-md">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-                  <FileText className="h-8 w-8 text-slate-400" />
-                </div>
-                <h2 className="text-lg font-medium text-slate-800">
-                  {documents.length > 0 ? 'Select a document' : 'Welcome to docuMINE'}
-                </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  {documents.length > 0
-                    ? 'Choose a document from the sidebar to view and analyze it'
-                    : 'Upload your first document to get started with AI-powered analysis'}
-                </p>
-
-                {/* Show upload zone in main area when no documents */}
-                {documents.length === 0 && !isLoading && (
-                  <div className="mt-6">
-                    <UploadZone
-                      onFilesAccepted={handleFilesAccepted}
-                      uploadingFiles={uploadingFiles}
-                      onCancelUpload={handleCancelUpload}
-                      disabled={isPending}
-                    />
+            {/* Document Viewer */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Document header */}
+              <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push('/documents')}
+                  className="sm:hidden p-1.5 rounded hover:bg-slate-100"
+                  aria-label="Back to documents"
+                >
+                  <ArrowLeft className="h-5 w-5 text-slate-600" />
+                </button>
+                {selectedDocument ? (
+                  <>
+                    <FileText className="h-5 w-5 text-slate-500" />
+                    <h1 className="font-medium text-slate-800 truncate">
+                      {selectedDocument.display_name || selectedDocument.filename}
+                    </h1>
+                  </>
+                ) : isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                    <span className="text-sm text-slate-500">Loading...</span>
                   </div>
+                ) : (
+                  <span className="text-sm text-slate-500">Document not found</span>
                 )}
+              </div>
 
-                {/* Connection status */}
-                {agencyId && (
-                  <div className="mt-6 flex items-center justify-center gap-1.5">
-                    <div
-                      className={`h-2 w-2 rounded-full ${
-                        isConnected ? 'bg-emerald-500' : 'bg-slate-300'
-                      }`}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {isConnected ? 'Live updates active' : 'Connecting...'}
-                    </span>
+              {/* Document content placeholder */}
+              <div className="flex-1 flex items-center justify-center bg-slate-50">
+                {selectedDocument ? (
+                  <div className="text-center">
+                    <FileText className="mx-auto h-16 w-16 text-slate-300" />
+                    <p className="mt-4 text-sm text-slate-600">
+                      Document viewer coming in Epic 5
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {selectedDocument.filename}
+                    </p>
                   </div>
-                )}
+                ) : !isLoading ? (
+                  <div className="text-center">
+                    <p className="text-sm text-slate-500">Document not found</p>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/documents')}
+                      className="mt-2 text-sm text-slate-600 hover:text-slate-800 underline"
+                    >
+                      Back to documents
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -249,8 +270,8 @@ export default function DocumentsPage() {
         }
       />
 
-      {/* Uploading files overlay - shown when documents exist */}
-      {uploadingFiles.length > 0 && documents.length > 0 && (
+      {/* Uploading files overlay */}
+      {uploadingFiles.length > 0 && (
         <div className="fixed bottom-4 right-4 w-80 space-y-2 z-50">
           <UploadZone
             onFilesAccepted={() => {}}
