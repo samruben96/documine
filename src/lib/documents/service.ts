@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Tables, TablesInsert } from '@/types/database.types';
 import { DocumentNotFoundError, ProcessingError } from '@/lib/errors';
+import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * Document Database Service
@@ -64,17 +65,21 @@ export async function createDocumentRecord(
 /**
  * Create a processing job for a document
  *
- * The processing job triggers the Edge Function to process the document.
+ * Uses service role client internally because processing_jobs table has RLS
+ * policies that only allow service_role access. This is by design - processing
+ * jobs are meant to be managed by the system (Edge Functions), not directly
+ * by users.
  *
- * @param supabase - Supabase client instance
  * @param documentId - Document ID to process
  * @returns Created processing job record
  */
 export async function createProcessingJob(
-  supabase: SupabaseClient<Database>,
   documentId: string
 ): Promise<ProcessingJob> {
-  const { data, error } = await supabase
+  // Use service client to bypass RLS - processing_jobs requires service_role
+  const serviceClient = createServiceClient();
+
+  const { data, error } = await serviceClient
     .from('processing_jobs')
     .insert({
       document_id: documentId,

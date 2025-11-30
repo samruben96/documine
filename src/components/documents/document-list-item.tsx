@@ -151,7 +151,7 @@ export function DocumentListItem({
   return (
     <div
       className={cn(
-        'group relative w-full flex items-center gap-3 px-3 py-2.5 transition-colors',
+        'group relative w-full px-3 py-2.5 transition-colors',
         'hover:bg-slate-100',
         // AC-4.3.8: Selected document styling
         isSelected && 'bg-[#f1f5f9] border-l-2 border-l-[#475569]',
@@ -196,35 +196,53 @@ export function DocumentListItem({
           </div>
         </div>
       ) : (
-        // Display mode
-        <button
-          type="button"
-          onClick={onClick}
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            startEditing();
-          }}
-          className={cn(
-            'flex-1 flex items-center gap-3 text-left',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
-          )}
-          aria-current={isSelected ? 'page' : undefined}
-        >
-          {/* Document icon */}
-          <div className="flex-shrink-0">
-            <FileText className="h-4 w-4 text-slate-500" />
-          </div>
+        // Display mode - Two-Row Layout
+        <>
+          {/* Row 1: Icon + Filename + Status - clickable area */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onClick}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              startEditing();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }}
+            className={cn(
+              'flex items-center gap-3 cursor-pointer',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
+            )}
+            aria-current={isSelected ? 'page' : undefined}
+          >
+            {/* Document icon */}
+            <div className="flex-shrink-0">
+              <FileText className="h-4 w-4 text-slate-500" />
+            </div>
 
-          {/* Document info */}
-          <div className="min-w-0 flex-1">
+            {/* Filename - truncated */}
             <p
-              className="truncate text-sm font-medium text-slate-700"
+              className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700"
               title={name}
             >
               {name}
             </p>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-slate-500">
+
+            {/* Status indicator - AC-4.3.3 */}
+            <div className="flex-shrink-0">
+              <DocumentStatusBadge status={status as DocumentStatusType} />
+            </div>
+          </div>
+
+          {/* Row 2: Date/Labels + Actions (on hover) */}
+          <div className="flex items-center justify-between mt-1 ml-7">
+            {/* Date and Labels */}
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-xs text-slate-500 flex-shrink-0">
                 {formatRelativeDate(createdAt)}
               </p>
               {/* Labels - AC-4.5.7 */}
@@ -247,104 +265,96 @@ export function DocumentListItem({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Status indicator - AC-4.3.3 */}
-          <div className="flex-shrink-0">
-            <DocumentStatusBadge status={status as DocumentStatusType} />
-          </div>
-        </button>
-      )}
-
-      {/* Actions - AC-4.4.1, AC-4.5.1 */}
-      {/* Show on hover (desktop) or always visible (touch devices) */}
-      {!isEditing && (onDeleteClick || true) && (
-        <div
-          className={cn(
-            'flex-shrink-0 flex items-center gap-0.5',
-            'opacity-0 group-hover:opacity-100 transition-opacity',
-            'focus-within:opacity-100',
-            // Always visible on touch devices
-            'max-md:opacity-100'
-          )}
-        >
-          {/* Edit/rename button - pencil icon - AC-4.5.1 */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              startEditing();
-            }}
-            className={cn(
-              'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
-            )}
-            aria-label={`Rename ${name}`}
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-
-          {/* Direct delete button - trash icon */}
-          {onDeleteClick && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteClick();
-              }}
+            {/* Action buttons - appear on hover - AC-4.4.1, AC-4.5.1 */}
+            <div
               className={cn(
-                'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                'flex items-center gap-0.5 -mr-1',
+                'opacity-0 group-hover:opacity-100 transition-opacity',
+                'focus-within:opacity-100',
+                // Always visible on touch devices
+                'max-md:opacity-100'
               )}
-              aria-label={`Delete ${name}`}
             >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
-
-          {/* Context menu - three-dot menu - AC-4.5.1 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+              {/* Edit/rename button - pencil icon - AC-4.5.1 */}
               <button
                 type="button"
-                onClick={(e) => e.stopPropagation()}
-                className={cn(
-                  'p-1.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
-                )}
-                aria-label={`More options for ${name}`}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   startEditing();
                 }}
+                className={cn(
+                  'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                )}
+                aria-label={`Rename ${name}`}
               >
-                <Pencil className="h-4 w-4" />
-                Rename
-              </DropdownMenuItem>
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+
+              {/* Direct delete button - trash icon */}
               {onDeleteClick && (
-                <>
-                  <DropdownMenuSeparator />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteClick();
+                  }}
+                  className={cn(
+                    'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                  )}
+                  aria-label={`Delete ${name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+
+              {/* Context menu - three-dot menu - AC-4.5.1 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                    )}
+                    aria-label={`More options for ${name}`}
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem
-                    variant="destructive"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteClick();
+                      startEditing();
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
+                    <Pencil className="h-4 w-4" />
+                    Rename
                   </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                  {onDeleteClick && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteClick();
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

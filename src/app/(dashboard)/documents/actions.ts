@@ -93,7 +93,7 @@ export async function uploadDocument(formData: FormData): Promise<{
     });
 
     // 7. Create processing job to trigger Edge Function
-    await createProcessingJob(supabase, documentId);
+    await createProcessingJob(documentId);
 
     // 8. Revalidate documents page
     revalidatePath('/documents');
@@ -273,7 +273,7 @@ export async function createDocumentFromUpload(input: {
     });
 
     // Create processing job to trigger Edge Function
-    await createProcessingJob(supabase, input.documentId);
+    await createProcessingJob(input.documentId);
 
     // Revalidate documents page
     revalidatePath('/documents');
@@ -311,7 +311,7 @@ export async function retryDocumentProcessing(documentId: string): Promise<{
     await updateDocumentStatus(supabase, documentId, 'processing');
 
     // Create new processing job
-    await createProcessingJob(supabase, documentId);
+    await createProcessingJob(documentId);
 
     // Revalidate documents page
     revalidatePath('/documents');
