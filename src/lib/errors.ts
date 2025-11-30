@@ -8,7 +8,9 @@ export type ErrorCode =
   | 'DOCUMENT_NOT_FOUND'
   | 'UNAUTHORIZED'
   | 'PROCESSING_ERROR'
-  | 'VALIDATION_ERROR';
+  | 'VALIDATION_ERROR'
+  | 'LLAMAPARSE_ERROR'
+  | 'EMBEDDING_ERROR';
 
 /**
  * Error thrown when a requested document cannot be found.
@@ -55,5 +57,29 @@ export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
+  }
+}
+
+/**
+ * Error thrown when LlamaParse API call fails.
+ */
+export class LlamaParseError extends Error {
+  readonly code = 'LLAMAPARSE_ERROR' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'LlamaParseError';
+  }
+}
+
+/**
+ * Error thrown when OpenAI embedding generation fails.
+ */
+export class EmbeddingError extends Error {
+  readonly code = 'EMBEDDING_ERROR' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'EmbeddingError';
   }
 }

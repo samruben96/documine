@@ -4,6 +4,8 @@ import {
   UnauthorizedError,
   ProcessingError,
   ValidationError,
+  LlamaParseError,
+  EmbeddingError,
 } from '@/lib/errors';
 
 describe('DocumentNotFoundError', () => {
@@ -95,6 +97,50 @@ describe('ValidationError', () => {
 
   it('should extend Error', () => {
     const error = new ValidationError('Error');
+    expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe('LlamaParseError', () => {
+  it('should have correct code', () => {
+    const error = new LlamaParseError('LlamaParse API failed');
+    expect(error.code).toBe('LLAMAPARSE_ERROR');
+  });
+
+  it('should store message correctly', () => {
+    const error = new LlamaParseError('PDF extraction failed');
+    expect(error.message).toBe('PDF extraction failed');
+  });
+
+  it('should have correct name', () => {
+    const error = new LlamaParseError('Error');
+    expect(error.name).toBe('LlamaParseError');
+  });
+
+  it('should extend Error', () => {
+    const error = new LlamaParseError('Error');
+    expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe('EmbeddingError', () => {
+  it('should have correct code', () => {
+    const error = new EmbeddingError('Embedding generation failed');
+    expect(error.code).toBe('EMBEDDING_ERROR');
+  });
+
+  it('should store message correctly', () => {
+    const error = new EmbeddingError('OpenAI API returned error');
+    expect(error.message).toBe('OpenAI API returned error');
+  });
+
+  it('should have correct name', () => {
+    const error = new EmbeddingError('Error');
+    expect(error.name).toBe('EmbeddingError');
+  });
+
+  it('should extend Error', () => {
+    const error = new EmbeddingError('Error');
     expect(error).toBeInstanceOf(Error);
   });
 });
