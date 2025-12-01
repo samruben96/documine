@@ -102,8 +102,9 @@ async function uploadPdf(
   formData.append('file', blob, filename);
 
   // Request markdown output with page separators
+  // Note: LlamaParse uses {pageNumber} (camelCase), not {page_number}
   formData.append('result_type', 'markdown');
-  formData.append('page_separator', '--- PAGE {page_number} ---');
+  formData.append('page_separator', '--- PAGE {pageNumber} ---');
   formData.append('auto_mode_trigger_on_table_in_page', 'true');
   formData.append('auto_mode_trigger_on_image_in_page', 'true');
 

@@ -335,7 +335,8 @@ async function parsePdf(
   const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
   formData.append('file', blob, filename.split('/').pop() || 'document.pdf');
   formData.append('result_type', 'markdown');
-  formData.append('page_separator', '--- PAGE {page_number} ---');
+  // Note: LlamaParse uses {pageNumber} (camelCase), not {page_number}
+  formData.append('page_separator', '--- PAGE {pageNumber} ---');
 
   const uploadResponse = await fetch(`${LLAMAPARSE_API_BASE}/upload`, {
     method: 'POST',
