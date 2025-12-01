@@ -16,32 +16,42 @@
 
 ## Project Structure
 
-Everything is now inside the `documine` directory (git repo root):
+Everything is inside the `documine` directory (git repo root):
 
 - **Git repository:** `/Users/samruben/sams-tool/documine`
-- **BMAD framework:** `/.bmad/`
-- **Project docs:** `/docs/`
+- **BMAD framework:** `/.bmad/` (local only, mostly gitignored)
+- **BMAD project config:** `/.bmad/bmm/config.yaml` (tracked)
+- **Project docs:** `/docs/` (tracked - all project artifacts)
 - **Sprint artifacts:** `/docs/sprint-artifacts/`
 - **Source code:** `/src/`
 
 ## Key Paths
 
 ```
-documine/                     # ← GIT ROOT (everything is here)
-├── .bmad/                    # BMAD framework files
-│   └── bmm/                  # BMM workflows, agents, config
-├── docs/                     # Project documentation
+documine/                     # ← GIT ROOT
+├── .bmad/                    # BMAD framework (mostly gitignored)
+│   ├── _cfg/                 # gitignored (installer configs)
+│   ├── core/                 # gitignored (framework engine)
+│   ├── docs/                 # gitignored (framework docs)
+│   └── bmm/
+│       ├── agents/           # gitignored (stock personas)
+│       ├── workflows/        # gitignored (stock workflows)
+│       ├── docs/             # gitignored (module docs)
+│       └── config.yaml       # TRACKED (project-specific)
+├── docs/                     # TRACKED (all project artifacts)
 │   ├── sprint-artifacts/     # Stories, tech specs, sprint status
 │   ├── deployment/           # Deployment guides
 │   ├── architecture.md
 │   ├── prd.md
 │   └── ...
-├── src/                      # Application source code
-├── __tests__/                # Test files
-├── supabase/                 # Supabase functions
+├── src/                      # TRACKED (application code)
+├── __tests__/                # TRACKED (test files)
+├── supabase/                 # TRACKED (Supabase functions)
 ├── package.json
 └── .git/
 ```
+
+**BMAD Framework Note:** Framework files exist locally for BMAD operation but are gitignored (like `node_modules`). Only `config.yaml` is tracked. Project artifacts in `docs/` are always tracked.
 
 ## Git Commands
 
