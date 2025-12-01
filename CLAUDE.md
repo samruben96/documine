@@ -27,12 +27,15 @@ sams-tool/
 ├── .bmad/                    # BMAD framework files
 ├── docs/                     # Project documentation & sprint artifacts
 │   └── sprint-artifacts/     # Stories, tech specs, sprint status
-├── docling-for-documine/     # Docling service (separate git repo)
 └── documine/                 # ← MAIN CODE REPO (git root is here)
     ├── src/
     ├── __tests__/
     ├── package.json
     └── .git/
+
+# For local Docling development, clone as sibling:
+# git clone https://github.com/samruben96/docling-for-documine.git
+# Then: sams-tool/docling-for-documine/ will exist
 ```
 
 ## Git Commands
