@@ -1,0 +1,125 @@
+# generated: 2025-11-28
+# project: sams-tool
+# tracking_system: file-system
+# story_location: '{project-root}/docs/sprint-artifacts'
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Next epic tech context created by *epic-tech-context (required)
+#   - future: Deferred post-MVP work (tracked but not scheduled)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder by *create-story
+#   - ready-for-dev: Draft approved and story context created by *story-ready
+#   - in-progress: Developer actively working on implementation by *dev-story
+#   - review: Implementation complete, ready for review by *code-review
+#   - done: Story completed by *story-done
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done by *retrospective
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - SM typically drafts next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', dev reviews, then Dev moves to 'done'
+
+generated: 2025-11-28
+project: sams-tool
+tracking_system: file-system
+story_location: '{project-root}/docs/sprint-artifacts'
+
+development_status:
+  # Epic 1: Foundation & Infrastructure
+  epic-1: done
+  1-1-project-initialization-core-setup: done
+  1-2-database-schema-rls-policies: done
+  1-3-supabase-client-configuration: done
+  1-4-storage-bucket-configuration: done
+  1-5-error-handling-logging-patterns: done
+  1-6-deployment-pipeline-setup: done
+  epic-1-retrospective: completed
+
+  # Pre-Epic Technical Debt (Must complete before Epic 2)
+  0-1-test-framework-setup: done
+
+  # Epic 2: User Authentication & Onboarding
+  epic-2: done
+  2-1-signup-page-agency-creation: done
+  2-2-post-signup-agency-user-record-creation: done
+  2-3-login-page: done
+  2-4-session-management-auth-middleware: done
+  2-5-password-reset-flow: done
+  2-6-user-profile-management: done
+  epic-2-retrospective: done
+
+  # Epic 3: Agency & Team Management
+  epic-3: done
+  3-1-agency-settings-page: done
+  3-2-invite-users-to-agency: done
+  3-3-manage-team-members: done
+  3-4-subscription-billing-management: done
+  3-5-agency-usage-metrics: done
+  3-6-settings-ux-enhancements: done
+  epic-3-retrospective: completed
+
+  # Epic 4: Document Upload & Management
+  epic-4: done
+  4-1-document-upload-zone: done
+  4-2-upload-progress-status-feedback: done
+  4-3-document-list-view: done
+  4-4-delete-documents: done
+  4-5-document-organization-rename-label: done
+  4-6-document-processing-pipeline-llamaparse: done
+  4-7-processing-queue-management: done
+  # Story 4.8 added post-retrospective based on LlamaParse issues (2025-11-30)
+  4-8-migrate-document-processing-to-docling: done
+  epic-4-retrospective: completed
+
+  # Epic 5: Document Q&A with Trust Transparency
+  epic-5: backlog
+  5-1-chat-interface-layout-split-view: done
+  5-2-natural-language-query-input: done
+  5-3-ai-response-with-streaming-trust-elements: backlog
+  5-4-source-citation-display: backlog
+  5-5-document-viewer-with-highlight-navigation: backlog
+  5-6-conversation-history-follow-up-questions: backlog
+  5-7-responsive-chat-experience: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Quote Comparison
+  epic-6: backlog
+  6-1-quote-selection-interface: backlog
+  6-2-quote-data-extraction: backlog
+  6-3-comparison-table-view: backlog
+  6-4-gap-conflict-identification: backlog
+  6-5-source-citations-in-comparison: backlog
+  6-6-export-comparison-results: backlog
+  epic-6-retrospective: optional
+
+# ===========================================
+# FUTURE EPICS (Deferred from MVP per Epic 2 Retrospective)
+# ===========================================
+
+  # Epic F1: Email Infrastructure (Deferred from Epic 2/3)
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Resend requires custom domain setup
+  epic-f1-email-infrastructure: future
+  f1-1-custom-domain-setup-verification: future
+  f1-2-resend-smtp-integration-supabase-auth: future
+  f1-3-professional-email-templates: future
+  f1-4-delivery-tracking-analytics: future
+
+  # Epic F2: Billing Infrastructure (Deferred from Epic 3)
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Simplify MVP, manual tier assignment sufficient
+  epic-f2-billing-infrastructure: future
+  f2-1-stripe-or-lemonsqueezy-integration: future
+  f2-2-subscription-management-ui: future
+  f2-3-payment-processing: future
+  f2-4-usage-based-billing: future
+  f2-5-self-service-plan-changes: future

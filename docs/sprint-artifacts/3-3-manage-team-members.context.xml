@@ -1,0 +1,194 @@
+<story-context id="3-3-manage-team-members" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3</storyId>
+    <title>Manage Team Members</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-3-manage-team-members.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>to view my team members and manage their roles or remove them from my agency</iWant>
+    <soThat>I can control who has access to my agency's documents and maintain proper team structure</soThat>
+    <tasks>
+      <task id="1" acs="3.3.2,3.3.3,3.3.4,3.3.5">Add removeTeamMember server action</task>
+      <task id="2" acs="3.3.6,3.3.7,3.3.5">Add changeUserRole server action</task>
+      <task id="3" acs="3.3.2,3.3.3">Create RemoveUserModal component</task>
+      <task id="4" acs="3.3.6,3.3.7">Add role toggle to team member rows</task>
+      <task id="5" acs="3.3.2,3.3.4,3.3.8">Add remove button to team member rows</task>
+      <task id="6" acs="3.3.8">Implement view-only mode for non-admins</task>
+      <task id="7" acs="all">Add unit tests for new actions</task>
+      <task id="8" acs="all">Build and test verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="3.3.1">Team tab displays all agency users with: Name, Email, Role (Admin/Member), Joined date</ac>
+    <ac id="3.3.2">"Remove" button shows confirmation modal for each team member</ac>
+    <ac id="3.3.3">Confirmation modal displays: "Remove {name} from {agency_name}? They will lose access to all agency documents."</ac>
+    <ac id="3.3.4">Cannot remove yourself (button disabled or hidden for current user's row)</ac>
+    <ac id="3.3.5">Cannot remove if it would leave no admins</ac>
+    <ac id="3.3.6">Role toggle (Admin ↔ Member) available for each team member</ac>
+    <ac id="3.3.7">Cannot change your own role (dropdown/toggle disabled for current user's row)</ac>
+    <ac id="3.3.8">Non-admin users see Team tab in view-only mode</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Story 3.3 - Manage Team Members</section>
+        <snippet>Contains remove team member flow, role change flow, and detailed workflows for admin operations on team members.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Definitions</title>
+        <section>Epic 3: Agency &amp; Team Management</section>
+        <snippet>Story 3.3 defined as team member management including role changes and removal with safety guards.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Data Architecture - Users Table</section>
+        <snippet>Users table with id, agency_id, email, full_name, role (admin|member), RLS policies for agency scoping.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/3-2-invite-users-to-agency.md</path>
+        <title>Story 3.2 - Invite Users (Completed)</title>
+        <section>Dev Notes / Learnings</section>
+        <snippet>Server action patterns, createServiceClient for admin API, revalidatePath pattern, existing team-tab structure.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>documine/src/components/settings/team-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>TeamTab</symbol>
+        <lines>1-263</lines>
+        <reason>Existing team member display component - add role toggle and remove button here. Already has isAdmin check, table structure, and invitation handling.</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+        <kind>server-actions</kind>
+        <symbol>updateProfile, updateAgency, inviteUser, resendInvitation, cancelInvitation</symbol>
+        <lines>1-380</lines>
+        <reason>Add removeTeamMember and changeUserRole here. Follow existing patterns for admin verification, error handling, and revalidatePath.</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-136</lines>
+        <reason>Server component that fetches team members and passes to TeamTab. May need to pass agencyName for removal modal.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>utility</kind>
+        <symbol>createClient, createServiceClient</symbol>
+        <lines>1-56</lines>
+        <reason>createServiceClient needed for auth.admin.deleteUser API call.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/settings/invite-user-modal.tsx</path>
+        <kind>component</kind>
+        <symbol>InviteUserModal</symbol>
+        <reason>Reference for modal pattern - use similar Dialog structure for RemoveUserModal.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/dialog.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter</symbol>
+        <reason>shadcn/ui Dialog primitives for RemoveUserModal.</reason>
+      </file>
+      <file>
+        <path>documine/__tests__/app/dashboard/settings/actions.test.ts</path>
+        <kind>test</kind>
+        <symbol>Test suite for settings actions</symbol>
+        <lines>1-473</lines>
+        <reason>Add tests for removeTeamMember and changeUserRole following existing mock patterns.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>next</package><version>16.0.4</version>
+        <package>react</package><version>19.2.0</version>
+        <package>@supabase/supabase-js</package><version>^2.84.0</version>
+        <package>@supabase/ssr</package><version>^0.7.0</version>
+        <package>sonner</package><version>^2.0.7</version>
+        <package>lucide-react</package><version>^0.554.0</version>
+        <package>zod</package><version>^4.1.13</version>
+        <package>@radix-ui/react-dialog</package><version>^1.1.15</version>
+      </node>
+      <devDependencies>
+        <package>vitest</package><version>^4.0.14</version>
+        <package>@testing-library/react</package><version>^16.3.0</version>
+        <package>happy-dom</package><version>^20.0.10</version>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing server action pattern in actions.ts: 1) Validate input 2) Get auth user 3) Query user role/agency 4) Verify admin 5) Perform operation 6) revalidatePath 7) Return {success, error?}</constraint>
+    <constraint type="pattern">Use createServiceClient() for auth.admin.deleteUser - bypasses RLS</constraint>
+    <constraint type="security">Always verify admin role server-side before admin operations</constraint>
+    <constraint type="security">Prevent self-removal and self-role-change at both UI and server level</constraint>
+    <constraint type="security">Check admin count before removing/demoting an admin to prevent lockout</constraint>
+    <constraint type="ui">Use shadcn/ui Dialog for modal, follow InviteUserModal pattern</constraint>
+    <constraint type="ui">Use toast (Sonner) for success/error feedback</constraint>
+    <constraint type="ui">Use useTransition for loading states on server actions</constraint>
+    <constraint type="naming">Component files: kebab-case (remove-user-modal.tsx)</constraint>
+    <constraint type="naming">TypeScript: PascalCase for types/components, camelCase for functions/variables</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>removeTeamMember</name>
+      <kind>server-action</kind>
+      <signature>removeTeamMember(userId: string): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface>
+      <name>changeUserRole</name>
+      <kind>server-action</kind>
+      <signature>changeUserRole(userId: string, newRole: 'admin' | 'member'): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface>
+      <name>TeamTabProps</name>
+      <kind>interface</kind>
+      <signature>interface TeamTabProps { user: {id, email, full_name, role}; members: TeamMember[]; invitations: Invitation[] }</signature>
+      <path>documine/src/components/settings/team-tab.tsx</path>
+    </interface>
+    <interface>
+      <name>supabase.auth.admin.deleteUser</name>
+      <kind>API</kind>
+      <signature>deleteUser(userId: string): Promise&lt;{data: null; error: AuthError | null}&gt;</signature>
+      <path>@supabase/supabase-js (external)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Tests use Vitest with happy-dom for React components. Server action tests mock @/lib/supabase/server and next/cache. Follow existing patterns in __tests__/app/dashboard/settings/actions.test.ts for mocking createClient and createServiceClient. Each AC should have at least one test case. Use describe blocks organized by AC number.</standards>
+    <locations>
+      <location>documine/__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>documine/__tests__/components/settings/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="3.3.2,3.3.3">Test RemoveUserModal renders with correct user name and agency name in confirmation message</idea>
+      <idea ac="3.3.4">Test removeTeamMember returns error when userId matches current user.id</idea>
+      <idea ac="3.3.5">Test removeTeamMember returns error when target is admin and admin count is 1</idea>
+      <idea ac="3.3.5">Test removeTeamMember succeeds when target is admin but admin count > 1</idea>
+      <idea ac="3.3.6">Test changeUserRole updates role from member to admin successfully</idea>
+      <idea ac="3.3.6">Test changeUserRole updates role from admin to member when safe</idea>
+      <idea ac="3.3.7">Test changeUserRole returns error when userId matches current user.id</idea>
+      <idea ac="3.3.5,3.3.7">Test changeUserRole returns error when demoting last admin</idea>
+      <idea ac="3.3.8">Test TeamTab hides action buttons when isAdmin is false</idea>
+      <idea ac="general">Test removeTeamMember requires admin role</idea>
+      <idea ac="general">Test changeUserRole requires admin role</idea>
+    </ideas>
+  </tests>
+</story-context>

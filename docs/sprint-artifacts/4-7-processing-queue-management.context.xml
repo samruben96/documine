@@ -1,0 +1,172 @@
+<story-context id="4-7-processing-queue-management" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>7</storyId>
+    <title>Processing Queue Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-7-processing-queue-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>manage the document processing queue during high load</iWant>
+    <soThat>uploads don't fail and processing is fair across agencies</soThat>
+    <tasks>
+      <task id="1" acs="4.7.1,4.7.2,4.7.3">Create queue management service (src/lib/documents/queue.ts)</task>
+      <task id="2" acs="4.7.1,4.7.2">Update processing trigger logic in Edge Function</task>
+      <task id="3" acs="4.7.4">Implement queue position display with Realtime subscription</task>
+      <task id="4" acs="4.7.5">Implement stale job detection (>10 min timeout)</task>
+      <task id="5" acs="4.7.6">Implement retry functionality for failed jobs</task>
+      <task id="6" acs="4.7.7,4.7.8">Implement rate limiting (10 docs/agency/hour)</task>
+      <task id="7" acs="4.7.8">Update UI for rate limiting feedback</task>
+      <task id="8" acs="all">Testing and verification (507+ tests baseline)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="4.7.1" title="FIFO Queue Processing per Agency">
+      Processing jobs processed in FIFO order per agency using created_at timestamp.
+    </ac>
+    <ac id="4.7.2" title="Single Active Job per Agency">
+      Only one processing job per agency in 'processing' state; uses FOR UPDATE SKIP LOCKED pattern.
+    </ac>
+    <ac id="4.7.3" title="Cross-Agency Parallelism">
+      Jobs from different agencies run in parallel; no global queue blocking.
+    </ac>
+    <ac id="4.7.4" title="Queue Position Display">
+      Show "Processing... (X documents ahead)" status with Realtime updates.
+    </ac>
+    <ac id="4.7.5" title="Stale Job Detection">
+      Jobs in 'processing' for >10 min marked as 'failed' with timeout message.
+    </ac>
+    <ac id="4.7.6" title="Manual Retry for Failed Jobs">
+      Retry button creates new processing job; preserves original failed job.
+    </ac>
+    <ac id="4.7.7" title="Rate Limiting">
+      Maximum 10 documents per agency per hour; rolling 1-hour window.
+    </ac>
+    <ac id="4.7.8" title="Rate Limit Exceeded Feedback">
+      Toast "Upload limit reached" before file transfer; optional countdown.
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="Edge Functions">
+        Supabase Edge Functions (Deno) for background processing. Document processing pipeline orchestrated by process-document Edge Function.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture">
+        processing_jobs table schema: id, document_id, status (pending|processing|completed|failed), error_message, started_at, completed_at, created_at. Index on status='pending'.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Story 4.7">
+        Queue management requirements: FIFO per agency, single active job, cross-agency parallelism, stale detection at 10 min, rate limit 10/hour.
+      </doc>
+      <doc path="docs/epics.md" title="Epics" section="Epic 4">
+        Story 4.7: Processing Queue Management - manage document processing queue during high load.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/lib/documents/service.ts" kind="service" symbol="createProcessingJob" lines="76-100" reason="Creates processing job with 'pending' status - entry point for queue">
+        Uses service client to bypass RLS. Inserts job with document_id and status='pending'. Returns ProcessingJob record.
+      </file>
+      <file path="src/lib/documents/service.ts" kind="service" symbol="getProcessingJobStatus" lines="246-263" reason="Gets latest processing job for a document - used for status display">
+        Queries processing_jobs by document_id, orders by created_at DESC, returns single latest job.
+      </file>
+      <file path="src/lib/documents/upload.ts" kind="service" symbol="uploadDocumentToStorage" lines="68-114" reason="Integration point for rate limit check before upload">
+        Entry point for document upload. Rate limit check should happen before storage upload to prevent wasted bandwidth.
+      </file>
+      <file path="src/lib/errors.ts" kind="errors" symbol="ProcessingError" lines="42-49" reason="Error class for processing failures - extend for queue errors">
+        ProcessingError class with code='PROCESSING_ERROR'. Consider adding QueueError, RateLimitError following same pattern.
+      </file>
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="Deno.serve" lines="85-189" reason="Main handler to add queue management logic">
+        Main Edge Function handler. Needs: startup stale check, agency concurrency check, FIFO job selection.
+      </file>
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="updateJobStatus" lines="534-560" reason="Existing function to update job status">
+        Updates processing_jobs status with started_at/completed_at timestamps. Used for job lifecycle.
+      </file>
+      <file path="src/components/documents/document-list.tsx" kind="component" symbol="DocumentList" lines="38-256" reason="UI component to show queue position">
+        Document list component. Add queue position display in DocumentListItem for 'processing' status documents.
+      </file>
+      <file path="src/components/documents/document-status.tsx" kind="component" reason="Status display component - add queue position">
+        Document status display. Enhance to show "Processing... (X documents ahead)" message.
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <runtime>Node 20+, Next.js 16.0.4</runtime>
+        <database>@supabase/supabase-js ^2.84.0, @supabase/ssr ^0.7.0</database>
+        <ui>react 19.2.0, react-dom 19.2.0, lucide-react ^0.554.0, sonner ^2.0.7</ui>
+        <forms>react-hook-form ^7.66.1, zod ^4.1.13, @hookform/resolvers ^5.2.2</forms>
+        <testing>vitest ^4.0.14, @testing-library/react ^16.3.0, happy-dom ^20.0.10</testing>
+      </node>
+      <deno>
+        <runtime>Deno (Supabase Edge Functions)</runtime>
+        <imports>jsr:@supabase/functions-js/edge-runtime.d.ts, jsr:@supabase/supabase-js@2</imports>
+      </deno>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="ProcessingJob" kind="type" path="src/lib/documents/service.ts">
+      Tables&lt;'processing_jobs'&gt; = { id: string, document_id: string, status: 'pending'|'processing'|'completed'|'failed', error_message: string|null, started_at: string|null, completed_at: string|null, created_at: string }
+    </interface>
+    <interface name="createProcessingJob" kind="function" path="src/lib/documents/service.ts">
+      (documentId: string) => Promise&lt;ProcessingJob&gt;
+    </interface>
+    <interface name="updateJobStatus" kind="function" path="supabase/functions/process-document/index.ts">
+      (supabase, documentId, status: 'pending'|'processing'|'completed'|'failed', errorMessage?) => Promise&lt;void&gt;
+    </interface>
+    <interface name="getProcessingJobStatus" kind="function" path="src/lib/documents/service.ts">
+      (supabase, documentId: string) => Promise&lt;ProcessingJob | null&gt;
+    </interface>
+    <interface name="Supabase Realtime" kind="subscription" path="@supabase/supabase-js">
+      supabase.channel('processing_jobs').on('postgres_changes', { event: '*', schema: 'public', table: 'processing_jobs' }, callback).subscribe()
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="concurrency">
+      Use FOR UPDATE SKIP LOCKED pattern to prevent race conditions when selecting next pending job.
+    </constraint>
+    <constraint type="rls">
+      processing_jobs table uses service_role only RLS policy. All operations must use service client via createServiceClient().
+    </constraint>
+    <constraint type="edge-function">
+      Edge Function timeout: 150 seconds (Supabase limit). Stale detection set at 10 minutes to allow retries.
+    </constraint>
+    <constraint type="typescript">
+      Strict mode with noUncheckedIndexedAccess. Use proper undefined guards on array access.
+    </constraint>
+    <constraint type="logging">
+      Structured JSON logging pattern: { level, message, ...data, timestamp }. Follow existing log object in Edge Function.
+    </constraint>
+    <constraint type="error-handling">
+      Use custom error classes (ProcessingError, ValidationError). Consider adding RateLimitError for AC-4.7.8.
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest with @testing-library/react and happy-dom. Unit tests in __tests__/unit/, integration tests in __tests__/integration/. Mock Supabase client for unit tests. Test baseline: 507 tests - must maintain or increase.
+    </standards>
+    <locations>
+      <loc>__tests__/unit/lib/documents/ - document service tests</loc>
+      <loc>__tests__/lib/documents/ - upload tests</loc>
+      <loc>__tests__/hooks/ - hook tests</loc>
+    </locations>
+    <ideas>
+      <idea ac="4.7.1">Test FIFO ordering: create multiple jobs, verify oldest processed first</idea>
+      <idea ac="4.7.2">Test single active job: attempt concurrent processing, verify only one runs</idea>
+      <idea ac="4.7.3">Test cross-agency parallelism: jobs from different agencies process simultaneously</idea>
+      <idea ac="4.7.4">Test queue position calculation: verify correct count of jobs ahead</idea>
+      <idea ac="4.7.5">Test stale detection: mock job with old started_at, verify marked failed</idea>
+      <idea ac="4.7.6">Test retry: verify new job created, original preserved, document status updated</idea>
+      <idea ac="4.7.7">Test rate limit check: verify 10 doc/hour limit, rolling window calculation</idea>
+      <idea ac="4.7.8">Test rate limit response: verify waitTimeSeconds calculation accuracy</idea>
+    </ideas>
+  </tests>
+</story-context>

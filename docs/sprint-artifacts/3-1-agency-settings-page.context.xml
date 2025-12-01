@@ -1,0 +1,158 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>1</storyId>
+    <title>Agency Settings Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-1-agency-settings-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>to view and edit my agency's settings</iWant>
+    <soThat>I can manage my organization's information and monitor subscription details</soThat>
+    <tasks>
+      <task id="1" acs="3.1.1, 3.1.4">Replace Agency Tab Placeholder with Content
+        <subtask>Remove "Coming in Epic 3" placeholder from Agency tab</subtask>
+        <subtask>Create src/components/settings/agency-tab.tsx</subtask>
+        <subtask>Fetch agency data with subscription info on page load</subtask>
+        <subtask>Display agency name (editable for admin, text for member)</subtask>
+        <subtask>Display subscription tier with appropriate badge styling</subtask>
+        <subtask>Display seat limit and current usage</subtask>
+        <subtask>Display created date formatted</subtask>
+        <subtask>Pass user role to determine edit capability</subtask>
+      </task>
+      <task id="2" acs="3.1.1, 3.1.2">Create Agency Settings Form
+        <subtask>Add form with react-hook-form integration (for admin users)</subtask>
+        <subtask>Create Zod validation schema for agency (name: 2-100 chars)</subtask>
+        <subtask>Add agencySchema to src/lib/validations/auth.ts</subtask>
+        <subtask>Implement real-time validation on blur</subtask>
+        <subtask>Show field-level error messages</subtask>
+      </task>
+      <task id="3" acs="3.1.2, 3.1.3">Create updateAgency Server Action
+        <subtask>Add updateAgency(data: { name: string }) to src/app/(dashboard)/settings/actions.ts</subtask>
+        <subtask>Verify user is admin before allowing update</subtask>
+        <subtask>Validate input server-side with Zod</subtask>
+        <subtask>Update agencies table via Supabase</subtask>
+        <subtask>Return success/error response</subtask>
+      </task>
+      <task id="4" acs="3.1.3">Implement Save Button with Loading State
+        <subtask>Add "Save Changes" button to agency form (admin only)</subtask>
+        <subtask>Show loading spinner during save</subtask>
+        <subtask>Disable button while saving</subtask>
+        <subtask>Show success toast: "Agency settings updated"</subtask>
+        <subtask>Show error toast on failure</subtask>
+      </task>
+      <task id="5" acs="3.1.4">Implement View-Only Mode for Non-Admins
+        <subtask>Check user role from session data</subtask>
+        <subtask>Render text display instead of input for member role</subtask>
+        <subtask>Hide Save Changes button for non-admins</subtask>
+        <subtask>Ensure all display fields remain visible</subtask>
+      </task>
+      <task id="6" acs="3.1.1">Fetch Agency Data with Subscription Info
+        <subtask>Query agency with user count for "current usage"</subtask>
+        <subtask>Include subscription_tier and seat_limit fields</subtask>
+        <subtask>Format created_at date for display</subtask>
+        <subtask>Handle loading and error states</subtask>
+      </task>
+      <task id="7" acs="all">Add Unit and Integration Tests
+        <subtask>Create __tests__/components/settings/agency-tab.test.tsx</subtask>
+        <subtask>Test: Agency tab displays all required fields</subtask>
+        <subtask>Test: Admin user sees editable form</subtask>
+        <subtask>Test: Member user sees read-only view</subtask>
+        <subtask>Test: Form shows validation errors (2-100 chars)</subtask>
+        <subtask>Add tests to __tests__/app/dashboard/settings/actions.test.ts</subtask>
+        <subtask>Test: updateAgency validates name length</subtask>
+        <subtask>Test: updateAgency rejects non-admin users</subtask>
+        <subtask>Test: updateAgency updates database correctly</subtask>
+      </task>
+      <task id="8" acs="all">Manual Testing and Verification
+        <subtask>Test agency settings display shows correct data</subtask>
+        <subtask>Test name update with valid input as admin</subtask>
+        <subtask>Test name validation (too short, too long)</subtask>
+        <subtask>Test success toast appears after save</subtask>
+        <subtask>Test member user sees view-only mode</subtask>
+        <subtask>Verify npm run build succeeds</subtask>
+        <subtask>Verify all tests pass</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-3.1.1">Agency tab displays: Agency name (editable input field for admins), Subscription tier (display only), Seat limit (display only), Current usage (display only), Created date (display only, formatted)</criterion>
+    <criterion id="AC-3.1.2">Agency name update validates 2-100 characters with real-time validation on blur. Show error if name is less than 2 characters or exceeds 100 characters.</criterion>
+    <criterion id="AC-3.1.3">Save shows success toast: "Agency settings updated". Button shows loading state during save. Changes reflected immediately in UI. Error toast if save fails.</criterion>
+    <criterion id="AC-3.1.4">Non-admin users see Agency tab but cannot edit (view-only). Name field displayed as text (not editable input). No "Save Changes" button visible. All other fields remain visible.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-3.md" title="Epic 3 Tech Spec" section="Story 3.1: Agency Settings Page" snippet="Defines updateAgency server action pattern, AgencySettings TypeScript interface, and updateAgencySchema Zod validation (name: 2-100 chars). Agency settings displays name, tier, seat limit, current usage, created date."/>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture - Core Tables" snippet="Agencies table with id, name, subscription_tier, seat_limit, created_at, updated_at. Users table with role field for admin/member permission checking."/>
+      <doc path="docs/architecture.md" title="Architecture" section="RLS Policies" snippet="Users can only see their own agency via RLS policy. Agency data scoped by agency_id from authenticated user."/>
+      <doc path="docs/ux-design-specification.md" title="UX Design" section="Color System" snippet="Trustworthy Slate theme with primary (#475569), success emerald (#059669) for high confidence. Badge styling for subscription tiers."/>
+      <doc path="docs/prd.md" title="PRD" section="Agency Management" snippet="FR27-30: Agencies have isolated document storage and data. Agency admins can view usage metrics and manage agency settings."/>
+      <doc path="docs/sprint-artifacts/2-6-user-profile-management.md" title="Story 2.6 Reference" section="Dev Agent Record" snippet="Previous story established settings page with Profile/Agency/Billing tabs. ComingSoonTab placeholder exists for Agency tab. React Hook Form + Zod + sonner toast pattern established."/>
+    </docs>
+    <code>
+      <file path="documine/src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" lines="1-77" reason="Main settings page with tabs. Agency tab currently uses ComingSoonTab placeholder - must be replaced with AgencyTab component. Fetches userData including agency and role."/>
+      <file path="documine/src/app/(dashboard)/settings/actions.ts" kind="server-action" symbol="updateProfile" lines="1-43" reason="Existing server action pattern to follow. Shows Zod validation with .issues API, auth check, database update, and success/error response pattern."/>
+      <file path="documine/src/components/settings/profile-tab.tsx" kind="component" symbol="ProfileTab" lines="1-143" reason="Reference implementation for form-based settings tab. Uses react-hook-form, zodResolver, mode:'onBlur' validation, useTransition for loading state, sonner toast."/>
+      <file path="documine/src/components/settings/coming-soon-tab.tsx" kind="component" symbol="ComingSoonTab" lines="1-46" reason="Placeholder component to be replaced. Agency tab currently renders this - remove and replace with AgencyTab."/>
+      <file path="documine/src/lib/validations/auth.ts" kind="validation" symbol="profileSchema, signupSchema" lines="1-67" reason="Existing Zod schemas. Add agencySchema following same pattern: z.object with name field (2-100 chars)."/>
+      <file path="documine/src/lib/supabase/server.ts" kind="utility" symbol="createClient" lines="1-55" reason="Server-side Supabase client creation. Use for server actions to query/update agencies table."/>
+    </code>
+    <dependencies>
+      <ecosystem name="npm">
+        <package name="react-hook-form" version="^7.66.1" purpose="Form state management"/>
+        <package name="@hookform/resolvers" version="^5.2.2" purpose="Zod integration for react-hook-form"/>
+        <package name="zod" version="^4.1.13" purpose="Schema validation (use .issues API not .errors per Epic 2 learning)"/>
+        <package name="sonner" version="^2.0.7" purpose="Toast notifications"/>
+        <package name="lucide-react" version="^0.554.0" purpose="Icons (Loader2 for loading state)"/>
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Supabase client"/>
+        <package name="@supabase/ssr" version="^0.7.0" purpose="Server-side Supabase"/>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture">All team operations scoped by agency_id via RLS - queries automatically filtered</constraint>
+    <constraint source="Tech Spec">Only admins can update agency settings - verify role before allowing changes</constraint>
+    <constraint source="Epic 2 Learning">Use Zod v4 .issues API pattern (not .errors) for extracting validation error messages</constraint>
+    <constraint source="Dev Notes">React Hook Form with mode:'onBlur' for real-time validation</constraint>
+    <constraint source="Dev Notes">Use sonner toast.success() and toast.error() for feedback</constraint>
+    <constraint source="Architecture">Subscription tiers: starter, professional, agency (display-only for this story)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="updateAgency" kind="server-action" signature="async function updateAgency(data: { name: string }): Promise<{ success: boolean; error?: string }>" path="documine/src/app/(dashboard)/settings/actions.ts"/>
+    <interface name="agencySchema" kind="zod-schema" signature="z.object({ name: z.string().min(2).max(100) })" path="documine/src/lib/validations/auth.ts"/>
+    <interface name="AgencyWithUsage" kind="type" signature="{ id: string; name: string; subscription_tier: 'starter' | 'professional' | 'agency'; seat_limit: number; currentSeats: number; created_at: string }" path="inferred from Tech Spec"/>
+    <interface name="AgencyTabProps" kind="component-props" signature="{ user: { id: string; email: string; full_name: string | null; role: string; agency: { id: string; name: string; subscription_tier: string; seat_limit: number; created_at: string } | null }; currentSeats: number }" path="new component"/>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library. Unit tests in __tests__/unit/, integration tests in __tests__/integration/.
+      Use happy-dom environment for component tests (.tsx files auto-matched).
+      Coverage thresholds of 80% for new code (lines, functions, branches, statements).
+      Mock Supabase client available at __tests__/mocks/supabase.ts.
+      Test pattern: describe blocks for each function/component, it blocks for each behavior.
+    </standards>
+    <locations>
+      <location>__tests__/components/settings/agency-tab.test.tsx</location>
+      <location>__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>__tests__/unit/lib/validations/auth.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-3.1.1">Render AgencyTab with mock admin user data, verify all fields display (name input, tier badge, seats display, created date)</idea>
+      <idea ac="AC-3.1.2">Submit form with 1-char name, verify validation error appears. Submit with 101-char name, verify error. Submit with valid name, verify no error.</idea>
+      <idea ac="AC-3.1.3">Mock updateAgency to return success, verify toast.success called with "Agency settings updated". Mock error, verify toast.error called.</idea>
+      <idea ac="AC-3.1.4">Render AgencyTab with role='member', verify name is displayed as text not input, Save button not present, all other fields visible.</idea>
+      <idea ac="server-action">Test updateAgency: mock non-admin user returns error "Only admins can update agency settings". Mock admin user with valid data returns success.</idea>
+      <idea ac="validation">Test agencySchema validates name length correctly: rejects "", "a", and 101-char string. Accepts "AB" and 100-char string.</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,153 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>2</storyId>
+    <title>Natural Language Query Input</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-2-natural-language-query-input.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to ask questions about my document in plain English with a well-designed input experience</iWant>
+    <soThat>I can find information without learning special syntax and have immediate feedback as I type</soThat>
+    <tasks>
+      <task id="1" ac="5.2.1,5.2.2,5.2.3,5.2.4">Enhance ChatInput for Character Limit - character count at 900+, max 1000 validation, inline error, smooth height animation</task>
+      <task id="2" ac="5.2.5,5.2.6">Create Suggested Questions Component - 3 clickable chips with Trustworthy Slate styling</task>
+      <task id="3" ac="5.2.5,5.2.6">Integrate Suggestions into ChatPanel - show when empty, hide after first message</task>
+      <task id="4" ac="5.2.7">Create Chat Message Component - user/assistant styles, timestamps, markdown support</task>
+      <task id="5" ac="5.2.8">Create Thinking Indicator Component - 3-dot animated pulse/fade effect</task>
+      <task id="6" ac="5.2.9">Implement Input Disabled State - isLoading prop, disabled textarea and button</task>
+      <task id="7" ac="5.2.7,5.2.8,5.2.9">Create useChat Hook Foundation - message state, sendMessage, loading state, optimistic UI</task>
+      <task id="8" ac="all">Integrate Components in ChatPanel - wire up hook, render messages, thinking indicator</task>
+      <task id="9" ac="all">Testing and Verification - component tests, hook tests, maintain 537+ test baseline</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="5.2.1" title="Free-form Natural Language Input">Input accepts free-form natural language, no special syntax, supports questions like "What's the liability limit?"</criterion>
+    <criterion id="5.2.2" title="Multi-line Input Expansion">Input expands up to 4 visible lines before scrolling, smooth animation</criterion>
+    <criterion id="5.2.3" title="Character Count Display">Shows at 900+ chars (e.g., "950/1000"), muted text color #64748b</criterion>
+    <criterion id="5.2.4" title="Character Limit Enforcement">Reject >1000 chars with inline error in red (#dc2626)</criterion>
+    <criterion id="5.2.5" title="Suggested Questions for Empty Conversations">3 suggestions: coverage limit, exclusions, deductible - styled as clickable chips</criterion>
+    <criterion id="5.2.6" title="Suggested Question Click Behavior">Click fills input, focuses textarea, user can edit before sending</criterion>
+    <criterion id="5.2.7" title="Message Send Behavior">Input clears, user message appears right-aligned with timestamp</criterion>
+    <criterion id="5.2.8" title="Thinking Indicator">Animated 3 dots in assistant position while waiting for response</criterion>
+    <criterion id="5.2.9" title="Input Disabled During Response">Disabled during streaming, re-enables on complete/error</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Epic 5 Tech Spec" section="Story 5.2" snippet="Defines character limit (1000), suggested questions, message styling, thinking indicator animation specs" />
+      <doc path="docs/architecture.md" title="Architecture" section="API Contracts - Chat" snippet="Streaming response format, SSE events, ChatMessage interface with role, content, sources, confidence" />
+      <doc path="docs/epics.md" title="Epics" section="Epic 5: Document Q&A" snippet="Story 5.2 acceptance criteria and feature requirements for natural language input" />
+      <doc path="docs/sprint-artifacts/5-1-chat-interface-layout-split-view.md" title="Story 5.1 (Completed)" section="Dev Agent Record" snippet="ChatInput foundation with auto-resize, Enter/Shift+Enter - 34 tests added, 537 total passing" />
+    </docs>
+    <code>
+      <file path="documine/src/components/chat/chat-input.tsx" kind="component" symbol="ChatInput" lines="1-166" reason="ENHANCE: Add character count, validation, disabled state for loading" />
+      <file path="documine/src/components/chat/chat-panel.tsx" kind="component" symbol="ChatPanel, ChatMessage" lines="1-158" reason="ENHANCE: Integrate useChat, suggested questions, thinking indicator, message rendering" />
+      <file path="documine/src/components/chat/index.ts" kind="barrel" reason="ADD: Export new components (SuggestedQuestions, ThinkingIndicator, ChatMessage)" />
+      <file path="documine/__tests__/components/chat/chat-input.test.tsx" kind="test" symbol="ChatInput tests" lines="1-165" reason="REFERENCE: Test patterns for 16 existing tests, add character limit tests" />
+      <file path="documine/__tests__/components/chat/chat-panel.test.tsx" kind="test" symbol="ChatPanel tests" reason="REFERENCE: Test patterns for 8 existing tests, add message rendering tests" />
+      <file path="documine/src/lib/utils.ts" kind="utility" symbol="cn" lines="1-7" reason="REUSE: Class name utility for conditional styles" />
+      <file path="documine/src/components/ui/button.tsx" kind="ui-primitive" reason="REUSE: Button component for suggested questions chips" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="react" version="19.2.0" />
+        <package name="next" version="16.0.4" />
+        <package name="lucide-react" version="^0.554.0" note="Send icon already used, may need MessageSquare or similar" />
+        <package name="tailwind-merge" version="^3.4.0" />
+        <package name="clsx" version="^2.1.1" />
+        <package name="vitest" version="^4.0.14" dev="true" />
+        <package name="@testing-library/react" version="^16.3.0" dev="true" />
+        <package name="@testing-library/user-event" version="^14.6.1" dev="true" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing component patterns from Story 5.1 (forwardRef, useCallback, useMemo)</constraint>
+    <constraint type="style">Trustworthy Slate theme - Primary: #475569, Surface: #f8fafc, Muted: #64748b, Error: #dc2626</constraint>
+    <constraint type="testing">Maintain test baseline of 537+ tests - use vitest + @testing-library/react</constraint>
+    <constraint type="a11y">44x44px minimum touch targets, visible focus indicators (2px outline), aria-labels</constraint>
+    <constraint type="performance">Use CSS animations for thinking indicator (no JS intervals)</constraint>
+    <constraint type="architecture">Components in src/components/chat/, hooks in src/hooks/, tests in __tests__/</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ChatInputProps" kind="component-props" path="documine/src/components/chat/chat-input.tsx">
+      <signature>interface ChatInputProps {
+  onSend: (message: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  autoFocus?: boolean;
+  isLoading?: boolean; // NEW: for 5.2.9
+}</signature>
+    </interface>
+    <interface name="ChatInputRef" kind="component-ref" path="documine/src/components/chat/chat-input.tsx">
+      <signature>interface ChatInputRef {
+  focus: () => void;
+  setValue?: (value: string) => void; // NEW: for suggestion click
+}</signature>
+    </interface>
+    <interface name="UseChatReturn" kind="hook-return" path="NEW: documine/src/hooks/use-chat.ts">
+      <signature>interface UseChatReturn {
+  messages: ChatMessage[];
+  isLoading: boolean;
+  error: string | null;
+  sendMessage: (content: string) => Promise&lt;void&gt;;
+  clearMessages: () => void;
+}</signature>
+    </interface>
+    <interface name="ChatMessage" kind="type" path="NEW: documine/src/hooks/use-chat.ts">
+      <signature>interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: Date;
+}</signature>
+    </interface>
+    <interface name="SuggestedQuestionsProps" kind="component-props" path="NEW: documine/src/components/chat/suggested-questions.tsx">
+      <signature>interface SuggestedQuestionsProps {
+  onSelect: (question: string) => void;
+  className?: string;
+}</signature>
+    </interface>
+    <interface name="ThinkingIndicatorProps" kind="component-props" path="NEW: documine/src/components/chat/thinking-indicator.tsx">
+      <signature>interface ThinkingIndicatorProps {
+  className?: string;
+}</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use vitest + @testing-library/react + @testing-library/user-event. Tests organized by AC in describe blocks.
+      Follow existing patterns from chat-input.test.tsx: vi.fn() for mocks, beforeEach for clearing mocks,
+      userEvent.setup() for interactions, waitFor for async operations. Use happy-dom environment.
+      Name tests by AC number (e.g., "AC-5.2.3: Character Count Display").
+    </standards>
+    <locations>
+      <location>documine/__tests__/components/chat/chat-input.test.tsx</location>
+      <location>documine/__tests__/components/chat/chat-panel.test.tsx</location>
+      <location>documine/__tests__/components/chat/suggested-questions.test.tsx (NEW)</location>
+      <location>documine/__tests__/components/chat/chat-message.test.tsx (NEW)</location>
+      <location>documine/__tests__/components/chat/thinking-indicator.test.tsx (NEW)</location>
+      <location>documine/__tests__/hooks/use-chat.test.ts (NEW)</location>
+    </locations>
+    <ideas>
+      <idea ac="5.2.3">Test character count appears at 900 chars, updates correctly, uses correct color</idea>
+      <idea ac="5.2.4">Test error message appears at 1001 chars, send is blocked, error text/color correct</idea>
+      <idea ac="5.2.5">Test 3 suggestions render, correct text, correct styling as chips</idea>
+      <idea ac="5.2.6">Test suggestion click calls onSelect, test focus transfer to input</idea>
+      <idea ac="5.2.7">Test user message renders right-aligned, correct color, timestamp displays</idea>
+      <idea ac="5.2.8">Test thinking indicator renders with 3 dots, animation classes present</idea>
+      <idea ac="5.2.9">Test textarea disabled when isLoading, button disabled, Enter key blocked</idea>
+      <idea ac="hook">Test useChat: initial state, addMessage updates state, loading state toggles</idea>
+    </ideas>
+  </tests>
+</story-context>

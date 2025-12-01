@@ -16,31 +16,36 @@
 
 ## Project Structure
 
-- **Git repository location:** `/Users/samruben/sams-tool/documine` (NOT the parent `sams-tool` folder)
-- **BMAD docs location:** `/Users/samruben/sams-tool/docs` and `/Users/samruben/sams-tool/.bmad`
-- **Sprint artifacts:** `/Users/samruben/sams-tool/docs/sprint-artifacts`
+Everything is now inside the `documine` directory (git repo root):
+
+- **Git repository:** `/Users/samruben/sams-tool/documine`
+- **BMAD framework:** `/.bmad/`
+- **Project docs:** `/docs/`
+- **Sprint artifacts:** `/docs/sprint-artifacts/`
+- **Source code:** `/src/`
 
 ## Key Paths
 
 ```
-sams-tool/
+documine/                     # ← GIT ROOT (everything is here)
 ├── .bmad/                    # BMAD framework files
-├── docs/                     # Project documentation & sprint artifacts
-│   └── sprint-artifacts/     # Stories, tech specs, sprint status
-└── documine/                 # ← MAIN CODE REPO (git root is here)
-    ├── src/
-    ├── __tests__/
-    ├── package.json
-    └── .git/
-
-# For local Docling development, clone as sibling:
-# git clone https://github.com/samruben96/docling-for-documine.git
-# Then: sams-tool/docling-for-documine/ will exist
+│   └── bmm/                  # BMM workflows, agents, config
+├── docs/                     # Project documentation
+│   ├── sprint-artifacts/     # Stories, tech specs, sprint status
+│   ├── deployment/           # Deployment guides
+│   ├── architecture.md
+│   ├── prd.md
+│   └── ...
+├── src/                      # Application source code
+├── __tests__/                # Test files
+├── supabase/                 # Supabase functions
+├── package.json
+└── .git/
 ```
 
 ## Git Commands
 
-Always run git commands from `/Users/samruben/sams-tool/documine`, not the parent directory.
+All git commands run from the `documine` directory.
 
 ## Tech Stack
 

@@ -1,0 +1,197 @@
+<story-context id="3-5-agency-usage-metrics" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>5</storyId>
+    <title>Agency Usage Metrics</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-5-agency-usage-metrics.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>to view usage metrics for my agency including documents uploaded, queries asked, active users, and storage used</iWant>
+    <soThat>I can understand how my team is using docuMINE and make informed decisions about our subscription</soThat>
+    <tasks>
+      <task id="1" ac="3.5.1,3.5.2,3.5.3,3.5.4,3.5.5">Create UsageTab component in src/components/settings/usage-tab.tsx</task>
+      <task id="2" ac="3.5.1,3.5.2,3.5.3,3.5.4">Add getUsageMetrics server action to src/app/(dashboard)/settings/actions.ts</task>
+      <task id="3" ac="3.5.1,3.5.2,3.5.3,3.5.4">Define UsageMetrics types in src/types/index.ts or dedicated file</task>
+      <task id="4" ac="3.5.5,3.5.6">Integrate UsageTab into settings page with admin-only visibility</task>
+      <task id="5" ac="3.5.6">Add admin-only gate for usage metrics (both UI and server action)</task>
+      <task id="6" ac="3.5.1,3.5.2,3.5.3,3.5.4">Add unit tests for getUsageMetrics server action</task>
+      <task id="7" ac="all">Build and test verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-3.5.1">Usage section shows: Documents uploaded (this month/all time) - displays document count for current calendar month and total all-time with clear labels</criterion>
+    <criterion id="AC-3.5.2">Usage section shows: Queries asked (this month/all time) - counts chat_messages with role='user' for the agency, shows monthly and all-time counts</criterion>
+    <criterion id="AC-3.5.3">Usage section shows: Active users (last 7 days) - counts users with activity (uploaded document or asked query) in last 7 days</criterion>
+    <criterion id="AC-3.5.4">Usage section shows: Storage used (MB/GB) - calculates total storage from documents table metadata, displays in appropriate unit</criterion>
+    <criterion id="AC-3.5.5">Metrics refresh on page load - data fetched fresh when navigating to settings page, no stale cache, loading state during fetch</criterion>
+    <criterion id="AC-3.5.6">Non-admin users do not see agency-wide metrics - Usage tab not visible to non-admin users</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Story 3.5: Agency Usage Metrics</section>
+        <snippet>Defines getUsageMetrics server action returning UsageMetrics interface with documentsUploaded, queriesAsked, activeUsers, storageUsedMB. Requires admin-only access.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR28 - Agency Usage Metrics</section>
+        <snippet>Agency admins can view usage metrics for their agency including documents, queries, users, and storage.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Multi-Tenancy</section>
+        <snippet>All operations scoped by agency_id via RLS policies. Admin-only operations require server-side role verification.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/3-4-subscription-billing-management.md</path>
+        <title>Story 3.4: Subscription & Billing Management</title>
+        <section>Dev Agent Record</section>
+        <snippet>Patterns for server actions, admin checks, Card layouts, Tab integration. BillingTab follows same structure as UsageTab should.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+        <kind>server-actions</kind>
+        <symbol>getBillingInfo, updateSubscriptionTier</symbol>
+        <lines>550-670</lines>
+        <reason>Reference for server action pattern with admin checks. getUsageMetrics should follow same structure.</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page-component</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-139</lines>
+        <reason>Main settings page with tab structure. Usage tab must be added here with admin-only conditional rendering.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/settings/billing-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>BillingTab</symbol>
+        <lines>1-97</lines>
+        <reason>Reference for Card layout pattern. UsageTab should use same Card/CardHeader/CardContent structure.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>service</kind>
+        <symbol>createClient, createServiceClient</symbol>
+        <lines>1-55</lines>
+        <reason>Supabase client factory for server-side operations. Use createClient for authenticated queries.</reason>
+      </file>
+      <file>
+        <path>documine/src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database, Tables</symbol>
+        <lines>1-542</lines>
+        <reason>TypeScript types for database tables: documents (with metadata, uploaded_by, created_at), chat_messages (role, agency_id, created_at), conversations (user_id, agency_id, updated_at).</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/constants/plans.ts</path>
+        <kind>constants</kind>
+        <symbol>PlanTier, PLAN_TIERS</symbol>
+        <lines>1-61</lines>
+        <reason>Pattern for defining constants. UsageMetrics interface could be added to types folder.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/card.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Card, CardHeader, CardTitle, CardDescription, CardContent</symbol>
+        <reason>shadcn/ui Card component for metric display cards.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/tabs.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Tabs, TabsList, TabsTrigger, TabsContent</symbol>
+        <reason>shadcn/ui Tabs component for settings page navigation.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="16.0.4">App Router, Server Components, Server Actions</package>
+        <package name="react" version="19.2.0">React 19 with Server Components</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase JS client with database queries</package>
+        <package name="@radix-ui/react-tabs" version="^1.1.13">Tab UI primitives</package>
+        <package name="lucide-react" version="^0.554.0">Icons for metric cards</package>
+        <package name="vitest" version="^4.0.14">Testing framework</package>
+        <package name="@testing-library/react" version="^16.3.0">React testing utilities</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="admin-only">getUsageMetrics must verify user.role === 'admin' server-side before returning data. Return null for non-admins.</constraint>
+    <constraint type="rls">All queries scoped by agency_id. Use RLS policies to ensure data isolation between agencies.</constraint>
+    <constraint type="server-action">Use 'use server' directive. Follow existing pattern: createClient → getUser → getUserData → verify role → execute query.</constraint>
+    <constraint type="no-client-state">Settings page uses server components. Data fetched on server, passed to client components as props.</constraint>
+    <constraint type="typescript">All types must be properly defined. Use existing Database types from src/types/database.types.ts.</constraint>
+    <constraint type="testing">Add unit tests to __tests__/app/dashboard/settings/actions.test.ts following existing patterns.</constraint>
+    <constraint type="build">Must pass npm run build and npm run test before marking complete.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="UsageMetrics">
+      <kind>TypeScript interface</kind>
+      <signature>
+interface UsageMetrics {
+  documentsUploaded: { thisMonth: number; allTime: number };
+  queriesAsked: { thisMonth: number; allTime: number };
+  activeUsers: number;
+  storageUsedBytes: number;
+}
+      </signature>
+      <path>documine/src/types/index.ts (or actions.ts)</path>
+    </interface>
+    <interface name="getUsageMetrics">
+      <kind>Server Action</kind>
+      <signature>export async function getUsageMetrics(): Promise&lt;UsageMetrics | null&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface name="UsageTabProps">
+      <kind>Component Props</kind>
+      <signature>
+interface UsageTabProps {
+  metrics: UsageMetrics;
+}
+      </signature>
+      <path>documine/src/components/settings/usage-tab.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Tests use Vitest with vi.mock for Supabase client mocking. Server actions tested by mocking createClient and verifying:
+      1. Authentication checks (getUser returns user)
+      2. Admin role verification (role === 'admin')
+      3. Query execution and result structure
+      4. Error handling for unauthenticated/unauthorized users
+      Follow patterns in __tests__/app/dashboard/settings/actions.test.ts
+    </standards>
+    <locations>
+      <location>documine/__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>documine/__tests__/unit/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-3.5.1">Test getUsageMetrics returns documentsUploaded with thisMonth and allTime counts</idea>
+      <idea ac="AC-3.5.2">Test getUsageMetrics returns queriesAsked counts (only role='user' messages)</idea>
+      <idea ac="AC-3.5.3">Test activeUsers calculation includes document uploaders and conversation participants from last 7 days</idea>
+      <idea ac="AC-3.5.4">Test storageUsedBytes aggregates metadata.size from documents</idea>
+      <idea ac="AC-3.5.5">Test getUsageMetrics fetches fresh data (no caching issues)</idea>
+      <idea ac="AC-3.5.6">Test getUsageMetrics returns null for non-admin users</idea>
+      <idea ac="AC-3.5.6">Test getUsageMetrics returns null for unauthenticated users</idea>
+    </ideas>
+  </tests>
+</story-context>

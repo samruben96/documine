@@ -1,0 +1,149 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>6</storyId>
+    <title>User Profile Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-6-user-profile-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>logged-in user</asA>
+    <iWant>to view and update my profile information</iWant>
+    <soThat>my account details stay current and I can access agency settings</soThat>
+    <tasks>
+      <task id="1" ac="2.6.4">Create Settings Page Layout with Tabs - src/app/(dashboard)/settings/page.tsx with Profile/Agency/Billing tabs using shadcn/ui Tabs component</task>
+      <task id="2" ac="2.6.1">Create Profile Tab Component - src/components/settings/profile-tab.tsx displaying editable name, read-only email/agency/role</task>
+      <task id="3" ac="2.6.1,2.6.2">Create Profile Update Form - react-hook-form with Zod validation (fullName: 2-100 chars)</task>
+      <task id="4" ac="2.6.2,2.6.3">Create Profile Update Server Action - src/app/(dashboard)/settings/actions.ts with updateProfile function</task>
+      <task id="5" ac="2.6.3">Implement Save Button with Loading State - show spinner, disable during save, success/error toasts</task>
+      <task id="6" ac="2.6.1">Create User Data Fetching Hook - src/hooks/use-user.ts for fetching user profile with agency data</task>
+      <task id="7" ac="all">Add Unit and Integration Tests - test validation, database updates, component rendering</task>
+      <task id="8" ac="all">Manual Testing and Verification - verify all ACs, build, tests pass</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-2.6.1">Settings page shows Profile tab with: Full name (editable), Email (read-only), Agency name (read-only), Role (read-only: Admin/Member)</criterion>
+    <criterion id="AC-2.6.2">Name update validates 2-100 characters with real-time validation on blur</criterion>
+    <criterion id="AC-2.6.3">Save shows success toast "Profile updated" with loading state and immediate UI reflection</criterion>
+    <criterion id="AC-2.6.4">Settings page layout includes tabs for Profile, Agency, Billing (Agency/Billing show "Coming soon" placeholder)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-2.md" title="Epic 2 Technical Specification" section="Story 2.6: User Profile Management">
+        AC-2.6.1 through AC-2.6.4 define profile settings requirements. Settings page with tabs for Profile/Agency/Billing, name validation 2-100 chars.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture">
+        Users table schema: id (references auth.users), agency_id, email, full_name, role ('admin'|'member'), timestamps.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Code Organization">
+        Pages in src/app/, components in src/components/, hooks in src/hooks/, server utilities in src/lib/.
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 2.6: User Profile Management">
+        Profile tab shows editable name, read-only email/agency/role. Settings page tabs for Profile/Agency/Billing. Name validation 2-100 chars.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="documine/src/lib/validations/auth.ts" kind="validation" symbol="signupSchema" lines="28-41" reason="Existing Zod schema with fullName validation (2-100 chars) - extract and reuse for profile validation">
+        Contains signupSchema with fullName: z.string().min(2).max(100) - reuse this pattern for profileSchema.
+      </file>
+      <file path="documine/src/components/ui/tabs.tsx" kind="ui-component" symbol="Tabs,TabsList,TabsTrigger,TabsContent" reason="shadcn/ui Tabs component for settings page tab navigation">
+        Radix-based tabs component with Tabs, TabsList, TabsTrigger, TabsContent exports.
+      </file>
+      <file path="documine/src/lib/supabase/server.ts" kind="service" symbol="createClient" lines="9-33" reason="Server-side Supabase client for database operations in server action">
+        createClient() returns typed Supabase client with cookie handling for server components/actions.
+      </file>
+      <file path="documine/src/app/(auth)/signup/actions.ts" kind="server-action" symbol="signup" lines="22-114" reason="Pattern reference for server action structure with Zod validation and Supabase operations">
+        Shows server action pattern: 'use server' directive, Zod validation, Supabase client usage, error handling.
+      </file>
+      <file path="documine/src/types/database.types.ts" kind="types" symbol="Database.public.Tables.users" lines="312-349" reason="Type definitions for users table including full_name, agency_id, role fields">
+        Users Row type: id, agency_id, email, full_name (string|null), role (string), timestamps. Update type allows partial updates.
+      </file>
+      <file path="documine/src/types/database.types.ts" kind="types" symbol="Database.public.Tables.agencies" lines="42-68" reason="Type definitions for agencies table for displaying agency name">
+        Agencies Row type: id, name, subscription_tier, seat_limit, timestamps.
+      </file>
+      <file path="documine/src/components/layout/header.tsx" kind="component" reason="Layout component showing user menu pattern - may need to display user name">
+        Header component with auth state handling - reference for user display patterns.
+      </file>
+      <file path="documine/src/app/(dashboard)/layout.tsx" kind="layout" reason="Dashboard layout wrapper - settings page will be child of this layout">
+        Dashboard layout with auth protection and header.
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="react-hook-form" version="^7.66.1">Form state management for profile form</package>
+        <package name="@hookform/resolvers" version="^5.2.2">Zod resolver for react-hook-form validation</package>
+        <package name="zod" version="^4.1.13">Schema validation library</package>
+        <package name="@radix-ui/react-tabs" version="^1.1.13">Tabs primitive for shadcn/ui</package>
+        <package name="sonner" version="^2.0.7">Toast notifications for success/error feedback</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase JavaScript client</package>
+        <package name="lucide-react" version="^0.554.0">Icons for UI elements</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">All database operations must use typed Supabase client from src/lib/supabase/server.ts</constraint>
+    <constraint source="architecture">Server actions must validate input server-side with Zod before database operations</constraint>
+    <constraint source="architecture">User data scoped by RLS policy - users can only see/modify their own data</constraint>
+    <constraint source="tech-spec">Email cannot be changed for MVP - display as read-only</constraint>
+    <constraint source="tech-spec">Agency and Billing tabs show "Coming soon" placeholder (Epic 3 scope)</constraint>
+    <constraint source="ux">Use Trustworthy Slate theme colors per UX specification</constraint>
+    <constraint source="architecture">Use sonner for toast notifications (success/error feedback)</constraint>
+    <constraint source="patterns">Follow server action pattern from signup/actions.ts - 'use server', Zod validation, typed responses</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="updateProfile" kind="server-action" path="documine/src/app/(dashboard)/settings/actions.ts">
+      <signature>'use server'
+export async function updateProfile(data: { fullName: string }): Promise&lt;{ success: boolean; error?: string }&gt;</signature>
+      <notes>Server action to update user's full_name in users table. Validate with Zod, update via Supabase, return success/error.</notes>
+    </interface>
+    <interface name="profileSchema" kind="zod-schema" path="documine/src/lib/validations/auth.ts">
+      <signature>export const profileSchema = z.object({
+  fullName: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be at most 100 characters')
+})</signature>
+      <notes>Add to existing auth.ts validations file for reuse. Matches signupSchema.fullName validation.</notes>
+    </interface>
+    <interface name="getUserWithAgency" kind="supabase-query" path="documine/src/hooks/use-user.ts or settings/page.tsx">
+      <signature>const { data } = await supabase
+  .from('users')
+  .select('id, email, full_name, role, agency:agencies(id, name)')
+  .eq('id', user.id)
+  .single()</signature>
+      <notes>Query to fetch user data with agency name for profile display. Uses Supabase joins.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library for component tests. Test files in __tests__/ directory mirroring src/ structure.
+      Mock Supabase client using __tests__/mocks/. Run with npm run test. Coverage with npm run test:coverage.
+      Follow existing test patterns from middleware.test.ts and app/auth/* tests.
+    </standards>
+    <locations>
+      <location>__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>__tests__/components/settings/profile-tab.test.tsx</location>
+      <location>__tests__/lib/validations/auth.test.ts (add profileSchema tests)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-2.6.1">Test profile tab renders user data correctly (name, email, agency, role)</idea>
+      <idea ac="AC-2.6.1">Test email, agency name, and role are displayed as read-only (not editable)</idea>
+      <idea ac="AC-2.6.2">Test profileSchema rejects names under 2 characters</idea>
+      <idea ac="AC-2.6.2">Test profileSchema rejects names over 100 characters</idea>
+      <idea ac="AC-2.6.2">Test form shows validation error on blur for invalid name</idea>
+      <idea ac="AC-2.6.3">Test updateProfile server action updates database successfully</idea>
+      <idea ac="AC-2.6.3">Test updateProfile returns error for unauthenticated users</idea>
+      <idea ac="AC-2.6.3">Test success toast appears after successful profile update</idea>
+      <idea ac="AC-2.6.4">Test settings page renders all three tabs (Profile, Agency, Billing)</idea>
+      <idea ac="AC-2.6.4">Test Agency and Billing tabs show "Coming soon" content</idea>
+    </ideas>
+  </tests>
+</story-context>

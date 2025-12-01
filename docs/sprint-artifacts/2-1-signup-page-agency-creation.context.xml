@@ -1,0 +1,308 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>1</storyId>
+    <title>Signup Page &amp; Agency Creation</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-1-signup-page-agency-creation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>new user</asA>
+    <iWant>to create an account and establish my agency</iWant>
+    <soThat>I can start using docuMINE for my insurance practice</soThat>
+    <tasks>
+      <task id="1" ac="2.1.7">Create Auth Route Group and Layout
+        <subtask>Create src/app/(auth)/layout.tsx with centered auth layout</subtask>
+        <subtask>Apply Trustworthy Slate theme (white bg, slate accents)</subtask>
+        <subtask>Add docuMINE logo/text header</subtask>
+        <subtask>Create responsive container (max-width: 400px)</subtask>
+      </task>
+      <task id="2" ac="2.1.1, 2.1.7">Create Signup Page Component
+        <subtask>Create src/app/(auth)/signup/page.tsx</subtask>
+        <subtask>Add form with fields: fullName, email, password, agencyName</subtask>
+        <subtask>Use shadcn/ui Input components</subtask>
+        <subtask>Add "Already have an account? Sign in" link</subtask>
+        <subtask>Apply UX spec styling (system fonts, slate colors)</subtask>
+      </task>
+      <task id="3" ac="2.1.3">Implement Zod Validation Schema
+        <subtask>Create src/lib/validations/auth.ts</subtask>
+        <subtask>Define signupSchema with fullName, email, password, agencyName</subtask>
+        <subtask>Export typed SignupFormData interface</subtask>
+      </task>
+      <task id="4" ac="2.1.2">Create Password Strength Indicator
+        <subtask>Create src/components/auth/password-strength.tsx</subtask>
+        <subtask>Implement strength calculation (weak/medium/strong)</subtask>
+        <subtask>Add visual bar with colors (red/amber/green)</subtask>
+        <subtask>Add text label</subtask>
+      </task>
+      <task id="5" ac="2.1.3, 2.1.4">Implement Form with React Hook Form
+        <subtask>Install react-hook-form and @hookform/resolvers if not present</subtask>
+        <subtask>Create form component with useForm hook</subtask>
+        <subtask>Connect Zod schema via zodResolver</subtask>
+        <subtask>Implement onBlur validation mode</subtask>
+        <subtask>Display field-level errors below inputs in red</subtask>
+      </task>
+      <task id="6" ac="2.1.5, 2.1.6">Create Signup Server Action
+        <subtask>Create src/app/(auth)/signup/actions.ts</subtask>
+        <subtask>Implement signup server action</subtask>
+        <subtask>Validate form data with Zod</subtask>
+        <subtask>Call supabase.auth.signUp</subtask>
+        <subtask>Create agency record</subtask>
+        <subtask>Create user record with role='admin'</subtask>
+        <subtask>Handle errors (duplicate email, generic)</subtask>
+        <subtask>Use Supabase service role client for admin operations</subtask>
+      </task>
+      <task id="7" ac="2.1.5">Implement Atomic Agency/User Creation
+        <subtask>Create database function or implement transaction logic</subtask>
+        <subtask>Ensure rollback on failure</subtask>
+      </task>
+      <task id="8" ac="2.1.4">Add Loading State to Submit Button
+        <subtask>Track submission state</subtask>
+        <subtask>Disable button and inputs during submission</subtask>
+        <subtask>Show spinner + "Creating..." text</subtask>
+      </task>
+      <task id="9" ac="2.1.6">Integrate Toast Notifications
+        <subtask>Verify sonner is available (already in package.json)</subtask>
+        <subtask>Add Toaster component to auth layout</subtask>
+        <subtask>Show error toast on failure with specific messages</subtask>
+      </task>
+      <task id="10" ac="2.1.7">Add Login Link
+        <subtask>Add "Already have an account?" text below form</subtask>
+        <subtask>Add "Sign in" link to /login</subtask>
+        <subtask>Style with muted text color</subtask>
+      </task>
+      <task id="11" ac="All">Write Tests
+        <subtask>Create src/app/(auth)/signup/__tests__/page.test.tsx</subtask>
+        <subtask>Test form renders all fields</subtask>
+        <subtask>Test validation errors appear on invalid input</subtask>
+        <subtask>Test password strength indicator updates</subtask>
+        <subtask>Test loading state on submission</subtask>
+        <subtask>Test server action with mock Supabase client</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-2.1.1">Signup form displays fields: Full name, Email, Password, Agency name (all required)</criterion>
+    <criterion id="AC-2.1.2">Password field shows strength indicator (weak/medium/strong) with visual bar:
+      - Weak: &lt;8 chars or missing requirements (red)
+      - Medium: 8+ chars with some requirements (amber)
+      - Strong: 8+ chars with all requirements (green)</criterion>
+    <criterion id="AC-2.1.3">Real-time validation shows field-level errors on blur:
+      - Full name: 2-100 characters
+      - Email: Valid email format (RFC 5322)
+      - Password: Min 8 chars, 1 uppercase, 1 number, 1 special character
+      - Agency name: 2-100 characters
+      - Error messages in red (#dc2626) below each field</criterion>
+    <criterion id="AC-2.1.4">Submit button shows loading state during submission:
+      - Button disabled during submission
+      - Spinner + "Creating..." text displayed
+      - Input fields disabled during submission</criterion>
+    <criterion id="AC-2.1.5">Successful signup redirects to /documents:
+      - User session established via httpOnly cookie
+      - Agency record created
+      - User record created with role='admin'</criterion>
+    <criterion id="AC-2.1.6">Error displays as toast notification:
+      - Duplicate email: "An account with this email already exists"
+      - Generic error: "Something went wrong. Please try again."
+      - Toast appears bottom-right, auto-dismisses after 5 seconds</criterion>
+    <criterion id="AC-2.1.7">Page follows UX spec (Trustworthy Slate theme, system fonts):
+      - Primary color: Slate #475569
+      - Background: White #ffffff
+      - Error color: Red #dc2626
+      - System font stack
+      - "Already have an account? Sign in" link to /login</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Account &amp; Access (FR1-FR7)</section>
+        <snippet>FR1: Users can create accounts with email and password. FR2: Users can log in securely. FR3: Users can reset passwords via email verification.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Story 2.1: Signup Page &amp; Agency Creation</section>
+        <snippet>Comprehensive auth spec including Zod schemas (signupSchema), TypeScript types (SignupFormData, LoginFormData), server action signatures, and security requirements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Authentication, API Contracts, Data Architecture</section>
+        <snippet>Supabase Auth with email/password, session via httpOnly cookies (@supabase/ssr), RLS policies for agency isolation, users table links to auth.users.id.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Color System, Form Patterns, Typography</section>
+        <snippet>Trustworthy Slate theme (#475569 primary, #dc2626 error), system font stack, validation on blur, error messages below field in red, clean minimal layout.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.1: Signup Page &amp; Agency Creation</section>
+        <snippet>Use Supabase Auth signUp() with email/password, create agency and user records in transaction, first user becomes admin, use Zod for validation and React Hook Form.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>documine/src/lib/supabase/client.ts</path>
+        <kind>client</kind>
+        <symbol>createClient</symbol>
+        <reason>Browser Supabase client for client-side auth operations</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>client</kind>
+        <symbol>createClient, createServiceClient</symbol>
+        <reason>Server Supabase client with cookie handling and service role client for admin operations (agency/user creation)</reason>
+      </file>
+      <file>
+        <path>documine/src/middleware.ts</path>
+        <kind>middleware</kind>
+        <symbol>middleware</symbol>
+        <reason>Auth middleware handles route protection, session refresh, and redirects. /signup is already in PUBLIC_ROUTES.</reason>
+      </file>
+      <file>
+        <path>documine/src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database, Tables</symbol>
+        <reason>Generated TypeScript types for agencies and users tables. Use TablesInsert&lt;'agencies'&gt; and TablesInsert&lt;'users'&gt; for insert operations.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/errors.ts</path>
+        <kind>utilities</kind>
+        <symbol>ValidationError</symbol>
+        <reason>Use ValidationError for form validation failures in server action</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/input.tsx</path>
+        <kind>component</kind>
+        <symbol>Input</symbol>
+        <reason>shadcn/ui Input component for form fields</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>Button</symbol>
+        <reason>shadcn/ui Button component for submit button</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardHeader, CardContent</symbol>
+        <reason>shadcn/ui Card component for form container</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/sonner.tsx</path>
+        <kind>component</kind>
+        <symbol>Toaster</symbol>
+        <reason>Toast notifications provider - add to auth layout</reason>
+      </file>
+      <file>
+        <path>documine/src/app/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>RootLayout</symbol>
+        <reason>Root layout - auth layout should be separate in (auth) route group</reason>
+      </file>
+    </code>
+    <dependencies>
+      <ecosystem name="npm">
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase client for auth.signUp()</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side session handling with cookies</package>
+        <package name="zod" version="^4.1.13">Form validation schemas</package>
+        <package name="sonner" version="^2.0.7">Toast notifications</package>
+        <package name="lucide-react" version="^0.554.0">Icons for password visibility toggle, loading spinner</package>
+        <package name="class-variance-authority" version="^0.7.1">Component variants</package>
+        <package name="react-hook-form" version="TO_INSTALL">Form state management - NOT YET INSTALLED</package>
+        <package name="@hookform/resolvers" version="TO_INSTALL">Zod resolver for react-hook-form - NOT YET INSTALLED</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture">Server actions for auth operations (no API routes)</constraint>
+    <constraint source="Architecture">Session via httpOnly cookies (@supabase/ssr) - never localStorage</constraint>
+    <constraint source="Architecture">First user of agency always gets role='admin'</constraint>
+    <constraint source="Architecture">User.id must reference auth.users.id (same UUID)</constraint>
+    <constraint source="Tech Spec">Password: 8+ chars, 1 uppercase, 1 number, 1 special character</constraint>
+    <constraint source="Tech Spec">Agency/user creation must be atomic - both succeed or both fail</constraint>
+    <constraint source="Tech Spec">If record creation fails, clean up auth user</constraint>
+    <constraint source="UX Spec">Validation on blur, not on change</constraint>
+    <constraint source="UX Spec">Error messages below field in red #dc2626</constraint>
+    <constraint source="UX Spec">System font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto...</constraint>
+    <constraint source="Dev Notes">Use existing Supabase clients from src/lib/supabase/</constraint>
+    <constraint source="Dev Notes">Use existing ValidationError from src/lib/errors.ts</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="signupSchema" kind="Zod schema">
+      <signature>z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least 1 number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least 1 special character'),
+  fullName: z.string().min(2).max(100),
+  agencyName: z.string().min(2).max(100),
+})</signature>
+      <path>src/lib/validations/auth.ts (TO CREATE)</path>
+    </interface>
+    <interface name="SignupFormData" kind="TypeScript interface">
+      <signature>interface SignupFormData {
+  email: string;
+  password: string;
+  fullName: string;
+  agencyName: string;
+}</signature>
+      <path>src/lib/validations/auth.ts (TO CREATE)</path>
+    </interface>
+    <interface name="signup server action" kind="function signature">
+      <signature>export async function signup(formData: SignupFormData): Promise&lt;{
+  success: boolean;
+  error?: string;
+}&gt;</signature>
+      <path>src/app/(auth)/signup/actions.ts (TO CREATE)</path>
+    </interface>
+    <interface name="Supabase Auth signUp" kind="API">
+      <signature>supabase.auth.signUp({ email, password, options: { emailRedirectTo } })</signature>
+      <path>@supabase/supabase-js</path>
+    </interface>
+    <interface name="agencies table insert" kind="database">
+      <signature>TablesInsert&lt;'agencies'&gt;: { name: string, subscription_tier?: 'starter', seat_limit?: 3 }</signature>
+      <path>documine/src/types/database.types.ts</path>
+    </interface>
+    <interface name="users table insert" kind="database">
+      <signature>TablesInsert&lt;'users'&gt;: { id: string (auth.users.id), agency_id: string, email: string, full_name?: string, role?: 'admin' | 'member' }</signature>
+      <path>documine/src/types/database.types.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Use Vitest with @testing-library/react and happy-dom. Tests should cover form rendering, validation behavior, password strength calculation, loading states, and server action integration. Mock Supabase client for unit tests.</standards>
+    <locations>
+      <location>documine/src/app/(auth)/signup/__tests__/</location>
+      <location>documine/src/lib/validations/__tests__/</location>
+      <location>documine/src/components/auth/__tests__/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-2.1.1">Test that signup form renders all four required fields (fullName, email, password, agencyName)</idea>
+      <idea ac="AC-2.1.2">Test password strength indicator shows weak/medium/strong based on password input</idea>
+      <idea ac="AC-2.1.3">Test validation errors appear below fields after blur with invalid input</idea>
+      <idea ac="AC-2.1.3">Test Zod schema rejects invalid email format</idea>
+      <idea ac="AC-2.1.3">Test Zod schema enforces password requirements (min 8, uppercase, number, special)</idea>
+      <idea ac="AC-2.1.4">Test submit button shows loading state and disables inputs during submission</idea>
+      <idea ac="AC-2.1.5">Test successful signup calls supabase.auth.signUp and creates agency/user records</idea>
+      <idea ac="AC-2.1.6">Test duplicate email error shows correct toast message</idea>
+      <idea ac="AC-2.1.6">Test generic error shows fallback toast message</idea>
+      <idea ac="AC-2.1.7">Test "Already have an account? Sign in" link navigates to /login</idea>
+    </ideas>
+  </tests>
+</story-context>

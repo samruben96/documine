@@ -1,0 +1,194 @@
+<story-context id="4-5-document-organization-rename-label" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>5</storyId>
+    <title>Document Organization (Rename/Label)</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-5-document-organization-rename-label.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to rename documents and add labels</iWant>
+    <soThat>I can organize my document library and find documents quickly</soThat>
+    <tasks>
+      <task id="1" ac="4.5.4,4.5.10">Database schema updates - add display_name column, labels table, document_labels junction table, RLS policies</task>
+      <task id="2" ac="4.5.4">Create rename server actions - renameDocument(documentId, displayName) with validation</task>
+      <task id="3" ac="4.5.1,4.5.2,4.5.3">Implement inline rename in DocumentListItem - edit mode, keyboard handling, validation</task>
+      <task id="4" ac="4.5.5,4.5.6,4.5.8,4.5.10">Create label server actions - getLabels, createLabel, addLabelToDocument, removeLabelFromDocument</task>
+      <task id="5" ac="4.5.5,4.5.6,4.5.7,4.5.8">Create label management UI components - LabelPill, LabelInput, DocumentLabels</task>
+      <task id="6" ac="4.5.9">Implement label filtering - LabelFilter component, filter state, visual indicators</task>
+      <task id="7" ac="all">Testing and verification - unit tests, integration tests, RLS tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="4.5.1" title="Inline Rename Trigger">
+      <item>Clicking edit/rename icon makes filename editable inline</item>
+      <item>Right-click context menu includes "Rename" option</item>
+      <item>Double-click on filename triggers edit mode</item>
+      <item>F2 keyboard shortcut when document focused (optional)</item>
+    </criterion>
+    <criterion id="4.5.2" title="Inline Rename Behavior">
+      <item>Current display_name or filename pre-filled</item>
+      <item>Input auto-focuses and selects all text</item>
+      <item>Enter saves, Escape cancels, blur saves</item>
+    </criterion>
+    <criterion id="4.5.3" title="Rename Validation">
+      <item>1-255 characters, no path separators (/, \)</item>
+      <item>Empty name shows inline error with red border</item>
+    </criterion>
+    <criterion id="4.5.4" title="Rename Persistence">
+      <item>Updates display_name column, preserves original filename</item>
+      <item>Success feedback: brief highlight animation</item>
+      <item>Error feedback: toast notification</item>
+    </criterion>
+    <criterion id="4.5.5" title="Label Add Trigger">
+      <item>"Add label" button opens label input/selector popover</item>
+      <item>Autocomplete shows existing agency labels</item>
+    </criterion>
+    <criterion id="4.5.6" title="Label Creation">
+      <item>Type name + Enter creates new label</item>
+      <item>Label names: 1-50 chars, trimmed, case-insensitive unique</item>
+    </criterion>
+    <criterion id="4.5.7" title="Label Display">
+      <item>Labels shown as pills/badges below document name</item>
+      <item>X button to remove, max 5 labels soft limit</item>
+      <item>Auto-assigned colors from predefined palette</item>
+    </criterion>
+    <criterion id="4.5.8" title="Label Removal">
+      <item>Click X removes from document only (not agency pool)</item>
+      <item>No confirmation required</item>
+    </criterion>
+    <criterion id="4.5.9" title="Filter by Label">
+      <item>Label filter dropdown in sidebar</item>
+      <item>Multiple labels = AND logic</item>
+      <item>Clear filter option, active filter indicator</item>
+    </criterion>
+    <criterion id="4.5.10" title="Labels Agency-Scoped">
+      <item>Labels shared across agency users</item>
+      <item>RLS policy on labels table with agency_id</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 4.5: Document Organization">
+        FR11 coverage: Users can organize documents with basic naming/labeling. Inline rename and label filtering.
+      </doc>
+      <doc path="docs/prd.md" title="Product Requirements" section="FR11">
+        FR11: Users can organize documents (basic naming/labeling). Zero learning curve UX principle.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture">
+        documents table structure, RLS policies pattern, Supabase client usage, naming conventions.
+      </doc>
+      <doc path="docs/sprint-artifacts/4-4-delete-documents.md" title="Previous Story" section="Dev Agent Record">
+        Learnings: DropdownMenu component added, context menu pattern, touch device handling, test baseline 436.
+      </doc>
+    </docs>
+    <code>
+      <file path="documine/src/components/documents/document-list-item.tsx" kind="component" symbol="DocumentListItem" lines="1-151" reason="Main component to extend with inline rename, edit icon, rename context menu option">
+        Existing: FileText icon, dropdown context menu, delete button, hover visibility pattern, touch device handling.
+      </file>
+      <file path="documine/src/components/documents/document-list.tsx" kind="component" symbol="DocumentList" lines="1-216" reason="Container component for documents, manages delete modal state - extend for label filter state">
+        Existing: Search filtering, delete modal integration, navigation handling, empty state.
+      </file>
+      <file path="documine/src/app/(dashboard)/documents/actions.ts" kind="server-actions" symbol="uploadDocument,deleteDocumentAction,getDocuments" lines="1-328" reason="Add renameDocument and label server actions following existing patterns">
+        Pattern: createClient, auth check, RLS via agency_id, revalidatePath, error handling.
+      </file>
+      <file path="documine/src/components/ui/dropdown-menu.tsx" kind="ui-component" symbol="DropdownMenu" reason="Extend context menu with Rename option">
+        shadcn/ui dropdown menu component with DropdownMenuItem.
+      </file>
+      <file path="documine/src/components/documents/delete-document-modal.tsx" kind="component" symbol="DeleteDocumentModal" reason="Reference for modal patterns, Dialog usage">
+        Pattern: Dialog, DialogContent, DialogHeader, DialogFooter, loading state.
+      </file>
+      <file path="documine/supabase/migrations/00001_initial_schema.sql" kind="migration" reason="Existing documents table - need to add display_name column">
+        Current documents table has: id, agency_id, uploaded_by, filename, storage_path, status, page_count, metadata, created_at, updated_at.
+      </file>
+      <file path="documine/src/types/database.types.ts" kind="types" reason="Regenerate after adding labels tables - export Tables type">
+        Generated Supabase types. documents.Row includes display_name already (nullable).
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="lucide-react" version="^0.554.0" note="Icons: Pencil/Edit for rename, Tag/Tags for labels, X for remove" />
+        <package name="sonner" version="^2.0.7" note="Toast notifications for success/error" />
+        <package name="zod" version="^4.1.13" note="Validation schemas for rename/label input" />
+        <package name="react-hook-form" version="^7.66.1" note="Optional: form state if needed for label input" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16" note="Context menu extension" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" note="Popover/dialog if needed for label selector" />
+      </node>
+      <shadcn>
+        <component name="dropdown-menu" note="Extend with Rename option" />
+        <component name="dialog" note="May need for label popover" />
+        <component name="input" note="Inline rename input" />
+        <component name="button" note="Add label button, filter clear" />
+        <component name="badge" note="Consider for label pills - or custom LabelPill" />
+      </shadcn>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture.md">All database queries use RLS via agency_id for multi-tenant isolation</constraint>
+    <constraint source="architecture.md">Naming: snake_case for DB columns (display_name), camelCase for TS (displayName)</constraint>
+    <constraint source="architecture.md">Server actions pattern: createClient, auth check, operation, revalidatePath, return {success, data?, error?}</constraint>
+    <constraint source="story-4.4">Touch device handling: max-md:opacity-100 for always-visible buttons on mobile</constraint>
+    <constraint source="architecture.md">Component files: kebab-case (inline-document-name.tsx, label-pill.tsx)</constraint>
+    <constraint source="epics.md">Labels are agency-scoped - all agency members can add/remove labels on any document</constraint>
+    <constraint source="story">Maximum 5 labels per document (soft limit with warning)</constraint>
+    <constraint source="story">Label names case-insensitive unique per agency using UNIQUE(agency_id, LOWER(name))</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="renameDocument" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function renameDocument(documentId: string, displayName: string): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+    </interface>
+    <interface name="getLabels" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function getLabels(): Promise&lt;{success: boolean; labels?: Label[]; error?: string}&gt;</signature>
+    </interface>
+    <interface name="createLabel" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function createLabel(name: string): Promise&lt;{success: boolean; label?: Label; error?: string}&gt;</signature>
+    </interface>
+    <interface name="addLabelToDocument" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function addLabelToDocument(documentId: string, labelId: string): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+    </interface>
+    <interface name="removeLabelFromDocument" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function removeLabelFromDocument(documentId: string, labelId: string): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+    </interface>
+    <interface name="DocumentListItemProps" kind="component-props" path="documine/src/components/documents/document-list-item.tsx">
+      <signature>interface DocumentListItemProps { id, filename, displayName, status, createdAt, isSelected, onClick, onDeleteClick, onRenameClick?, labels? }</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library. Tests in documine/__tests__/ mirroring src structure.
+      Unit tests for components, integration tests for server actions.
+      Mock Supabase client for isolation. Use happy-dom for React component tests.
+      Current baseline: 436 tests passing.
+    </standards>
+    <locations>
+      <location>documine/__tests__/components/documents/*.test.tsx</location>
+      <location>documine/__tests__/app/dashboard/documents/*.test.ts</location>
+      <location>documine/__tests__/lib/validations/*.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="4.5.1">Test edit icon click triggers edit mode in DocumentListItem</idea>
+      <idea ac="4.5.1">Test context menu Rename option triggers edit mode</idea>
+      <idea ac="4.5.2">Test Enter saves rename, Escape cancels, blur saves</idea>
+      <idea ac="4.5.2">Test input auto-focuses and selects text on edit mode</idea>
+      <idea ac="4.5.3">Test validation rejects empty name, path separators, >255 chars</idea>
+      <idea ac="4.5.4">Test renameDocument server action updates display_name</idea>
+      <idea ac="4.5.5">Test LabelInput autocomplete shows existing labels</idea>
+      <idea ac="4.5.6">Test createLabel prevents case-insensitive duplicates</idea>
+      <idea ac="4.5.7">Test LabelPill displays with X button, max 5 warning</idea>
+      <idea ac="4.5.8">Test removeLabelFromDocument removes junction only</idea>
+      <idea ac="4.5.9">Test LabelFilter filters documents by selected labels</idea>
+      <idea ac="4.5.10">Test RLS policies block cross-agency label access</idea>
+    </ideas>
+  </tests>
+</story-context>

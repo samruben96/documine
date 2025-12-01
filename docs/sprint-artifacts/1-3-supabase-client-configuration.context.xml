@@ -1,0 +1,241 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>3</storyId>
+    <title>Supabase Client Configuration</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-3-supabase-client-configuration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>properly configured Supabase clients for browser and server contexts</iWant>
+    <soThat>database operations work correctly in all Next.js environments</soThat>
+    <tasks>
+      <task id="1" ac="1.3.1,1.3.4">
+        <title>Create Browser Client</title>
+        <subtasks>
+          <subtask>Create src/lib/supabase/client.ts</subtask>
+          <subtask>Import createBrowserClient from @supabase/ssr</subtask>
+          <subtask>Import Database type from @/types/database.types</subtask>
+          <subtask>Configure with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY</subtask>
+          <subtask>Export createClient() function that returns typed Supabase client</subtask>
+          <subtask>Verify browser client works in a test client component</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="1.3.2,1.3.4,1.3.5">
+        <title>Create Server Client</title>
+        <subtasks>
+          <subtask>Create src/lib/supabase/server.ts</subtask>
+          <subtask>Import createServerClient from @supabase/ssr</subtask>
+          <subtask>Import cookies from next/headers</subtask>
+          <subtask>Create createClient() function for server components (uses anon key + cookies)</subtask>
+          <subtask>Create createServiceClient() function for admin operations (uses service role key, no cookies)</subtask>
+          <subtask>Handle cookie get/set/remove operations correctly for Next.js App Router</subtask>
+          <subtask>Type both clients with Database type</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="1.3.3">
+        <title>Create Auth Middleware</title>
+        <subtasks>
+          <subtask>Create src/middleware.ts at project root (Next.js convention)</subtask>
+          <subtask>Import createServerClient from @supabase/ssr</subtask>
+          <subtask>Import NextResponse and type NextRequest from next/server</subtask>
+          <subtask>Implement session refresh logic using Supabase middleware pattern</subtask>
+          <subtask>Define public routes: /, /login, /signup, /reset-password, /api/auth/*</subtask>
+          <subtask>Define protected routes matcher: /documents/:path*, /compare/:path*, /settings/:path*</subtask>
+          <subtask>Redirect unauthenticated users to /login with ?redirect= query param</subtask>
+          <subtask>Export config.matcher to specify which routes middleware applies to</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="1.3.4">
+        <title>Create Barrel Export</title>
+        <subtasks>
+          <subtask>Create src/lib/supabase/index.ts</subtask>
+          <subtask>Re-export createClient from client.ts (aliased as createBrowserClient)</subtask>
+          <subtask>Re-export createClient and createServiceClient from server.ts</subtask>
+          <subtask>Ensure consistent import pattern across codebase</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="1.3.1,1.3.2">
+        <title>Verify Environment Variables</title>
+        <subtasks>
+          <subtask>Verify .env.local has NEXT_PUBLIC_SUPABASE_URL</subtask>
+          <subtask>Verify .env.local has NEXT_PUBLIC_SUPABASE_ANON_KEY</subtask>
+          <subtask>Verify .env.local has SUPABASE_SERVICE_ROLE_KEY</subtask>
+          <subtask>Update .env.example with all three variables (no values)</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="1.3.5">
+        <title>Test RLS with Authenticated Context</title>
+        <subtasks>
+          <subtask>Create test page or API route to verify RLS works</subtask>
+          <subtask>Test: Unauthenticated request returns empty or error (per RLS policy)</subtask>
+          <subtask>Test: Service role client can access data regardless of auth state</subtask>
+          <subtask>Document test results in Dev Notes</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="1.3.6">
+        <title>Verify Build</title>
+        <subtasks>
+          <subtask>Run npm run build in documine directory</subtask>
+          <subtask>Verify no TypeScript errors with new Supabase clients</subtask>
+          <subtask>Verify middleware compiles correctly</subtask>
+          <subtask>Verify build completes successfully</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1.3.1">Browser client (src/lib/supabase/client.ts) is available for client components: Uses createBrowserClient from @supabase/ssr, configured with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, properly typed with generated Database types</criterion>
+    <criterion id="AC-1.3.2">Server client (src/lib/supabase/server.ts) is available for server components and API routes: Uses createServerClient from @supabase/ssr, handles cookies correctly for SSR, supports service role key for admin operations via separate function</criterion>
+    <criterion id="AC-1.3.3">Middleware (src/middleware.ts) handles auth session refresh: Refreshes expired sessions automatically, protects dashboard routes (redirects to /login if unauthenticated), allows public routes: /, /login, /signup, /reset-password</criterion>
+    <criterion id="AC-1.3.4">Type safety is enforced: All Supabase operations use generated Database types, TypeScript errors if accessing wrong table/column names, re-exported typed clients for consistent usage across codebase</criterion>
+    <criterion id="AC-1.3.5">RLS policies work with authenticated user context: Server client queries respect RLS when using anon key, service role client bypasses RLS for admin operations</criterion>
+    <criterion id="AC-1.3.6">Build succeeds with npm run build after all changes</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Core Technologies - Supabase</section>
+        <snippet>docuMINE uses @supabase/ssr for proper cookie handling in Next.js App Router. Browser client uses anon key, server client uses anon key + cookies, service role client bypasses RLS.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Authentication Flow</section>
+        <snippet>User signs up/logs in via Supabase Auth. JWT stored in httpOnly cookie via @supabase/ssr. Middleware validates JWT and sets auth.uid(). RLS policies use auth.uid() to filter data.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Project Structure</section>
+        <snippet>src/lib/supabase/client.ts for browser client, src/lib/supabase/server.ts for server client, src/middleware.ts for auth middleware.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Database Query Pattern</section>
+        <snippet>Always include agency_id in queries (RLS enforces this, but be explicit). Example: supabase.from('documents').select('*').eq('agency_id', user.agency_id)</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.3: Supabase Client Configuration</section>
+        <snippet>Create properly configured Supabase clients for browser and server contexts. Follow Supabase SSR guide for Next.js App Router. Test that RLS policies work with authenticated user context.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>documine/src/lib/supabase/client.ts</path>
+        <kind>placeholder</kind>
+        <symbol>createBrowserClient</symbol>
+        <lines>1-7</lines>
+        <reason>Placeholder file that needs implementation - currently throws "Not implemented - see Story 1.3"</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>placeholder</kind>
+        <symbol>createServerClient</symbol>
+        <lines>1-7</lines>
+        <reason>Placeholder file that needs implementation - currently throws "Not implemented - see Story 1.3"</reason>
+      </file>
+      <file>
+        <path>documine/src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database</symbol>
+        <lines>1-463</lines>
+        <reason>Generated Supabase types with all 7 tables (agencies, users, documents, document_chunks, conversations, chat_messages, processing_jobs) and get_user_agency_id() helper function - REUSE this type</reason>
+      </file>
+      <file>
+        <path>documine/src/types/index.ts</path>
+        <kind>types</kind>
+        <symbol>Database, Tables, TablesInsert, TablesUpdate, Json</symbol>
+        <lines>1-18</lines>
+        <reason>Re-exports Database types plus custom type aliases (UserRole, DocumentStatus, Confidence, SubscriptionTier) - import from here for convenience</reason>
+      </file>
+      <file>
+        <path>documine/.env.example</path>
+        <kind>config</kind>
+        <symbol>NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY</symbol>
+        <lines>1-4</lines>
+        <reason>Environment variable template - all 3 Supabase variables already defined, verify .env.local has actual values</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/ssr" version="^0.7.0">Supabase SSR utilities for Next.js cookie handling - ALREADY INSTALLED</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase JavaScript client - ALREADY INSTALLED</package>
+        <package name="next" version="16.0.4">Next.js framework</package>
+        <package name="typescript" version="^5">TypeScript compiler</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use createBrowserClient from @supabase/ssr for client components (not createClient from @supabase/supabase-js directly)</constraint>
+    <constraint type="pattern">Use createServerClient from @supabase/ssr for server components with explicit cookie handling</constraint>
+    <constraint type="pattern">Type all Supabase clients with Database type: createServerClient&lt;Database&gt;(...)</constraint>
+    <constraint type="pattern">Service role client must NOT use cookies - it bypasses RLS and should only be used for admin operations</constraint>
+    <constraint type="pattern">Middleware must be at src/middleware.ts (Next.js convention for src directory projects)</constraint>
+    <constraint type="security">Never expose SUPABASE_SERVICE_ROLE_KEY to client - only use in server-side code</constraint>
+    <constraint type="naming">Use camelCase for exported functions: createClient(), createServiceClient()</constraint>
+    <constraint type="naming">Use kebab-case for file names: client.ts, server.ts, index.ts</constraint>
+    <constraint type="testing">Verify RLS behavior: anon key respects RLS, service role bypasses RLS</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>createBrowserClient</name>
+      <kind>function</kind>
+      <signature>createBrowserClient&lt;Database&gt;(supabaseUrl: string, supabaseKey: string): SupabaseClient&lt;Database&gt;</signature>
+      <path>@supabase/ssr</path>
+    </interface>
+    <interface>
+      <name>createServerClient</name>
+      <kind>function</kind>
+      <signature>createServerClient&lt;Database&gt;(supabaseUrl: string, supabaseKey: string, options: { cookies: CookieOptions }): SupabaseClient&lt;Database&gt;</signature>
+      <path>@supabase/ssr</path>
+    </interface>
+    <interface>
+      <name>cookies</name>
+      <kind>function</kind>
+      <signature>cookies(): Promise&lt;ReadonlyRequestCookies&gt;</signature>
+      <path>next/headers</path>
+    </interface>
+    <interface>
+      <name>NextRequest</name>
+      <kind>type</kind>
+      <signature>NextRequest from next/server</signature>
+      <path>next/server</path>
+    </interface>
+    <interface>
+      <name>NextResponse</name>
+      <kind>class</kind>
+      <signature>NextResponse.next(), NextResponse.redirect()</signature>
+      <path>next/server</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>No test framework configured yet. Story 1.3 relies on build verification (npm run build) and manual RLS testing. Future stories should establish testing patterns.</standards>
+    <locations>
+      <location>documine/src/app/api/ (API route tests)</location>
+      <location>documine/supabase/tests/ (SQL tests for RLS)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1.3.1">Create test client component that calls createClient() and verifies connection</idea>
+      <idea ac="AC-1.3.2">Create test API route that uses createClient() and createServiceClient() to query database</idea>
+      <idea ac="AC-1.3.3">Manually test middleware by accessing /documents without auth - should redirect to /login</idea>
+      <idea ac="AC-1.3.4">TypeScript compilation should fail if wrong table/column names used</idea>
+      <idea ac="AC-1.3.5">Test RLS: Query documents table without auth (should return empty), query with service role (should return all)</idea>
+      <idea ac="AC-1.3.6">Run npm run build and verify no TypeScript errors</idea>
+    </ideas>
+  </tests>
+</story-context>

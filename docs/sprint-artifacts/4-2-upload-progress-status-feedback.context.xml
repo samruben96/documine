@@ -1,0 +1,275 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>2</storyId>
+    <title>Upload Progress and Status Feedback</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-29</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-2-upload-progress-status-feedback.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>clear feedback during document upload and processing</iWant>
+    <soThat>I know the status of my documents</soThat>
+    <tasks>
+      <task id="1" acs="4.2.1,4.2.2">Enhance UploadZone with progress tracking
+        <subtask>Add onUploadProgress callback to Supabase Storage upload</subtask>
+        <subtask>Create progress state management for each uploading file</subtask>
+        <subtask>Display progress bar with percentage (0-100%)</subtask>
+        <subtask>Show filename alongside progress bar with truncation</subtask>
+        <subtask>Add tooltip for full filename on hover</subtask>
+      </task>
+      <task id="2" acs="4.2.3">Implement upload cancellation
+        <subtask>Add AbortController to upload requests</subtask>
+        <subtask>Create cancel button/icon for each uploading file</subtask>
+        <subtask>Handle cleanup on cancellation (remove from queue)</subtask>
+        <subtask>Ensure no partial files left in storage on cancel</subtask>
+      </task>
+      <task id="3" acs="4.2.4,4.2.5,4.2.7">Create processing status component
+        <subtask>Create src/components/documents/document-status.tsx</subtask>
+        <subtask>Implement shimmer animation for Analyzing state</subtask>
+        <subtask>Add checkmark icon for Ready state</subtask>
+        <subtask>Add error icon with Retry and Delete actions for Failed state</subtask>
+        <subtask>Show error message details on hover/click</subtask>
+      </task>
+      <task id="4" acs="4.2.8">Implement Supabase Realtime subscription
+        <subtask>Create realtime hook src/hooks/use-document-status.ts</subtask>
+        <subtask>Subscribe to documents table changes filtered by agency_id</subtask>
+        <subtask>Handle INSERT, UPDATE events for status changes</subtask>
+        <subtask>Update local state when document status changes</subtask>
+      </task>
+      <task id="5" acs="4.2.6">Add success toast notifications
+        <subtask>Trigger toast when document status changes to ready</subtask>
+        <subtask>Format message: filename is ready</subtask>
+        <subtask>Ensure toast appears even if user navigated away</subtask>
+      </task>
+      <task id="6" acs="all">Integrate status updates into document list
+        <subtask>Update documents page to use realtime hook</subtask>
+        <subtask>Display appropriate status indicator for each document</subtask>
+        <subtask>Handle retry action for failed documents</subtask>
+        <subtask>Handle delete action for failed documents</subtask>
+      </task>
+      <task id="7" acs="all">Testing and verification
+        <subtask>Test upload progress bar updates correctly</subtask>
+        <subtask>Test cancel aborts upload and cleans up</subtask>
+        <subtask>Test shimmer animation during processing</subtask>
+        <subtask>Test Ready checkmark appears on completion</subtask>
+        <subtask>Test success toast appears</subtask>
+        <subtask>Test failed status with retry/delete options</subtask>
+        <subtask>Test status persists across navigation</subtask>
+        <subtask>Run build to check for type errors</subtask>
+        <subtask>Verify existing 345 tests still pass</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-4.2.1" title="Upload Progress Bar">
+      <requirement>Upload progress bar shows 0-100% during file upload to storage</requirement>
+      <requirement>Progress updates in real-time as bytes are uploaded</requirement>
+      <requirement>Uses Supabase Storage onUploadProgress callback</requirement>
+      <requirement>Progress bar visually matches Trustworthy Slate theme</requirement>
+    </criterion>
+    <criterion id="AC-4.2.2" title="Filename Display">
+      <requirement>Filename is displayed alongside progress bar</requirement>
+      <requirement>Long filenames are truncated with ellipsis (max ~30 chars)</requirement>
+      <requirement>Full filename visible on hover via tooltip</requirement>
+    </criterion>
+    <criterion id="AC-4.2.3" title="Cancel Option">
+      <requirement>Cancel option available during upload (removes from queue)</requirement>
+      <requirement>Clicking cancel aborts the upload immediately</requirement>
+      <requirement>Cancelled files are removed from the upload queue</requirement>
+      <requirement>No partial files left in storage</requirement>
+    </criterion>
+    <criterion id="AC-4.2.4" title="Processing Status Animation">
+      <requirement>Status changes to Analyzing with shimmer animation when upload completes</requirement>
+      <requirement>Shimmer animation per UX spec (skeleton/shimmer, no spinners > 200ms)</requirement>
+      <requirement>Clear visual distinction between uploading and processing states</requirement>
+    </criterion>
+    <criterion id="AC-4.2.5" title="Ready Status Display">
+      <requirement>Status shows Ready with checkmark icon when processing completes</requirement>
+      <requirement>Green checkmark indicator for success state</requirement>
+      <requirement>Document immediately available for Q&A</requirement>
+    </criterion>
+    <criterion id="AC-4.2.6" title="Success Toast">
+      <requirement>Success toast appears: filename is ready</requirement>
+      <requirement>Uses sonner toast library</requirement>
+      <requirement>Auto-dismisses after 4 seconds</requirement>
+    </criterion>
+    <criterion id="AC-4.2.7" title="Failed Status Handling">
+      <requirement>Failed status shows error icon with red indicator</requirement>
+      <requirement>Retry option attempts reprocessing</requirement>
+      <requirement>Delete option removes failed document</requirement>
+      <requirement>Tooltip/click shows error message details</requirement>
+    </criterion>
+    <criterion id="AC-4.2.8" title="Status Persistence Across Navigation">
+      <requirement>Processing status persists across page navigation</requirement>
+      <requirement>Uses Supabase Realtime subscriptions to listen for document status changes</requirement>
+      <requirement>Returning to documents page shows current status immediately</requirement>
+      <requirement>Notifications appear when processing completes (even if on different page)</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification" section="Story 4.2: Upload Progress and Status Feedback">
+        Defines AC-4.2.1 through AC-4.2.8 with detailed requirements for progress tracking, status feedback, realtime subscriptions, and error handling.
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 4.2">
+        Story 4.2 user story definition and acceptance criteria summary covering upload progress and status feedback.
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture" section="Supabase Realtime">
+        Documents Supabase Realtime subscription patterns for live status updates and postgres_changes events.
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification" section="Loading States">
+        Specifies skeleton/shimmer loading patterns - no spinners > 200ms, use shimmer animation for processing states.
+      </doc>
+      <doc path="docs/sprint-artifacts/4-1-document-upload-zone.md" title="Story 4.1 - Previous Story" section="Dev Agent Record">
+        Completed story with learnings: UploadZone component created, upload service patterns, 345 tests passing baseline.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="documine/src/components/documents/upload-zone.tsx" kind="component" lines="1-221">
+        <symbol>UploadZone</symbol>
+        <symbol>UploadingFile</symbol>
+        <symbol>UploadingFileItem</symbol>
+        <reason>Core component to enhance with progress tracking. Already has basic progress state (UploadingFile interface with progress, status fields) and cancel button UI. Extend with onUploadProgress integration and AbortController.</reason>
+      </file>
+      <file path="documine/src/lib/documents/upload.ts" kind="service" lines="59-93">
+        <symbol>uploadDocumentToStorage</symbol>
+        <symbol>deleteDocumentFromStorage</symbol>
+        <reason>Upload service to modify - add onUploadProgress callback parameter to uploadDocumentToStorage function. Currently uploads without progress tracking.</reason>
+      </file>
+      <file path="documine/src/lib/documents/service.ts" kind="service" lines="1-259">
+        <symbol>createDocumentRecord</symbol>
+        <symbol>createProcessingJob</symbol>
+        <symbol>updateDocumentStatus</symbol>
+        <symbol>deleteDocument</symbol>
+        <symbol>getProcessingJobStatus</symbol>
+        <reason>Document CRUD operations. updateDocumentStatus available for retry functionality. deleteDocument for failed document cleanup.</reason>
+      </file>
+      <file path="documine/src/app/(dashboard)/documents/actions.ts" kind="server-action" lines="1-179">
+        <symbol>uploadDocument</symbol>
+        <symbol>deleteDocumentAction</symbol>
+        <symbol>getDocuments</symbol>
+        <reason>Server actions to extend. Need to add retryProcessing action for failed documents.</reason>
+      </file>
+      <file path="documine/src/app/(dashboard)/documents/page.tsx" kind="page">
+        <reason>Documents page to integrate realtime hook and status components.</reason>
+      </file>
+      <file path="documine/src/lib/supabase/client.ts" kind="utility" lines="1-14">
+        <symbol>createClient</symbol>
+        <reason>Browser Supabase client used for realtime subscriptions. Creates typed client with Database types.</reason>
+      </file>
+      <file path="documine/src/components/ui/progress.tsx" kind="ui-component">
+        <reason>shadcn/ui Progress component available for progress bar implementation.</reason>
+      </file>
+      <file path="documine/src/components/ui/skeleton.tsx" kind="ui-component">
+        <reason>shadcn/ui Skeleton component for shimmer loading states per UX spec.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase client with Realtime support via channel().on(postgres_changes)</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client</package>
+        <package name="react-dropzone" version="^14.3.8">Drag-drop file handling with onDrop callback</package>
+        <package name="sonner" version="^2.0.7">Toast notifications - toast.success() for ready notifications</package>
+        <package name="lucide-react" version="^0.554.0">Icons - CheckCircle, XCircle, Loader2, X for status indicators</package>
+        <package name="@radix-ui/react-progress" version="^1.1.8">Progress bar primitive from shadcn/ui</package>
+      </node>
+      <noNewDependencies>true</noNewDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">All document operations must respect RLS policies scoped by agency_id</constraint>
+    <constraint source="ux-spec">No spinners > 200ms - use skeleton/shimmer animation for processing state</constraint>
+    <constraint source="ux-spec">Trustworthy Slate color theme (#475569 primary, green for success, red for error)</constraint>
+    <constraint source="tech-spec">Supabase Realtime subscription filtered by agency_id for multi-tenant isolation</constraint>
+    <constraint source="tech-spec">Animations under 300ms for snappy feel</constraint>
+    <constraint source="project-patterns">Use Zod for validation schemas per established pattern</constraint>
+    <constraint source="project-patterns">Console logging follows structured format: console.error(message, { context })</constraint>
+    <constraint source="testing">Maintain 345 tests passing baseline from Story 4.1</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="UploadingFile" kind="typescript-interface" path="documine/src/components/documents/upload-zone.tsx:14-20">
+      <signature>
+interface UploadingFile {
+  id: string;
+  file: File;
+  progress: number;
+  status: 'uploading' | 'processing' | 'ready' | 'failed';
+  error?: string;
+}
+      </signature>
+    </interface>
+    <interface name="uploadDocumentToStorage" kind="function" path="documine/src/lib/documents/upload.ts:59-93">
+      <signature>
+async function uploadDocumentToStorage(
+  supabase: SupabaseClient&lt;Database&gt;,
+  file: File,
+  agencyId: string,
+  documentId: string
+): Promise&lt;UploadResult&gt;
+      </signature>
+      <note>Modify to accept optional onProgress callback and AbortSignal</note>
+    </interface>
+    <interface name="updateDocumentStatus" kind="function" path="documine/src/lib/documents/service.ts:172-200">
+      <signature>
+async function updateDocumentStatus(
+  supabase: SupabaseClient&lt;Database&gt;,
+  documentId: string,
+  status: 'processing' | 'ready' | 'failed',
+  pageCount?: number
+): Promise&lt;void&gt;
+      </signature>
+    </interface>
+    <interface name="Supabase Realtime Channel" kind="api" path="@supabase/supabase-js">
+      <signature>
+supabase
+  .channel('channel-name')
+  .on('postgres_changes',
+    { event: '*', schema: 'public', table: 'documents', filter: `agency_id=eq.${agencyId}` },
+    (payload) => { /* handle INSERT, UPDATE, DELETE */ }
+  )
+  .subscribe()
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library for component tests. Tests live in __tests__/ directory mirroring src/ structure.
+      Use happy-dom for DOM environment. Mock Supabase client for unit tests.
+      Integration tests can use Supabase local. Coverage target 80% for lib/ files.
+      Current baseline: 345 tests passing.
+    </standards>
+    <locations>
+      <location>documine/__tests__/components/documents/</location>
+      <location>documine/__tests__/hooks/</location>
+      <location>documine/__tests__/lib/documents/</location>
+    </locations>
+    <ideas>
+      <idea ac="4.2.1">Test progress bar updates from 0-100% as onUploadProgress callback is called</idea>
+      <idea ac="4.2.1">Test progress bar renders with correct width percentage</idea>
+      <idea ac="4.2.2">Test filename displays and truncates correctly at 30 chars</idea>
+      <idea ac="4.2.2">Test tooltip shows full filename on hover</idea>
+      <idea ac="4.2.3">Test cancel button calls abort on AbortController</idea>
+      <idea ac="4.2.3">Test cancelled upload removes file from queue</idea>
+      <idea ac="4.2.4">Test shimmer animation renders for processing status</idea>
+      <idea ac="4.2.5">Test checkmark icon renders for ready status</idea>
+      <idea ac="4.2.6">Test toast.success called with correct message when status becomes ready</idea>
+      <idea ac="4.2.7">Test error icon renders for failed status</idea>
+      <idea ac="4.2.7">Test Retry button calls retryProcessing action</idea>
+      <idea ac="4.2.7">Test Delete button calls deleteDocument action</idea>
+      <idea ac="4.2.8">Test realtime hook subscribes to documents table changes</idea>
+      <idea ac="4.2.8">Test realtime updates trigger state change and re-render</idea>
+      <idea ac="4.2.8">Test channel cleanup on component unmount</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,186 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>8</storyId>
+    <title>Migrate Document Processing to Docling</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-8-migrate-document-processing-to-docling.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>the system</asA>
+    <iWant>to replace LlamaParse with Docling for document parsing</iWant>
+    <soThat>we achieve better table extraction accuracy (97.9% vs 75%), eliminate API costs, and gain self-hosted control over document processing</soThat>
+    <tasks>
+      <task id="1" acs="4.8.1,4.8.7">Research Docling Deployment Options - Evaluate containerized deployment (Docker), serverless options (Railway, Fly.io), document resource requirements, choose deployment strategy</task>
+      <task id="2" acs="4.8.1,4.8.2">Create Docling Python Service - Create docling-service/ directory, implement FastAPI REST endpoint /parse, accept multipart file upload, return JSON with markdown/page markers/page count, add /health endpoint, create Dockerfile and docker-compose.yml</task>
+      <task id="3" acs="4.8.3">Implement Page Marker Output - Configure Docling to output page separators, format: --- PAGE X ---, verify works with existing extractPageInfo() function</task>
+      <task id="4" acs="4.8.5">Create TypeScript Client - Create src/lib/docling/client.ts, implement parseDocument(buffer, filename, options), maintain interface compatibility, add TypeScript types, handle errors and timeouts</task>
+      <task id="5" acs="4.8.4,4.8.8">Update Edge Function - Replace LlamaParse API calls with Docling service calls, update env var from LLAMA_CLOUD_API_KEY to DOCLING_SERVICE_URL, maintain retry logic and logging</task>
+      <task id="6" acs="4.8.6">Verify Table Extraction Quality - Test with complex insurance quote document, verify merged cell handling, verify borderless table recognition, compare output vs LlamaParse</task>
+      <task id="7" acs="4.8.7">Create Deployment Documentation - Document local development setup, production deployment options, update .env.example, create docs/deployment/docling.md</task>
+      <task id="8" acs="4.8.5,4.8.9">Remove LlamaParse Dependencies - Remove LlamaParse client code after Docling verified, remove LLAMA_CLOUD_API_KEY from env examples, update CLAUDE.md, rename LlamaParseError to DoclingError</task>
+      <task id="9" acs="4.8.10">Testing and Verification - Write unit tests for Docling client, integration test with sample PDF, verify chunking pipeline, verify embeddings generation, run full test suite, verify build</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="4.8.1">Docling Python Service Setup - Docling runs as self-hosted Python microservice, deployed as containerized application (Docker), REST API endpoint accepts PDF/DOCX/XLSX/image files, returns markdown with page markers, health check endpoint available</ac>
+    <ac id="4.8.2">Format Support Parity - Supports PDF, DOCX, XLSX, and image files (PNG, JPEG, TIFF), output format matches current structure (markdown with page separators)</ac>
+    <ac id="4.8.3">Page Marker Compatibility - Output includes page markers: --- PAGE X ---, page markers work with existing chunking service, page count extracted correctly, no changes to downstream pipeline</ac>
+    <ac id="4.8.4">Edge Function Integration - Edge Function calls Docling service instead of LlamaParse, request/response format documented, timeout handling (up to 150s), error handling matches existing patterns</ac>
+    <ac id="4.8.5">Local Client Update - src/lib/llamaparse/client.ts replaced with src/lib/docling/client.ts, same interface: parsePdf(buffer, filename) returns { markdown, pageMarkers, pageCount }, TypeScript types maintained</ac>
+    <ac id="4.8.6">Table Extraction Quality - Complex tables with merged cells extracted correctly, borderless tables recognized, table structure preserved in markdown, cross-page tables handled</ac>
+    <ac id="4.8.7">Deployment Configuration - Docker Compose for local development, production deployment documented, DOCLING_SERVICE_URL replaces LLAMA_CLOUD_API_KEY, Railway/Fly.io options documented</ac>
+    <ac id="4.8.8">Fallback and Monitoring - Logging maintained for processing start/end/duration, error messages stored in processing_jobs table, retry logic (2 attempts with exponential backoff), metrics tracked</ac>
+    <ac id="4.8.9">Backward Compatibility - Existing document_chunks table structure unchanged, already-processed documents remain valid, no database migration required, re-processing available</ac>
+    <ac id="4.8.10">Testing and Verification - Unit tests for Docling client, integration test with sample multi-page PDF, table extraction accuracy verified, build passes, test count maintained</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="System Architecture" section="Technology Stack Details" snippet="LlamaParse primary PDF parser for tables and structured content, ~6 second processing time. Markdown output optimized for RAG." />
+      <doc path="docs/architecture.md" title="System Architecture" section="Integration Points" snippet="Supabase Edge Functions for document processing, OpenAI for embeddings, LlamaParse for PDF parsing." />
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Document Processing Pipeline" snippet="PDF sent to LlamaParse API for extraction, returns markdown with preserved tables and page numbers. Chunked at ~500 tokens with 50 token overlap." />
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Tech Spec" section="Story 4.8 ACs" snippet="AC-4.8.1 through AC-4.8.10 defining Docling migration requirements - service setup, format support, page markers, Edge Function integration." />
+      <doc path="docs/sprint-artifacts/incident-report-llamaparse-page-separator-2025-11-30.md" title="LlamaParse Incident Report" section="Root Cause" snippet="LlamaParse API uses {pageNumber} (camelCase) but code used {page_number} (snake_case). Documents showed page_count=1 regardless of actual pages." />
+      <doc path="docs/sprint-artifacts/4-6-document-processing-pipeline-llamaparse.md" title="Story 4.6" section="Dev Notes" snippet="Page separator pattern: --- PAGE X ---, chunking integration with chunkMarkdown(), retry logic 2 attempts for parsing, 3 for embeddings." />
+    </docs>
+    <code>
+      <file path="src/lib/llamaparse/client.ts" kind="service" symbol="parsePdf" lines="58-86" reason="Current LlamaParse client to be replaced - defines interface: parsePdf(pdfBuffer, filename, apiKey) returns LlamaParseResult with markdown, pageMarkers, pageCount" />
+      <file path="src/lib/llamaparse/client.ts" kind="types" symbol="LlamaParseResult, PageMarker, BoundingBox" lines="15-32" reason="TypeScript interfaces that must be maintained in new Docling client" />
+      <file path="src/lib/llamaparse/client.ts" kind="function" symbol="extractPageInfo" lines="193-241" reason="Page marker extraction function - new Docling output must be compatible with this regex pattern: /---\s*PAGE\s+(\d+)\s*---/gi" />
+      <file path="src/lib/documents/chunking.ts" kind="service" symbol="chunkMarkdown" lines="49-85" reason="Chunking service that consumes LlamaParse output - imports PageMarker from llamaparse/client, must work unchanged with Docling output" />
+      <file path="src/lib/documents/chunking.ts" kind="function" symbol="splitByPages" lines="95-134" reason="Splits markdown by page markers - uses same regex pattern /---\s*PAGE\s+(\d+)\s*---/gi, defines page content extraction logic" />
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="processDocument" lines="all" reason="Edge Function calling LlamaParse API - must be updated to call Docling service instead, maintain retry logic and logging" />
+      <file path="src/lib/errors.ts" kind="types" symbol="LlamaParseError" lines="66-73" reason="Error class for LlamaParse failures - should be renamed/replaced with DoclingError" />
+      <file path="src/lib/openai/embeddings.ts" kind="service" symbol="generateEmbeddings" reason="Embeddings service called after parsing - should remain unchanged, only receives chunks from chunking service" />
+      <file path="__tests__/unit/lib/llamaparse/client.test.ts" kind="test" symbol="parsePdf tests" reason="Existing tests for LlamaParse client - need equivalent tests for Docling client" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="16.0.4" />
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="openai" version="^6.9.1" />
+        <package name="zod" version="^4.1.13" />
+        <package name="vitest" version="^4.0.14" dev="true" />
+      </node>
+      <python note="New dependency for Docling service">
+        <package name="docling" />
+        <package name="fastapi" />
+        <package name="uvicorn" />
+        <package name="python-multipart" />
+      </python>
+      <docker note="New for containerized Docling service">
+        <file name="Dockerfile" location="docling-service/" />
+        <file name="docker-compose.yml" location="documine/" />
+      </docker>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture.md">Page markers must use format --- PAGE X --- to match existing chunking regex</constraint>
+    <constraint source="architecture.md">Edge Function timeout is 150 seconds (Supabase limit) - Docling must complete within this</constraint>
+    <constraint source="tech-spec-epic-4.md">Retry logic: 2 attempts for parsing with exponential backoff</constraint>
+    <constraint source="tech-spec-epic-4.md">Batch size: 20 embeddings per API call, 100 chunks per DB insert</constraint>
+    <constraint source="chunking.ts">Import path for types: import { PageMarker, BoundingBox } from '@/lib/llamaparse/client' - must update to @/lib/docling/client</constraint>
+    <constraint source="errors.ts">Error types must include LLAMAPARSE_ERROR code (or rename to DOCLING_ERROR)</constraint>
+    <constraint source="CLAUDE.md">Supabase Project ID: qfhzvkqbbtxvmwiixlhf - use for MCP operations</constraint>
+    <constraint source="dev-notes">Docling is Python-native - REST API wrapper required for TypeScript integration</constraint>
+    <constraint source="dev-notes">Keep same output format: markdown with --- PAGE X --- markers for minimal downstream changes</constraint>
+    <constraint source="dev-notes">No database migration required - document_chunks table structure unchanged</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="LlamaParseResult (to become DoclingResult)" kind="typescript-interface" path="src/lib/llamaparse/client.ts">
+      <signature>
+interface LlamaParseResult {
+  markdown: string;
+  pageMarkers: PageMarker[];
+  pageCount: number;
+}
+
+interface PageMarker {
+  pageNumber: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+      </signature>
+    </interface>
+    <interface name="parsePdf (to become parseDocument)" kind="function-signature" path="src/lib/llamaparse/client.ts">
+      <signature>
+async function parsePdf(
+  pdfBuffer: ArrayBuffer | Uint8Array,
+  filename: string,
+  apiKey: string
+): Promise&lt;LlamaParseResult&gt;
+      </signature>
+    </interface>
+    <interface name="Docling REST API" kind="rest-endpoint" path="docling-service/main.py">
+      <signature>
+POST /parse
+- Request: multipart/form-data with file field
+- Response: { markdown: string, page_count: number, page_markers: Array }
+
+GET /health
+- Response: { status: "healthy" }
+      </signature>
+    </interface>
+    <interface name="chunkMarkdown" kind="function-signature" path="src/lib/documents/chunking.ts">
+      <signature>
+function chunkMarkdown(
+  markdown: string,
+  pageMarkers: PageMarker[],
+  options?: ChunkOptions
+): DocumentChunk[]
+      </signature>
+    </interface>
+    <interface name="Edge Function Payload" kind="json-schema" path="supabase/functions/process-document/index.ts">
+      <signature>
+interface ProcessingPayload {
+  documentId: string;
+  storagePath: string;
+  agencyId: string;
+}
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Tests use Vitest with React Testing Library. Unit tests in __tests__/unit/, integration tests in __tests__/integration/.
+      Mock external services (Supabase, OpenAI). Test patterns established in __tests__/unit/lib/llamaparse/client.test.ts.
+      Build must pass with npm run build, tests with npm run test. Current baseline: 593+ tests.
+    </standards>
+    <locations>
+      <location>__tests__/unit/lib/docling/client.test.ts (new)</location>
+      <location>__tests__/integration/docling-service.test.ts (new)</location>
+      <location>__tests__/unit/lib/documents/chunking.test.ts (verify unchanged)</location>
+    </locations>
+    <ideas>
+      <idea ac="4.8.1">Test Docling service /health endpoint returns 200 and { status: "healthy" }</idea>
+      <idea ac="4.8.2">Test /parse endpoint accepts PDF, returns markdown with page markers</idea>
+      <idea ac="4.8.2">Test /parse endpoint accepts DOCX, returns markdown</idea>
+      <idea ac="4.8.2">Test /parse endpoint accepts image (PNG), returns extracted text</idea>
+      <idea ac="4.8.3">Test output contains --- PAGE X --- markers that match regex /---\s*PAGE\s+(\d+)\s*---/gi</idea>
+      <idea ac="4.8.3">Test extractPageInfo() works unchanged with Docling output</idea>
+      <idea ac="4.8.4">Test Edge Function calls DOCLING_SERVICE_URL instead of LlamaParse API</idea>
+      <idea ac="4.8.5">Test parseDocument() returns { markdown, pageMarkers, pageCount } matching old interface</idea>
+      <idea ac="4.8.5">Test DoclingError is thrown on connection failure</idea>
+      <idea ac="4.8.6">Test complex table with merged cells produces valid markdown table</idea>
+      <idea ac="4.8.8">Test retry logic: 2 attempts on failure before marking job failed</idea>
+      <idea ac="4.8.9">Test existing document_chunks can still be queried after migration</idea>
+      <idea ac="4.8.10">Run full test suite: npm run test should pass with 593+ tests</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,395 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>6</storyId>
+    <title>Document Processing Pipeline (LlamaParse)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-6-document-processing-pipeline-llamaparse.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>process uploaded PDFs into searchable chunks with embeddings</iWant>
+    <soThat>documents can be queried via natural language</soThat>
+    <tasks>
+      <task id="1" acs="4.6.1,4.6.2">
+        <title>Create LlamaParse client library</title>
+        <subtasks>
+          <subtask>Create src/lib/llamaparse/client.ts</subtask>
+          <subtask>Implement parsePdf(pdfBuffer: Buffer) function</subtask>
+          <subtask>Handle API authentication with LLAMA_CLOUD_API_KEY</subtask>
+          <subtask>Parse response to extract markdown and page markers</subtask>
+          <subtask>Extract page count from response metadata</subtask>
+          <subtask>Handle API errors with appropriate error types</subtask>
+        </subtasks>
+      </task>
+      <task id="2" acs="4.6.3,4.6.4,4.6.5">
+        <title>Create chunking service</title>
+        <subtasks>
+          <subtask>Create src/lib/documents/chunking.ts</subtask>
+          <subtask>Implement chunkMarkdown(markdown, pageMarkers) function</subtask>
+          <subtask>Target ~500 tokens per chunk with 50 token overlap</subtask>
+          <subtask>Preserve page number for each chunk</subtask>
+          <subtask>Extract and attach bounding boxes when available</subtask>
+          <subtask>Return array of DocumentChunk objects</subtask>
+        </subtasks>
+      </task>
+      <task id="3" acs="4.6.6">
+        <title>Create embeddings service</title>
+        <subtasks>
+          <subtask>Create src/lib/openai/embeddings.ts</subtask>
+          <subtask>Implement generateEmbeddings(texts: string[]) function</subtask>
+          <subtask>Use text-embedding-3-small model (1536 dimensions)</subtask>
+          <subtask>Batch requests (max 20 texts per API call)</subtask>
+          <subtask>Implement retry logic with exponential backoff</subtask>
+          <subtask>Return array of 1536-dimension vectors</subtask>
+        </subtasks>
+      </task>
+      <task id="4" acs="4.6.1-4.6.9">
+        <title>Create process-document Edge Function</title>
+        <subtasks>
+          <subtask>Create supabase/functions/process-document/index.ts</subtask>
+          <subtask>Download PDF from Supabase Storage using service role key</subtask>
+          <subtask>Call LlamaParse client for extraction</subtask>
+          <subtask>Call chunking service to process markdown</subtask>
+          <subtask>Call embeddings service to generate vectors</subtask>
+          <subtask>Insert chunks into document_chunks table (batch insert)</subtask>
+          <subtask>Update document status to 'ready' with page_count</subtask>
+          <subtask>Update processing job to 'completed'</subtask>
+        </subtasks>
+      </task>
+      <task id="5" acs="4.6.10">
+        <title>Implement retry and error handling</title>
+        <subtasks>
+          <subtask>Add retry wrapper for LlamaParse API calls</subtask>
+          <subtask>Add retry wrapper for OpenAI API calls</subtask>
+          <subtask>Update document status to 'failed' on unrecoverable error</subtask>
+          <subtask>Store error message in processing_jobs table</subtask>
+          <subtask>Implement graceful cleanup on partial failure</subtask>
+        </subtasks>
+      </task>
+      <task id="6" acs="4.6.11">
+        <title>Add observability logging</title>
+        <subtasks>
+          <subtask>Log processing start with documentId, agencyId</subtask>
+          <subtask>Log LlamaParse completion with duration</subtask>
+          <subtask>Log chunking completion with chunk count</subtask>
+          <subtask>Log embeddings completion with duration</subtask>
+          <subtask>Log overall completion with total duration and metrics</subtask>
+          <subtask>Log errors with full context</subtask>
+        </subtasks>
+      </task>
+      <task id="7" acs="all">
+        <title>Testing and verification</title>
+        <subtasks>
+          <subtask>Write unit tests for chunking service</subtask>
+          <subtask>Write unit tests for embeddings service (mocked OpenAI)</subtask>
+          <subtask>Write integration tests for Edge Function (mocked external APIs)</subtask>
+          <subtask>Test error handling and retry logic</subtask>
+          <subtask>Test RLS policies for document_chunks</subtask>
+          <subtask>Verify test count increases from 463 baseline</subtask>
+          <subtask>Run build and verify no type errors</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="4.6.1" title="LlamaParse PDF Extraction">
+      <requirements>
+        <req>PDF sent to LlamaParse API for extraction</req>
+        <req>API call uses LLAMA_CLOUD_API_KEY environment variable</req>
+        <req>Request includes PDF content as multipart form data</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.2" title="Markdown Output with Structure Preservation">
+      <requirements>
+        <req>LlamaParse returns markdown with preserved tables</req>
+        <req>Page numbers marked in output (e.g., --- PAGE X ---)</req>
+        <req>Table structure maintained for quote/policy data extraction</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.3" title="Semantic Text Chunking">
+      <requirements>
+        <req>Text chunked at ~500 tokens per chunk</req>
+        <req>50 token overlap between consecutive chunks</req>
+        <req>Chunk boundaries respect paragraph/section breaks when possible</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.4" title="Chunk Metadata Tagging">
+      <requirements>
+        <req>Each chunk tagged with page_number (integer)</req>
+        <req>Each chunk tagged with chunk_index (sequential within document)</req>
+        <req>Metadata stored alongside content in document_chunks table</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.5" title="Bounding Box Storage">
+      <requirements>
+        <req>Bounding box coordinates stored when available from LlamaParse</req>
+        <req>Format: { x, y, width, height } in JSONB column</req>
+        <req>NULL if bounding box not available for chunk</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.6" title="OpenAI Embeddings Generation">
+      <requirements>
+        <req>Embeddings generated via OpenAI text-embedding-3-small model</req>
+        <req>Vector dimension: 1536</req>
+        <req>Batch processing: up to 20 chunks per API call for efficiency</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.7" title="Chunk Persistence">
+      <requirements>
+        <req>Chunks stored in document_chunks table with embeddings</req>
+        <req>All chunks have agency_id for RLS policy compliance</req>
+        <req>Chunks include: content, page_number, chunk_index, bounding_box, embedding</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.8" title="Document Status Update on Success">
+      <requirements>
+        <req>Document status updated from 'processing' to 'ready' on successful completion</req>
+        <req>updated_at timestamp refreshed</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.9" title="Page Count Storage">
+      <requirements>
+        <req>Document page_count extracted and stored in documents table</req>
+        <req>Derived from LlamaParse output metadata</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.10" title="Error Handling and Retry">
+      <requirements>
+        <req>LlamaParse failure retried once with exponential backoff</req>
+        <req>After retry failure, document marked 'failed' with error message</req>
+        <req>Error stored in processing_jobs.error_message</req>
+        <req>OpenAI embedding failures retried with exponential backoff (3 attempts)</req>
+      </requirements>
+    </criterion>
+    <criterion id="4.6.11" title="Observability Logging">
+      <requirements>
+        <req>Processing start time logged</req>
+        <req>Processing end time and total duration logged</req>
+        <req>Chunk count logged on completion</req>
+        <req>Errors logged with full context (documentId, step, error message)</req>
+      </requirements>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>LlamaParse + GPT-4o Vision for PDF Processing</section>
+        <snippet>Use LlamaParse as primary parser (fast, good tables), GPT-4o Vision as fallback. Fast processing ~6s. Embeddings via text-embedding-3-small (1536 dimensions).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Data Architecture - document_chunks</section>
+        <snippet>Table includes: id, document_id, agency_id, content, page_number, chunk_index, bounding_box (JSONB), embedding (vector 1536), created_at. RLS policies require agency_id.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Edge Functions</section>
+        <snippet>Supabase Edge Functions (Deno) for background processing. Keep warm with scheduled pings. Process one document per invocation. Timeout at 150 seconds.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Tech Spec</title>
+        <section>Story 4.6 Acceptance Criteria</section>
+        <snippet>Defines all 11 ACs for document processing: LlamaParse extraction, chunking (~500 tokens, 50 overlap), embeddings (text-embedding-3-small), chunk persistence, error handling with retry.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epics</title>
+        <section>Epic 4 - Document Upload and Management</section>
+        <snippet>Story 4.6: As the system, I want to process uploaded PDFs into searchable chunks with embeddings, so that documents can be queried via natural language.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements</title>
+        <section>FR12 Document Processing</section>
+        <snippet>FR12: System shall automatically process uploaded PDFs. LlamaParse extracts content with table preservation. Document marked ready when processing completes.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>documine/src/lib/documents/service.ts</path>
+        <kind>service</kind>
+        <symbol>updateDocumentStatus, createProcessingJob, getDocument</symbol>
+        <lines>172-200, 73-95</lines>
+        <reason>Existing functions for updating document status and creating processing jobs. Reuse updateDocumentStatus(supabase, documentId, status, pageCount) pattern.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/utils/storage.ts</path>
+        <kind>utility</kind>
+        <symbol>uploadDocument, getDocumentUrl, deleteDocument</symbol>
+        <lines>1-82</lines>
+        <reason>Storage operations pattern. Edge Function will need to download PDF using similar Supabase storage client pattern with service role key.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/utils/logger.ts</path>
+        <kind>utility</kind>
+        <symbol>log</symbol>
+        <lines>1-65</lines>
+        <reason>Structured JSON logger with log.info, log.warn, log.error methods. MUST use this pattern for observability logging in Edge Function.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/errors.ts</path>
+        <kind>errors</kind>
+        <symbol>ProcessingError, DocumentNotFoundError</symbol>
+        <lines>1-59</lines>
+        <reason>Custom error classes. Add LlamaParseError and EmbeddingError following same pattern. Use readonly code property.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>client</kind>
+        <symbol>createClient</symbol>
+        <reason>Server-side Supabase client creation. Edge Function will use @supabase/supabase-js directly with SUPABASE_SERVICE_ROLE_KEY.</reason>
+      </file>
+      <file>
+        <path>documine/src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database, Tables, TablesInsert</symbol>
+        <lines>166-216</lines>
+        <reason>document_chunks table types. Row includes: id, document_id, agency_id, content, page_number, chunk_index, bounding_box (Json), embedding (string), created_at.</reason>
+      </file>
+      <file>
+        <path>documine/supabase/migrations/00001_initial_schema.sql</path>
+        <kind>migration</kind>
+        <symbol>document_chunks, processing_jobs tables</symbol>
+        <lines>74-91, 130-143</lines>
+        <reason>Schema definitions. document_chunks has columns for content, page_number, chunk_index, bounding_box. processing_jobs tracks status, error_message, timestamps.</reason>
+      </file>
+      <file>
+        <path>documine/supabase/migrations/00002_enable_pgvector.sql</path>
+        <kind>migration</kind>
+        <reason>Enables pgvector extension and adds embedding vector(1536) column. Verify vector index exists for similarity search.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>openai</package>
+        <version>^6.9.1</version>
+        <usage>OpenAI SDK for embeddings generation. Use openai.embeddings.create() with model 'text-embedding-3-small'.</usage>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database and storage client. Edge Function uses createClient with service role key.</usage>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Schema validation for API responses and configuration.</usage>
+      </node>
+      <edge-function>
+        <note>Supabase Edge Functions run Deno runtime. Import using 'jsr:@supabase/functions-js/edge-runtime.d.ts'. Use Deno.serve() for handler.</note>
+      </edge-function>
+      <external-api>
+        <name>LlamaParse</name>
+        <endpoint>https://api.cloud.llamaindex.ai/api/parsing/upload</endpoint>
+        <auth>Bearer token via LLAMA_CLOUD_API_KEY</auth>
+        <note>Multipart form data upload. Returns markdown with page markers and metadata.</note>
+      </external-api>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>All database tables include agency_id for RLS multi-tenant isolation (ADR-004)</rule>
+    </constraint>
+    <constraint type="architecture">
+      <rule>Edge Functions timeout at 150 seconds - process one document per invocation</rule>
+    </constraint>
+    <constraint type="pattern">
+      <rule>Use structured JSON logging via log.info/log.error from src/lib/utils/logger.ts</rule>
+    </constraint>
+    <constraint type="pattern">
+      <rule>Custom errors follow pattern: class XxxError extends Error with readonly code property</rule>
+    </constraint>
+    <constraint type="data">
+      <rule>Embeddings must be 1536 dimensions (text-embedding-3-small)</rule>
+    </constraint>
+    <constraint type="data">
+      <rule>Chunks target ~500 tokens with 50 token overlap</rule>
+    </constraint>
+    <constraint type="performance">
+      <rule>Batch embedding API calls: max 20 texts per request</rule>
+    </constraint>
+    <constraint type="error-handling">
+      <rule>LlamaParse: retry once with exponential backoff, then fail</rule>
+      <rule>OpenAI embeddings: retry 3 times with exponential backoff</rule>
+    </constraint>
+    <constraint type="testing">
+      <rule>Test baseline: 463 tests passing - must maintain or increase</rule>
+      <rule>Coverage threshold: 80% for tested modules</rule>
+    </constraint>
+    <constraint type="naming">
+      <rule>Migration files: sequential 00007_xxx.sql (next after 00006_labels.sql)</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>updateDocumentStatus</name>
+      <kind>function</kind>
+      <signature>updateDocumentStatus(supabase: SupabaseClient, documentId: string, status: 'processing' | 'ready' | 'failed', pageCount?: number): Promise&lt;void&gt;</signature>
+      <path>documine/src/lib/documents/service.ts:172</path>
+    </interface>
+    <interface>
+      <name>createProcessingJob</name>
+      <kind>function</kind>
+      <signature>createProcessingJob(supabase: SupabaseClient, documentId: string): Promise&lt;ProcessingJob&gt;</signature>
+      <path>documine/src/lib/documents/service.ts:73</path>
+    </interface>
+    <interface>
+      <name>log</name>
+      <kind>object</kind>
+      <signature>{ info(message: string, data?: LogData): void; warn(message: string, data?: LogData): void; error(message: string, error: Error, data?: LogData): void; }</signature>
+      <path>documine/src/lib/utils/logger.ts:21</path>
+    </interface>
+    <interface>
+      <name>document_chunks table</name>
+      <kind>database</kind>
+      <signature>id UUID PK, document_id UUID FK, agency_id UUID FK, content TEXT, page_number INT, chunk_index INT, bounding_box JSONB, embedding VECTOR(1536), created_at TIMESTAMPTZ</signature>
+      <path>documine/supabase/migrations/00001_initial_schema.sql:78</path>
+    </interface>
+    <interface>
+      <name>processing_jobs table</name>
+      <kind>database</kind>
+      <signature>id UUID PK, document_id UUID FK, status TEXT, error_message TEXT, started_at TIMESTAMPTZ, completed_at TIMESTAMPTZ, created_at TIMESTAMPTZ</signature>
+      <path>documine/supabase/migrations/00001_initial_schema.sql:132</path>
+    </interface>
+    <interface>
+      <name>ProcessingPayload</name>
+      <kind>type</kind>
+      <signature>{ documentId: string; storagePath: string; agencyId: string; }</signature>
+      <path>To be created in Edge Function</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest testing framework with happy-dom for component tests. Use describe/it/expect pattern. Mock external services (OpenAI, LlamaParse) in unit tests. Coverage thresholds of 80% for lines, functions, branches, and statements on tested modules. Test files in __tests__/**/*.test.ts. Integration tests for cross-service flows.
+    </standards>
+    <locations>
+      <location>documine/__tests__/lib/**/*.test.ts</location>
+      <location>documine/__tests__/unit/**/*.test.ts</location>
+      <location>documine/__tests__/integration/**/*.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="4.6.1,4.6.2">Test LlamaParse client: successful parse, API error handling, retry logic, malformed response handling</idea>
+      <idea ac="4.6.3,4.6.4">Test chunking: correct token count, overlap preserved, page numbers tagged, handles empty input, handles very long input</idea>
+      <idea ac="4.6.5">Test bounding box: extracted when present, null when absent, correct format</idea>
+      <idea ac="4.6.6">Test embeddings: correct model called, batching works, dimension validation, retry on failure</idea>
+      <idea ac="4.6.7">Test chunk persistence: all fields saved, agency_id included, batch insert works</idea>
+      <idea ac="4.6.8,4.6.9">Test document status: updated to 'ready', page_count saved, updated_at refreshed</idea>
+      <idea ac="4.6.10">Test error handling: retry once for LlamaParse, retry 3x for OpenAI, status set to 'failed', error_message stored</idea>
+      <idea ac="4.6.11">Test logging: start logged, completion logged with duration, errors logged with context</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,138 @@
+<story-context id="4-1-document-upload-zone" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>1</storyId>
+    <title>Document Upload Zone</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-29</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-1-document-upload-zone.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to upload PDF documents easily</iWant>
+    <soThat>I can analyze my insurance policies and quotes</soThat>
+    <tasks>
+      <task id="1" ac="All">Install required dependencies - npm install react-dropzone</task>
+      <task id="2" ac="4.1.1, 4.1.2, 4.1.3">Create upload zone component at src/components/documents/upload-zone.tsx</task>
+      <task id="3" ac="4.1.4, 4.1.5, 4.1.6">Implement file validation - PDF type, 50MB size, 5 files max</task>
+      <task id="4" ac="4.1.7">Create document upload service at src/lib/documents/upload.ts</task>
+      <task id="5" ac="4.1.8">Create document database service at src/lib/documents/service.ts</task>
+      <task id="6" ac="All">Create server action at src/app/(dashboard)/documents/actions.ts</task>
+      <task id="7" ac="All">Integrate upload zone into documents page</task>
+      <task id="8" ac="All">Testing and verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-4.1.1">Upload zone displays dashed border with "Drop a document here or click to upload" text. Zone is visually prominent. Uses Trustworthy Slate color theme (#475569).</criterion>
+    <criterion id="AC-4.1.2">Drag hover state shows border color change to primary (#475569), background highlights subtly, visual feedback is immediate (&lt;100ms).</criterion>
+    <criterion id="AC-4.1.3">Click on zone opens native file picker filtered to PDF files only (accept="application/pdf"). Works across Chrome, Firefox, Safari, Edge.</criterion>
+    <criterion id="AC-4.1.4">Drag-and-drop accepts PDF files, rejects other types with toast: "Only PDF files are supported". Server-side MIME type validation.</criterion>
+    <criterion id="AC-4.1.5">Files over 50MB rejected with toast: "File too large. Maximum size is 50MB". Client-side validation before upload.</criterion>
+    <criterion id="AC-4.1.6">Multiple files (up to 5) can be uploaded simultaneously with parallel uploads. 6th file rejected with toast: "Maximum 5 files at once".</criterion>
+    <criterion id="AC-4.1.7">Uploaded file stored at path {agency_id}/{document_id}/{filename} in Supabase Storage. Document ID is UUID generated before upload.</criterion>
+    <criterion id="AC-4.1.8">Document record created with status='processing' immediately after upload. Record includes: id, agency_id, uploaded_by, filename, storage_path, status. Processing job queued automatically.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Epic 4 Technical Specification" section="Story 4.1: Document Upload Zone">
+        Detailed technical design including upload zone component specs, storage path patterns, TypeScript types, API routes, and server actions for document upload flow.
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification" section="UploadZone Component">
+        Upload zone states: Default (dashed border), Hover (color change), Uploading (progress bar), Processing (shimmer), Complete, Error. Trustworthy Slate theme (#475569).
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture" section="File Upload Pattern">
+        Supabase Storage for PDF files with agency-scoped paths. RLS policies mirror database isolation. Edge Function triggered for background processing.
+      </doc>
+      <doc path="docs/prd.md" title="Product Requirements Document" section="FR8: Upload PDF Documents">
+        Users can upload PDF documents up to 50MB. Drag-drop and file picker supported. Documents processed and indexed for semantic search.
+      </doc>
+      <doc path="docs/epics.md" title="Epics and Stories" section="Epic 4: Document Upload">
+        Document upload and management epic. Story 4.1 enables basic upload with validation and storage.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="documine/src/app/(dashboard)/documents/page.tsx" kind="page" symbol="DocumentsPage" lines="1-46" reason="Current documents page placeholder - will integrate upload zone here" />
+      <file path="documine/src/lib/supabase/client.ts" kind="service" symbol="createClient" lines="8-13" reason="Browser Supabase client for storage upload from client components" />
+      <file path="documine/src/lib/supabase/server.ts" kind="service" symbol="createClient, createServiceClient" lines="9-55" reason="Server Supabase clients for database operations and admin tasks" />
+      <file path="documine/src/types/database.types.ts" kind="types" symbol="documents, processing_jobs tables" lines="217-362" reason="Database types for documents and processing_jobs tables" />
+      <file path="documine/src/components/documents/" kind="directory" reason="Empty directory - upload-zone.tsx will be created here" />
+      <file path="documine/src/app/(dashboard)/layout.tsx" kind="layout" symbol="DashboardLayout" lines="1-19" reason="Dashboard layout with Header - documents page inherits this" />
+      <file path="documine/src/lib/errors.ts" kind="utility" reason="Error handling patterns - ValidationError class for file validation errors" />
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Supabase client for database and storage operations" />
+        <package name="@supabase/ssr" version="^0.7.0" purpose="Server-side Supabase client utilities" />
+        <package name="zod" version="^4.1.13" purpose="Schema validation - use .issues not .errors" />
+        <package name="sonner" version="^2.0.7" purpose="Toast notifications for validation errors" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons for upload zone UI" />
+        <package name="react-hook-form" version="^7.66.1" purpose="Form handling if needed" />
+        <package name="react-dropzone" version="^14.3.5" purpose="NEW - Drag-and-drop file upload handling - REQUIRES INSTALL" install="npm install react-dropzone" />
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="createClient (browser)" kind="function" signature="() => SupabaseClient&lt;Database&gt;" path="documine/src/lib/supabase/client.ts">
+      Creates browser Supabase client for storage uploads from client components.
+    </interface>
+    <interface name="createClient (server)" kind="function" signature="async () => Promise&lt;SupabaseClient&lt;Database&gt;&gt;" path="documine/src/lib/supabase/server.ts">
+      Creates server Supabase client with user session for database operations.
+    </interface>
+    <interface name="createServiceClient" kind="function" signature="() => SupabaseClient&lt;Database&gt;" path="documine/src/lib/supabase/server.ts">
+      Creates admin Supabase client that bypasses RLS for server-side processing.
+    </interface>
+    <interface name="supabase.storage.from('documents').upload" kind="method" signature="(path: string, file: File, options?: { upsert?: boolean }) => Promise&lt;{ data: { path: string }, error: StorageError | null }&gt;">
+      Supabase Storage upload method. Path must follow {agency_id}/{document_id}/{filename} pattern.
+    </interface>
+    <interface name="documents table" kind="table" signature="id, agency_id, uploaded_by, filename, display_name, storage_path, status, page_count, metadata, created_at, updated_at" path="documine/src/types/database.types.ts:217-273">
+      Document records table. Status values: 'processing', 'ready', 'failed'.
+    </interface>
+    <interface name="processing_jobs table" kind="table" signature="id, document_id, status, error_message, started_at, completed_at, created_at" path="documine/src/types/database.types.ts:325-362">
+      Processing job queue for document extraction. Status values: 'pending', 'processing', 'completed', 'failed'.
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="storage">Storage path MUST follow pattern: {agency_id}/{document_id}/{filename}</constraint>
+    <constraint type="file-type">Only PDF files accepted (application/pdf MIME type)</constraint>
+    <constraint type="file-size">Maximum file size: 50MB (50 * 1024 * 1024 bytes)</constraint>
+    <constraint type="batch-limit">Maximum 5 files per upload batch</constraint>
+    <constraint type="status">Document record created with status='processing' immediately after storage upload</constraint>
+    <constraint type="rls">RLS policies enforce agency isolation - users can only access their agency's documents</constraint>
+    <constraint type="validation">Use Zod validation with .issues property (not .errors) per project pattern</constraint>
+    <constraint type="uuid">Generate document UUID client-side before upload to enable optimistic UI</constraint>
+    <constraint type="feedback">No spinners > 200ms - use skeleton/shimmer loading states</constraint>
+    <constraint type="colors">Trustworthy Slate theme: primary #475569, hover #334155, light #f1f5f9</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library. Tests in __tests__/ directory mirroring src/ structure.
+      Component tests use happy-dom environment. Unit tests use node environment.
+      Coverage thresholds: 80% for key lib files. Use jest-dom matchers via setup.ts.
+      280 tests currently passing - maintain this baseline.
+    </standards>
+    <locations>
+      <location pattern="__tests__/components/**/*.test.tsx" description="Component tests" />
+      <location pattern="__tests__/lib/**/*.test.ts" description="Library/service tests" />
+      <location pattern="__tests__/app/**/*.test.tsx" description="Page/route tests" />
+    </locations>
+    <ideas>
+      <idea ac="AC-4.1.1">Test upload zone renders with correct default state (dashed border, text)</idea>
+      <idea ac="AC-4.1.2">Test drag-over state applies correct CSS classes</idea>
+      <idea ac="AC-4.1.3">Test click triggers file input, file picker accepts PDF filter</idea>
+      <idea ac="AC-4.1.4">Test PDF file accepted, non-PDF rejected with toast message</idea>
+      <idea ac="AC-4.1.5">Test files over 50MB rejected with size error toast</idea>
+      <idea ac="AC-4.1.6">Test multi-file upload (5 files), reject 6th file with batch limit toast</idea>
+      <idea ac="AC-4.1.7">Test storage path generated correctly as {agency_id}/{document_id}/{filename}</idea>
+      <idea ac="AC-4.1.8">Test document record created with status='processing', processing_job created</idea>
+    </ideas>
+  </tests>
+</story-context>

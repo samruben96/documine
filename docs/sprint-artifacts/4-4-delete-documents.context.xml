@@ -1,0 +1,196 @@
+<story-context id="4-4-delete-documents" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4</storyId>
+    <title>Delete Documents</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-4-delete-documents.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>delete documents I no longer need</iWant>
+    <soThat>I can keep my document library clean and organized</soThat>
+    <tasks>
+      <task id="1" ac="4.4.2,4.4.3,4.4.4">Create delete confirmation modal component
+        <subtask>Create src/components/documents/delete-document-modal.tsx</subtask>
+        <subtask>Implement modal with shadcn/ui Dialog component</subtask>
+        <subtask>Add warning icon and body text</subtask>
+        <subtask>Style Cancel and Delete buttons per spec</subtask>
+        <subtask>Handle loading state during deletion</subtask>
+      </task>
+      <task id="2" ac="4.4.5,4.4.6">Add delete server action
+        <subtask>Add deleteDocument(documentId) to actions.ts - ALREADY EXISTS as deleteDocumentAction</subtask>
+        <subtask>Verify document ownership via RLS (already handled)</subtask>
+        <subtask>Delete document record (CASCADE handles related records)</subtask>
+        <subtask>Delete file from Supabase Storage</subtask>
+        <subtask>Handle storage deletion errors gracefully</subtask>
+      </task>
+      <task id="3" ac="4.4.1">Add delete action to document list item
+        <subtask>Add trash icon button to DocumentListItem component</subtask>
+        <subtask>Show on hover (desktop) via group-hover</subtask>
+        <subtask>Always visible on touch devices</subtask>
+        <subtask>Wire up click handler to open confirmation modal</subtask>
+      </task>
+      <task id="4" ac="4.4.1">Add context menu with delete option
+        <subtask>Create or extend context menu for document list items</subtask>
+        <subtask>Add Delete option with trash icon</subtask>
+        <subtask>Wire up to same confirmation modal</subtask>
+      </task>
+      <task id="5" ac="4.4.7,4.4.8">Implement deletion flow with navigation
+        <subtask>Track currently selected document ID in deletion flow</subtask>
+        <subtask>Show success toast via sonner after deletion</subtask>
+        <subtask>Remove document from list (revalidate or filter)</subtask>
+        <subtask>If deleted document was being viewed, navigate to /documents</subtask>
+        <subtask>Handle deletion errors with error toast</subtask>
+      </task>
+      <task id="6" ac="all">Testing and verification
+        <subtask>Write unit tests for DeleteDocumentModal component</subtask>
+        <subtask>Write integration tests for deleteDocumentAction</subtask>
+        <subtask>Test cascade deletion</subtask>
+        <subtask>Test storage cleanup</subtask>
+        <subtask>Test navigation behavior</subtask>
+        <subtask>Test error scenarios</subtask>
+        <subtask>Run build and verify no type errors</subtask>
+        <subtask>Verify 418+ tests passing</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="4.4.1" title="Delete Action Availability">
+      <requirement>Delete action available via trash icon on document list item</requirement>
+      <requirement>Delete action available via context menu (right-click or three-dot menu)</requirement>
+      <requirement>Delete action visible on hover (desktop) or always visible (mobile/touch)</requirement>
+    </ac>
+    <ac id="4.4.2" title="Confirmation Modal Title">
+      <requirement>Confirmation modal displays: "Delete {filename}?"</requirement>
+      <requirement>Filename shows display_name if set, otherwise original filename</requirement>
+      <requirement>Modal title uses appropriate font weight per UX spec</requirement>
+    </ac>
+    <ac id="4.4.3" title="Confirmation Modal Body">
+      <requirement>Modal body text: "This will permanently delete the document and all conversations about it. This cannot be undone."</requirement>
+      <requirement>Warning icon displayed alongside text</requirement>
+      <requirement>Text uses muted color for secondary emphasis</requirement>
+    </ac>
+    <ac id="4.4.4" title="Confirmation Modal Buttons">
+      <requirement>"Cancel" button (secondary style, left position)</requirement>
+      <requirement>"Delete" button (destructive red #dc2626, right position)</requirement>
+      <requirement>Buttons follow shadcn/ui button patterns</requirement>
+      <requirement>Delete button shows loading state during deletion</requirement>
+    </ac>
+    <ac id="4.4.5" title="Database Cascade Delete">
+      <requirement>On confirm: document record deleted from documents table</requirement>
+      <requirement>CASCADE deletes: document_chunks, conversations, chat_messages, processing_jobs</requirement>
+      <requirement>Transaction ensures all-or-nothing deletion</requirement>
+    </ac>
+    <ac id="4.4.6" title="Storage File Deletion">
+      <requirement>On confirm: file deleted from Supabase Storage</requirement>
+      <requirement>Storage path: {agency_id}/{document_id}/{filename}</requirement>
+      <requirement>If storage delete fails after DB delete: log error but don't block UI</requirement>
+    </ac>
+    <ac id="4.4.7" title="Success Feedback">
+      <requirement>Success toast: "Document deleted"</requirement>
+      <requirement>Toast uses sonner with appropriate success styling</requirement>
+      <requirement>Toast auto-dismisses after 3 seconds</requirement>
+    </ac>
+    <ac id="4.4.8" title="Navigation After Delete">
+      <requirement>If viewing the deleted document, navigate to /documents</requirement>
+      <requirement>If deleting from list while viewing different document, stay on current document</requirement>
+      <requirement>Document immediately removed from sidebar list</requirement>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture" snippet="Core tables include documents, document_chunks, conversations, chat_messages with CASCADE delete constraints. RLS policies enforce agency isolation." />
+      <doc path="docs/architecture.md" title="Architecture" section="Implementation Patterns" snippet="API response format, streaming response format, database query patterns with explicit agency_id filters." />
+      <doc path="docs/sprint-artifacts/tech-spec-epic-4.md" title="Tech Spec Epic 4" section="Story 4.4" snippet="Delete Documents technical specification with cascade delete requirements and storage cleanup." />
+      <doc path="docs/epics.md" title="Epics" section="Epic 4: Document Management" snippet="Story 4.4 Delete Documents - Enable users to remove documents from their library." />
+    </docs>
+    <code>
+      <file path="documine/src/app/(dashboard)/documents/actions.ts" kind="server-action" symbol="deleteDocumentAction" lines="116-146" reason="DELETE ACTION ALREADY EXISTS - reuse this server action for document deletion. Uses deleteDocumentService and deleteDocumentFromStorage." />
+      <file path="documine/src/lib/documents/service.ts" kind="service" symbol="deleteDocument" lines="211-232" reason="Document service delete function - gets storage_path and deletes from DB with CASCADE." />
+      <file path="documine/src/lib/documents/upload.ts" kind="utility" symbol="deleteDocumentFromStorage" reason="Storage deletion utility - handles Supabase Storage cleanup." />
+      <file path="documine/src/components/documents/document-list-item.tsx" kind="component" symbol="DocumentListItem" lines="1-77" reason="Document list item component - ADD trash icon button with hover visibility." />
+      <file path="documine/src/components/documents/document-list.tsx" kind="component" symbol="DocumentList" lines="1-179" reason="Document list container - ADD modal state management and delete handler wiring." />
+      <file path="documine/src/components/settings/remove-user-modal.tsx" kind="component" symbol="RemoveUserModal" lines="1-91" reason="PATTERN REFERENCE - Use this as template for DeleteDocumentModal. Same Dialog + destructive button + useTransition pattern." />
+      <file path="documine/src/components/ui/dialog.tsx" kind="ui-component" symbol="Dialog,DialogContent,DialogHeader,DialogFooter,DialogTitle,DialogDescription" reason="shadcn/ui Dialog components - use for modal implementation." />
+      <file path="documine/src/components/ui/button.tsx" kind="ui-component" symbol="Button" reason="Button with variant='destructive' for delete action." />
+      <file path="documine/src/app/(dashboard)/documents/[id]/page.tsx" kind="page" symbol="DocumentPage" reason="Document detail page - handle navigation after delete if viewing deleted document." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Database and Storage operations" />
+        <package name="lucide-react" version="^0.554.0" reason="Icons - Trash2, AlertTriangle, Loader2" />
+        <package name="sonner" version="^2.0.7" reason="Toast notifications for success/error feedback" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" reason="Dialog primitive for modal" />
+        <package name="react" version="19.2.0" reason="useTransition for loading state" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use existing RemoveUserModal as reference pattern for DeleteDocumentModal</constraint>
+    <constraint type="pattern">Use useTransition hook for async deletion with isPending state</constraint>
+    <constraint type="pattern">Use toast.success and toast.error from sonner for feedback</constraint>
+    <constraint type="pattern">Use variant="destructive" on Delete button per shadcn/ui</constraint>
+    <constraint type="rls">RLS policies automatically filter by agency_id - no manual filter needed</constraint>
+    <constraint type="cascade">CASCADE delete configured in DB - document_chunks, conversations, chat_messages auto-deleted</constraint>
+    <constraint type="storage">Storage deletion is best-effort - log errors but don't fail the operation</constraint>
+    <constraint type="navigation">Use next/navigation router.push('/documents') for redirect</constraint>
+    <constraint type="testing">Maintain 418+ test baseline</constraint>
+    <constraint type="touch">Use group-hover with md: breakpoint for hover, max-md:opacity-100 for touch</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="deleteDocumentAction" kind="server-action" path="documine/src/app/(dashboard)/documents/actions.ts">
+      <signature>async function deleteDocumentAction(documentId: string): Promise&lt;{ success: boolean; error?: string }&gt;</signature>
+      <note>ALREADY IMPLEMENTED - just wire up to modal</note>
+    </interface>
+    <interface name="deleteDocument" kind="service" path="documine/src/lib/documents/service.ts">
+      <signature>async function deleteDocument(supabase: SupabaseClient, documentId: string): Promise&lt;string&gt;</signature>
+      <note>Returns storage_path for cleanup, throws DocumentNotFoundError if not found</note>
+    </interface>
+    <interface name="deleteDocumentFromStorage" kind="utility" path="documine/src/lib/documents/upload.ts">
+      <signature>async function deleteDocumentFromStorage(supabase: SupabaseClient, storagePath: string): Promise&lt;void&gt;</signature>
+      <note>Handles storage cleanup, errors are logged but not thrown</note>
+    </interface>
+    <interface name="Dialog" kind="component" path="documine/src/components/ui/dialog.tsx">
+      <signature>Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter</signature>
+      <note>Standard shadcn/ui dialog pattern with open/onOpenChange props</note>
+    </interface>
+    <interface name="Button" kind="component" path="documine/src/components/ui/button.tsx">
+      <signature>Button with variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'</signature>
+      <note>Use variant="destructive" for red delete button</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library. Tests live in __tests__ directory mirroring src structure.
+      Use happy-dom environment. Mock Supabase client and server actions.
+      Component tests focus on rendering, user interactions, and accessibility.
+      Integration tests for server actions mock database responses.
+    </standards>
+    <locations>
+      <loc>documine/__tests__/components/documents/*.test.tsx</loc>
+      <loc>documine/__tests__/app/dashboard/documents/*.test.ts</loc>
+    </locations>
+    <ideas>
+      <idea ac="4.4.1">Test delete icon appears on hover (simulate mouseenter/mouseleave)</idea>
+      <idea ac="4.4.1">Test delete icon always visible with touch media query</idea>
+      <idea ac="4.4.2">Test modal title shows display_name when set, filename when not</idea>
+      <idea ac="4.4.3">Test modal body contains warning text</idea>
+      <idea ac="4.4.4">Test Cancel button closes modal without action</idea>
+      <idea ac="4.4.4">Test Delete button disabled during loading, shows spinner</idea>
+      <idea ac="4.4.5">Test deleteDocumentAction calls service and revalidates path</idea>
+      <idea ac="4.4.6">Test storage deletion failure doesn't block success response</idea>
+      <idea ac="4.4.7">Test success toast shown after delete</idea>
+      <idea ac="4.4.8">Test navigation to /documents when viewing deleted document</idea>
+      <idea ac="4.4.8">Test stays on current page when deleting different document</idea>
+    </ideas>
+  </tests>
+</story-context>

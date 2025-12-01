@@ -1,0 +1,257 @@
+<story-context id="4-3-document-list-view" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>3</storyId>
+    <title>Document List View</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/4-3-document-list-view.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to see all my uploaded documents in an organized list</iWant>
+    <soThat>I can find and select documents for analysis</soThat>
+    <tasks>
+      <task id="1" ac="4.3.1,4.3.4,4.3.5">Create DocumentList sidebar component</task>
+      <task id="2" ac="4.3.2">Add relative date formatting (already exists - refactor to lib/utils)</task>
+      <task id="3" ac="4.3.3">Integrate status indicators (reuse DocumentStatus from 4.2)</task>
+      <task id="4" ac="4.3.6">Implement search functionality with debounce</task>
+      <task id="5" ac="4.3.7,4.3.8">Implement document selection and navigation</task>
+      <task id="6" ac="4.3.9">Implement empty state with functional upload zone</task>
+      <task id="7" ac="4.3.10">Implement responsive sidebar behavior</task>
+      <task id="8" ac="4.3.7">Create split view layout component</task>
+      <task id="9" ac="All">Testing and verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="4.3.1">Documents displayed in sidebar list with document icon + filename + upload date</criterion>
+    <criterion id="4.3.2">Upload date shows relative format (Just now, X minutes ago, X hours ago, Yesterday, Nov 20)</criterion>
+    <criterion id="4.3.3">Status indicator visible for each document: Ready (checkmark green), Processing (shimmer), Failed (X red)</criterion>
+    <criterion id="4.3.4">List sorted by most recently uploaded first (created_at DESC)</criterion>
+    <criterion id="4.3.5">List is scrollable when documents exceed viewport height with custom scrollbar</criterion>
+    <criterion id="4.3.6">Search input filters documents by filename match with 300ms debounce</criterion>
+    <criterion id="4.3.7">Clicking document navigates to /documents/[id] route with split view</criterion>
+    <criterion id="4.3.8">Selected document shows left border accent (#475569) and darker background (#f1f5f9)</criterion>
+    <criterion id="4.3.9">Empty state shows centered upload zone with "Upload your first document to get started"</criterion>
+    <criterion id="4.3.10">Sidebar: 240px desktop (always visible), collapsible tablet, hidden mobile (bottom nav)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>4. Design Direction - Split View Layout</section>
+        <snippet>Interface is built around document and conversation. Sidebar (240px) + Document Viewer + Chat Panel. Sidebar has document list, upload button. Desktop always visible, tablet collapsible, mobile hidden.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>6.2 DocumentListItem Component</section>
+        <snippet>Document icon + filename + "Uploaded 2 hours ago". States: Default, Hover (bg highlight), Selected (left border accent, darker bg), Processing (shimmer).</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>3.1 Color System - Trustworthy Slate</section>
+        <snippet>Primary: #475569 (slate), Primary Light: #f1f5f9, Success: #059669 (emerald), Warning: #d97706 (amber), Error: #dc2626 (red).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Project Structure</section>
+        <snippet>Components in src/components/, hooks in src/hooks/, layout components in src/components/layout/, routes in src/app/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-4.md</path>
+        <title>Epic 4 Tech Spec</title>
+        <section>Story 4.3 Acceptance Criteria</section>
+        <snippet>Document list view in sidebar, relative dates, status indicators, search filtering, responsive layout. Builds on stories 4.1 and 4.2.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/4-2-upload-progress-status-feedback.md</path>
+        <title>Story 4.2</title>
+        <section>Dev Agent Record - Learnings</section>
+        <snippet>DocumentStatus component created. useDocumentStatus hook for realtime. Shimmer animation in globals.css. 379 tests passing baseline.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/(dashboard)/documents/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentsPage</symbol>
+        <lines>1-345</lines>
+        <reason>Current documents page with list view. Has formatRelativeDate function (lines 242-257), document list rendering, upload integration. Will be refactored to use sidebar layout.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-status.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentStatus, DocumentStatusBadge</symbol>
+        <lines>1-166</lines>
+        <reason>Reusable status indicator component with shimmer animation. Already implements AC-4.2.4, 4.2.5, 4.2.7. Use DocumentStatusBadge for compact list view.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-document-status.ts</path>
+        <kind>hook</kind>
+        <symbol>useDocumentStatus, useAgencyId</symbol>
+        <lines>1-194</lines>
+        <reason>Realtime subscription hook. Returns documents array, setDocuments, isConnected. Already handles INSERT/UPDATE/DELETE events and toast notifications.</reason>
+      </file>
+      <file>
+        <path>src/lib/documents/service.ts</path>
+        <kind>service</kind>
+        <symbol>listDocuments, getDocument</symbol>
+        <lines>129-162</lines>
+        <reason>listDocuments() already supports search filtering via options.search (ilike on filename). Use for sidebar document queries.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/documents/actions.ts</path>
+        <kind>server-action</kind>
+        <symbol>getDocuments, getUserAgencyInfo, retryDocumentProcessing, deleteDocumentAction</symbol>
+        <reason>Existing server actions for document operations. Reuse for sidebar functionality.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>DashboardLayout</symbol>
+        <lines>1-20</lines>
+        <reason>Current dashboard layout with Header + main container. Needs modification to include sidebar for documents section.</reason>
+      </file>
+      <file>
+        <path>src/components/layout/header.tsx</path>
+        <kind>component</kind>
+        <symbol>Header</symbol>
+        <reason>Existing header component. May need hamburger menu button for tablet responsive behavior.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/upload-zone.tsx</path>
+        <kind>component</kind>
+        <symbol>UploadZone</symbol>
+        <reason>Existing upload zone component. Reuse for empty state upload prompt.</reason>
+      </file>
+      <file>
+        <path>src/lib/utils.ts</path>
+        <kind>utility</kind>
+        <symbol>cn</symbol>
+        <reason>Tailwind class merge utility. Use for conditional styling.</reason>
+      </file>
+      <file>
+        <path>src/app/globals.css</path>
+        <kind>stylesheet</kind>
+        <symbol>animate-shimmer</symbol>
+        <reason>Contains shimmer animation keyframes defined in Story 4.2. Available for loading states.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>next</package>
+        <version>16.0.4</version>
+        <usage>App Router, useParams, useRouter for navigation</usage>
+      </node>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+        <usage>useState, useCallback, useMemo for state and memoization</usage>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database queries, realtime subscriptions</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons: FileText, Search, X, Menu, ChevronLeft</usage>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <usage>Toast notifications (already integrated)</usage>
+      </node>
+      <node>
+        <package>tailwind-merge</package>
+        <version>^3.4.0</version>
+        <usage>cn() utility for class merging</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>Document</name>
+      <kind>type</kind>
+      <signature>Tables&lt;'documents'&gt; = { id: string, agency_id: string, filename: string, display_name: string | null, status: string, storage_path: string, created_at: string, updated_at: string, page_count: number | null, uploaded_by: string }</signature>
+      <path>src/types/database.types.ts</path>
+    </interface>
+    <interface>
+      <name>useDocumentStatus</name>
+      <kind>hook</kind>
+      <signature>({ agencyId, initialDocuments?, onDocumentReady?, onDocumentFailed? }) => { documents: Document[], setDocuments, isConnected: boolean }</signature>
+      <path>src/hooks/use-document-status.ts</path>
+    </interface>
+    <interface>
+      <name>DocumentStatusType</name>
+      <kind>type</kind>
+      <signature>'uploading' | 'processing' | 'ready' | 'failed'</signature>
+      <path>src/components/documents/document-status.tsx</path>
+    </interface>
+    <interface>
+      <name>getDocuments</name>
+      <kind>server-action</kind>
+      <signature>() => Promise&lt;{ success: boolean, documents?: Document[], error?: string }&gt;</signature>
+      <path>src/app/(dashboard)/documents/actions.ts</path>
+    </interface>
+    <interface>
+      <name>listDocuments</name>
+      <kind>function</kind>
+      <signature>(supabase, options?: { search?: string, status?: string, limit?: number }) => Promise&lt;Document[]&gt;</signature>
+      <path>src/lib/documents/service.ts</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="architecture">Follow existing component patterns: functional components, TypeScript strict, Tailwind CSS</constraint>
+    <constraint source="ux-spec">No loading spinners > 200ms - use skeleton/shimmer instead</constraint>
+    <constraint source="ux-spec">Trustworthy Slate color theme: Primary #475569, Light #f1f5f9, Success #059669, Error #dc2626</constraint>
+    <constraint source="ux-spec">System font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto</constraint>
+    <constraint source="architecture">Layout components go in src/components/layout/</constraint>
+    <constraint source="architecture">Document components go in src/components/documents/</constraint>
+    <constraint source="architecture">Utility functions go in src/lib/utils/</constraint>
+    <constraint source="testing">Maintain 379 passing tests baseline from Story 4.2</constraint>
+    <constraint source="story-4.2">Reuse DocumentStatus component - do not recreate</constraint>
+    <constraint source="story-4.2">Reuse useDocumentStatus hook for realtime updates</constraint>
+    <constraint source="ux-spec">Responsive breakpoints: Mobile < 640px, Tablet 640-1024px, Desktop > 1024px</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library. Tests in __tests__/ mirroring src/ structure. Mock Supabase client for database tests. Use happy-dom for DOM environment. Test component rendering, user interactions, and state changes. Follow existing patterns in __tests__/components/ and __tests__/hooks/.
+    </standards>
+    <locations>
+      <location>__tests__/components/documents/</location>
+      <location>__tests__/components/layout/</location>
+      <location>__tests__/lib/utils/</location>
+      <location>__tests__/hooks/</location>
+    </locations>
+    <ideas>
+      <idea ac="4.3.1">Test DocumentListItem renders icon, filename, and date correctly</idea>
+      <idea ac="4.3.2">Test formatRelativeDate for all time ranges (just now, minutes, hours, yesterday, older)</idea>
+      <idea ac="4.3.3">Test DocumentStatusBadge renders correct status indicator</idea>
+      <idea ac="4.3.4">Test documents are sorted by created_at DESC</idea>
+      <idea ac="4.3.5">Test scrollable container renders when many documents</idea>
+      <idea ac="4.3.6">Test search input filters documents with debounce</idea>
+      <idea ac="4.3.6">Test search clear button resets filter</idea>
+      <idea ac="4.3.6">Test empty search results message appears</idea>
+      <idea ac="4.3.7">Test clicking document navigates to /documents/[id]</idea>
+      <idea ac="4.3.8">Test selected document has correct styling classes</idea>
+      <idea ac="4.3.9">Test empty state shows upload zone with correct message</idea>
+      <idea ac="4.3.10">Test sidebar visibility at different breakpoints</idea>
+      <idea ac="4.3.10">Test hamburger toggle works on tablet</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,307 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>6</storyId>
+    <title>Settings UX Enhancements</title>
+    <status>draft</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-6-settings-ux-enhancements.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>the Settings page to feel responsive and polished</iWant>
+    <soThat>managing my team feels effortless and professional</soThat>
+    <tasks>
+      <task id="1" ac="3.6.1">
+        <name>Implement optimistic role updates</name>
+        <subtasks>
+          <subtask>Refactor handleRoleChange in team-tab.tsx to use useOptimistic or local state pattern</subtask>
+          <subtask>Update UI immediately on change, before server response</subtask>
+          <subtask>Handle error case: revert to previous role value</subtask>
+          <subtask>Show inline loading indicator during server call</subtask>
+          <subtask>Maintain existing toast notifications</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="3.6.2">
+        <name>Replace page reload with router refresh</name>
+        <subtasks>
+          <subtask>Import useRouter from next/navigation in team-tab.tsx</subtask>
+          <subtask>Replace window.location.reload() with router.refresh()</subtask>
+          <subtask>Test that new invitations appear without losing scroll position</subtask>
+          <subtask>Verify client state (modals, form data) is preserved</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="3.6.3">
+        <name>Add hover-reveal remove button</name>
+        <subtasks>
+          <subtask>Add CSS for opacity transition on remove button</subtask>
+          <subtask>Show button on row hover (desktop)</subtask>
+          <subtask>Detect touch device and always show button (mobile fallback)</subtask>
+          <subtask>Ensure disabled state styling remains clear</subtask>
+          <subtask>Test on both desktop and mobile viewports</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="3.6.4">
+        <name>Create empty invitation state</name>
+        <subtasks>
+          <subtask>Design empty state layout within existing card structure</subtask>
+          <subtask>Add message: "No pending invitations"</subtask>
+          <subtask>Add subtle CTA or helper text</subtask>
+          <subtask>Ensure visual consistency with populated table view</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="3.6.5">
+        <name>Add skeleton loading states</name>
+        <subtasks>
+          <subtask>Import Skeleton from shadcn/ui (or add if not installed)</subtask>
+          <subtask>Create skeleton row component matching team member row layout</subtask>
+          <subtask>Show skeleton during initial data fetch</subtask>
+          <subtask>Replace any existing spinner-based loading with skeletons</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="3.6.6">
+        <name>Implement subtle animations</name>
+        <subtasks>
+          <subtask>Add CSS transitions for row state changes</subtask>
+          <subtask>Highlight effect on role change (brief background pulse)</subtask>
+          <subtask>Fade-out on member removal</subtask>
+          <subtask>Fade-in for new content (invitations)</subtask>
+          <subtask>Keep animations under 300ms for snappy feel</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="3.6.7">
+        <name>Add view-only mode indicator</name>
+        <subtasks>
+          <subtask>Add conditional banner/badge for non-admin users</subtask>
+          <subtask>Position near Team Members card header</subtask>
+          <subtask>Use muted/info styling (not warning/error)</subtask>
+          <subtask>Include brief explanation text</subtask>
+        </subtasks>
+      </task>
+      <task id="8" ac="all">
+        <name>Testing and verification</name>
+        <subtasks>
+          <subtask>Verify all animations work smoothly</subtask>
+          <subtask>Test optimistic updates with simulated slow/failed responses</subtask>
+          <subtask>Test on mobile viewport for touch-friendly behavior</subtask>
+          <subtask>Verify existing tests still pass</subtask>
+          <subtask>Run build to check for type errors</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="3.6.1" title="Optimistic Role Changes">
+      <requirement>When admin changes a user's role, UI updates immediately</requirement>
+      <requirement>Loading indicator shown inline (not blocking)</requirement>
+      <requirement>On success: Change persists, toast confirms</requirement>
+      <requirement>On error: UI reverts to previous state, error toast shown</requirement>
+      <requirement>User never waits for server to see visual feedback</requirement>
+    </criterion>
+    <criterion id="3.6.2" title="Smooth Invite Refresh">
+      <requirement>After successful invitation, team list refreshes without full page reload</requirement>
+      <requirement>Scroll position preserved</requirement>
+      <requirement>New invitation appears in pending list seamlessly</requirement>
+      <requirement>Uses router.refresh() instead of window.location.reload()</requirement>
+    </criterion>
+    <criterion id="3.6.3" title="Contextual Remove Button">
+      <requirement>Desktop: Remove button appears on row hover (reduces visual clutter)</requirement>
+      <requirement>Mobile/Touch: Remove button always visible (no hover on touch devices)</requirement>
+      <requirement>Disabled state for current user's row clearly communicated</requirement>
+      <requirement>Smooth fade-in transition on hover</requirement>
+    </criterion>
+    <criterion id="3.6.4" title="Helpful Empty States">
+      <requirement>When no pending invitations exist, show friendly message: "No pending invitations"</requirement>
+      <requirement>Include subtle prompt: "Invite team members to get started"</requirement>
+      <requirement>Optional: Small illustration or icon for visual interest</requirement>
+      <requirement>Empty state maintains visual consistency with populated state</requirement>
+    </criterion>
+    <criterion id="3.6.5" title="Skeleton Loading States">
+      <requirement>Initial page load shows skeleton shimmer for team member rows</requirement>
+      <requirement>Skeleton matches actual content layout (name, email, role, date columns)</requirement>
+      <requirement>Uses shadcn/ui Skeleton component for consistency</requirement>
+      <requirement>Replaces any full-screen spinners with contextual loading</requirement>
+    </criterion>
+    <criterion id="3.6.6" title="Subtle Success Animations">
+      <requirement>Role change: Brief highlight/pulse on updated row</requirement>
+      <requirement>Member removal: Smooth fade-out animation before row disappears</requirement>
+      <requirement>Invitation sent: New row slides in or fades in</requirement>
+      <requirement>Animations are subtle (200-300ms), not distracting</requirement>
+    </criterion>
+    <criterion id="3.6.7" title="View-Only Mode Indicator">
+      <requirement>Non-admin members see clear "View only" indicator on Team section</requirement>
+      <requirement>Indicator explains context: "Contact an admin to manage team members"</requirement>
+      <requirement>Uses muted styling (not alarming, just informative)</requirement>
+      <requirement>Positioned near section header for visibility</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Experience Principles</section>
+        <snippet>Zero Learning Curve, Trust Through Transparency, Speed You Can Feel, Clean Over Clever. Every interaction should feel instant. No loading spinners longer than 200ms - use skeleton/shimmer instead.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Core Technologies - Next.js</section>
+        <snippet>Next.js 15 with App Router. Server Components for initial page loads, Client Components for interactive elements. React 19 available for useOptimistic hook.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Consistency Rules - Code Organization</section>
+        <snippet>React components use PascalCase, component files use kebab-case. UI primitives in src/components/ui/, feature components in feature folders like src/components/settings/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Core Experience Principles</section>
+        <snippet>Speed: Every interaction should feel instant. No loading spinners longer than 200ms - use skeleton/shimmer instead. Feedback: Subtle but trustworthy. Never celebratory.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>UX Pattern Decisions - Feedback Patterns</section>
+        <snippet>Loading (&lt;200ms): No indicator. Loading (&gt;200ms): Skeleton shimmer. Success: Toast bottom-right, green accent, 3s auto-dismiss. Error: Toast persistent until dismissed.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Empty State Patterns</section>
+        <snippet>Empty states guide action. Never leave users stranded. Show clear messaging and call-to-action for next steps.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Team Management</section>
+        <snippet>Team tab displays all agency users with Name, Email, Role, Joined date. Role toggle (Admin/Member) available. Non-admin users see view-only mode. Server actions use RLS for security.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>NPM Dependencies</section>
+        <snippet>React Hook Form, Zod v4 (use .issues not .errors), Supabase SSR. Pattern: useTransition for async server action calls.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>documine/src/components/settings/team-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>TeamTab</symbol>
+        <lines>1-342</lines>
+        <reason>Primary file to modify. Contains handleRoleChange, handleInviteSuccess with window.location.reload(), remove button logic. Current implementation uses useTransition but not optimistic updates.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/components/settings/invite-user-modal.tsx</path>
+        <kind>component</kind>
+        <symbol>InviteUserModal</symbol>
+        <lines>1-140</lines>
+        <reason>Modal component that calls onSuccess which triggers the reload. May need updates for smooth refresh pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+        <kind>server-actions</kind>
+        <symbol>changeUserRole, inviteUser, removeTeamMember</symbol>
+        <lines>474-549</lines>
+        <reason>Server actions called by team-tab. Returns {success, error} pattern. Uses revalidatePath('/settings') for cache invalidation.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-156</lines>
+        <reason>Server component that fetches team data. May need Suspense boundary for skeleton loading states.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/components/ui/button.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Button</symbol>
+        <reason>shadcn/ui button component. Used for remove button styling with variants.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/components/ui/card.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Card, CardHeader, CardContent</symbol>
+        <reason>Card components used for Team Members and Pending Invitations sections.</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/components/ui/table.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Table, TableRow, TableCell</symbol>
+        <reason>Table components used for member list. Row animations need to be applied here.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="16.0.4">App Router, useRouter for navigation</package>
+        <package name="react" version="19.2.0">React 19 with useOptimistic hook support</package>
+        <package name="react-hook-form" version="^7.66.1">Form handling with useForm</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client</package>
+        <package name="sonner" version="^2.0.7">Toast notifications via toast()</package>
+        <package name="lucide-react" version="^0.554.0">Icons - Loader2, Trash2, etc.</package>
+        <package name="tailwindcss" version="^4">Utility CSS for animations and styling</package>
+      </ecosystem>
+      <note>Skeleton component NOT currently installed. Need to run: npx shadcn@latest add skeleton</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="dev-notes">No new packages required except shadcn/ui Skeleton component</constraint>
+    <constraint source="dev-notes">Keep animations under 300ms for snappy feel</constraint>
+    <constraint source="dev-notes">Use CSS-based touch detection via @media (hover: hover/none)</constraint>
+    <constraint source="architecture">React components use PascalCase, files use kebab-case</constraint>
+    <constraint source="architecture">Use Server Actions pattern (not API routes) for mutations</constraint>
+    <constraint source="architecture">Use Tailwind CSS for all styling, no inline styles</constraint>
+    <constraint source="ux-spec">No loading spinners longer than 200ms - use skeleton instead</constraint>
+    <constraint source="ux-spec">Toast notifications: success auto-dismiss 3s, error persistent</constraint>
+    <constraint source="epic-2-retro">Use Zod .issues not .errors for validation error access</constraint>
+    <constraint source="story">This is polish only - no changes to server actions or new features</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="changeUserRole" kind="server-action">
+      <signature>changeUserRole(userId: string, newRole: 'admin' | 'member'): Promise&lt;{success: boolean; error?: string}&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts:474</path>
+    </interface>
+    <interface name="useRouter" kind="next-navigation-hook">
+      <signature>const router = useRouter(); router.refresh();</signature>
+      <note>From 'next/navigation'. Revalidates server components without full page reload.</note>
+    </interface>
+    <interface name="useOptimistic" kind="react-hook">
+      <signature>const [optimisticState, addOptimistic] = useOptimistic(state, updateFn)</signature>
+      <note>React 19 hook for optimistic UI updates. Alternative: local useState pattern.</note>
+    </interface>
+    <interface name="useTransition" kind="react-hook">
+      <signature>const [isPending, startTransition] = useTransition()</signature>
+      <note>Already in use. Wrap async operations to track pending state.</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <paragraph>Tests use Vitest with React Testing Library and happy-dom. Test files go in __tests__/ folder mirroring src/ structure. Use @testing-library/user-event for interactions. Mock server actions for unit tests.</paragraph>
+    </standards>
+    <locations>
+      <location>documine/__tests__/**/*.test.{ts,tsx}</location>
+      <location>documine/__tests__/components/settings/</location>
+    </locations>
+    <ideas>
+      <idea ac="3.6.1">Test that role change updates UI immediately before server response. Mock slow server action, verify UI shows new role while isPending=true.</idea>
+      <idea ac="3.6.1">Test error rollback: simulate server action failure, verify UI reverts to previous role.</idea>
+      <idea ac="3.6.2">Test router.refresh() is called instead of window.location.reload() after invitation success.</idea>
+      <idea ac="3.6.3">Test remove button opacity is 0 by default, 1 on hover (use CSS variable checking or computed styles).</idea>
+      <idea ac="3.6.4">Test empty state message appears when invitations array is empty.</idea>
+      <idea ac="3.6.5">Test Skeleton component renders during loading state.</idea>
+      <idea ac="3.6.7">Test view-only indicator appears for non-admin users.</idea>
+      <idea>Run npm run build to verify no TypeScript errors.</idea>
+      <idea>Run npm run test to verify existing tests pass.</idea>
+    </ideas>
+  </tests>
+</story-context>

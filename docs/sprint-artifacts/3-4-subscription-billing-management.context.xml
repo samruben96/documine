@@ -1,0 +1,206 @@
+<story-context id="3-4-subscription-billing-management" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>4</storyId>
+    <title>Subscription & Billing Management</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-4-subscription-billing-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>to view my agency's subscription plan, seat usage, and billing information</iWant>
+    <soThat>I can understand my current plan limits and know how to upgrade when needed</soThat>
+    <tasks>
+      <task id="1" acs="3.4.1,3.4.2,3.4.3,3.4.5">Create BillingTab component
+        <subtask>Create src/components/settings/billing-tab.tsx</subtask>
+        <subtask>Accept props: tier, seatLimit, currentSeats, isAdmin</subtask>
+        <subtask>Display current plan name (Starter/Professional/Agency)</subtask>
+        <subtask>Display seat usage with progress bar (X of Y seats used)</subtask>
+        <subtask>Display plan features summary section</subtask>
+        <subtask>Display "Contact support" message with email link</subtask>
+        <subtask>Show view-only mode for non-admins</subtask>
+      </task>
+      <task id="2" acs="3.4.1,3.4.2">Add getBillingInfo server action
+        <subtask>Add getBillingInfo() to src/app/(dashboard)/settings/actions.ts</subtask>
+        <subtask>Query agency for subscription_tier, seat_limit</subtask>
+        <subtask>Count current users in agency</subtask>
+        <subtask>Return structured billing info object</subtask>
+      </task>
+      <task id="3" acs="3.4.6">Add updateSubscriptionTier server action
+        <subtask>Add updateSubscriptionTier(tier) to actions.ts</subtask>
+        <subtask>Verify current user is admin</subtask>
+        <subtask>Map tier to seat limit (starter: 3, professional: 10, agency: 25)</subtask>
+        <subtask>Check current user count doesn't exceed new seat limit</subtask>
+        <subtask>Update agencies.subscription_tier and agencies.seat_limit</subtask>
+      </task>
+      <task id="4" acs="3.4.2">Define plan features and tier mapping
+        <subtask>Create src/lib/constants/plans.ts with tier definitions</subtask>
+        <subtask>Define PLAN_TIERS constant with name, seatLimit, features</subtask>
+      </task>
+      <task id="5" acs="3.4.1,3.4.5">Integrate BillingTab into settings page
+        <subtask>Import BillingTab in settings page.tsx</subtask>
+        <subtask>Replace ComingSoonTab with BillingTab</subtask>
+        <subtask>Pass tier, seatLimit, currentSeats, isAdmin props</subtask>
+      </task>
+      <task id="6" acs="3.4.1,3.4.6">Add unit tests for billing actions
+        <subtask>Test getBillingInfo returns correct structure</subtask>
+        <subtask>Test updateSubscriptionTier requires admin role</subtask>
+        <subtask>Test updateSubscriptionTier blocks downgrade when over seat limit</subtask>
+        <subtask>Test updateSubscriptionTier updates both tier and seat_limit</subtask>
+      </task>
+      <task id="7" acs="all">Build and test verification
+        <subtask>Verify npm run build succeeds</subtask>
+        <subtask>Verify all tests pass</subtask>
+        <subtask>Manual test: admin can view billing info</subtask>
+        <subtask>Manual test: member sees view-only billing tab</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="3.4.1" priority="must">Billing tab shows: Current plan name, Seat limit, Current usage (X/Y seats used)</ac>
+    <ac id="3.4.2" priority="must">Plan tier displayed with feature summary (Starter: 3 seats, Professional: 10 seats, Agency: 25 seats)</ac>
+    <ac id="3.4.3" priority="must">"Contact support to change plan" message displayed (no self-service for MVP)</ac>
+    <ac id="3.4.4" priority="deferred">Stripe integration - DEFERRED per Epic 2 retro to future "Billing Infrastructure Epic"</ac>
+    <ac id="3.4.5" priority="must">Non-admin users see Billing tab in view-only mode</ac>
+    <ac id="3.4.6" priority="should">Admin can manually change tier via updateSubscriptionTier() (internal use only)</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-3.md" title="Epic 3 Technical Specification" section="Story 3.4: Subscription & Billing Management">
+        Defines display-only billing page, plan tier definitions (starter/professional/agency), and server action patterns. Per Epic 2 retro: No Stripe integration for MVP.
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 3.4: Subscription & Billing Management">
+        As an agency admin, I want to view and manage my subscription, so that I can upgrade, downgrade, or update payment methods. Notes manual tier assignment for MVP.
+      </doc>
+      <doc path="docs/sprint-artifacts/3-3-manage-team-members.md" title="Previous Story" section="Dev Agent Record">
+        Established patterns: Server actions at settings/actions.ts, admin check with role === 'admin', useTransition for loading states, revalidatePath for cache refresh.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture">
+        Agencies table: id, name, subscription_tier, seat_limit, created_at, updated_at. Users table includes role field for admin/member.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="documine/src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" lines="1-137" reason="Main settings page with tab structure. Currently uses ComingSoonTab for Billing - needs replacement with BillingTab">
+        <pattern>Fetches user with agency join including subscription_tier and seat_limit. Uses currentSeats count for seat usage display.</pattern>
+      </file>
+      <file path="documine/src/app/(dashboard)/settings/actions.ts" kind="server-actions" symbol="updateAgency,inviteUser,changeUserRole" lines="1-548" reason="Existing server actions - add getBillingInfo and updateSubscriptionTier following same patterns">
+        <pattern>Admin check: query users table for role, verify === 'admin'. Uses createClient() for user operations, createServiceClient() for admin API calls.</pattern>
+      </file>
+      <file path="documine/src/components/settings/agency-tab.tsx" kind="component" symbol="AgencyTab" lines="1-217" reason="Reference for tier display styling and view-only pattern. Uses tierDisplay map for badge colors.">
+        <pattern>isAdmin = user.role === 'admin' determines edit vs view-only. Uses Card, CardContent, CardHeader from shadcn/ui.</pattern>
+      </file>
+      <file path="documine/src/components/settings/coming-soon-tab.tsx" kind="component" symbol="ComingSoonTab" lines="1-47" reason="Currently used for Billing tab - will be replaced by BillingTab component">
+        <pattern>Simple placeholder with Card structure.</pattern>
+      </file>
+      <file path="documine/src/components/settings/team-tab.tsx" kind="component" symbol="TeamTab" reason="Reference for view-only mode implementation - conditionally renders actions based on isAdmin prop">
+        <pattern>Uses isAdmin prop to hide/show action buttons and form elements.</pattern>
+      </file>
+      <file path="documine/src/lib/validations/auth.ts" kind="validation" symbol="agencySchema" reason="Zod validation schemas - follow pattern for any new billing schemas">
+        <pattern>Use z.object() with z.string(), z.enum(). Error handling uses result.error?.issues?.[0]?.message (Zod v4 API).</pattern>
+      </file>
+      <file path="documine/__tests__/app/dashboard/settings/actions.test.ts" kind="test" reason="Existing tests for settings actions - add billing action tests following same patterns">
+        <pattern>Vitest with mocked Supabase. Tests admin check, error cases, success cases.</pattern>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="react-hook-form" version="^7.66.1" />
+        <package name="@hookform/resolvers" version="^5.2.2" />
+        <package name="zod" version="^4.1.13" />
+        <package name="sonner" version="^2.0.7" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="next" version="16.0.4" />
+        <package name="react" version="19.2.0" />
+      </node>
+      <shadcn-ui>
+        <component name="Card" path="@/components/ui/card" />
+        <component name="Button" path="@/components/ui/button" />
+        <component name="Tabs" path="@/components/ui/tabs" />
+        <component name="Progress" path="@/components/ui/progress" note="May need to add via npx shadcn@latest add progress" />
+      </shadcn-ui>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="getBillingInfo" kind="server-action" path="documine/src/app/(dashboard)/settings/actions.ts">
+      <signature>
+export async function getBillingInfo(): Promise&lt;{
+  tier: 'starter' | 'professional' | 'agency';
+  seatLimit: number;
+  currentSeats: number;
+  agencyName: string;
+}&gt;
+      </signature>
+    </interface>
+    <interface name="updateSubscriptionTier" kind="server-action" path="documine/src/app/(dashboard)/settings/actions.ts">
+      <signature>
+export async function updateSubscriptionTier(
+  tier: 'starter' | 'professional' | 'agency'
+): Promise&lt;{
+  success: boolean;
+  error?: string;
+}&gt;
+      </signature>
+    </interface>
+    <interface name="BillingTabProps" kind="component-props" path="documine/src/components/settings/billing-tab.tsx">
+      <signature>
+interface BillingTabProps {
+  tier: 'starter' | 'professional' | 'agency';
+  seatLimit: number;
+  currentSeats: number;
+  isAdmin: boolean;
+}
+      </signature>
+    </interface>
+    <interface name="PLAN_TIERS" kind="constant" path="documine/src/lib/constants/plans.ts">
+      <signature>
+const PLAN_TIERS = {
+  starter: { name: 'Starter', seatLimit: 3, features: [...] },
+  professional: { name: 'Professional', seatLimit: 10, features: [...] },
+  agency: { name: 'Agency', seatLimit: 25, features: [...] },
+} as const;
+      </signature>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="Epic 2 Retrospective">No Stripe integration for MVP - manual tier assignment only</constraint>
+    <constraint source="Tech Spec">Display-only billing page - users cannot self-serve upgrade</constraint>
+    <constraint source="Tech Spec">Tier seat limits: starter=3, professional=10, agency=25</constraint>
+    <constraint source="Architecture">All operations scoped by agency_id via RLS</constraint>
+    <constraint source="Architecture">Only admins can access billing modification functions</constraint>
+    <constraint source="Pattern">Server actions return { success: boolean, error?: string }</constraint>
+    <constraint source="Pattern">Use revalidatePath('/settings') after mutations</constraint>
+    <constraint source="Pattern">Use useTransition for loading states in client components</constraint>
+    <constraint source="Zod">Use .issues not .errors for validation error access (Zod v4)</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library. Mock Supabase client methods. Test server actions with mocked authentication context. Follow existing test patterns in __tests__/app/dashboard/settings/actions.test.ts.
+    </standards>
+    <locations>
+      <location>documine/__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>documine/__tests__/components/settings/</location>
+    </locations>
+    <ideas>
+      <idea ac="3.4.1">Test getBillingInfo returns tier, seatLimit, currentSeats, agencyName</idea>
+      <idea ac="3.4.1">Test BillingTab displays plan name and seat usage correctly</idea>
+      <idea ac="3.4.2">Test plan features render for each tier type</idea>
+      <idea ac="3.4.3">Test "Contact support" message displays with email link</idea>
+      <idea ac="3.4.5">Test non-admin sees billing info but no action buttons</idea>
+      <idea ac="3.4.6">Test updateSubscriptionTier requires admin role</idea>
+      <idea ac="3.4.6">Test updateSubscriptionTier blocks downgrade when current users exceed new limit</idea>
+      <idea ac="3.4.6">Test updateSubscriptionTier updates both subscription_tier and seat_limit</idea>
+    </ideas>
+  </tests>
+</story-context>

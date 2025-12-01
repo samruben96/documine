@@ -1,0 +1,185 @@
+<story-context id="5-1-chat-interface-layout-split-view" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>1</storyId>
+    <title>Chat Interface Layout (Split View)</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-30</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-1-chat-interface-layout-split-view.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to see my document and chat side-by-side in a split view layout</iWant>
+    <soThat>I can ask questions while viewing the source material and verify answers instantly</soThat>
+    <tasks>
+      <task id="1" name="Create Split View Layout Component">
+        <subtask>Create src/components/layout/split-view.tsx (NOTE: file exists, needs enhancement)</subtask>
+        <subtask>Implement CSS Grid or Flexbox for split layout</subtask>
+        <subtask>Document Viewer container (min 40%, flex-grow)</subtask>
+        <subtask>Chat Panel container (360px fixed on desktop)</subtask>
+      </task>
+      <task id="2" name="Create Chat Panel Component">
+        <subtask>Create src/components/chat/chat-panel.tsx</subtask>
+        <subtask>Implement scrollable conversation history area</subtask>
+        <subtask>Implement fixed input area at bottom</subtask>
+        <subtask>Add placeholder text "Ask a question..."</subtask>
+      </task>
+      <task id="3" name="Create Chat Input Component">
+        <subtask>Create src/components/chat/chat-input.tsx</subtask>
+        <subtask>Implement textarea with auto-resize</subtask>
+        <subtask>Add send button with arrow icon (lucide-react Send)</subtask>
+        <subtask>Implement Enter to send, Shift+Enter for newline</subtask>
+        <subtask>Disable send button when input empty</subtask>
+        <subtask>Auto-focus input on page load</subtask>
+      </task>
+      <task id="4" name="Update Document View Page">
+        <subtask>Update src/app/(dashboard)/documents/[id]/page.tsx</subtask>
+        <subtask>Replace ChatPanelPlaceholder with real ChatPanel</subtask>
+        <subtask>Pass document ID to Chat Panel for context</subtask>
+      </task>
+      <task id="5" name="Implement Responsive Layout - Tablet">
+        <subtask>Add CSS media query for 640-1024px</subtask>
+        <subtask>Adjust chat panel to 40% width</subtask>
+      </task>
+      <task id="6" name="Implement Responsive Layout - Mobile">
+        <subtask>Add CSS media query for &lt;640px</subtask>
+        <subtask>Create tabbed interface component</subtask>
+        <subtask>Implement [Document] and [Chat] tabs</subtask>
+      </task>
+      <task id="7" name="Apply Color Theme">
+        <subtask>Apply Trustworthy Slate colors</subtask>
+        <subtask>Verify contrast ratios meet WCAG AA</subtask>
+      </task>
+      <task id="8" name="Testing and Verification">
+        <subtask>Write component tests for ChatPanel</subtask>
+        <subtask>Write component tests for ChatInput</subtask>
+        <subtask>Test keyboard navigation</subtask>
+        <subtask>Test responsive breakpoints</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-5.1.1">Document view page displays split-view layout with Document Viewer on left (min 40%) and Chat Panel on right (360px fixed on desktop)</criterion>
+    <criterion id="AC-5.1.2">Chat Panel contains scrollable conversation history area with fixed input area at bottom</criterion>
+    <criterion id="AC-5.1.3">Input area displays placeholder text "Ask a question..." using muted text color (#64748b)</criterion>
+    <criterion id="AC-5.1.4">Send button visible next to input, uses Primary Slate (#475569), disabled when input empty</criterion>
+    <criterion id="AC-5.1.5">Enter sends message, Shift+Enter inserts newline, supports multi-line text</criterion>
+    <criterion id="AC-5.1.6">Input automatically receives focus on page load with visible focus indicator (2px outline)</criterion>
+    <criterion id="AC-5.1.7">Tablet (640-1024px): Both panels visible, chat 40% width, sidebar collapsed with hamburger</criterion>
+    <criterion id="AC-5.1.8">Mobile (&lt;640px): Tabbed interface with Document and Chat tabs, one panel visible at a time</criterion>
+    <criterion id="AC-5.1.9">Mobile tabs show current view indicator with visual distinction, 44x44px minimum touch targets</criterion>
+    <criterion id="AC-5.1.10">Layout uses Trustworthy Slate color theme (Primary: #475569, Background: #ffffff, Surface: #f8fafc)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="Project Structure" snippet="Defines component locations: chat components in src/components/chat/, layout components in src/components/layout/, pages in src/app/(dashboard)/" />
+      <doc path="docs/architecture.md" title="Architecture" section="Naming Conventions" snippet="React components use PascalCase, files use kebab-case (e.g., chat-panel.tsx), CSS uses Tailwind utilities" />
+      <doc path="docs/ux-design-specification.md" title="UX Design" section="Design Direction" snippet="Split View + Sidebar hybrid layout. Document viewer on left (flexible, min 40%), Chat Panel on right (360px fixed). Trustworthy Slate color theme." />
+      <doc path="docs/ux-design-specification.md" title="UX Design" section="ChatMessage Component" snippet="User messages right-aligned with primary color bubble, AI messages left-aligned with surface color and citations" />
+      <doc path="docs/ux-design-specification.md" title="UX Design" section="Responsive Strategy" snippet="Desktop: three-panel. Tablet (640-1024px): two-panel with collapsible sidebar. Mobile (&lt;640px): tabbed interface with Document/Chat tabs" />
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Epic 5 Tech Spec" section="Story 5.1" snippet="Chat Interface Layout with split view, responsive breakpoints, keyboard shortcuts, auto-focus" />
+      <doc path="docs/prd.md" title="PRD" section="FR13-FR19" snippet="Document Q&A functional requirements including chat interface, streaming responses, source citations" />
+    </docs>
+    <code>
+      <file path="documine/src/components/layout/split-view.tsx" kind="component" symbol="SplitView, DocumentViewPlaceholder, ChatPanelPlaceholder" lines="1-93" reason="EXISTING split view component - needs enhancement to support chat panel layout. ChatPanelPlaceholder to be replaced." />
+      <file path="documine/src/app/(dashboard)/documents/[id]/page.tsx" kind="page" symbol="DocumentDetailPage" lines="1-290" reason="Document detail page already uses SplitView with ChatPanelPlaceholder - needs update to use real ChatPanel" />
+      <file path="documine/src/app/(dashboard)/layout.tsx" kind="layout" symbol="DashboardLayout" lines="1-22" reason="Dashboard layout provides header and full-height container for split view" />
+      <file path="documine/src/components/layout/sidebar.tsx" kind="component" symbol="Sidebar, MobileBottomNav" lines="1-201" reason="Responsive sidebar with hamburger toggle (tablet) and mobile bottom nav - already implements responsive patterns" />
+      <file path="documine/src/components/layout/header.tsx" kind="component" symbol="Header" lines="*" reason="Header component used in dashboard layout" />
+      <file path="documine/src/lib/utils.ts" kind="utility" symbol="cn" lines="*" reason="Class name utility using clsx and tailwind-merge" />
+      <file path="documine/src/components/ui/button.tsx" kind="ui" symbol="Button" lines="*" reason="shadcn/ui button component for send button" />
+      <file path="documine/src/components/ui/input.tsx" kind="ui" symbol="Input" lines="*" reason="shadcn/ui input component - may use as base for chat input" />
+      <file path="documine/src/components/ui/tabs.tsx" kind="ui" symbol="Tabs, TabsList, TabsTrigger, TabsContent" lines="*" reason="shadcn/ui tabs component for mobile responsive tabbed interface" />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="react" version="19.2.0" />
+        <package name="react-dom" version="19.2.0" />
+        <package name="next" version="16.0.4" />
+        <package name="lucide-react" version="0.554.0" note="Use Send icon for send button" />
+        <package name="@radix-ui/react-tabs" version="1.1.13" note="Tab primitives for mobile responsive" />
+        <package name="tailwindcss" version="4" />
+        <package name="class-variance-authority" version="0.7.1" />
+        <package name="clsx" version="2.1.1" />
+        <package name="tailwind-merge" version="3.4.0" />
+      </ecosystem>
+      <devDependencies>
+        <package name="vitest" version="4.0.14" />
+        <package name="@testing-library/react" version="16.3.0" />
+        <package name="@testing-library/user-event" version="14.6.1" />
+        <package name="happy-dom" version="20.0.10" />
+        <package name="typescript" version="5" />
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Components use 'use client' directive for client-side interactivity</constraint>
+    <constraint type="pattern">Use cn() utility from @/lib/utils for className merging</constraint>
+    <constraint type="pattern">Styling uses Tailwind CSS utility classes only - no custom CSS files</constraint>
+    <constraint type="pattern">Use lucide-react for icons (Send, MessageSquare, etc.)</constraint>
+    <constraint type="layer">Chat components go in src/components/chat/ directory</constraint>
+    <constraint type="layer">Layout components go in src/components/layout/ directory</constraint>
+    <constraint type="testing">Component tests use happy-dom environment</constraint>
+    <constraint type="testing">Test files go in __tests__/components/chat/ directory</constraint>
+    <constraint type="testing">Maintain test count baseline (currently 33 test files)</constraint>
+    <constraint type="accessibility">Focus indicators must be visible (2px outline)</constraint>
+    <constraint type="accessibility">Touch targets minimum 44x44px on mobile</constraint>
+    <constraint type="accessibility">Color contrast must meet WCAG AA (4.5:1 for text)</constraint>
+    <constraint type="responsive">Breakpoints: mobile &lt;640px, tablet 640-1024px, desktop &gt;1024px</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="SplitView" kind="component-props" path="documine/src/components/layout/split-view.tsx">
+      <signature>
+interface SplitViewProps {
+  sidebar: React.ReactNode;
+  main: React.ReactNode;
+  className?: string;
+}
+      </signature>
+    </interface>
+    <interface name="ChatPanel" kind="component-props" path="documine/src/components/chat/chat-panel.tsx (to create)">
+      <signature>
+interface ChatPanelProps {
+  documentId: string;
+  className?: string;
+}
+      </signature>
+    </interface>
+    <interface name="ChatInput" kind="component-props" path="documine/src/components/chat/chat-input.tsx (to create)">
+      <signature>
+interface ChatInputProps {
+  onSend: (message: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+}
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest with React Testing Library and happy-dom for component tests. Use @testing-library/user-event for user interactions. Tests in __tests__/ directory mirroring src/ structure. Component tests focus on user behavior, not implementation details.</standards>
+    <locations>
+      <location>__tests__/components/chat/*.test.tsx</location>
+      <location>__tests__/components/layout/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-5.1.1">Test split view renders with correct panel widths at different viewport sizes</idea>
+      <idea ac="AC-5.1.2">Test chat panel has scrollable history area and fixed input at bottom</idea>
+      <idea ac="AC-5.1.3">Test input shows placeholder text with correct styling</idea>
+      <idea ac="AC-5.1.4">Test send button disabled state when input empty, enabled when has content</idea>
+      <idea ac="AC-5.1.5">Test Enter key sends message, Shift+Enter adds newline</idea>
+      <idea ac="AC-5.1.6">Test input receives focus on component mount</idea>
+      <idea ac="AC-5.1.7">Test tablet layout shows both panels with adjusted widths</idea>
+      <idea ac="AC-5.1.8">Test mobile layout shows tabbed interface</idea>
+      <idea ac="AC-5.1.9">Test mobile tabs are clickable and switch content</idea>
+      <idea ac="AC-5.1.10">Test color theme classes are applied correctly</idea>
+    </ideas>
+  </tests>
+</story-context>

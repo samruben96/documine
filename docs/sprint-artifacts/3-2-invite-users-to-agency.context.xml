@@ -1,0 +1,286 @@
+<story-context id="3-2-invite-users-to-agency" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3.2</storyId>
+    <title>Invite Users to Agency</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-28</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/3-2-invite-users-to-agency.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>to invite new users to join my agency</iWant>
+    <soThat>my team can collaborate on document analysis</soThat>
+    <tasks>
+      <task id="1">Create invitations database migration</task>
+      <task id="2">Create Team Tab component with invitation list</task>
+      <task id="3">Create Invite User modal component</task>
+      <task id="4">Create inviteUser server action</task>
+      <task id="5">Create Zod validation schema for invitations</task>
+      <task id="6">Create resendInvitation server action</task>
+      <task id="7">Create cancelInvitation server action</task>
+      <task id="8">Modify auth callback to handle invitations</task>
+      <task id="9">Add "Invite User" button to Team tab</task>
+      <task id="10">Add pending invitation actions</task>
+      <task id="11">Add unit and integration tests</task>
+      <task id="12">Manual testing and verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="3.2.1">"Invite User" button opens modal with email field and role selector (Member/Admin)</ac>
+    <ac id="3.2.2">System checks seat limit before allowing invite</ac>
+    <ac id="3.2.3">At seat limit shows error: "Seat limit reached. Upgrade to add more users."</ac>
+    <ac id="3.2.4">Duplicate email (existing user or pending invite) shows error</ac>
+    <ac id="3.2.5">Invitation email sent via Supabase built-in email with invite link</ac>
+    <ac id="3.2.6">Invitation record created with invite metadata</ac>
+    <ac id="3.2.7">Pending invitations displayed with email, role, invited date, status</ac>
+    <ac id="3.2.8">"Resend" action re-sends email and extends expiry</ac>
+    <ac id="3.2.9">"Cancel" action marks invitation as cancelled</ac>
+    <ac id="3.2.10">Invitee signup with token joins existing agency with invited role</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Account &amp; Access</section>
+        <snippet>FR5: Agency admins can invite new users to their agency. FR6: Agency admins can remove users. FR30: System enforces seat limits based on subscription tier.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Data Architecture</section>
+        <snippet>Row Level Security (RLS) for multi-tenancy. All tables include agency_id. Users table has role field ('admin' | 'member').</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-3.md</path>
+        <title>Epic 3 Tech Spec</title>
+        <section>Story 3.2 Technical Details</section>
+        <snippet>Supabase Auth admin API for invitations. Creates invitation record with 7-day expiry. Auth callback handles invite metadata.</snippet>
+      </doc>
+      <doc>
+        <path>docs/ux-design-specification.md</path>
+        <title>UX Design Specification</title>
+        <section>Form Patterns</section>
+        <snippet>Validation timing: on blur for format. Error display: inline below field. Toast for success/error notifications.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epics Document</title>
+        <section>Epic 3: Agency &amp; Team Management</section>
+        <snippet>Story 3.2: Invite users with email/role, check seat limits, send invitation email, track pending invitations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/3-1-agency-settings-page.md</path>
+        <title>Previous Story 3.1</title>
+        <section>Dev Agent Record</section>
+        <snippet>Settings page with tabs (Profile/Agency/Billing). Server actions pattern. React Hook Form with mode:'onBlur'. Sonner for toasts.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+        <kind>server-action</kind>
+        <symbol>updateAgency</symbol>
+        <lines>50-99</lines>
+        <reason>Existing server action pattern with admin role check. Add inviteUser, resendInvitation, cancelInvitation actions here.</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-89</lines>
+        <reason>Add Team tab alongside Profile/Agency/Billing tabs. Fetch team members and pending invitations.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/settings/agency-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AgencyTab</symbol>
+        <lines>1-217</lines>
+        <reason>Reference for admin/member conditional rendering, form patterns, toast usage.</reason>
+      </file>
+      <file>
+        <path>documine/src/app/auth/callback/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>1-52</lines>
+        <reason>Modify to handle invitation acceptance. Check user metadata for invitation_id, create user record with invited role.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/validations/auth.ts</path>
+        <kind>validation</kind>
+        <symbol>agencySchema</symbol>
+        <lines>73-80</lines>
+        <reason>Add inviteUserSchema for email and role validation.</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>client</kind>
+        <symbol>createServiceClient</symbol>
+        <lines>40-55</lines>
+        <reason>Service role client needed for auth.admin.inviteUserByEmail() calls.</reason>
+      </file>
+      <file>
+        <path>documine/supabase/migrations/00001_initial_schema.sql</path>
+        <kind>migration</kind>
+        <symbol>users table</symbol>
+        <lines>34-48</lines>
+        <reason>Reference for users table schema. New invitations migration follows same patterns.</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/dialog.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Dialog</symbol>
+        <reason>Use for Invite User modal component.</reason>
+      </file>
+      <file>
+        <path>documine/__tests__/app/dashboard/settings/actions.test.ts</path>
+        <kind>test</kind>
+        <symbol>settings actions tests</symbol>
+        <reason>Add tests for inviteUser, resendInvitation, cancelInvitation actions.</reason>
+      </file>
+      <file>
+        <path>documine/__tests__/mocks/supabase.ts</path>
+        <kind>test-mock</kind>
+        <symbol>createMockSupabaseClient</symbol>
+        <lines>60-66</lines>
+        <reason>Extend mock for auth.admin methods needed in invitation tests.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <note>Supabase client with auth.admin API for invitations</note>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+        <note>Server-side Supabase with cookie handling</note>
+      </node>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.66.1</version>
+        <note>Form state management for invite modal</note>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <note>Zod resolver for form validation</note>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <note>Schema validation - use .issues not .errors (v4)</note>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <note>Toast notifications for success/error</note>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <note>Icons for buttons and UI</note>
+      </node>
+      <node>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <note>Test framework</note>
+      </node>
+      <node>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+        <note>Component testing</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="auth">Use Supabase built-in email for invitations (NOT Resend) - per Epic 2 retrospective</constraint>
+    <constraint type="api">Use supabase.auth.admin.inviteUserByEmail() which requires service role client</constraint>
+    <constraint type="security">Admin role required for all invitation operations - verify with users table query</constraint>
+    <constraint type="database">All new tables must include agency_id and RLS policies for multi-tenant isolation</constraint>
+    <constraint type="validation">Zod v4 uses .issues property not .errors - see existing validation pattern</constraint>
+    <constraint type="form">React Hook Form with mode:'onBlur' for real-time validation</constraint>
+    <constraint type="ui">Toast notifications via Sonner - toast.success() and toast.error()</constraint>
+    <constraint type="component">Follow AgencyTab pattern: admin gets editable form, member gets view-only display</constraint>
+    <constraint type="test">Tests go in __tests__/ mirroring src/ structure. Use Vitest + Testing Library.</constraint>
+    <constraint type="build">Must pass npm run build and npm run test before marking complete</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>inviteUser</name>
+      <kind>server-action</kind>
+      <signature>inviteUser(data: { email: string; role: 'admin' | 'member' }): Promise&lt;{ success: boolean; error?: string }&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface>
+      <name>resendInvitation</name>
+      <kind>server-action</kind>
+      <signature>resendInvitation(invitationId: string): Promise&lt;{ success: boolean; error?: string }&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface>
+      <name>cancelInvitation</name>
+      <kind>server-action</kind>
+      <signature>cancelInvitation(invitationId: string): Promise&lt;{ success: boolean; error?: string }&gt;</signature>
+      <path>documine/src/app/(dashboard)/settings/actions.ts</path>
+    </interface>
+    <interface>
+      <name>invitations table</name>
+      <kind>database-table</kind>
+      <signature>
+        id UUID PRIMARY KEY,
+        agency_id UUID NOT NULL REFERENCES agencies(id),
+        email TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'member',
+        status TEXT NOT NULL DEFAULT 'pending',
+        invited_by UUID NOT NULL REFERENCES users(id),
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        accepted_at TIMESTAMPTZ
+      </signature>
+      <path>documine/supabase/migrations/00005_create_invitations.sql</path>
+    </interface>
+    <interface>
+      <name>inviteUserSchema</name>
+      <kind>zod-schema</kind>
+      <signature>z.object({ email: z.string().email(), role: z.enum(['admin', 'member']).default('member') })</signature>
+      <path>documine/src/lib/validations/auth.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with React Testing Library and happy-dom. Tests located in __tests__/ directory mirroring src/ structure.
+      Server actions tested with mocked Supabase client. Components tested with render() and user events.
+      Run with: npm run test. Coverage with: npm run test:coverage.
+    </standards>
+    <locations>
+      <location>documine/__tests__/app/dashboard/settings/actions.test.ts</location>
+      <location>documine/__tests__/components/settings/team-tab.test.tsx</location>
+      <location>documine/__tests__/components/settings/invite-user-modal.test.tsx</location>
+      <location>documine/__tests__/lib/validations/auth.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="3.2.1">Test invite modal opens on button click, renders email input and role dropdown</idea>
+      <idea ac="3.2.2">Test inviteUser rejects when seat count + pending invites >= seat_limit</idea>
+      <idea ac="3.2.3">Test error message matches "Seat limit reached. Upgrade to add more users."</idea>
+      <idea ac="3.2.4">Test inviteUser rejects duplicate email with correct error message</idea>
+      <idea ac="3.2.5">Test inviteUser calls auth.admin.inviteUserByEmail with correct params</idea>
+      <idea ac="3.2.6">Test invitation record created with correct agency_id, email, role, expires_at</idea>
+      <idea ac="3.2.7">Test TeamTab renders pending invitations list with all fields</idea>
+      <idea ac="3.2.8">Test resendInvitation updates expires_at and calls auth.admin.inviteUserByEmail</idea>
+      <idea ac="3.2.9">Test cancelInvitation updates status to 'cancelled'</idea>
+      <idea ac="3.2.10">Test auth callback creates user with invitation metadata</idea>
+    </ideas>
+  </tests>
+</story-context>

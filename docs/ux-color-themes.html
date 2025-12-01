@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>docuMINE - Color Theme Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 24px 40px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+      padding: 40px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1200px) {
+      .themes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .theme-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .theme-header {
+      padding: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .theme-number {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .theme-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .theme-personality {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .theme-best-for {
+      font-size: 13px;
+      background: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    /* Color Swatches */
+    .color-section {
+      padding: 24px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .color-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .color-swatch {
+      text-align: center;
+    }
+
+    .swatch {
+      width: 64px;
+      height: 48px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .swatch-label {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .swatch-hex {
+      font-size: 10px;
+      color: #999;
+      font-family: monospace;
+    }
+
+    /* Component Preview */
+    .preview-section {
+      padding: 24px;
+      background: #fafafa;
+    }
+
+    .preview-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .component-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .preview-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .preview-btn:hover {
+      opacity: 0.9;
+    }
+
+    .preview-btn-secondary {
+      background: transparent;
+      border: 1px solid;
+    }
+
+    .preview-btn-ghost {
+      background: transparent;
+      border: none;
+    }
+
+    .preview-input {
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid #d0d0d0;
+      font-size: 14px;
+      width: 200px;
+      background: white;
+    }
+
+    .preview-input:focus {
+      outline: none;
+      border-color: var(--focus-color);
+      box-shadow: 0 0 0 3px var(--focus-shadow);
+    }
+
+    .preview-card {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e0e0e0;
+      max-width: 300px;
+    }
+
+    .preview-card-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .preview-card-text {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .alert-box {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+
+    /* Chat Preview */
+    .chat-preview {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e0e0e0;
+      margin-top: 16px;
+    }
+
+    .chat-message {
+      margin-bottom: 16px;
+    }
+
+    .chat-message:last-child {
+      margin-bottom: 0;
+    }
+
+    .chat-user {
+      text-align: right;
+    }
+
+    .chat-bubble {
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 12px;
+      max-width: 80%;
+      font-size: 14px;
+    }
+
+    .chat-user .chat-bubble {
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-ai .chat-bubble {
+      background: #f5f5f5;
+      border-bottom-left-radius: 4px;
+    }
+
+    .source-link {
+      font-size: 12px;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .source-link a {
+      text-decoration: none;
+    }
+
+    .source-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* Comparison Section */
+    .comparison-header {
+      background: white;
+      padding: 24px 40px;
+      border-bottom: 1px solid #e0e0e0;
+      margin-top: 40px;
+    }
+
+    .comparison-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #e0e0e0;
+      margin: 40px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .comparison-cell {
+      background: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .comparison-cell.header {
+      font-weight: 600;
+      background: #f5f5f5;
+    }
+
+    /* Theme 1: Professional Blue */
+    .theme-1 {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #dbeafe;
+      --secondary: #64748b;
+      --accent: #0ea5e9;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --background: #ffffff;
+      --surface: #f8fafc;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --focus-shadow: rgba(37, 99, 235, 0.2);
+    }
+
+    /* Theme 2: Trustworthy Slate */
+    .theme-2 {
+      --primary: #475569;
+      --primary-hover: #334155;
+      --primary-light: #f1f5f9;
+      --secondary: #94a3b8;
+      --accent: #0891b2;
+      --success: #059669;
+      --warning: #d97706;
+      --error: #dc2626;
+      --background: #ffffff;
+      --surface: #f8fafc;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --focus-shadow: rgba(71, 85, 105, 0.2);
+    }
+
+    /* Theme 3: Modern Indigo */
+    .theme-3 {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #e0e7ff;
+      --secondary: #6b7280;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --background: #ffffff;
+      --surface: #f9fafb;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --focus-shadow: rgba(79, 70, 229, 0.2);
+    }
+
+    /* Theme 4: Enterprise Navy */
+    .theme-4 {
+      --primary: #1e3a5f;
+      --primary-hover: #152a45;
+      --primary-light: #e8eef4;
+      --secondary: #5a7a9a;
+      --accent: #2196f3;
+      --success: #4caf50;
+      --warning: #ff9800;
+      --error: #f44336;
+      --background: #ffffff;
+      --surface: #f5f7fa;
+      --border: #dce3eb;
+      --text: #1a2b3c;
+      --text-muted: #5a6a7a;
+      --focus-shadow: rgba(30, 58, 95, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎨 docuMINE Color Theme Explorer</h1>
+    <p>Four professional color directions based on: trustworthy, insurance-focused, Microsoft Fluent-inspired, clean & professional</p>
+  </div>
+
+  <div class="themes-grid">
+
+    <!-- Theme 1: Professional Blue -->
+    <div class="theme-card theme-1">
+      <div class="theme-header">
+        <div class="theme-number">Theme 1</div>
+        <div class="theme-name">Professional Blue</div>
+        <div class="theme-personality">Clean, confident, universally trusted. The "safe" choice that feels modern without being trendy.</div>
+        <div class="theme-best-for">Best for: Maximum trust, broad appeal, Microsoft-like familiarity</div>
+      </div>
+
+      <div class="color-section">
+        <h3>Primary Palette</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #2563eb;"></div>
+            <div class="swatch-label">Primary</div>
+            <div class="swatch-hex">#2563eb</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #1d4ed8;"></div>
+            <div class="swatch-label">Primary Hover</div>
+            <div class="swatch-hex">#1d4ed8</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #dbeafe;"></div>
+            <div class="swatch-label">Primary Light</div>
+            <div class="swatch-hex">#dbeafe</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #64748b;"></div>
+            <div class="swatch-label">Secondary</div>
+            <div class="swatch-hex">#64748b</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #0ea5e9;"></div>
+            <div class="swatch-label">Accent</div>
+            <div class="swatch-hex">#0ea5e9</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Semantic Colors</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #10b981;"></div>
+            <div class="swatch-label">Success</div>
+            <div class="swatch-hex">#10b981</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f59e0b;"></div>
+            <div class="swatch-label">Warning</div>
+            <div class="swatch-hex">#f59e0b</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ef4444;"></div>
+            <div class="swatch-label">Error</div>
+            <div class="swatch-hex">#ef4444</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Neutrals</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ffffff; border: 1px solid #e2e8f0;"></div>
+            <div class="swatch-label">Background</div>
+            <div class="swatch-hex">#ffffff</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f8fafc;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-hex">#f8fafc</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #e2e8f0;"></div>
+            <div class="swatch-label">Border</div>
+            <div class="swatch-hex">#e2e8f0</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #1e293b;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-hex">#1e293b</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #64748b;"></div>
+            <div class="swatch-label">Text Muted</div>
+            <div class="swatch-hex">#64748b</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <h3>Component Preview</h3>
+        <div class="component-row">
+          <button class="preview-btn" style="background: #2563eb; color: white;">Primary Button</button>
+          <button class="preview-btn preview-btn-secondary" style="color: #2563eb; border-color: #2563eb;">Secondary</button>
+          <button class="preview-btn preview-btn-ghost" style="color: #2563eb;">Ghost</button>
+        </div>
+
+        <div class="component-row">
+          <input type="text" class="preview-input" placeholder="Ask about this document..." style="--focus-color: #2563eb; --focus-shadow: rgba(37, 99, 235, 0.2);">
+        </div>
+
+        <div class="component-row">
+          <span class="confidence-badge" style="background: #dcfce7; color: #166534;">✓ High Confidence</span>
+          <span class="confidence-badge" style="background: #fef3c7; color: #92400e;">⚠ Needs Review</span>
+          <span class="confidence-badge" style="background: #f1f5f9; color: #475569;">○ Not Found</span>
+        </div>
+
+        <div class="chat-preview">
+          <div class="chat-message chat-user">
+            <div class="chat-bubble" style="background: #2563eb; color: white;">Is flood covered under this policy?</div>
+          </div>
+          <div class="chat-message chat-ai">
+            <div class="chat-bubble">No, flood damage is explicitly excluded from this policy. The exclusion is found in Section 4, Paragraph B.</div>
+            <div class="source-link">
+              <span class="confidence-badge" style="background: #dcfce7; color: #166534; padding: 2px 6px; font-size: 11px;">✓ High Confidence</span>
+              <a href="#" style="color: #2563eb;">View in document →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme 2: Trustworthy Slate -->
+    <div class="theme-card theme-2">
+      <div class="theme-header">
+        <div class="theme-number">Theme 2</div>
+        <div class="theme-name">Trustworthy Slate</div>
+        <div class="theme-personality">Understated, serious, reliable. Feels like a trusted advisor, not a flashy app.</div>
+        <div class="theme-best-for">Best for: Conservative audience, maximum professionalism, "this is a serious tool" vibe</div>
+      </div>
+
+      <div class="color-section">
+        <h3>Primary Palette</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #475569;"></div>
+            <div class="swatch-label">Primary</div>
+            <div class="swatch-hex">#475569</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #334155;"></div>
+            <div class="swatch-label">Primary Hover</div>
+            <div class="swatch-hex">#334155</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f1f5f9;"></div>
+            <div class="swatch-label">Primary Light</div>
+            <div class="swatch-hex">#f1f5f9</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #94a3b8;"></div>
+            <div class="swatch-label">Secondary</div>
+            <div class="swatch-hex">#94a3b8</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #0891b2;"></div>
+            <div class="swatch-label">Accent</div>
+            <div class="swatch-hex">#0891b2</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Semantic Colors</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #059669;"></div>
+            <div class="swatch-label">Success</div>
+            <div class="swatch-hex">#059669</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #d97706;"></div>
+            <div class="swatch-label">Warning</div>
+            <div class="swatch-hex">#d97706</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #dc2626;"></div>
+            <div class="swatch-label">Error</div>
+            <div class="swatch-hex">#dc2626</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Neutrals</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ffffff; border: 1px solid #e2e8f0;"></div>
+            <div class="swatch-label">Background</div>
+            <div class="swatch-hex">#ffffff</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f8fafc;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-hex">#f8fafc</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #e2e8f0;"></div>
+            <div class="swatch-label">Border</div>
+            <div class="swatch-hex">#e2e8f0</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #0f172a;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-hex">#0f172a</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #64748b;"></div>
+            <div class="swatch-label">Text Muted</div>
+            <div class="swatch-hex">#64748b</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <h3>Component Preview</h3>
+        <div class="component-row">
+          <button class="preview-btn" style="background: #475569; color: white;">Primary Button</button>
+          <button class="preview-btn preview-btn-secondary" style="color: #475569; border-color: #475569;">Secondary</button>
+          <button class="preview-btn preview-btn-ghost" style="color: #475569;">Ghost</button>
+        </div>
+
+        <div class="component-row">
+          <input type="text" class="preview-input" placeholder="Ask about this document..." style="--focus-color: #475569; --focus-shadow: rgba(71, 85, 105, 0.2);">
+        </div>
+
+        <div class="component-row">
+          <span class="confidence-badge" style="background: #d1fae5; color: #065f46;">✓ High Confidence</span>
+          <span class="confidence-badge" style="background: #fef3c7; color: #92400e;">⚠ Needs Review</span>
+          <span class="confidence-badge" style="background: #f1f5f9; color: #475569;">○ Not Found</span>
+        </div>
+
+        <div class="chat-preview">
+          <div class="chat-message chat-user">
+            <div class="chat-bubble" style="background: #475569; color: white;">Is flood covered under this policy?</div>
+          </div>
+          <div class="chat-message chat-ai">
+            <div class="chat-bubble">No, flood damage is explicitly excluded from this policy. The exclusion is found in Section 4, Paragraph B.</div>
+            <div class="source-link">
+              <span class="confidence-badge" style="background: #d1fae5; color: #065f46; padding: 2px 6px; font-size: 11px;">✓ High Confidence</span>
+              <a href="#" style="color: #0891b2;">View in document →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme 3: Modern Indigo -->
+    <div class="theme-card theme-3">
+      <div class="theme-header">
+        <div class="theme-number">Theme 3</div>
+        <div class="theme-name">Modern Indigo</div>
+        <div class="theme-personality">Contemporary, smart, approachable. Feels innovative while still professional.</div>
+        <div class="theme-best-for">Best for: Standing out from competitors, "modern tech" feel, younger-skewing agents</div>
+      </div>
+
+      <div class="color-section">
+        <h3>Primary Palette</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #4f46e5;"></div>
+            <div class="swatch-label">Primary</div>
+            <div class="swatch-hex">#4f46e5</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #4338ca;"></div>
+            <div class="swatch-label">Primary Hover</div>
+            <div class="swatch-hex">#4338ca</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #e0e7ff;"></div>
+            <div class="swatch-label">Primary Light</div>
+            <div class="swatch-hex">#e0e7ff</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #6b7280;"></div>
+            <div class="swatch-label">Secondary</div>
+            <div class="swatch-hex">#6b7280</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #8b5cf6;"></div>
+            <div class="swatch-label">Accent</div>
+            <div class="swatch-hex">#8b5cf6</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Semantic Colors</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #10b981;"></div>
+            <div class="swatch-label">Success</div>
+            <div class="swatch-hex">#10b981</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f59e0b;"></div>
+            <div class="swatch-label">Warning</div>
+            <div class="swatch-hex">#f59e0b</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ef4444;"></div>
+            <div class="swatch-label">Error</div>
+            <div class="swatch-hex">#ef4444</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Neutrals</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ffffff; border: 1px solid #e5e7eb;"></div>
+            <div class="swatch-label">Background</div>
+            <div class="swatch-hex">#ffffff</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f9fafb;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-hex">#f9fafb</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #e5e7eb;"></div>
+            <div class="swatch-label">Border</div>
+            <div class="swatch-hex">#e5e7eb</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #111827;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-hex">#111827</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #6b7280;"></div>
+            <div class="swatch-label">Text Muted</div>
+            <div class="swatch-hex">#6b7280</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <h3>Component Preview</h3>
+        <div class="component-row">
+          <button class="preview-btn" style="background: #4f46e5; color: white;">Primary Button</button>
+          <button class="preview-btn preview-btn-secondary" style="color: #4f46e5; border-color: #4f46e5;">Secondary</button>
+          <button class="preview-btn preview-btn-ghost" style="color: #4f46e5;">Ghost</button>
+        </div>
+
+        <div class="component-row">
+          <input type="text" class="preview-input" placeholder="Ask about this document..." style="--focus-color: #4f46e5; --focus-shadow: rgba(79, 70, 229, 0.2);">
+        </div>
+
+        <div class="component-row">
+          <span class="confidence-badge" style="background: #dcfce7; color: #166534;">✓ High Confidence</span>
+          <span class="confidence-badge" style="background: #fef3c7; color: #92400e;">⚠ Needs Review</span>
+          <span class="confidence-badge" style="background: #f3f4f6; color: #4b5563;">○ Not Found</span>
+        </div>
+
+        <div class="chat-preview">
+          <div class="chat-message chat-user">
+            <div class="chat-bubble" style="background: #4f46e5; color: white;">Is flood covered under this policy?</div>
+          </div>
+          <div class="chat-message chat-ai">
+            <div class="chat-bubble">No, flood damage is explicitly excluded from this policy. The exclusion is found in Section 4, Paragraph B.</div>
+            <div class="source-link">
+              <span class="confidence-badge" style="background: #dcfce7; color: #166534; padding: 2px 6px; font-size: 11px;">✓ High Confidence</span>
+              <a href="#" style="color: #4f46e5;">View in document →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme 4: Enterprise Navy -->
+    <div class="theme-card theme-4">
+      <div class="theme-header">
+        <div class="theme-number">Theme 4</div>
+        <div class="theme-name">Enterprise Navy</div>
+        <div class="theme-personality">Authoritative, established, premium. Feels like enterprise software from a big company.</div>
+        <div class="theme-best-for">Best for: Larger agencies, enterprise sales, "we're serious" positioning</div>
+      </div>
+
+      <div class="color-section">
+        <h3>Primary Palette</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #1e3a5f;"></div>
+            <div class="swatch-label">Primary</div>
+            <div class="swatch-hex">#1e3a5f</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #152a45;"></div>
+            <div class="swatch-label">Primary Hover</div>
+            <div class="swatch-hex">#152a45</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #e8eef4;"></div>
+            <div class="swatch-label">Primary Light</div>
+            <div class="swatch-hex">#e8eef4</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #5a7a9a;"></div>
+            <div class="swatch-label">Secondary</div>
+            <div class="swatch-hex">#5a7a9a</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #2196f3;"></div>
+            <div class="swatch-label">Accent</div>
+            <div class="swatch-hex">#2196f3</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Semantic Colors</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #4caf50;"></div>
+            <div class="swatch-label">Success</div>
+            <div class="swatch-hex">#4caf50</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ff9800;"></div>
+            <div class="swatch-label">Warning</div>
+            <div class="swatch-hex">#ff9800</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f44336;"></div>
+            <div class="swatch-label">Error</div>
+            <div class="swatch-hex">#f44336</div>
+          </div>
+        </div>
+
+        <h3 style="margin-top: 20px;">Neutrals</h3>
+        <div class="color-row">
+          <div class="color-swatch">
+            <div class="swatch" style="background: #ffffff; border: 1px solid #dce3eb;"></div>
+            <div class="swatch-label">Background</div>
+            <div class="swatch-hex">#ffffff</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #f5f7fa;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-hex">#f5f7fa</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #dce3eb;"></div>
+            <div class="swatch-label">Border</div>
+            <div class="swatch-hex">#dce3eb</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #1a2b3c;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-hex">#1a2b3c</div>
+          </div>
+          <div class="color-swatch">
+            <div class="swatch" style="background: #5a6a7a;"></div>
+            <div class="swatch-label">Text Muted</div>
+            <div class="swatch-hex">#5a6a7a</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <h3>Component Preview</h3>
+        <div class="component-row">
+          <button class="preview-btn" style="background: #1e3a5f; color: white;">Primary Button</button>
+          <button class="preview-btn preview-btn-secondary" style="color: #1e3a5f; border-color: #1e3a5f;">Secondary</button>
+          <button class="preview-btn preview-btn-ghost" style="color: #1e3a5f;">Ghost</button>
+        </div>
+
+        <div class="component-row">
+          <input type="text" class="preview-input" placeholder="Ask about this document..." style="--focus-color: #1e3a5f; --focus-shadow: rgba(30, 58, 95, 0.2);">
+        </div>
+
+        <div class="component-row">
+          <span class="confidence-badge" style="background: #e8f5e9; color: #2e7d32;">✓ High Confidence</span>
+          <span class="confidence-badge" style="background: #fff3e0; color: #e65100;">⚠ Needs Review</span>
+          <span class="confidence-badge" style="background: #f5f7fa; color: #5a6a7a;">○ Not Found</span>
+        </div>
+
+        <div class="chat-preview">
+          <div class="chat-message chat-user">
+            <div class="chat-bubble" style="background: #1e3a5f; color: white;">Is flood covered under this policy?</div>
+          </div>
+          <div class="chat-message chat-ai">
+            <div class="chat-bubble">No, flood damage is explicitly excluded from this policy. The exclusion is found in Section 4, Paragraph B.</div>
+            <div class="source-link">
+              <span class="confidence-badge" style="background: #e8f5e9; color: #2e7d32; padding: 2px 6px; font-size: 11px;">✓ High Confidence</span>
+              <a href="#" style="color: #2196f3;">View in document →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="comparison-header">
+    <h2>Side-by-Side: All Themes</h2>
+    <p style="color: #666; margin-top: 8px;">Quick comparison of primary buttons and chat bubbles across all themes</p>
+  </div>
+
+  <div style="padding: 40px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 1600px; margin: 0 auto;">
+    <div style="text-align: center;">
+      <div style="font-weight: 600; margin-bottom: 16px;">Professional Blue</div>
+      <button class="preview-btn" style="background: #2563eb; color: white; margin-bottom: 12px;">Primary Action</button>
+      <div class="chat-bubble" style="background: #2563eb; color: white; display: inline-block;">User message</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-weight: 600; margin-bottom: 16px;">Trustworthy Slate</div>
+      <button class="preview-btn" style="background: #475569; color: white; margin-bottom: 12px;">Primary Action</button>
+      <div class="chat-bubble" style="background: #475569; color: white; display: inline-block;">User message</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-weight: 600; margin-bottom: 16px;">Modern Indigo</div>
+      <button class="preview-btn" style="background: #4f46e5; color: white; margin-bottom: 12px;">Primary Action</button>
+      <div class="chat-bubble" style="background: #4f46e5; color: white; display: inline-block;">User message</div>
+    </div>
+    <div style="text-align: center;">
+      <div style="font-weight: 600; margin-bottom: 16px;">Enterprise Navy</div>
+      <button class="preview-btn" style="background: #1e3a5f; color: white; margin-bottom: 12px;">Primary Action</button>
+      <div class="chat-bubble" style="background: #1e3a5f; color: white; display: inline-block;">User message</div>
+    </div>
+  </div>
+
+  <div style="padding: 40px; background: white; border-top: 1px solid #e0e0e0; margin-top: 40px;">
+    <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+      <h2 style="margin-bottom: 16px;">Which Theme Feels Right?</h2>
+      <p style="color: #666; line-height: 1.6;">
+        <strong>Theme 1 (Professional Blue):</strong> Safe, trusted, Microsoft-like familiarity<br>
+        <strong>Theme 2 (Trustworthy Slate):</strong> Understated, serious, advisor-like<br>
+        <strong>Theme 3 (Modern Indigo):</strong> Contemporary, smart, stands out<br>
+        <strong>Theme 4 (Enterprise Navy):</strong> Authoritative, premium, enterprise-ready
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>

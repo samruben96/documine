@@ -1,0 +1,193 @@
+<story-context id="bmm/story-context/1-1" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1</storyId>
+    <title>Project Initialization &amp; Core Setup</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-24</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-1-project-initialization-core-setup.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the project scaffolded with Next.js, Supabase, and core dependencies</iWant>
+    <soThat>I have a working foundation to build features on</soThat>
+    <tasks>
+      <task id="1" ac="1.1.1">Create Next.js Application
+        <subtask>Run npx create-next-app@latest documine --typescript --tailwind --eslint --app --src-dir</subtask>
+        <subtask>Verify App Router structure in src/app/</subtask>
+        <subtask>Confirm TypeScript, Tailwind, and ESLint are configured</subtask>
+      </task>
+      <task id="2" ac="1.1.1">Configure TypeScript Strict Mode
+        <subtask>Update tsconfig.json to enable strict mode with noUncheckedIndexedAccess, noImplicitReturns</subtask>
+        <subtask>Configure path aliases (@/ for src/)</subtask>
+      </task>
+      <task id="3" ac="1.1.2">Initialize Supabase
+        <subtask>Install dependencies: npm install @supabase/supabase-js @supabase/ssr</subtask>
+        <subtask>Run npx supabase init to create supabase/ directory</subtask>
+        <subtask>Verify supabase/config.toml is created</subtask>
+        <subtask>Test local Supabase with npx supabase start (requires Docker)</subtask>
+      </task>
+      <task id="4" ac="1.1.3">Add shadcn/ui Components
+        <subtask>Initialize: npx shadcn@latest init</subtask>
+        <subtask>Select defaults: New York style, Slate base color, CSS variables</subtask>
+        <subtask>Add components: npx shadcn@latest add button input card dialog table tabs toast</subtask>
+        <subtask>Verify components in src/components/ui/</subtask>
+      </task>
+      <task id="5" ac="1.1.2">Install Additional Dependencies
+        <subtask>Install: npm install openai zod</subtask>
+        <subtask>Install dev dependencies: npm install --save-dev @types/node</subtask>
+      </task>
+      <task id="6" ac="1.1.4">Create Project Directory Structure
+        <subtask>Create src/app/(auth)/ directory for auth routes</subtask>
+        <subtask>Create src/app/(dashboard)/ directory for protected routes</subtask>
+        <subtask>Create src/app/api/ directory for API routes</subtask>
+        <subtask>Create src/components/chat/, documents/, compare/, layout/ directories</subtask>
+        <subtask>Create src/lib/supabase/, openai/, utils/ directories</subtask>
+        <subtask>Create src/hooks/ and src/types/ directories</subtask>
+        <subtask>Add .gitkeep or placeholder files to maintain structure</subtask>
+      </task>
+      <task id="7" ac="1.1.5">Create Environment Template
+        <subtask>Create .env.example with all required variables</subtask>
+        <subtask>Create .env.local from template with local Supabase values</subtask>
+        <subtask>Ensure .env.local is in .gitignore</subtask>
+      </task>
+      <task id="8" ac="1.1.6">Verify Build
+        <subtask>Run npm run build</subtask>
+        <subtask>Verify no TypeScript errors</subtask>
+        <subtask>Verify build completes successfully</subtask>
+        <subtask>Run npm run dev and verify app loads at localhost:3000</subtask>
+      </task>
+      <task id="9" ac="1.1.4">Create Placeholder Files
+        <subtask>Create src/lib/supabase/client.ts with placeholder export</subtask>
+        <subtask>Create src/lib/supabase/server.ts with placeholder export</subtask>
+        <subtask>Create src/types/index.ts with placeholder types</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1.1.1">Next.js 15 app created with TypeScript strict mode, Tailwind CSS, ESLint, and App Router structure</criterion>
+    <criterion id="AC-1.1.2">Supabase client libraries installed and configured (@supabase/supabase-js, @supabase/ssr)</criterion>
+    <criterion id="AC-1.1.3">shadcn/ui initialized with base components (Button, Input, Card, Dialog, Table, Tabs, Toast)</criterion>
+    <criterion id="AC-1.1.4">Project structure matches Architecture spec: src/app/, src/components/, src/lib/, src/hooks/, src/types/</criterion>
+    <criterion id="AC-1.1.5">Environment variables template (.env.example) contains all required keys</criterion>
+    <criterion id="AC-1.1.6">Project builds successfully with npm run build</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>docuMINE Architecture</title>
+        <section>Project Structure</section>
+        <snippet>Defines the canonical directory structure: src/app/ for Next.js App Router, src/components/ for React components including shadcn/ui, src/lib/ for utilities and clients, src/hooks/ for custom hooks, src/types/ for TypeScript definitions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>docuMINE Architecture</title>
+        <section>Tech Stack</section>
+        <snippet>Next.js 15 App Router, TypeScript strict mode, Tailwind CSS, shadcn/ui component library, Supabase for database/auth/storage, Vercel for deployment.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Story 1.1 Acceptance Criteria</section>
+        <snippet>Details six acceptance criteria for project initialization including Next.js setup, Supabase configuration, shadcn/ui components, directory structure, environment template, and build verification.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Dependencies and Integrations</section>
+        <snippet>NPM dependencies: next 15.x, react 19.x, typescript 5.x, tailwindcss 3.x, @supabase/supabase-js, @supabase/ssr, zod, openai. Dev dependencies: eslint, @types/node, supabase CLI.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-1.md</path>
+        <title>Epic 1 Technical Specification</title>
+        <section>Workflows and Sequencing</section>
+        <snippet>Project initialization flow: 1) Create Next.js app with TypeScript/Tailwind/ESLint/App Router, 2) Initialize Supabase, 3) Add shadcn/ui components, 4) Add dependencies, 5) Configure TypeScript strict mode, 6) Create project structure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>docuMINE PRD</title>
+        <section>Technical Foundation</section>
+        <snippet>docuMINE is an AI-powered document analysis platform for independent insurance agents. Technical foundation requires modern web stack with TypeScript, React/Next.js, and Supabase backend.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Greenfield project - no existing code artifacts -->
+      <note>This is a greenfield project. Story 1.1 creates the initial project structure. No existing code to reference.</note>
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="15.x" purpose="React framework with App Router" />
+        <package name="react" version="19.x" purpose="UI library" />
+        <package name="typescript" version="5.x" purpose="Type safety" />
+        <package name="tailwindcss" version="3.x" purpose="Utility-first CSS" />
+        <package name="@supabase/supabase-js" version="latest" purpose="Supabase client" />
+        <package name="@supabase/ssr" version="latest" purpose="SSR utilities for Supabase" />
+        <package name="openai" version="latest" purpose="AI client (installed for later use)" />
+        <package name="zod" version="latest" purpose="Schema validation" />
+        <devPackage name="eslint" version="latest" purpose="Code linting" />
+        <devPackage name="@types/node" version="latest" purpose="Node.js types" />
+        <devPackage name="supabase" version="latest" purpose="Supabase CLI" />
+      </ecosystem>
+      <framework name="shadcn/ui">
+        <note>Copy-paste component library built on Radix UI. Initialize with npx shadcn@latest init. Components are copied to src/components/ui/.</note>
+        <components>button, input, card, dialog, table, tabs, toast</components>
+      </framework>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">TypeScript strict mode must be enabled with noUncheckedIndexedAccess and noImplicitReturns</constraint>
+    <constraint source="architecture">Use Next.js App Router exclusively (NOT Pages Router)</constraint>
+    <constraint source="architecture">All React component files use kebab-case naming (e.g., document-viewer.tsx)</constraint>
+    <constraint source="architecture">All React component exports use PascalCase naming (e.g., DocumentViewer)</constraint>
+    <constraint source="architecture">Environment variables follow SCREAMING_SNAKE_CASE convention</constraint>
+    <constraint source="security">NEXT_PUBLIC_* variables only for non-sensitive values (exposed to browser)</constraint>
+    <constraint source="security">SUPABASE_SERVICE_ROLE_KEY must NEVER be exposed to client - server-only use</constraint>
+    <constraint source="architecture">Route groups (auth) and (dashboard) use Next.js parentheses convention</constraint>
+    <constraint source="architecture">supabase/ directory at project root (separate from src/) for Supabase config and migrations</constraint>
+  </constraints>
+
+  <interfaces>
+    <!-- No interfaces to implement in Story 1.1 - this creates placeholder files -->
+    <note>Story 1.1 creates placeholder files for Supabase clients. Actual implementation in Story 1.3.</note>
+    <placeholder>
+      <file>src/lib/supabase/client.ts</file>
+      <purpose>Browser-side Supabase client (placeholder export)</purpose>
+    </placeholder>
+    <placeholder>
+      <file>src/lib/supabase/server.ts</file>
+      <purpose>Server-side Supabase client (placeholder export)</purpose>
+    </placeholder>
+    <placeholder>
+      <file>src/types/index.ts</file>
+      <purpose>TypeScript type definitions barrel export</purpose>
+    </placeholder>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests using Jest/Vitest for utility functions and error handling. Integration tests against Supabase local instance for database operations and RLS policies. E2E tests with Playwright for critical user paths (post-MVP). Test files co-located or in dedicated __tests__ directories. Follow AAA pattern (Arrange-Act-Assert).
+    </standards>
+    <locations>
+      <location>src/**/__tests__/*.test.ts</location>
+      <location>src/**/*.test.ts</location>
+      <location>tests/integration/*.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1.1.1">Verify tsconfig.json has strict: true, noUncheckedIndexedAccess: true, noImplicitReturns: true</idea>
+      <idea ac="AC-1.1.1">Verify src/app/ directory exists with App Router structure</idea>
+      <idea ac="AC-1.1.2">Verify @supabase/supabase-js and @supabase/ssr are in package.json dependencies</idea>
+      <idea ac="AC-1.1.3">Verify shadcn/ui components exist in src/components/ui/</idea>
+      <idea ac="AC-1.1.4">Verify all required directories exist: src/app/(auth), src/app/(dashboard), src/app/api, src/components/*, src/lib/*, src/hooks, src/types</idea>
+      <idea ac="AC-1.1.5">Verify .env.example contains NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY, LLAMA_CLOUD_API_KEY, RESEND_API_KEY</idea>
+      <idea ac="AC-1.1.6">Run npm run build and verify exit code 0 with no TypeScript errors</idea>
+    </ideas>
+  </tests>
+</story-context>

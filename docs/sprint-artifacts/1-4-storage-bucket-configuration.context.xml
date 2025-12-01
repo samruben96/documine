@@ -1,0 +1,209 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>4</storyId>
+    <title>Storage Bucket Configuration</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-4-storage-bucket-configuration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>Supabase Storage configured for document uploads with agency-scoped policies</iWant>
+    <soThat>files are stored securely with proper access controls</soThat>
+    <tasks>
+      <task id="1" ac="1.4.1">
+        <title>Create Storage Bucket Migration</title>
+        <subtasks>
+          <subtask>Create migration file supabase/migrations/YYYYMMDDHHMMSS_storage_bucket.sql</subtask>
+          <subtask>Create documents bucket with public: false</subtask>
+          <subtask>Configure file_size_limit: 52428800 (50MB in bytes)</subtask>
+          <subtask>Configure allowed_mime_types: ['application/pdf']</subtask>
+          <subtask>Verify bucket creation via Supabase dashboard or CLI</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="1.4.2">
+        <title>Create Storage RLS Policies</title>
+        <subtasks>
+          <subtask>Create upload policy: Users can INSERT to their agency folder</subtask>
+          <subtask>Create read policy: Users can SELECT from their agency folder</subtask>
+          <subtask>Create delete policy: Users can DELETE from their agency folder</subtask>
+          <subtask>Use storage.foldername(name)[1] to extract agency_id from path</subtask>
+          <subtask>Join with users table to get authenticated user's agency_id</subtask>
+          <subtask>Test cross-agency access is blocked</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="1.4.3, 1.4.4">
+        <title>Create Storage Utility Functions</title>
+        <subtasks>
+          <subtask>Create src/lib/utils/storage.ts</subtask>
+          <subtask>Implement uploadDocument(supabase, file, agencyId, documentId)</subtask>
+          <subtask>Implement getDocumentUrl(supabase, storagePath)</subtask>
+          <subtask>Implement deleteDocument(supabase, storagePath)</subtask>
+          <subtask>Add TypeScript types for function signatures</subtask>
+          <subtask>Add JSDoc comments for documentation</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="1.4.3">
+        <title>Create Barrel Export</title>
+        <subtasks>
+          <subtask>Create src/lib/utils/index.ts if not exists</subtask>
+          <subtask>Export all functions from storage.ts</subtask>
+          <subtask>Enable import pattern: import { uploadDocument } from '@/lib/utils'</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="1.4.1, 1.4.2">
+        <title>Apply Migration to Database</title>
+        <subtasks>
+          <subtask>Run npx supabase db push (for linked project) OR apply via dashboard</subtask>
+          <subtask>Verify bucket appears in Storage section</subtask>
+          <subtask>Verify policies appear in Storage > Policies</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="1.4.2, 1.4.3">
+        <title>Create Storage Test API Route</title>
+        <subtasks>
+          <subtask>Create src/app/api/test-storage/route.ts</subtask>
+          <subtask>Implement GET endpoint that tests storage operations</subtask>
+          <subtask>Test signed URL generation</subtask>
+          <subtask>Document test results in Dev Notes</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="1.4.5">
+        <title>Verify Build</title>
+        <subtasks>
+          <subtask>Run npm run build in documine directory</subtask>
+          <subtask>Verify no TypeScript errors with storage utilities</subtask>
+          <subtask>Verify build completes successfully</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1.4.1">A documents bucket exists with path structure {agency_id}/{document_id}/{filename}, file size limit 50MB, allowed MIME types application/pdf</criterion>
+    <criterion id="AC-1.4.2">Storage policies enforce agency isolation: users can upload/read/delete only to/from their agency folder; cross-agency file access is blocked</criterion>
+    <criterion id="AC-1.4.3">Helper functions exist in @/lib/utils/storage.ts: uploadDocument, getDocumentUrl, deleteDocument</criterion>
+    <criterion id="AC-1.4.4">Signed URLs are generated with 1-hour expiry for secure document access</criterion>
+    <criterion id="AC-1.4.5">Build succeeds with npm run build after all changes</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="Storage Policies">
+        Storage bucket 'documents' with path structure {agency_id}/{document_id}/{filename}. RLS policies extract agency_id from first path segment using storage.foldername(name)[1]. Policies enforce upload, read, delete scoped to user's agency.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="File Upload Pattern">
+        Upload to Supabase Storage at {agencyId}/{documentId}/{filename}, create database record, then trigger processing. Signed URLs used for secure access with expiration.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture">
+        Documents table includes storage_path column. Storage policies use (storage.foldername(name))[1] to extract agency_id and compare against authenticated user's agency.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-1.md" title="Epic 1 Tech Spec" section="Story 1.4">
+        AC-1.4.1: documents bucket with 50MB limit, PDF only. AC-1.4.2: Storage policies for agency isolation. AC-1.4.3: Helper functions uploadDocument, getDocumentUrl, deleteDocument. AC-1.4.4: Signed URLs with 1-hour expiry.
+      </doc>
+      <doc path="docs/epics.md" title="Epics" section="Story 1.4">
+        Storage bucket with path structure {agency_id}/{document_id}/{filename}. Helper functions in @/lib/utils/storage.ts. Use storage.foldername(name)[1] to extract agency_id in policies.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="documine/src/lib/supabase/client.ts" kind="client" symbol="createClient" reason="Browser Supabase client - use for client-side storage operations">
+        Creates typed browser client with Database type. Use for client components.
+      </artifact>
+      <artifact path="documine/src/lib/supabase/server.ts" kind="client" symbol="createClient" reason="Server Supabase client - use for server-side storage operations">
+        Creates typed server client with cookie handling. Use for API routes and server components.
+      </artifact>
+      <artifact path="documine/src/lib/supabase/server.ts" kind="client" symbol="createServiceClient" reason="Service role client - bypasses RLS for admin operations">
+        Creates service role client that bypasses RLS. Use sparingly for admin tasks only.
+      </artifact>
+      <artifact path="documine/src/lib/supabase/index.ts" kind="barrel" symbol="exports" reason="Barrel export for Supabase clients">
+        Exports createBrowserClient, createServerClient, createServiceClient for consistent imports.
+      </artifact>
+      <artifact path="documine/src/app/api/test-rls/route.ts" kind="api-route" symbol="GET" reason="Reference pattern for test API endpoints">
+        Example test endpoint pattern using createClient and createServiceClient. Follow this pattern for test-storage route.
+      </artifact>
+      <artifact path="documine/src/types/database.types.ts" kind="types" symbol="Database" reason="Generated Supabase types - import for typed storage operations">
+        Auto-generated types from Supabase schema. Documents table includes storage_path column.
+      </artifact>
+      <artifact path="documine/supabase/migrations/00001_initial_schema.sql" kind="migration" reason="Base schema - storage migration should follow this pattern">
+        Initial schema migration. Storage bucket migration should be 00004 or timestamped.
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase client - provides storage API</package>
+        <package name="@supabase/ssr" version="^0.7.0">SSR utilities for Supabase</package>
+        <package name="next" version="16.0.4">Next.js framework</package>
+        <package name="typescript" version="^5">TypeScript compiler</package>
+        <package name="zod" version="^4.1.13">Schema validation</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture">Storage path structure MUST be {agency_id}/{document_id}/{filename}</constraint>
+    <constraint source="Architecture">Storage policies MUST use (storage.foldername(name))[1] to extract agency_id</constraint>
+    <constraint source="Architecture">Signed URLs MUST expire after 1 hour (3600 seconds)</constraint>
+    <constraint source="Tech Spec">File size limit: 50MB (52428800 bytes)</constraint>
+    <constraint source="Tech Spec">Allowed MIME types: application/pdf only</constraint>
+    <constraint source="Story 1.3">Use existing Supabase client pattern from @/lib/supabase - do NOT create new clients</constraint>
+    <constraint source="Story 1.3">All storage utilities MUST accept Supabase client as parameter for flexibility</constraint>
+    <constraint source="Architecture">Use Database type from @/types/database.types for type safety</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Supabase Storage API" kind="SDK">
+      <signature>supabase.storage.from('documents').upload(path, file)</signature>
+      <signature>supabase.storage.from('documents').createSignedUrl(path, expiresIn)</signature>
+      <signature>supabase.storage.from('documents').remove([path])</signature>
+      <path>@supabase/supabase-js</path>
+    </interface>
+    <interface name="createClient (browser)" kind="function">
+      <signature>createClient(): SupabaseClient&lt;Database&gt;</signature>
+      <path>documine/src/lib/supabase/client.ts</path>
+    </interface>
+    <interface name="createClient (server)" kind="function">
+      <signature>async createClient(): Promise&lt;SupabaseClient&lt;Database&gt;&gt;</signature>
+      <path>documine/src/lib/supabase/server.ts</path>
+    </interface>
+    <interface name="createServiceClient" kind="function">
+      <signature>createServiceClient(): SupabaseClient&lt;Database&gt;</signature>
+      <path>documine/src/lib/supabase/server.ts</path>
+    </interface>
+    <interface name="uploadDocument" kind="function" status="TO_CREATE">
+      <signature>uploadDocument(supabase: SupabaseClient, file: File, agencyId: string, documentId: string): Promise&lt;string&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts (NEW)</path>
+    </interface>
+    <interface name="getDocumentUrl" kind="function" status="TO_CREATE">
+      <signature>getDocumentUrl(supabase: SupabaseClient, storagePath: string): Promise&lt;string&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts (NEW)</path>
+    </interface>
+    <interface name="deleteDocument" kind="function" status="TO_CREATE">
+      <signature>deleteDocument(supabase: SupabaseClient, storagePath: string): Promise&lt;void&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts (NEW)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Follow existing test-rls API route pattern for test endpoints. Use NextResponse.json for API responses. Test both authenticated and unauthenticated scenarios. Test cross-agency access is blocked by RLS.</standards>
+    <locations>
+      <location>documine/src/app/api/test-storage/route.ts (NEW - test endpoint)</location>
+      <location>supabase/migrations/ (migration tests via db push)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1.4.1">Verify bucket exists with correct config: query storage.buckets or check via Supabase dashboard</idea>
+      <idea ac="AC-1.4.1">Test file size limit: attempt upload >50MB, expect rejection</idea>
+      <idea ac="AC-1.4.1">Test MIME type: attempt non-PDF upload, expect rejection</idea>
+      <idea ac="AC-1.4.2">Test upload policy: upload as Agency A user, verify path contains agency A ID</idea>
+      <idea ac="AC-1.4.2">Test read policy: Agency A uploads file, Agency B attempts read, expect failure</idea>
+      <idea ac="AC-1.4.2">Test delete policy: Agency A uploads file, Agency B attempts delete, expect failure</idea>
+      <idea ac="AC-1.4.3">Test uploadDocument returns correct storage path format</idea>
+      <idea ac="AC-1.4.3">Test getDocumentUrl returns valid signed URL</idea>
+      <idea ac="AC-1.4.3">Test deleteDocument removes file from storage</idea>
+      <idea ac="AC-1.4.4">Test signed URL expiry: verify URL contains expiry parameter set to ~3600</idea>
+      <idea ac="AC-1.4.5">Run npm run build, verify no TypeScript errors</idea>
+    </ideas>
+  </tests>
+</story-context>

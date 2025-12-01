@@ -1,0 +1,252 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Database Schema & RLS Policies</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-25</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-2-database-schema-rls-policies.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the complete database schema with Row Level Security policies</iWant>
+    <soThat>data is properly structured and multi-tenant isolation is enforced at the database level</soThat>
+    <tasks>
+      <task id="1" ac="1.2.1">
+        <title>Create Initial Schema Migration</title>
+        <subtasks>
+          <subtask>Create supabase/migrations/00001_initial_schema.sql</subtask>
+          <subtask>Define agencies table with all columns and constraints</subtask>
+          <subtask>Define users table with foreign key to auth.users and agencies</subtask>
+          <subtask>Define documents table with foreign keys to agencies and users</subtask>
+          <subtask>Define document_chunks table with foreign keys and vector column</subtask>
+          <subtask>Define conversations table with foreign keys</subtask>
+          <subtask>Define chat_messages table with foreign keys and JSONB columns</subtask>
+          <subtask>Define processing_jobs table with foreign keys</subtask>
+          <subtask>Add updated_at trigger function for automatic timestamp updates</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="1.2.2">
+        <title>Enable pgvector Extension</title>
+        <subtasks>
+          <subtask>Create supabase/migrations/00002_enable_pgvector.sql</subtask>
+          <subtask>Add CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;</subtask>
+          <subtask>Verify vector(1536) column type works in document_chunks table</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="1.2.3">
+        <title>Create Database Indexes</title>
+        <subtasks>
+          <subtask>Add index on documents(agency_id) in schema migration</subtask>
+          <subtask>Add index on document_chunks(document_id) in schema migration</subtask>
+          <subtask>Add ivfflat index on document_chunks(embedding) with vector_cosine_ops</subtask>
+          <subtask>Add index on conversations(document_id)</subtask>
+          <subtask>Add index on chat_messages(conversation_id)</subtask>
+          <subtask>Add partial index on processing_jobs(status) WHERE status = 'pending'</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="1.2.4">
+        <title>Implement RLS Policies</title>
+        <subtasks>
+          <subtask>Create supabase/migrations/00003_rls_policies.sql</subtask>
+          <subtask>Enable RLS on all 7 tables</subtask>
+          <subtask>Create policy "Users see own agency" on agencies</subtask>
+          <subtask>Create policy "Users see agency members" on users</subtask>
+          <subtask>Create policy "Documents scoped to agency" on documents (SELECT, INSERT, UPDATE, DELETE)</subtask>
+          <subtask>Create policy "Chunks scoped to agency" on document_chunks</subtask>
+          <subtask>Create policy "Conversations scoped to agency" on conversations</subtask>
+          <subtask>Create policy "Messages scoped to agency" on chat_messages</subtask>
+          <subtask>Create policy "Jobs service role only" on processing_jobs</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="1.2.1,1.2.2,1.2.3,1.2.4">
+        <title>Apply Migrations</title>
+        <subtasks>
+          <subtask>Connect to Supabase Cloud project (or start local Supabase if Docker available)</subtask>
+          <subtask>Run npx supabase db push to apply migrations</subtask>
+          <subtask>Verify all tables exist in database</subtask>
+          <subtask>Verify pgvector extension is enabled</subtask>
+          <subtask>Verify indexes are created</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="1.2.5">
+        <title>Generate TypeScript Types</title>
+        <subtasks>
+          <subtask>Run npx supabase gen types typescript --project-id or --local</subtask>
+          <subtask>Verify generated types include all tables and columns</subtask>
+          <subtask>Update src/types/index.ts to re-export database types</subtask>
+          <subtask>Verify TypeScript compilation succeeds with new types</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="1.2.6">
+        <title>Test RLS Policies</title>
+        <subtasks>
+          <subtask>Create test script or manual SQL to verify cross-tenant isolation</subtask>
+          <subtask>Test: Insert agency A data, attempt read as agency B user - expect empty result</subtask>
+          <subtask>Test: Verify service role can access processing_jobs</subtask>
+          <subtask>Document test results</subtask>
+        </subtasks>
+      </task>
+      <task id="8" ac="All">
+        <title>Verify Build</title>
+        <subtasks>
+          <subtask>Run npm run build in documine directory</subtask>
+          <subtask>Verify no TypeScript errors with new database types</subtask>
+          <subtask>Verify build completes successfully</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1.2.1">All 7 tables created with correct columns, types, and foreign key relationships: agencies, users, documents, document_chunks, conversations, chat_messages, processing_jobs</criterion>
+    <criterion id="AC-1.2.2">pgvector extension enabled with CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions</criterion>
+    <criterion id="AC-1.2.3">All indexes created: idx_documents_agency, idx_document_chunks_document, idx_document_chunks_embedding (ivfflat), idx_conversations_document, idx_chat_messages_conversation, idx_processing_jobs_status (partial)</criterion>
+    <criterion id="AC-1.2.4">RLS enabled on all tables with agency-scoped policies; processing_jobs service role only</criterion>
+    <criterion id="AC-1.2.5">TypeScript types generated via npx supabase gen types typescript</criterion>
+    <criterion id="AC-1.2.6">Cross-tenant data access is blocked (verified via manual test)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Data Architecture</section>
+        <snippet>Core tables schema with 7 tables (agencies, users, documents, document_chunks, conversations, chat_messages, processing_jobs), pgvector extension with 1536 dimensions, and comprehensive RLS policies for multi-tenant isolation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>RLS Policies</section>
+        <snippet>Database-level enforcement using agency_id filtering via auth.uid() lookup. All tables use RLS for tenant isolation; processing_jobs accessible only to service role.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Foundation & Infrastructure</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Complete SQL schema definitions for all 7 tables with column types, foreign keys, indexes, and RLS policy SQL. Detailed TypeScript type generation instructions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Foundation & Infrastructure</title>
+        <section>Traceability Mapping</section>
+        <snippet>AC-1.2.1 through AC-1.2.6 mapped to spec sections, components, and test ideas including verifying strict mode, RLS cross-tenant blocks, and vector insertion.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>PRD</title>
+        <section>Multi-Tenancy Architecture</section>
+        <snippet>Strict separation of documents and data between agencies. Agency as isolated tenant with own documents. No cross-tenant data access.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.2: Database Schema & RLS Policies</section>
+        <snippet>Complete story definition with acceptance criteria, prerequisites (Story 1.1), and technical notes for migration structure.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>documine/supabase/config.toml</path>
+        <kind>config</kind>
+        <symbol>project_id</symbol>
+        <reason>Supabase local configuration - migrations will be applied against this project; storage file_size_limit already set to 50MiB</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/lib/supabase/client.ts</path>
+        <kind>client</kind>
+        <symbol>createBrowserClient</symbol>
+        <reason>Placeholder client that will consume generated database types after this story</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>client</kind>
+        <symbol>createServerClient</symbol>
+        <reason>Placeholder server client that will consume generated database types after this story</reason>
+      </artifact>
+      <artifact>
+        <path>documine/src/types/index.ts</path>
+        <kind>types</kind>
+        <symbol>UserRole, DocumentStatus, Confidence</symbol>
+        <reason>Existing type definitions placeholder; needs to re-export database.types.ts after generation</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase client library for database operations</package>
+        <package name="@supabase/ssr" version="^0.7.0">SSR utilities for Next.js integration</package>
+        <package name="next" version="16.0.4">Next.js framework</package>
+        <package name="typescript" version="^5">TypeScript compiler</package>
+        <package name="zod" version="^4.1.13">Schema validation</package>
+      </ecosystem>
+      <cli>
+        <tool name="supabase" command="npx supabase">Supabase CLI for migrations, type generation, local dev</tool>
+      </cli>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture ADR-004">RLS is the primary mechanism for multi-tenant isolation - every table query automatically filtered by user's agency_id</constraint>
+    <constraint source="Architecture">All tables must include agency_id column (except processing_jobs which uses service_role)</constraint>
+    <constraint source="Architecture">pgvector extension with 1536-dimension vectors (OpenAI text-embedding-3-small format)</constraint>
+    <constraint source="Tech Spec">Migration file structure: 00001_initial_schema.sql, 00002_enable_pgvector.sql, 00003_rls_policies.sql</constraint>
+    <constraint source="Architecture">Database naming: snake_case tables (plural), snake_case columns</constraint>
+    <constraint source="Architecture">TypeScript types generated via npx supabase gen types typescript</constraint>
+    <constraint source="Story 1.1 Learnings">Supabase Cloud preferred (Docker not available) - use npx supabase db push with project linking</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>auth.uid()</name>
+      <kind>Postgres function</kind>
+      <signature>auth.uid() -> uuid</signature>
+      <path>Supabase built-in</path>
+      <notes>Returns current authenticated user ID; used in RLS policies to lookup agency_id</notes>
+    </interface>
+    <interface>
+      <name>auth.role()</name>
+      <kind>Postgres function</kind>
+      <signature>auth.role() -> text</signature>
+      <path>Supabase built-in</path>
+      <notes>Returns current role (e.g., 'service_role'); used in processing_jobs RLS policy</notes>
+    </interface>
+    <interface>
+      <name>gen_random_uuid()</name>
+      <kind>Postgres function</kind>
+      <signature>gen_random_uuid() -> uuid</signature>
+      <path>Postgres built-in</path>
+      <notes>Generates UUID for primary keys; used as DEFAULT for id columns</notes>
+    </interface>
+    <interface>
+      <name>vector(1536)</name>
+      <kind>Postgres type</kind>
+      <signature>vector(n) where n=1536</signature>
+      <path>pgvector extension</path>
+      <notes>1536-dimension vector type for OpenAI embeddings; requires pgvector extension</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing approach for database/RLS stories focuses on SQL verification and manual testing via Supabase dashboard or SQL client. Unit tests not applicable for pure SQL migrations. Integration tests verify RLS policies block cross-tenant access. Build verification ensures TypeScript types compile correctly.
+    </standards>
+    <locations>
+      <location>Manual SQL testing via Supabase Studio (port 54323 local)</location>
+      <location>npx supabase db push output verification</location>
+      <location>npm run build in documine/ directory</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-1.2.1">Query each table via SELECT * FROM tablename LIMIT 1; verify columns match spec</idea>
+      <idea ac="AC-1.2.2">Run SELECT * FROM pg_extension WHERE extname = 'vector'; verify extension exists</idea>
+      <idea ac="AC-1.2.3">Run EXPLAIN ANALYZE on queries to verify index usage</idea>
+      <idea ac="AC-1.2.4">Create two test agencies, insert data for agency A, query as agency B user via RLS, expect empty result</idea>
+      <idea ac="AC-1.2.5">Verify src/types/database.types.ts exists and contains all 7 table types</idea>
+      <idea ac="AC-1.2.6">SQL test script: INSERT into documents with agency_id='A', then SET auth.uid() to user in agency B, SELECT from documents, expect 0 rows</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,120 @@
+<story-context id="2-2-post-signup-agency-user-record-creation" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2</storyId>
+    <title>Post-Signup Agency & User Record Creation</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-2-post-signup-agency-user-record-creation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system</asA>
+    <iWant>to create agency and user records after successful auth signup</iWant>
+    <soThat>the multi-tenant data model is properly initialized</soThat>
+    <tasks>
+      <task id="1" ac="2.2.1,2.2.2,2.2.3">Verify Existing Implementation - Review actions.ts for correctness, verify agency/user creation fields</task>
+      <task id="2" ac="2.2.1,2.2.2,2.2.3">Add Integration Tests for Record Creation - Create tests for agency fields, user id matching, admin role</task>
+      <task id="3" ac="2.2.4">Verify Atomic Transaction Behavior - Review rollback logic, test atomicity</task>
+      <task id="4" ac="2.2.5">Verify Auth User Cleanup on Failure - Test auth user deletion on failure</task>
+      <task id="5" ac="2.2.4" optional="true">Add Database Function - Create RPC function for true SQL atomicity</task>
+      <task id="6" ac="2.2.2">Verify RLS Policies - Test agency data isolation</task>
+      <task id="7" ac="all">Document Implementation - Add code comments and update Dev Notes</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="2.2.1">Agency record created with name from form, tier='starter', seat_limit=3</ac>
+    <ac id="2.2.2">User record created with id matching auth.users.id</ac>
+    <ac id="2.2.3">User role set to 'admin' for first agency user</ac>
+    <ac id="2.2.4">Agency and user creation is atomic (both succeed or both fail)</ac>
+    <ac id="2.2.5">If record creation fails, auth user is cleaned up</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-2.md" title="Epic 2 Tech Spec" section="Story 2.2" snippet="Defines AC-2.2.1 through AC-2.2.5 for agency/user record creation with atomic transaction requirements."/>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture" snippet="Defines agencies and users tables schema, RLS policies for agency isolation, service role requirements."/>
+      <doc path="docs/architecture.md" title="Architecture" section="RLS Policies" snippet="Users can only see/modify data where agency_id matches their own. Processing jobs accessible only to service role."/>
+      <doc path="docs/epics.md" title="Epics" section="Story 2.2" snippet="Post-Signup Agency & User Record Creation - system creates agency and user records atomically after auth signup."/>
+      <doc path="docs/sprint-artifacts/2-1-signup-page-agency-creation.md" title="Story 2.1" section="Completion Notes" snippet="Application-level transaction pattern implemented, rollback logic on failure, service role client used."/>
+    </docs>
+    <code>
+      <file path="documine/src/app/(auth)/signup/actions.ts" kind="server-action" symbol="signup" lines="22-114" reason="Contains the signup server action with agency/user record creation and atomic rollback logic - PRIMARY FILE FOR THIS STORY"/>
+      <file path="documine/src/lib/supabase/server.ts" kind="client" symbol="createServiceClient" lines="40-55" reason="Service role client used for bypassing RLS during agency/user creation"/>
+      <file path="documine/src/lib/validations/auth.ts" kind="schema" symbol="signupSchema" lines="11-31" reason="Zod validation schema for signup form data"/>
+      <file path="documine/src/types/database.types.ts" kind="types" symbol="Database" lines="42-68" reason="Generated TypeScript types for agencies table - Row, Insert, Update"/>
+      <file path="documine/__tests__/lib/validations/auth.test.ts" kind="test" symbol="signupSchema tests" reason="Existing validation tests - pattern to follow for new tests"/>
+      <file path="documine/__tests__/mocks/supabase.ts" kind="mock" symbol="supabase mock" reason="Existing Supabase mock for testing"/>
+      <file path="documine/__tests__/app/auth/signup/page.test.tsx" kind="test" symbol="Signup page tests" reason="Existing signup page tests - pattern reference"/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Supabase client for database operations"/>
+        <package name="@supabase/ssr" version="^0.7.0" reason="Server-side Supabase client with cookie handling"/>
+        <package name="zod" version="^4.1.13" reason="Form validation schema"/>
+        <package name="vitest" version="^4.0.14" reason="Test framework"/>
+        <package name="@testing-library/react" version="^16.3.0" reason="React testing utilities"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="signup" kind="server-action" path="documine/src/app/(auth)/signup/actions.ts">
+      <signature>async function signup(formData: SignupFormData): Promise&lt;SignupResult&gt;</signature>
+      <notes>Server action that creates auth user, agency record, and user record atomically</notes>
+    </interface>
+    <interface name="createServiceClient" kind="function" path="documine/src/lib/supabase/server.ts">
+      <signature>function createServiceClient(): SupabaseClient&lt;Database&gt;</signature>
+      <notes>Creates Supabase client with service role for admin operations bypassing RLS</notes>
+    </interface>
+    <interface name="agencies.insert" kind="database" path="supabase">
+      <signature>INSERT INTO agencies (name, subscription_tier, seat_limit) VALUES (...)</signature>
+      <notes>Creates new agency with tier='starter', seat_limit=3</notes>
+    </interface>
+    <interface name="users.insert" kind="database" path="supabase">
+      <signature>INSERT INTO users (id, agency_id, email, full_name, role) VALUES (...)</signature>
+      <notes>Creates user record with id=auth.users.id, role='admin' for first user</notes>
+    </interface>
+    <interface name="auth.admin.deleteUser" kind="supabase-auth" path="supabase">
+      <signature>serviceClient.auth.admin.deleteUser(userId: string)</signature>
+      <notes>Deletes auth user on record creation failure - requires service role</notes>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="architecture">Every user belongs to exactly one agency</constraint>
+    <constraint source="architecture">First user of agency automatically becomes 'admin'</constraint>
+    <constraint source="architecture">agency_id is required on all tenant-scoped tables</constraint>
+    <constraint source="architecture">RLS policies enforce agency isolation at database level</constraint>
+    <constraint source="tech-spec">Agency insert requires service role (bypasses RLS)</constraint>
+    <constraint source="tech-spec">User insert requires service role (bypasses RLS)</constraint>
+    <constraint source="tech-spec">Auth user deletion requires service role (admin API)</constraint>
+    <constraint source="story-2.1">Application-level transaction pattern is implemented - Option B</constraint>
+    <constraint source="story-2.1">Rollback order: If user fails → delete agency; if both fail → delete auth user</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest is the test framework with happy-dom for React component tests. Tests are organized in __tests__/ directory with unit/, integration/, app/, components/, and lib/ subdirectories. Coverage thresholds are set per-file for critical modules (80% lines/functions/branches/statements). Mock Supabase client available at __tests__/mocks/supabase.ts.
+    </standards>
+    <locations>
+      <location>documine/__tests__/unit/</location>
+      <location>documine/__tests__/integration/</location>
+      <location>documine/__tests__/app/auth/</location>
+      <location>documine/__tests__/lib/</location>
+    </locations>
+    <ideas>
+      <idea ac="2.2.1">Test agency creation with correct fields: name from form, subscription_tier='starter', seat_limit=3</idea>
+      <idea ac="2.2.2">Test user.id matches auth.users.id after successful signup</idea>
+      <idea ac="2.2.3">Test first user role is 'admin'</idea>
+      <idea ac="2.2.4">Test atomicity: mock user insert failure, verify agency is deleted</idea>
+      <idea ac="2.2.4">Test atomicity: verify both records exist or neither exists</idea>
+      <idea ac="2.2.5">Test auth cleanup: mock agency insert failure, verify auth user deleted</idea>
+      <idea ac="2.2.5">Test auth cleanup: mock both inserts fail, verify auth user deleted</idea>
+      <idea ac="2.2.2">Test RLS: after signup, user can query their own agency</idea>
+      <idea ac="2.2.2">Test RLS: user cannot query other agencies</idea>
+    </ideas>
+  </tests>
+</story-context>

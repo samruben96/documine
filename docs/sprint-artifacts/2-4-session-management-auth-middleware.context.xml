@@ -1,0 +1,265 @@
+<story-context id="bmm/workflows/4-implementation/story-context" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>4</storyId>
+    <title>Session Management &amp; Auth Middleware</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-4-session-management-auth-middleware.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>logged-in user</asA>
+    <iWant>my session to persist and auto-refresh</iWant>
+    <soThat>I don't have to log in repeatedly during normal use</soThat>
+    <tasks>
+      <task id="1" acs="2.4.2, 2.4.3, 2.4.4, 2.4.5">Create Auth Middleware - PARTIALLY EXISTS (see code artifacts)</task>
+      <task id="2" acs="2.4.2">Create Middleware Supabase Client - MAY ALREADY BE INLINE</task>
+      <task id="3" acs="2.4.6">Implement Logout Server Action - NOT YET IMPLEMENTED</task>
+      <task id="4" acs="2.4.6">Add Logout Button to Dashboard Header - NOT YET IMPLEMENTED</task>
+      <task id="5" acs="2.4.1">Update Login for Session Persistence - VERIFY EXISTING BEHAVIOR</task>
+      <task id="6" acs="2.4.3">Create Protected Route Layout - NOT YET IMPLEMENTED</task>
+      <task id="7" acs="all">Add Unit and Integration Tests</task>
+      <task id="8" acs="all">Manual Testing and Verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-2.4.1" status="needs-verification">Session persists across browser sessions when "Remember me" is checked</criterion>
+    <criterion id="AC-2.4.2" status="mostly-implemented">Session auto-refreshes before expiry (handled by @supabase/ssr middleware) - getUser() already called in middleware</criterion>
+    <criterion id="AC-2.4.3" status="implemented">Protected routes (/documents, /compare, /settings) redirect to /login when unauthenticated - DONE in middleware.ts</criterion>
+    <criterion id="AC-2.4.4" status="implemented">Public routes (/, /login, /signup, /reset-password) accessible without auth - DONE in middleware.ts</criterion>
+    <criterion id="AC-2.4.5" status="partial">Authenticated users redirected away from auth pages to /documents - DONE for /login, /signup; MISSING /reset-password</criterion>
+    <criterion id="AC-2.4.6" status="not-implemented">Logout clears session and redirects to /login - NO LOGOUT FUNCTION EXISTS</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Story 2.4, Middleware Route Protection, Session Refresh Flow</section>
+        <snippet>Defines protected paths, public paths, session configuration (7-day for "Remember me", session-only default), and middleware implementation pattern with getUser() for security.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Authentication Flow, Security Architecture, Middleware Implementation</section>
+        <snippet>Specifies httpOnly cookies, JWT validation, session refresh pattern, rate limiting strategy, and API response format for auth operations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.4: Session Management &amp; Auth Middleware</section>
+        <snippet>Defines acceptance criteria for session persistence, route protection, logout functionality. Specifies protected routes (/documents, /compare, /settings) and public auth routes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/2-3-login-page.md</path>
+        <title>Previous Story: Login Page</title>
+        <section>Dev Agent Record, Technical Notes</section>
+        <snippet>Establishes server action pattern for auth, Supabase client usage, Suspense boundary requirement for useSearchParams in Next.js 16. Login already reads ?redirect query param.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>documine/src/middleware.ts</path>
+        <kind>middleware</kind>
+        <symbol>middleware, config</symbol>
+        <lines>1-82</lines>
+        <reason>EXISTING IMPLEMENTATION - Core auth middleware with session refresh, protected route redirect, auth page redirect. Already implements AC-2.4.2, 2.4.3, 2.4.4. Needs update for AC-2.4.5 (/reset-password).</reason>
+        <status>exists-needs-update</status>
+        <notes>Uses getUser() not getSession() for security. Missing /reset-password in auth page redirect check (line 63).</notes>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>service</kind>
+        <symbol>createClient, createServiceClient</symbol>
+        <lines>1-56</lines>
+        <reason>Server-side Supabase client with cookie handling. Used by login actions, will be used by logout action.</reason>
+        <status>exists-use-as-is</status>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/client.ts</path>
+        <kind>service</kind>
+        <symbol>createClient</symbol>
+        <reason>Browser-side Supabase client. May be needed for logout on client components.</reason>
+        <status>exists-use-as-is</status>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/login/actions.ts</path>
+        <kind>server-action</kind>
+        <symbol>login, LoginResult</symbol>
+        <lines>1-52</lines>
+        <reason>Login server action pattern established here. Logout action should follow same pattern and be added here.</reason>
+        <status>exists-needs-addition</status>
+        <notes>Add logout() export to this file following same pattern.</notes>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/login/page.tsx</path>
+        <kind>page</kind>
+        <reason>Login page with "Remember me" checkbox. Need to verify rememberMe is passed correctly to Supabase auth.</reason>
+        <status>exists-may-need-update</status>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>AuthLayout</symbol>
+        <lines>1-29</lines>
+        <reason>Auth pages layout with Toaster. Example pattern for dashboard layout.</reason>
+        <status>exists-reference</status>
+      </file>
+      <file>
+        <path>documine/src/lib/validations/auth.ts</path>
+        <kind>validation</kind>
+        <symbol>loginSchema, LoginFormData</symbol>
+        <lines>36-42</lines>
+        <reason>Login form validation schema with rememberMe field defined.</reason>
+        <status>exists-use-as-is</status>
+      </file>
+      <file>
+        <path>documine/src/components/layout/header.tsx</path>
+        <kind>component</kind>
+        <reason>DOES NOT EXIST - Need to create for dashboard header with user menu and logout button.</reason>
+        <status>to-create</status>
+      </file>
+      <file>
+        <path>documine/src/app/(dashboard)/layout.tsx</path>
+        <kind>layout</kind>
+        <reason>DOES NOT EXIST - Need to create for dashboard routes with optional additional auth check and header.</reason>
+        <status>to-create</status>
+      </file>
+      <file>
+        <path>documine/__tests__/middleware.test.ts</path>
+        <kind>test</kind>
+        <reason>DOES NOT EXIST - Need to create tests for middleware route protection logic.</reason>
+        <status>to-create</status>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <production>
+          <package version="^0.7.0">@supabase/ssr</package>
+          <package version="^2.84.0">@supabase/supabase-js</package>
+          <package version="16.0.4">next</package>
+          <package version="19.2.0">react</package>
+          <package version="^7.66.1">react-hook-form</package>
+          <package version="^4.1.13">zod</package>
+          <package version="^2.0.7">sonner</package>
+          <package version="^0.554.0">lucide-react</package>
+        </production>
+        <dev>
+          <package version="^4.0.14">vitest</package>
+          <package version="^16.3.0">@testing-library/react</package>
+          <package version="^6.9.1">@testing-library/jest-dom</package>
+          <package version="^20.0.10">happy-dom</package>
+        </dev>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>middleware</name>
+      <kind>Next.js Middleware Function</kind>
+      <signature>export async function middleware(request: NextRequest): Promise&lt;NextResponse&gt;</signature>
+      <path>documine/src/middleware.ts</path>
+    </interface>
+    <interface>
+      <name>createClient</name>
+      <kind>Supabase Server Client Factory</kind>
+      <signature>export async function createClient(): Promise&lt;SupabaseClient&lt;Database&gt;&gt;</signature>
+      <path>documine/src/lib/supabase/server.ts</path>
+    </interface>
+    <interface>
+      <name>login</name>
+      <kind>Server Action</kind>
+      <signature>export async function login(formData: LoginFormData, redirectTo?: string): Promise&lt;LoginResult&gt;</signature>
+      <path>documine/src/app/(auth)/login/actions.ts</path>
+    </interface>
+    <interface>
+      <name>logout (TO CREATE)</name>
+      <kind>Server Action</kind>
+      <signature>export async function logout(): Promise&lt;void&gt;</signature>
+      <path>documine/src/app/(auth)/login/actions.ts</path>
+      <notes>Call supabase.auth.signOut() then redirect('/login')</notes>
+    </interface>
+    <interface>
+      <name>supabase.auth.getUser</name>
+      <kind>Supabase Auth API</kind>
+      <signature>supabase.auth.getUser(): Promise&lt;{ data: { user: User | null }, error: AuthError | null }&gt;</signature>
+      <notes>Use instead of getSession() for security - validates JWT server-side</notes>
+    </interface>
+    <interface>
+      <name>supabase.auth.signOut</name>
+      <kind>Supabase Auth API</kind>
+      <signature>supabase.auth.signOut(): Promise&lt;{ error: AuthError | null }&gt;</signature>
+      <notes>Clears session and cookies when called via @supabase/ssr client</notes>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="tech-spec">Use supabase.auth.getUser() not getSession() in middleware for security</constraint>
+    <constraint source="tech-spec">Session tokens must be stored in httpOnly cookies (not localStorage)</constraint>
+    <constraint source="tech-spec">Protected routes: /documents, /compare, /settings and all sub-routes</constraint>
+    <constraint source="tech-spec">Public auth routes: /login, /signup, /reset-password</constraint>
+    <constraint source="tech-spec">Default session: session-only (expires on browser close)</constraint>
+    <constraint source="tech-spec">"Remember me" session: 7-day expiry</constraint>
+    <constraint source="architecture">Generic error messages only - never reveal if email exists</constraint>
+    <constraint source="architecture">Server actions for auth operations (not API routes)</constraint>
+    <constraint source="previous-story">Suspense boundary required for useSearchParams() in Next.js 16</constraint>
+    <constraint source="architecture">Redirect URL preserved via ?redirect query param</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library + happy-dom. Tests organized by feature in __tests__/ directory mirroring src/ structure.
+      Unit tests for validation/logic, integration tests for server actions with mocked Supabase.
+      All tests must pass before build. Pattern established in __tests__/app/auth/ for auth-related tests.
+    </standards>
+    <locations>
+      <location>documine/__tests__/middleware.test.ts (TO CREATE)</location>
+      <location>documine/__tests__/app/auth/login/actions.test.ts (MAY NEED LOGOUT TESTS)</location>
+      <location>documine/__tests__/components/layout/header.test.tsx (TO CREATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-2.4.1">Test session persistence with "Remember me" - mock Supabase auth response with session expiry</idea>
+      <idea ac="AC-2.4.2">Test middleware calls getUser() and refreshes cookies on expired session</idea>
+      <idea ac="AC-2.4.3">Test unauthenticated user on /documents redirects to /login?redirect=/documents</idea>
+      <idea ac="AC-2.4.3">Test unauthenticated user on /settings redirects to /login?redirect=/settings</idea>
+      <idea ac="AC-2.4.4">Test unauthenticated user on /login can access page (no redirect)</idea>
+      <idea ac="AC-2.4.4">Test unauthenticated user on /signup can access page (no redirect)</idea>
+      <idea ac="AC-2.4.5">Test authenticated user on /login redirects to /documents</idea>
+      <idea ac="AC-2.4.5">Test authenticated user on /reset-password redirects to /documents</idea>
+      <idea ac="AC-2.4.6">Test logout() clears session via signOut()</idea>
+      <idea ac="AC-2.4.6">Test logout redirects to /login</idea>
+      <idea ac="AC-2.4.6">Test logout button calls logout server action</idea>
+    </ideas>
+  </tests>
+
+  <implementationNotes>
+    <note priority="high">
+      EXISTING MIDDLEWARE: src/middleware.ts already implements most ACs. Key update needed:
+      Line 63 only checks /login and /signup for authenticated redirect. Add /reset-password:
+      `if (user &amp;&amp; (pathname === '/login' || pathname === '/signup' || pathname === '/reset-password'))`
+    </note>
+    <note priority="high">
+      LOGOUT NOT IMPLEMENTED: Add logout() function to src/app/(auth)/login/actions.ts following login() pattern.
+      Simple: call supabase.auth.signOut() then redirect('/login').
+    </note>
+    <note priority="medium">
+      HEADER COMPONENT: Create src/components/layout/header.tsx with user dropdown menu.
+      Use lucide-react icons. Include logout button that calls logout server action.
+    </note>
+    <note priority="medium">
+      DASHBOARD LAYOUT: Create src/app/(dashboard)/layout.tsx to wrap protected routes.
+      Include Header component. Optional: add server-side session check as defense-in-depth.
+    </note>
+    <note priority="low">
+      REMEMBER ME: Verify existing login behavior. Supabase @supabase/ssr handles session duration.
+      May work by default, but test to confirm 7-day vs session-only cookie behavior.
+    </note>
+  </implementationNotes>
+</story-context>

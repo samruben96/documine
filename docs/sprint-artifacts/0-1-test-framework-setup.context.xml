@@ -1,0 +1,355 @@
+<story-context id="bmm/story-context" v="1.0">
+  <metadata>
+    <epicId>0</epicId>
+    <storyId>1</storyId>
+    <title>Test Framework Setup</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/0-1-test-framework-setup.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>a test framework configured with Vitest and testing patterns established</iWant>
+    <soThat>I can write and run automated tests before building Epic 2 authentication features</soThat>
+    <tasks>
+      <task id="1" ac="1">
+        <title>Install Vitest and testing dependencies</title>
+        <subtasks>
+          <subtask>Install vitest, @vitest/coverage-v8, @testing-library/react</subtask>
+          <subtask>Install happy-dom (lightweight DOM for React testing)</subtask>
+          <subtask>Update package.json with test scripts</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="1,5">
+        <title>Configure Vitest</title>
+        <subtasks>
+          <subtask>Create vitest.config.ts with TypeScript and path alias support</subtask>
+          <subtask>Configure coverage provider (v8) and thresholds</subtask>
+          <subtask>Set up test environment (node for utils, happy-dom for components)</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="2">
+        <title>Create test directory structure</title>
+        <subtasks>
+          <subtask>Create __tests__/unit/lib/ directory structure</subtask>
+          <subtask>Create __tests__/integration/ directory structure</subtask>
+          <subtask>Add initial test file</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="3">
+        <title>Write error class unit tests</title>
+        <subtasks>
+          <subtask>Test DocumentNotFoundError: code, message format, name</subtask>
+          <subtask>Test UnauthorizedError: default message, custom message</subtask>
+          <subtask>Test ProcessingError: code, message, name</subtask>
+          <subtask>Test ValidationError: code, message, name</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="3">
+        <title>Write API response helper tests</title>
+        <subtasks>
+          <subtask>Test successResponse returns correct structure and status</subtask>
+          <subtask>Test errorResponse with default status (500)</subtask>
+          <subtask>Test errorResponse with custom status and details</subtask>
+          <subtask>Verify Response.json() output format</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="3">
+        <title>Write logger tests with console mocking</title>
+        <subtasks>
+          <subtask>Mock console.log, console.warn, console.error</subtask>
+          <subtask>Test log.info outputs correct JSON structure</subtask>
+          <subtask>Test log.warn outputs correct JSON structure</subtask>
+          <subtask>Test log.error includes error message and stack</subtask>
+          <subtask>Verify timestamp is ISO-8601 format</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="4">
+        <title>Create Supabase mock utilities</title>
+        <subtasks>
+          <subtask>Create __tests__/mocks/supabase.ts with typed mock client</subtask>
+          <subtask>Mock storage methods: upload, createSignedUrl, remove</subtask>
+          <subtask>Document mock usage pattern</subtask>
+        </subtasks>
+      </task>
+      <task id="8" ac="4">
+        <title>Write storage utility integration tests</title>
+        <subtasks>
+          <subtask>Test uploadDocument returns correct storage path</subtask>
+          <subtask>Test uploadDocument throws on error</subtask>
+          <subtask>Test getDocumentUrl returns signed URL</subtask>
+          <subtask>Test deleteDocument handles success</subtask>
+          <subtask>Test deleteDocument throws on error</subtask>
+        </subtasks>
+      </task>
+      <task id="9" ac="1,5">
+        <title>Verify test execution</title>
+        <subtasks>
+          <subtask>Run npm run test and verify all tests pass</subtask>
+          <subtask>Run npm run test:coverage and verify coverage report</subtask>
+          <subtask>Document any test-specific setup</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">
+      <description>Vitest is installed and configured with TypeScript support</description>
+      <details>
+        - Vitest, @testing-library/react, and related dependencies installed
+        - vitest.config.ts created with proper path aliases matching tsconfig.json
+        - npm run test script executes all tests
+        - npm run test:coverage generates coverage report
+      </details>
+    </criterion>
+    <criterion id="2">
+      <description>Test directory structure follows project conventions</description>
+      <details>
+        - __tests__/ directory at project root
+        - Subdirectories mirror src structure: unit/, integration/
+        - Test files use .test.ts suffix pattern
+      </details>
+    </criterion>
+    <criterion id="3">
+      <description>Unit tests exist for all Epic 1 utility modules</description>
+      <details>
+        - errors.test.ts: Tests all 4 error classes
+        - api-response.test.ts: Tests successResponse and errorResponse helpers
+        - logger.test.ts: Tests log.info, log.warn, log.error with console mocking
+      </details>
+    </criterion>
+    <criterion id="4">
+      <description>Integration test patterns established for Supabase</description>
+      <details>
+        - Mock utilities created for Supabase client
+        - storage.test.ts: Tests uploadDocument, getDocumentUrl, deleteDocument with mocked Supabase
+        - Pattern documented for future RLS policy testing
+      </details>
+    </criterion>
+    <criterion id="5">
+      <description>CI-ready configuration</description>
+      <details>
+        - Tests run in CI environment without manual intervention
+        - Coverage thresholds set: 80% for new code
+        - Test output compatible with GitHub Actions
+      </details>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Development Environment</section>
+        <snippet>Testing strategy should use Vitest (preferred for Next.js ecosystem over Jest due to better ESM support). Maintain type safety with generated Supabase types.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Error Handling</section>
+        <snippet>Application errors use custom error classes with typed error codes. API routes return consistent response format: { data: T, error: null } or { data: null, error: { code, message, details? } }.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Logging Strategy</section>
+        <snippet>Use structured logging with JSON format. All log methods include timestamp in ISO-8601 format.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epic-1-retro-2025-11-26.md</path>
+        <title>Epic 1 Retrospective</title>
+        <section>Technical Debt</section>
+        <snippet>TD-1 (HIGH): Set up test framework (Vitest/Jest) - Must complete before Epic 2. Every review flagged "no unit tests" as advisory.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 1: Foundation &amp; Infrastructure</section>
+        <snippet>Story 1.5: Error Handling &amp; Logging Patterns established custom error classes, API response helpers, and structured logging.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>documine/src/lib/errors.ts</path>
+        <kind>utility</kind>
+        <symbol>DocumentNotFoundError, UnauthorizedError, ProcessingError, ValidationError</symbol>
+        <lines>1-59</lines>
+        <reason>Error classes to be tested - 4 custom error classes with typed error codes</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/utils/api-response.ts</path>
+        <kind>utility</kind>
+        <symbol>successResponse, errorResponse, ApiError, ApiResponse</symbol>
+        <lines>1-66</lines>
+        <reason>API response helpers to be tested - creates JSON Response objects with consistent structure</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/utils/logger.ts</path>
+        <kind>utility</kind>
+        <symbol>log</symbol>
+        <lines>1-65</lines>
+        <reason>Structured logger to be tested - info, warn, error methods with JSON output</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/utils/storage.ts</path>
+        <kind>utility</kind>
+        <symbol>uploadDocument, getDocumentUrl, deleteDocument</symbol>
+        <lines>1-81</lines>
+        <reason>Storage utilities to be tested with mocked Supabase client</reason>
+      </file>
+      <file>
+        <path>documine/src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database</symbol>
+        <lines>all</lines>
+        <reason>Generated Supabase types needed for typed mock client</reason>
+      </file>
+      <file>
+        <path>documine/src/app/api/test-errors/route.ts</path>
+        <kind>test-endpoint</kind>
+        <symbol>GET</symbol>
+        <lines>all</lines>
+        <reason>Example of error handling in API routes - reference for test patterns</reason>
+      </file>
+      <file>
+        <path>documine/src/app/api/test-storage/route.ts</path>
+        <kind>test-endpoint</kind>
+        <symbol>GET</symbol>
+        <lines>all</lines>
+        <reason>Example of storage testing in API routes - reference for integration patterns</reason>
+      </file>
+      <file>
+        <path>documine/src/app/api/test-rls/route.ts</path>
+        <kind>test-endpoint</kind>
+        <symbol>GET</symbol>
+        <lines>all</lines>
+        <reason>RLS policy testing endpoint - reference for future RLS integration tests</reason>
+      </file>
+      <file>
+        <path>documine/tsconfig.json</path>
+        <kind>config</kind>
+        <symbol>compilerOptions.paths</symbol>
+        <lines>all</lines>
+        <reason>Path aliases (@/) must be replicated in vitest.config.ts</reason>
+      </file>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <manifest>documine/package.json</manifest>
+        <packages>
+          <package name="next" version="16.0.4" />
+          <package name="react" version="19.2.0" />
+          <package name="typescript" version="^5" />
+          <package name="@supabase/supabase-js" version="^2.84.0" />
+          <package name="@supabase/ssr" version="^0.7.0" />
+          <package name="zod" version="^4.1.13" />
+          <package name="openai" version="^6.9.1" />
+        </packages>
+        <toInstall>
+          <package name="vitest" version="^2" purpose="Test runner" />
+          <package name="@vitest/coverage-v8" version="^2" purpose="Coverage reporting" />
+          <package name="@testing-library/react" version="^16" purpose="React component testing" />
+          <package name="happy-dom" version="^15" purpose="Lightweight DOM for testing" />
+        </toInstall>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">
+      <name>TypeScript Strict Mode</name>
+      <description>Project uses strict TypeScript with noUncheckedIndexedAccess and noImplicitReturns. Tests must maintain type safety.</description>
+    </constraint>
+    <constraint type="pattern">
+      <name>Path Aliases</name>
+      <description>Use @/ prefix for imports (maps to src/). Vitest config must mirror tsconfig.json path aliases.</description>
+    </constraint>
+    <constraint type="architecture">
+      <name>Supabase Mocking</name>
+      <description>Storage tests must mock Supabase client rather than hitting real database. Use TypedSupabaseClient type from storage.ts.</description>
+    </constraint>
+    <constraint type="testing">
+      <name>Console Mocking</name>
+      <description>Logger tests must mock console methods and verify JSON structure. Restore mocks after each test.</description>
+    </constraint>
+    <constraint type="coverage">
+      <name>Coverage Threshold</name>
+      <description>Maintain 80% coverage threshold for new code. All Epic 1 utility modules must have tests.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ErrorCode</name>
+      <kind>type</kind>
+      <signature>type ErrorCode = 'DOCUMENT_NOT_FOUND' | 'UNAUTHORIZED' | 'PROCESSING_ERROR' | 'VALIDATION_ERROR'</signature>
+      <path>documine/src/lib/errors.ts</path>
+    </interface>
+    <interface>
+      <name>ApiResponse</name>
+      <kind>type</kind>
+      <signature>type ApiResponse&lt;T&gt; = { data: T; error: null } | { data: null; error: ApiError }</signature>
+      <path>documine/src/lib/utils/api-response.ts</path>
+    </interface>
+    <interface>
+      <name>ApiError</name>
+      <kind>type</kind>
+      <signature>type ApiError = { code: string; message: string; details?: unknown }</signature>
+      <path>documine/src/lib/utils/api-response.ts</path>
+    </interface>
+    <interface>
+      <name>log</name>
+      <kind>object</kind>
+      <signature>const log = { info: (message: string, data?: LogData) =&gt; void, warn: (message: string, data?: LogData) =&gt; void, error: (message: string, error: Error, data?: LogData) =&gt; void }</signature>
+      <path>documine/src/lib/utils/logger.ts</path>
+    </interface>
+    <interface>
+      <name>uploadDocument</name>
+      <kind>function</kind>
+      <signature>async function uploadDocument(supabase: TypedSupabaseClient, file: File, agencyId: string, documentId: string): Promise&lt;string&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts</path>
+    </interface>
+    <interface>
+      <name>getDocumentUrl</name>
+      <kind>function</kind>
+      <signature>async function getDocumentUrl(supabase: TypedSupabaseClient, storagePath: string): Promise&lt;string&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts</path>
+    </interface>
+    <interface>
+      <name>deleteDocument</name>
+      <kind>function</kind>
+      <signature>async function deleteDocument(supabase: TypedSupabaseClient, storagePath: string): Promise&lt;void&gt;</signature>
+      <path>documine/src/lib/utils/storage.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest as test runner with @vitest/coverage-v8 for coverage reporting. Use happy-dom for lightweight DOM simulation in React component tests. Follow AAA pattern (Arrange-Act-Assert) for test structure. Mock external dependencies (Supabase, console) rather than making real calls. Maintain TypeScript type safety in all test files. Use descriptive test names that explain expected behavior.
+    </standards>
+    <locations>
+      <location>documine/__tests__/unit/lib/</location>
+      <location>documine/__tests__/unit/lib/utils/</location>
+      <location>documine/__tests__/integration/lib/utils/</location>
+      <location>documine/__tests__/mocks/</location>
+    </locations>
+    <ideas>
+      <idea ac="3" target="errors.ts">
+        Test each error class instantiation, verify code property, verify message format with variable substitution, verify name property matches class name, verify extends Error.
+      </idea>
+      <idea ac="3" target="api-response.ts">
+        Test successResponse returns Response with status 200 and correct body structure. Test errorResponse with default 500 status. Test errorResponse with custom status and details. Verify Response.json() is called with satisfies constraint.
+      </idea>
+      <idea ac="3" target="logger.ts">
+        Mock console methods before each test. Test log.info outputs JSON with level:"info", message, timestamp. Test log.warn outputs JSON with level:"warn". Test log.error includes error.message and error.stack. Verify ISO-8601 timestamp format.
+      </idea>
+      <idea ac="4" target="storage.ts">
+        Create mock Supabase client with storage.from().upload/createSignedUrl/remove methods. Test uploadDocument returns correct path format "{agencyId}/{documentId}/{filename}". Test uploadDocument throws with descriptive error on upload failure. Test getDocumentUrl returns signedUrl from mock. Test deleteDocument calls remove with correct path array.
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

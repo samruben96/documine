@@ -1,0 +1,289 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Login Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/2-3-login-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>returning user</asA>
+    <iWant>to sign into my account</iWant>
+    <soThat>I can access my documents and continue my work</soThat>
+    <tasks>
+      <task id="1" ac="2.3.1, 2.3.5">
+        <title>Create Login Page Component</title>
+        <subtasks>
+          <subtask>Create src/app/(auth)/login/page.tsx</subtask>
+          <subtask>Add email input field with label and validation</subtask>
+          <subtask>Add password input field with label</subtask>
+          <subtask>Add "Remember me" checkbox with label</subtask>
+          <subtask>Add "Sign in" submit button</subtask>
+          <subtask>Add "Forgot password?" link to /reset-password</subtask>
+          <subtask>Add "Don't have an account? Sign up" link to /signup</subtask>
+          <subtask>Style with Trustworthy Slate theme per UX spec</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="2.3.1, 2.3.2">
+        <title>Implement Login Form with React Hook Form</title>
+        <subtasks>
+          <subtask>Set up react-hook-form with zodResolver</subtask>
+          <subtask>Use existing loginSchema from src/lib/validations/auth.ts</subtask>
+          <subtask>Implement form state management</subtask>
+          <subtask>Add loading state to submit button (spinner + "Signing in...")</subtask>
+          <subtask>Disable form inputs during submission</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="2.3.3, 2.3.4">
+        <title>Create Login Server Action</title>
+        <subtasks>
+          <subtask>Create src/app/(auth)/login/actions.ts</subtask>
+          <subtask>Implement login server action</subtask>
+          <subtask>Call supabase.auth.signInWithPassword() with email/password</subtask>
+          <subtask>Handle "Remember me" via session duration options</subtask>
+          <subtask>Return success or generic error (no field-specific errors)</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="2.3.3">
+        <title>Implement Redirect Logic</title>
+        <subtasks>
+          <subtask>Read ?redirect query param from URL</subtask>
+          <subtask>On success: redirect to redirect param or default /documents</subtask>
+          <subtask>Preserve redirect URL through form submission</subtask>
+          <subtask>Use Next.js redirect() from server action</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="2.3.4">
+        <title>Error Handling and Toast Notifications</title>
+        <subtasks>
+          <subtask>Show toast notification on login failure</subtask>
+          <subtask>Display generic message: "Invalid email or password"</subtask>
+          <subtask>Clear password field on error (keep email)</subtask>
+          <subtask>No indication of which field is incorrect (security)</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="All">
+        <title>Add Unit and Integration Tests</title>
+        <subtasks>
+          <subtask>Create __tests__/app/auth/login/page.test.tsx</subtask>
+          <subtask>Test: Form renders all required fields</subtask>
+          <subtask>Test: Submit button shows loading state</subtask>
+          <subtask>Test: Valid credentials redirect to /documents</subtask>
+          <subtask>Test: Invalid credentials show generic error toast</subtask>
+          <subtask>Test: Links present and correct</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="All">
+        <title>Manual Testing and Verification</title>
+        <subtasks>
+          <subtask>Test login with valid credentials</subtask>
+          <subtask>Test login with invalid credentials</subtask>
+          <subtask>Test "Remember me" extends session</subtask>
+          <subtask>Test redirect param functionality</subtask>
+          <subtask>Verify npm run build succeeds</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-2.3.1" priority="must">Login form displays Email, Password, and "Remember me" checkbox</criterion>
+    <criterion id="AC-2.3.2" priority="must">Submit button shows loading state during authentication</criterion>
+    <criterion id="AC-2.3.3" priority="must">Successful login redirects to /documents or ?redirect query param if present</criterion>
+    <criterion id="AC-2.3.4" priority="must">Invalid credentials show generic error "Invalid email or password" (no indication which field is wrong)</criterion>
+    <criterion id="AC-2.3.5" priority="must">Page includes "Forgot password?" and "Sign up" links</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Story 2.3: Login Page</section>
+        <snippet>Login form with email/password and "Remember me" checkbox. Uses supabase.auth.signInWithPassword(). Session duration controlled by remember me option. Generic error messages for security.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.3: Login Page</section>
+        <snippet>Returning user login with email/password, remember me option, redirect to dashboard, generic error handling, and links to forgot password and signup.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Authentication Flow</section>
+        <snippet>Supabase Auth for email/password authentication. JWT stored in httpOnly cookie via @supabase/ssr. Session auto-refresh in middleware.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/2-2-post-signup-agency-user-record-creation.md</path>
+        <title>Previous Story Reference</title>
+        <section>Dev Agent Record</section>
+        <snippet>Server actions pattern for auth operations established. Service role client available. Test infrastructure with Vitest configured. Validation schemas in src/lib/validations/auth.ts.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>documine/src/lib/validations/auth.ts</path>
+        <kind>validation</kind>
+        <symbol>loginSchema</symbol>
+        <lines>36-42</lines>
+        <reason>Contains the Zod validation schema for login form - REUSE this schema</reason>
+      </file>
+      <file>
+        <path>documine/src/lib/supabase/server.ts</path>
+        <kind>service</kind>
+        <symbol>createClient</symbol>
+        <lines>9-33</lines>
+        <reason>Server-side Supabase client for auth operations in server actions</reason>
+      </file>
+      <file>
+        <path>documine/src/middleware.ts</path>
+        <kind>middleware</kind>
+        <symbol>middleware</symbol>
+        <lines>1-82</lines>
+        <reason>Route protection and session refresh - already handles /login in PUBLIC_ROUTES and redirects authenticated users away from auth pages</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>AuthLayout</symbol>
+        <lines>1-29</lines>
+        <reason>Auth layout with Trustworthy Slate styling and Toaster - login page will inherit this layout</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/signup/page.tsx</path>
+        <kind>component</kind>
+        <symbol>SignupPage</symbol>
+        <lines>1-206</lines>
+        <reason>Reference implementation pattern - use same form structure, loading state, toast notifications, and link styling</reason>
+      </file>
+      <file>
+        <path>documine/src/app/(auth)/signup/actions.ts</path>
+        <kind>server-action</kind>
+        <symbol>signup</symbol>
+        <lines>1-114</lines>
+        <reason>Reference pattern for server actions - similar structure for login action but simpler (no agency/user creation)</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>Button</symbol>
+        <reason>shadcn/ui Button component - use for submit button with loading state</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/input.tsx</path>
+        <kind>component</kind>
+        <symbol>Input</symbol>
+        <reason>shadcn/ui Input component - use for email and password fields</reason>
+      </file>
+      <file>
+        <path>documine/src/components/ui/sonner.tsx</path>
+        <kind>component</kind>
+        <symbol>Toaster</symbol>
+        <reason>Toast notifications - already configured in auth layout</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+        <purpose>Cookie-based session management</purpose>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Supabase client for signInWithPassword</purpose>
+      </node>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.66.1</version>
+        <purpose>Form state management</purpose>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <purpose>Zod resolver for react-hook-form</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Form validation schemas</purpose>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <purpose>Toast notifications</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <purpose>Loader2 icon for loading state</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>loginSchema</name>
+      <kind>Zod schema</kind>
+      <signature>z.object({ email: z.string().email(), password: z.string().min(1), rememberMe: z.boolean().default(false) })</signature>
+      <path>documine/src/lib/validations/auth.ts:36-40</path>
+    </interface>
+    <interface>
+      <name>LoginFormData</name>
+      <kind>TypeScript type</kind>
+      <signature>type LoginFormData = z.infer&lt;typeof loginSchema&gt;</signature>
+      <path>documine/src/lib/validations/auth.ts:42</path>
+    </interface>
+    <interface>
+      <name>supabase.auth.signInWithPassword</name>
+      <kind>Supabase Auth method</kind>
+      <signature>signInWithPassword({ email: string, password: string }): Promise&lt;{ data: { user, session }, error }&gt;</signature>
+      <path>Supabase SDK</path>
+    </interface>
+    <interface>
+      <name>createClient</name>
+      <kind>Server client factory</kind>
+      <signature>async function createClient(): Promise&lt;SupabaseClient&lt;Database&gt;&gt;</signature>
+      <path>documine/src/lib/supabase/server.ts:9</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="tech-spec-epic-2">Server actions pattern for auth operations (not API routes)</constraint>
+    <constraint source="tech-spec-epic-2">Generic error messages only - never reveal if email exists (security)</constraint>
+    <constraint source="tech-spec-epic-2">httpOnly cookies for session storage (via @supabase/ssr)</constraint>
+    <constraint source="tech-spec-epic-2">Session-only cookie by default, 7-day expiry with "Remember me"</constraint>
+    <constraint source="architecture">Supabase Auth built-in rate limiting for MVP</constraint>
+    <constraint source="architecture">Trustworthy Slate color theme per UX spec</constraint>
+    <constraint source="middleware">Login page is in PUBLIC_ROUTES - no auth required</constraint>
+    <constraint source="middleware">Authenticated users accessing /login will be redirected to /documents</constraint>
+    <constraint source="middleware">Redirect query param preserved: redirectUrl.searchParams.set('redirect', pathname)</constraint>
+  </constraints>
+
+  <tests>
+    <standards>Vitest with @testing-library/react and happy-dom environment for component tests. Test setup includes jest-dom matchers. Tests go in __tests__ directory following __tests__/app/auth/login/ pattern. Coverage thresholds configured per-file for critical modules.</standards>
+    <locations>
+      <location>__tests__/**/*.test.ts</location>
+      <location>__tests__/**/*.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-2.3.1">Test form renders email input, password input, and "Remember me" checkbox</idea>
+      <idea ac="AC-2.3.1">Test form fields have proper labels and accessibility attributes</idea>
+      <idea ac="AC-2.3.2">Test submit button shows Loader2 spinner and "Signing in..." text when isSubmitting is true</idea>
+      <idea ac="AC-2.3.2">Test form inputs are disabled during submission</idea>
+      <idea ac="AC-2.3.3">Test successful login redirects to /documents</idea>
+      <idea ac="AC-2.3.3">Test successful login with ?redirect param redirects to specified path</idea>
+      <idea ac="AC-2.3.4">Test invalid credentials display toast with "Invalid email or password"</idea>
+      <idea ac="AC-2.3.4">Test password field is cleared on error while email remains</idea>
+      <idea ac="AC-2.3.5">Test "Forgot password?" link points to /reset-password</idea>
+      <idea ac="AC-2.3.5">Test "Sign up" link points to /signup</idea>
+      <idea ac="AC-2.3.5">Test links are visible and styled correctly</idea>
+    </ideas>
+  </tests>
+</story-context>

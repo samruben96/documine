@@ -1,0 +1,117 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>6</storyId>
+    <title>Deployment Pipeline Setup</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-26</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/1-6-deployment-pipeline-setup.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the application deployable to Vercel with preview deployments</iWant>
+    <soThat>changes can be tested and shipped reliably</soThat>
+    <tasks>
+      <task id="1" ac="1.6.4">Configure Security Headers in next.config.ts</task>
+      <task id="2" ac="1.6.5">Create Supabase Cloud Project</task>
+      <task id="3" ac="1.6.5">Link Local Supabase to Remote</task>
+      <task id="4" ac="1.6.5">Push Migrations to Remote</task>
+      <task id="5" ac="1.6.5">Create Storage Bucket on Remote</task>
+      <task id="6" ac="1.6.1,1.6.2">Initialize Git Repository</task>
+      <task id="7" ac="1.6.1,1.6.2">Connect Vercel to Repository</task>
+      <task id="8" ac="1.6.3">Configure Environment Variables in Vercel</task>
+      <task id="9" ac="1.6.1">Trigger Initial Production Deployment</task>
+      <task id="10" ac="1.6.2">Verify Preview Deployments</task>
+      <task id="11" ac="1.6.5">Generate Types from Remote Database</task>
+      <task id="12" ac="1.6.1">Document Deployment Process</task>
+      <task id="13" ac="1.6.6">Final Verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="1.6.1">Production deployment works via Vercel: Project connected to Git, builds successfully with npm run build, accessible at production URL</ac>
+    <ac id="1.6.2">Preview deployments created for each PR: Automatic preview URL per PR, visible in PR comments</ac>
+    <ac id="1.6.3">Environment variables configured in Vercel: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY, LLAMA_CLOUD_API_KEY, RESEND_API_KEY</ac>
+    <ac id="1.6.4">Security headers configured in next.config.ts: X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy: camera=(), microphone=(), geolocation=()</ac>
+    <ac id="1.6.5">Supabase cloud deployment configured: Production project created, local linked to remote, migrations pushed via npx supabase db push, types generated from remote</ac>
+    <ac id="1.6.6">Build verification passes in deployment environment</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" title="Architecture" section="Security Headers" snippet="Configure security headers in next.config.js: X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy for disabled features." />
+      <doc path="docs/architecture.md" title="Architecture" section="Deployment Architecture" snippet="Vercel Edge Network for static assets globally, Serverless Functions for API routes regionally, Supabase region should match Vercel function region (us-east-1)." />
+      <doc path="docs/architecture.md" title="Architecture" section="Environment Configuration" snippet="NEXT_PUBLIC_* variables exposed to browser (public keys only), non-prefixed variables are server-only (secrets). Production environment via Vercel Environment Variables." />
+      <doc path="docs/sprint-artifacts/tech-spec-epic-1.md" title="Epic 1 Tech Spec" section="Story 1.6" snippet="AC-1.6.1 through AC-1.6.5 define deployment pipeline requirements including Vercel production deployment, preview deployments, environment variables, security headers, and Supabase cloud configuration." />
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 1.6" snippet="Deployment Pipeline Setup: deployable to Vercel with preview deployments, security headers configured, Supabase migrations can be pushed to production." />
+    </docs>
+    <code>
+      <file path="documine/next.config.ts" kind="config" symbol="nextConfig" lines="1-7" reason="Requires modification to add security headers async function" />
+      <file path="documine/.gitignore" kind="config" symbol="N/A" lines="1-42" reason="Already configured with standard Next.js ignores including .env*, .vercel, .next/" />
+      <file path="documine/package.json" kind="manifest" symbol="N/A" lines="1-40" reason="Contains npm run build script and all dependencies" />
+      <file path="documine/.env.example" kind="config" symbol="N/A" lines="1-14" reason="Template with all required environment variable keys" />
+      <file path="documine/src/lib/errors.ts" kind="module" symbol="error classes" reason="Available custom error classes for deployment error handling" />
+      <file path="documine/src/lib/utils/logger.ts" kind="utility" symbol="log" reason="Structured logger available for deployment logging" />
+      <file path="documine/src/lib/utils/api-response.ts" kind="utility" symbol="successResponse, errorResponse" reason="API response helpers established" />
+      <file path="documine/supabase/migrations/00001_initial_schema.sql" kind="migration" reason="Initial database schema to be pushed to remote" />
+      <file path="documine/supabase/migrations/00002_enable_pgvector.sql" kind="migration" reason="pgvector extension migration to be pushed" />
+      <file path="documine/supabase/migrations/00003_rls_policies.sql" kind="migration" reason="RLS policies migration to be pushed" />
+      <file path="documine/supabase/migrations/00004_storage_bucket.sql" kind="migration" reason="Storage bucket migration to be pushed" />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="16.0.4" />
+        <package name="react" version="19.2.0" />
+        <package name="typescript" version="^5" />
+        <package name="tailwindcss" version="^4" />
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="openai" version="^6.9.1" />
+        <package name="zod" version="^4.1.13" />
+      </ecosystem>
+      <ecosystem name="external">
+        <service name="Vercel" purpose="Deployment platform with preview deployments" />
+        <service name="Supabase Cloud" purpose="Production PostgreSQL + Storage + Auth" />
+        <service name="GitHub" purpose="Git repository hosting and Vercel integration" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture">TypeScript strict mode enforced throughout</constraint>
+    <constraint source="Architecture">Environment variables follow SCREAMING_SNAKE_CASE convention</constraint>
+    <constraint source="Architecture">Supabase region should match Vercel function region (us-east-1 recommended)</constraint>
+    <constraint source="Architecture">NEXT_PUBLIC_* for public keys only, non-prefixed for secrets</constraint>
+    <constraint source="Dev Notes">Security headers apply to ALL responses from the application</constraint>
+    <constraint source="Dev Notes">Build must pass before deployment (npm run build pattern established)</constraint>
+    <constraint source="Story 1-5">Use established error handling and logging patterns from src/lib/utils/</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="next.config.ts headers()" kind="function signature" signature="async headers(): Promise&lt;Header[]&gt;" path="documine/next.config.ts" />
+    <interface name="Supabase CLI link" kind="CLI command" signature="npx supabase link --project-ref &lt;project-ref&gt;" path="N/A" />
+    <interface name="Supabase CLI push" kind="CLI command" signature="npx supabase db push" path="N/A" />
+    <interface name="Supabase CLI gen types" kind="CLI command" signature="npx supabase gen types typescript --linked &gt; src/types/database.types.ts" path="N/A" />
+    <interface name="Vercel Environment Variables" kind="dashboard config" signature="NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY, LLAMA_CLOUD_API_KEY, RESEND_API_KEY" path="Vercel Dashboard" />
+  </interfaces>
+
+  <tests>
+    <standards>This story is primarily infrastructure/configuration. Verification is manual via Vercel dashboard, browser DevTools (for security headers), and CLI commands. Build verification via npm run build. No unit tests required for deployment configuration.</standards>
+    <locations>
+      <location>Vercel Dashboard - deployment status and preview URLs</location>
+      <location>Browser DevTools - Network tab - Response Headers</location>
+      <location>Supabase Dashboard - database tables and migrations</location>
+      <location>GitHub PR - Vercel bot comments with preview URLs</location>
+    </locations>
+    <ideas>
+      <idea ac="1.6.1">Verify production URL is accessible after deployment</idea>
+      <idea ac="1.6.2">Create test PR, verify preview URL appears in PR comments</idea>
+      <idea ac="1.6.3">Verify environment variables are set in Vercel dashboard (all 6 keys)</idea>
+      <idea ac="1.6.4">Inspect response headers in DevTools for X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy</idea>
+      <idea ac="1.6.5">Run npx supabase db remote changes to verify migrations are in sync</idea>
+      <idea ac="1.6.6">Run npm run build locally to ensure parity with deployment</idea>
+    </ideas>
+  </tests>
+</story-context>
