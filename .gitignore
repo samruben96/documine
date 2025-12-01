@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# BMAD Framework (installed infrastructure, not project code)
+# These are generic/reusable framework files that can be reinstalled
+.bmad/_cfg/
+.bmad/core/
+.bmad/docs/
+.bmad/bmm/agents/
+.bmad/bmm/workflows/
+.bmad/bmm/docs/
+.bmad/bmm/teams/
+.bmad/bmm/testarch/
+.bmad/bmm/README.md
+
+# BMAD Project Config - TRACKED (do not ignore)
+# .bmad/bmm/config.yaml is project-specific and must be committed
