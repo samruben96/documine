@@ -1,10 +1,16 @@
 # Docker Compose for Local Development
 # Implements AC-4.8.7: Docker Compose configuration for local development
+#
+# SETUP: Clone the docling service repo as a sibling directory:
+#   cd ..
+#   git clone https://github.com/samruben96/docling-for-documine.git
+#
+# Then run: docker-compose up docling
 
 services:
   docling:
     build:
-      context: ./docling-service
+      context: ../docling-for-documine
       dockerfile: Dockerfile
     ports:
       - "8000:8000"

@@ -61,9 +61,18 @@ mcp__supabase__deploy_edge_function(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
 
 Document processing uses **Docling** (self-hosted) instead of LlamaParse. See `docs/deployment/docling.md` for deployment details.
 
-- **Local development:** `docker-compose up docling` then set `DOCLING_SERVICE_URL=http://localhost:8000`
+- **Docling Service Repo:** https://github.com/samruben96/docling-for-documine
+- **Production URL:** https://docling-for-documine-production.up.railway.app
 - **TypeScript client:** `src/lib/docling/client.ts`
 - **Edge Function:** `supabase/functions/process-document/index.ts`
+
+**Local development:**
+```bash
+# Clone docling repo as sibling directory
+cd .. && git clone https://github.com/samruben96/docling-for-documine.git
+cd documine && docker-compose up docling
+# Set DOCLING_SERVICE_URL=http://localhost:8000 in .env.local
+```
 
 ## Known Issues / Bug Fixes
 
@@ -84,6 +93,6 @@ Document processing uses **Docling** (self-hosted) instead of LlamaParse. See `d
 - `src/lib/docling/client.ts` (new - replaces llamaparse client)
 - `src/lib/documents/chunking.ts` (updated import)
 - `supabase/functions/process-document/index.ts` (updated to call Docling)
-- `docling-service/` (new Python service)
+- Docling Python service in separate repo: https://github.com/samruben96/docling-for-documine
 
 **Environment Variable:** `DOCLING_SERVICE_URL` replaces `LLAMA_CLOUD_API_KEY`

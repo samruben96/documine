@@ -10,6 +10,12 @@ Docling replaces LlamaParse for document processing, providing:
 - Full data privacy for sensitive documents
 - Support for PDF, DOCX, XLSX, and images
 
+## Repository
+
+The Docling service lives in a separate repository:
+- **Repo:** https://github.com/samruben96/docling-for-documine
+- **Production:** https://docling-for-documine-production.up.railway.app
+
 ## Local Development
 
 ### Prerequisites
@@ -20,8 +26,12 @@ Docling replaces LlamaParse for document processing, providing:
 ### Quick Start
 
 ```bash
+# Clone the docling service repo as a sibling to documine
+cd /path/to/documine/..
+git clone https://github.com/samruben96/docling-for-documine.git
+
 # From the documine directory
-cd /path/to/documine
+cd documine
 
 # Build and start the Docling service
 docker-compose up -d docling
@@ -50,7 +60,7 @@ DOCLING_SERVICE_URL=http://localhost:8000
 services:
   docling:
     build:
-      context: ./docling-service
+      context: ../docling-for-documine  # Sibling directory
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -62,15 +72,20 @@ services:
 
 ## Production Deployment
 
-### Option 1: Railway (Recommended for MVP)
+### Option 1: Railway (Current Setup)
 
-1. Create a new Railway project
-2. Add Dockerfile service from `docling-service/`
-3. Set environment variables:
-   - `PORT=8000`
-   - `WORKERS=2`
-   - `OMP_NUM_THREADS=4`
-4. Deploy
+The Docling service is deployed on Railway from the separate repo:
+- **Repo:** https://github.com/samruben96/docling-for-documine
+- **URL:** https://docling-for-documine-production.up.railway.app
+
+To deploy changes:
+1. Push to the `docling-for-documine` repo
+2. Railway auto-deploys from main branch
+
+Environment variables configured:
+- `PORT=8000`
+- `WORKERS=2`
+- `OMP_NUM_THREADS=4`
 
 Estimated cost: $5-20/month depending on usage
 
@@ -83,8 +98,9 @@ curl -L https://fly.io/install.sh | sh
 # Login
 fly auth login
 
-# Create app
-cd docling-service
+# Clone and create app
+git clone https://github.com/samruben96/docling-for-documine.git
+cd docling-for-documine
 fly launch --name documine-docling --no-deploy
 
 # Configure in fly.toml
@@ -118,11 +134,17 @@ Requirements:
 
 ```bash
 # On the server
-git clone <your-repo>
-cd documine
+git clone https://github.com/samruben96/docling-for-documine.git
+cd docling-for-documine
 
 # Build and run
-docker-compose -f docker-compose.prod.yml up -d
+docker build -t docling-service .
+docker run -d -p 8000:8000 \
+  -e PORT=8000 \
+  -e WORKERS=2 \
+  -e OMP_NUM_THREADS=4 \
+  --name docling \
+  docling-service
 
 # Configure reverse proxy (nginx/caddy) for HTTPS
 ```
