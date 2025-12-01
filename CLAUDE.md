@@ -44,3 +44,29 @@ Always run git commands from `/Users/samruben/sams-tool/documine`, not the paren
 ## BMAD Workflow
 
 This project uses the BMAD Method for development. Stories are tracked in `docs/sprint-artifacts/sprint-status.yaml`.
+
+## Supabase
+
+- **Project ID:** `qfhzvkqbbtxvmwiixlhf`
+- **Project Name:** Testing and messing
+- **Region:** us-east-2
+
+Use this project ID for Supabase MCP operations:
+```
+mcp__supabase__execute_sql(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
+mcp__supabase__deploy_edge_function(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
+```
+
+## Known Issues / Bug Fixes
+
+### LlamaParse Page Separator (Fixed 2025-11-30)
+
+**Issue:** All documents showed `page_count=1` regardless of actual page count.
+
+**Root Cause:** LlamaParse API uses `{pageNumber}` (camelCase) for the page separator placeholder, but code used `{page_number}` (snake_case).
+
+**Fix:** Changed placeholder in both files:
+- `supabase/functions/process-document/index.ts` (line 338)
+- `src/lib/llamaparse/client.ts` (line 107)
+
+**Reference:** LlamaIndex GitHub issues #537, #721
