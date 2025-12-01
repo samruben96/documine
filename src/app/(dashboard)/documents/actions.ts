@@ -8,6 +8,7 @@ import {
   deleteDocument as deleteDocumentService,
   updateDocumentStatus,
 } from '@/lib/documents/service';
+import { checkUploadRateLimit, getRateLimitInfo } from '@/lib/documents/rate-limit';
 import { validateUploadFile } from '@/lib/validations/documents';
 import { revalidatePath } from 'next/cache';
 import type { Tables } from '@/types/database.types';
@@ -27,17 +28,25 @@ export interface UserAgencyInfo {
  * 2. Validate file using Zod schema (PDF, <50MB)
  * 3. Get authenticated user
  * 4. Get user's agency_id
- * 5. Upload to Supabase Storage
- * 6. Create document record (status: 'processing')
- * 7. Create processing job
- * 8. Revalidate and return document
+ * 5. Check rate limits (AC-4.7.7)
+ * 6. Upload to Supabase Storage
+ * 7. Create document record (status: 'processing')
+ * 8. Create processing job
+ * 9. Revalidate and return document
  *
- * Implements AC-4.1.4, AC-4.1.5, AC-4.1.7, AC-4.1.8
+ * Implements AC-4.1.4, AC-4.1.5, AC-4.1.7, AC-4.1.8, AC-4.7.7
  */
 export async function uploadDocument(formData: FormData): Promise<{
   success: boolean;
   document?: Document;
   error?: string;
+  rateLimitExceeded?: boolean;
+  rateLimitInfo?: {
+    remaining: number;
+    limit: number;
+    resetInSeconds: number;
+    tier: string;
+  };
 }> {
   try {
     // 1. Get file from form data
@@ -73,9 +82,26 @@ export async function uploadDocument(formData: FormData): Promise<{
     }
 
     const agencyId = userData.agency_id;
+
+    // 5. Check rate limits (AC-4.7.7)
+    const rateLimit = await checkUploadRateLimit(agencyId);
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        error: rateLimit.reason || 'Rate limit exceeded',
+        rateLimitExceeded: true,
+        rateLimitInfo: {
+          remaining: rateLimit.remaining,
+          limit: rateLimit.limit,
+          resetInSeconds: rateLimit.resetInSeconds,
+          tier: rateLimit.tier,
+        },
+      };
+    }
+
     const documentId = crypto.randomUUID();
 
-    // 5. Upload file to Supabase Storage (AC-4.1.7)
+    // 6. Upload file to Supabase Storage (AC-4.1.7)
     const uploadResult = await uploadDocumentToStorage(
       supabase,
       file,
@@ -83,7 +109,7 @@ export async function uploadDocument(formData: FormData): Promise<{
       documentId
     );
 
-    // 6. Create document record with status='processing' (AC-4.1.8)
+    // 7. Create document record with status='processing' (AC-4.1.8)
     const document = await createDocumentRecord(supabase, {
       id: documentId,
       agencyId,
@@ -92,10 +118,10 @@ export async function uploadDocument(formData: FormData): Promise<{
       storagePath: uploadResult.storagePath,
     });
 
-    // 7. Create processing job to trigger Edge Function
+    // 8. Create processing job to trigger Edge Function
     await createProcessingJob(documentId);
 
-    // 8. Revalidate documents page
+    // 9. Revalidate documents page
     revalidatePath('/documents');
 
     return { success: true, document };
@@ -141,6 +167,55 @@ export async function deleteDocumentAction(documentId: string): Promise<{
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Delete failed',
+    };
+  }
+}
+
+/**
+ * Get Rate Limit Info Server Action
+ *
+ * Returns current rate limit status for the user's agency.
+ *
+ * Implements AC-4.7.7: Rate Limiting (UI display)
+ */
+export async function getRateLimitInfoAction(): Promise<{
+  success: boolean;
+  data?: {
+    tier: string;
+    uploadsPerHour: number;
+    uploadsThisHour: number;
+    remaining: number;
+    maxConcurrentProcessing: number;
+    currentProcessing: number;
+  };
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return { success: false, error: 'Failed to get user data' };
+    }
+
+    const info = await getRateLimitInfo(userData.agency_id);
+
+    return { success: true, data: info };
+  } catch (error) {
+    console.error('Get rate limit info failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get rate limit info',
     };
   }
 }
@@ -292,8 +367,9 @@ export async function createDocumentFromUpload(input: {
  * Retry Document Processing Server Action
  *
  * Retries processing for a failed document by creating a new processing job.
+ * Validates document is in 'failed' status before allowing retry.
  *
- * Implements AC-4.2.7
+ * Implements AC-4.7.6: Retry Mechanism
  */
 export async function retryDocumentProcessing(documentId: string): Promise<{
   success: boolean;
@@ -307,10 +383,29 @@ export async function retryDocumentProcessing(documentId: string): Promise<{
       return { success: false, error: 'Not authenticated' };
     }
 
+    // Verify document exists and check status
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .select('id, status, storage_path, agency_id')
+      .eq('id', documentId)
+      .single();
+
+    if (docError || !document) {
+      return { success: false, error: 'Document not found' };
+    }
+
+    // Only allow retry for failed documents
+    if (document.status !== 'failed') {
+      return {
+        success: false,
+        error: `Cannot retry document with status '${document.status}'. Only failed documents can be retried.`,
+      };
+    }
+
     // Update document status back to processing
     await updateDocumentStatus(supabase, documentId, 'processing');
 
-    // Create new processing job
+    // Create new processing job (this triggers the Edge Function via database hook)
     await createProcessingJob(documentId);
 
     // Revalidate documents page
@@ -322,6 +417,53 @@ export async function retryDocumentProcessing(documentId: string): Promise<{
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Retry failed',
+    };
+  }
+}
+
+/**
+ * Get Document Queue Position Server Action
+ *
+ * Returns the queue position for a processing document.
+ *
+ * Implements AC-4.7.4: Queue Position Display
+ */
+export async function getDocumentQueuePosition(documentId: string): Promise<{
+  success: boolean;
+  position?: number;
+  isProcessing?: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Call the database function to get queue position
+    const { data, error } = await supabase.rpc('get_queue_position', {
+      p_document_id: documentId,
+    });
+
+    if (error) {
+      console.error('Get queue position failed:', error);
+      return { success: false, error: 'Failed to get queue position' };
+    }
+
+    const position = data as number;
+
+    return {
+      success: true,
+      position,
+      isProcessing: position === 0,
+    };
+  } catch (error) {
+    console.error('Get queue position failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get queue position',
     };
   }
 }

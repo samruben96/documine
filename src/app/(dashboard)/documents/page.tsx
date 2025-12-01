@@ -16,6 +16,8 @@ import {
   createDocumentFromUpload,
   retryDocumentProcessing,
   deleteDocumentAction,
+  getDocumentQueuePosition,
+  getRateLimitInfoAction,
   type Document,
   type UserAgencyInfo,
 } from './actions';
@@ -28,11 +30,19 @@ import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } 
  * Main document management interface with sidebar layout.
  * Implements AC-4.3.7: Split view layout with document list in sidebar.
  */
+interface RateLimitData {
+  remaining: number;
+  limit: number;
+  tier: string;
+}
+
 export default function DocumentsPage() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
+  const [queuePositions, setQueuePositions] = useState<Map<string, number>>(new Map());
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitData | null>(null);
 
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
   userAgencyInfoRef.current = userAgencyInfo;
@@ -47,10 +57,48 @@ export default function DocumentsPage() {
     onDocumentFailed: () => {},
   });
 
+  // Fetch queue positions for processing documents (AC-4.7.4)
+  const fetchQueuePositions = useCallback(async (docs: Document[]) => {
+    const processingDocs = docs.filter((doc) => doc.status === 'processing');
+    if (processingDocs.length === 0) {
+      setQueuePositions(new Map());
+      return;
+    }
+
+    const positions = new Map<string, number>();
+    await Promise.all(
+      processingDocs.map(async (doc) => {
+        const result = await getDocumentQueuePosition(doc.id);
+        if (result.success && result.position !== undefined) {
+          positions.set(doc.id, result.position);
+        }
+      })
+    );
+    setQueuePositions(positions);
+  }, []);
+
+  // Refresh queue positions when documents change
+  useEffect(() => {
+    fetchQueuePositions(documents);
+  }, [documents, fetchQueuePositions]);
+
+  // Load rate limit info (AC-4.7.7)
+  const loadRateLimitInfo = useCallback(async () => {
+    const result = await getRateLimitInfoAction();
+    if (result.success && result.data) {
+      setRateLimitInfo({
+        remaining: result.data.remaining,
+        limit: result.data.uploadsPerHour,
+        tier: result.data.tier,
+      });
+    }
+  }, []);
+
   useEffect(() => {
     loadDocuments();
     loadUserAgencyInfo();
-  }, []);
+    loadRateLimitInfo();
+  }, [loadRateLimitInfo]);
 
   async function loadUserAgencyInfo() {
     const result = await getUserAgencyInfo();
@@ -137,6 +185,9 @@ export default function DocumentsPage() {
       if (result.success && result.document) {
         setDocuments((prev) => [result.document!, ...prev]);
 
+        // Refresh rate limit info after successful upload
+        loadRateLimitInfo();
+
         setTimeout(() => {
           setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
         }, 2000);
@@ -192,6 +243,7 @@ export default function DocumentsPage() {
             <DocumentList
               documents={documents}
               onFilesAccepted={handleFilesAccepted}
+              queuePositions={queuePositions}
               isLoading={isLoading}
             />
           </Sidebar>
@@ -220,6 +272,7 @@ export default function DocumentsPage() {
                       onFilesAccepted={handleFilesAccepted}
                       uploadingFiles={uploadingFiles}
                       onCancelUpload={handleCancelUpload}
+                      rateLimitInfo={rateLimitInfo || undefined}
                       disabled={isPending}
                     />
                   </div>

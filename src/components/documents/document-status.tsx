@@ -116,13 +116,17 @@ export function DocumentStatus({
  * Compact Document Status Badge
  *
  * A smaller status indicator for use in list views.
+ * Implements AC-4.7.4: Queue Position Display
  */
 export function DocumentStatusBadge({
   status,
   errorMessage,
+  queuePosition,
 }: {
   status: DocumentStatusType;
   errorMessage?: string;
+  /** Queue position: 0 = actively processing, 1+ = position in queue, -1/undefined = not in queue */
+  queuePosition?: number;
 }) {
   switch (status) {
     case 'uploading':
@@ -133,9 +137,28 @@ export function DocumentStatusBadge({
       );
 
     case 'processing':
+      // Show queue position if available (AC-4.7.4)
+      const isActivelyProcessing = queuePosition === 0;
+      const isQueued = queuePosition !== undefined && queuePosition > 0;
+
       return (
-        <span className="relative inline-flex items-center overflow-hidden rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-          <span className="relative z-10">Analyzing</span>
+        <span
+          className="relative inline-flex items-center overflow-hidden rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+          title={
+            isActivelyProcessing
+              ? 'Document is actively being processed'
+              : isQueued
+              ? `Position ${queuePosition} in queue`
+              : 'Processing document'
+          }
+        >
+          <span className="relative z-10">
+            {isActivelyProcessing
+              ? 'Analyzing'
+              : isQueued
+              ? `Queue #${queuePosition}`
+              : 'Analyzing'}
+          </span>
           <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-slate-200/60 to-transparent" />
         </span>
       );

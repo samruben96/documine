@@ -468,7 +468,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_next_pending_job: {
+        Args: { p_agency_id: string }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          document_id: string
+          error_message: string | null
+          id: string
+          started_at: string | null
+          status: string
+        }[]
+      }
+      get_queue_position: { Args: { p_document_id: string }; Returns: number }
       get_user_agency_id: { Args: never; Returns: string }
+      has_active_processing_job: {
+        Args: { p_agency_id: string }
+        Returns: boolean
+      }
+      mark_stale_jobs_failed: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

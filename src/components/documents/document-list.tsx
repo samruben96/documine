@@ -18,6 +18,8 @@ type DocumentWithLabels = Document & { labels?: Label[] };
 interface DocumentListProps {
   documents: DocumentWithLabels[];
   onFilesAccepted: (files: File[]) => void;
+  /** Map of document ID to queue position (0 = processing, 1+ = queued position) */
+  queuePositions?: Map<string, number>;
   isLoading?: boolean;
   className?: string;
 }
@@ -38,6 +40,7 @@ interface DocumentListProps {
 export function DocumentList({
   documents,
   onFilesAccepted,
+  queuePositions,
   isLoading = false,
   className,
 }: DocumentListProps) {
@@ -195,6 +198,7 @@ export function DocumentList({
                 status={doc.status}
                 createdAt={doc.created_at}
                 labels={doc.labels}
+                queuePosition={queuePositions?.get(doc.id)}
                 isSelected={doc.id === selectedId}
                 onClick={() => handleDocumentClick(doc.id)}
                 onDeleteClick={() => handleDeleteClick(doc)}

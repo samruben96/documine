@@ -46,10 +46,18 @@ export interface UploadingFile {
   error?: string;
 }
 
+export interface RateLimitInfo {
+  remaining: number;
+  limit: number;
+  tier: string;
+}
+
 interface UploadZoneProps {
   onFilesAccepted: (files: File[]) => void;
   uploadingFiles?: UploadingFile[];
   onCancelUpload?: (fileId: string) => void;
+  /** Rate limit info to display (AC-4.7.7) */
+  rateLimitInfo?: RateLimitInfo;
   disabled?: boolean;
   className?: string;
 }
@@ -69,6 +77,7 @@ export function UploadZone({
   onFilesAccepted,
   uploadingFiles = [],
   onCancelUpload,
+  rateLimitInfo,
   disabled = false,
   className,
 }: UploadZoneProps) {
@@ -167,6 +176,24 @@ export function UploadZone({
             PDF files only, up to 50MB each (max 5 files)
           </p>
         </div>
+
+        {/* Rate limit info (AC-4.7.7) */}
+        {rateLimitInfo && (
+          <div
+            className={cn(
+              'flex items-center gap-2 text-xs',
+              rateLimitInfo.remaining <= 3
+                ? 'text-amber-600'
+                : 'text-slate-400'
+            )}
+          >
+            <span>
+              {rateLimitInfo.remaining} of {rateLimitInfo.limit} uploads remaining this hour
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="capitalize">{rateLimitInfo.tier} tier</span>
+          </div>
+        )}
       </div>
 
       {/* Uploading Files List */}

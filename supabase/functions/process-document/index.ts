@@ -2,14 +2,18 @@
  * Document Processing Edge Function
  *
  * Orchestrates the document processing pipeline:
- * 1. Download PDF from Supabase Storage
- * 2. Extract text via LlamaParse API
- * 3. Chunk text into semantic segments
- * 4. Generate embeddings via OpenAI
- * 5. Store chunks in document_chunks table
- * 6. Update document status
+ * 1. Check for stale jobs and mark failed
+ * 2. Verify agency can process (no active job)
+ * 3. Select next pending job in FIFO order
+ * 4. Download PDF from Supabase Storage
+ * 5. Extract text via LlamaParse API
+ * 6. Chunk text into semantic segments
+ * 7. Generate embeddings via OpenAI
+ * 8. Store chunks in document_chunks table
+ * 9. Update document status
+ * 10. Trigger next pending job for agency
  *
- * Implements AC-4.6.1 through AC-4.6.11
+ * Implements AC-4.6.1 through AC-4.6.11 and AC-4.7.1 through AC-4.7.5
  *
  * @module supabase/functions/process-document
  */
@@ -113,60 +117,130 @@ Deno.serve(async (req: Request) => {
 
   const { documentId, storagePath, agencyId } = payload;
 
-  log.info('Processing started', { documentId, agencyId, storagePath });
+  log.info('Processing request received', { documentId, agencyId, storagePath });
 
   try {
-    // Step 1: Update job status to 'processing'
-    await updateJobStatus(supabase, documentId, 'processing');
+    // Step 0: Mark stale jobs as failed (AC-4.7.5)
+    const staleCount = await markStaleJobsFailed(supabase);
+    if (staleCount > 0) {
+      log.info('Marked stale jobs as failed', { count: staleCount });
+    }
 
-    // Step 2: Download PDF from Storage
-    const pdfBuffer = await downloadFromStorage(supabase, storagePath);
-    log.info('PDF downloaded', { documentId, size: pdfBuffer.byteLength });
+    // Step 1: Check if agency already has an active processing job (AC-4.7.2)
+    const hasActiveJob = await hasActiveProcessingJob(supabase, agencyId);
+    if (hasActiveJob) {
+      log.info('Agency has active job, skipping', { documentId, agencyId });
+      return new Response(
+        JSON.stringify({ success: true, queued: true, message: 'Job queued, another job is processing' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Step 3: Send to LlamaParse
+    // Step 2: Get next pending job in FIFO order (AC-4.7.1)
+    const nextJob = await getNextPendingJob(supabase, agencyId);
+    if (!nextJob) {
+      log.info('No pending jobs for agency', { agencyId });
+      return new Response(
+        JSON.stringify({ success: true, message: 'No pending jobs to process' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if the triggered document matches the FIFO order
+    // If not, we'll process the oldest one (FIFO) instead
+    const processingDocumentId = nextJob.document_id;
+    const processingStoragePath = await getDocumentStoragePath(supabase, processingDocumentId);
+
+    if (!processingStoragePath) {
+      log.error('Document storage path not found', new Error('Storage path missing'), {
+        documentId: processingDocumentId
+      });
+      await updateJobStatus(supabase, processingDocumentId, 'failed', 'Document storage path not found');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Document storage path not found' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (processingDocumentId !== documentId) {
+      log.info('Processing older queued document (FIFO)', {
+        requestedDocumentId: documentId,
+        processingDocumentId
+      });
+    }
+
+    log.info('Processing started', { documentId: processingDocumentId, agencyId });
+
+    // Step 3: Update job status to 'processing'
+    await updateJobStatus(supabase, processingDocumentId, 'processing');
+
+    // Step 4: Download PDF from Storage
+    const pdfBuffer = await downloadFromStorage(supabase, processingStoragePath);
+    log.info('PDF downloaded', { documentId: processingDocumentId, size: pdfBuffer.byteLength });
+
+    // Step 5: Send to LlamaParse
     const parseStartTime = Date.now();
-    const parseResult = await parsePdfWithRetry(pdfBuffer, storagePath, llamaparseKey);
+    const parseResult = await parsePdfWithRetry(pdfBuffer, processingStoragePath, llamaparseKey);
     log.info('LlamaParse completed', {
-      documentId,
+      documentId: processingDocumentId,
       duration: Date.now() - parseStartTime,
       pageCount: parseResult.pageCount,
     });
 
-    // Step 4: Chunk the content
+    // Step 6: Chunk the content
     const chunks = chunkMarkdown(parseResult.markdown, parseResult.pageMarkers);
-    log.info('Chunking completed', { documentId, chunkCount: chunks.length });
+    log.info('Chunking completed', { documentId: processingDocumentId, chunkCount: chunks.length });
 
-    // Step 5: Generate embeddings
+    // Step 7: Generate embeddings
     const embeddingsStartTime = Date.now();
     const embeddings = await generateEmbeddingsWithRetry(
       chunks.map((c) => c.content),
       openaiKey
     );
     log.info('Embeddings completed', {
-      documentId,
+      documentId: processingDocumentId,
       duration: Date.now() - embeddingsStartTime,
     });
 
-    // Step 6: Insert chunks into database
-    await insertChunks(supabase, documentId, agencyId, chunks, embeddings);
-    log.info('Chunks inserted', { documentId, count: chunks.length });
+    // Step 8: Insert chunks into database
+    await insertChunks(supabase, processingDocumentId, agencyId, chunks, embeddings);
+    log.info('Chunks inserted', { documentId: processingDocumentId, count: chunks.length });
 
-    // Step 7: Update document status to 'ready' with page count
-    await updateDocumentStatus(supabase, documentId, 'ready', parseResult.pageCount);
+    // Step 9: Update document status to 'ready' with page count
+    await updateDocumentStatus(supabase, processingDocumentId, 'ready', parseResult.pageCount);
 
-    // Step 8: Complete processing job
-    await updateJobStatus(supabase, documentId, 'completed');
+    // Step 10: Complete processing job
+    await updateJobStatus(supabase, processingDocumentId, 'completed');
 
     const totalDuration = Date.now() - startTime;
     log.info('Processing completed', {
-      documentId,
+      documentId: processingDocumentId,
       duration: totalDuration,
       chunkCount: chunks.length,
       pageCount: parseResult.pageCount,
     });
 
+    // Step 11: Check if there are more pending jobs for this agency (AC-4.7.3)
+    // and trigger the next one
+    const nextPendingJob = await getNextPendingJob(supabase, agencyId);
+    if (nextPendingJob) {
+      log.info('Triggering next pending job', {
+        nextDocumentId: nextPendingJob.document_id,
+        agencyId
+      });
+      // Fire and forget - trigger next job asynchronously
+      triggerNextJob(supabaseUrl, supabaseServiceKey, nextPendingJob.document_id, agencyId).catch((err) => {
+        log.warn('Failed to trigger next job', { error: err.message });
+      });
+    }
+
     return new Response(
-      JSON.stringify({ success: true, chunkCount: chunks.length, pageCount: parseResult.pageCount }),
+      JSON.stringify({
+        success: true,
+        chunkCount: chunks.length,
+        pageCount: parseResult.pageCount,
+        documentId: processingDocumentId
+      }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -179,6 +253,16 @@ Deno.serve(async (req: Request) => {
       await updateJobStatus(supabase, documentId, 'failed', err.message);
     } catch (updateError) {
       log.error('Failed to update failure status', updateError as Error, { documentId });
+    }
+
+    // Even on failure, try to trigger the next job (AC-4.7.3)
+    const nextPendingJob = await getNextPendingJob(supabase, agencyId);
+    if (nextPendingJob) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      triggerNextJob(supabaseUrl, supabaseServiceKey, nextPendingJob.document_id, agencyId).catch((triggerErr) => {
+        log.warn('Failed to trigger next job after failure', { error: triggerErr.message });
+      });
     }
 
     return new Response(
@@ -525,6 +609,134 @@ async function generateBatchWithRetry(texts: string[], apiKey: string): Promise<
   }
 
   throw lastError || new Error('Embeddings generation failed');
+}
+
+// ============================================================================
+// Queue Management Operations
+// ============================================================================
+
+interface ProcessingJobRecord {
+  id: string;
+  document_id: string;
+  status: string;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Mark stale jobs as failed (AC-4.7.5)
+ * Jobs in 'processing' state for >10 minutes are marked as failed
+ */
+async function markStaleJobsFailed(
+  supabase: ReturnType<typeof createClient>
+): Promise<number> {
+  const { data, error } = await supabase.rpc('mark_stale_jobs_failed');
+
+  if (error) {
+    log.warn('Failed to mark stale jobs', { error: error.message });
+    return 0;
+  }
+
+  return data as number ?? 0;
+}
+
+/**
+ * Check if agency has an active processing job (AC-4.7.2)
+ */
+async function hasActiveProcessingJob(
+  supabase: ReturnType<typeof createClient>,
+  agencyId: string
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('has_active_processing_job', {
+    p_agency_id: agencyId,
+  });
+
+  if (error) {
+    log.warn('Failed to check active job', { error: error.message, agencyId });
+    return true; // Fail safe - assume there's an active job
+  }
+
+  return data as boolean ?? false;
+}
+
+/**
+ * Get next pending job in FIFO order with SKIP LOCKED (AC-4.7.1)
+ */
+async function getNextPendingJob(
+  supabase: ReturnType<typeof createClient>,
+  agencyId: string
+): Promise<ProcessingJobRecord | null> {
+  const { data, error } = await supabase.rpc('get_next_pending_job', {
+    p_agency_id: agencyId,
+  });
+
+  if (error) {
+    log.warn('Failed to get next pending job', { error: error.message, agencyId });
+    return null;
+  }
+
+  const jobs = data as ProcessingJobRecord[] | null;
+  return jobs?.[0] ?? null;
+}
+
+/**
+ * Get document storage path
+ */
+async function getDocumentStoragePath(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('storage_path')
+    .eq('id', documentId)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data.storage_path;
+}
+
+/**
+ * Trigger the next job in the queue by calling this Edge Function recursively
+ */
+async function triggerNextJob(
+  supabaseUrl: string,
+  serviceKey: string,
+  documentId: string,
+  agencyId: string
+): Promise<void> {
+  // Get storage path for next document
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const storagePath = await getDocumentStoragePath(supabase, documentId);
+
+  if (!storagePath) {
+    log.warn('Cannot trigger next job - storage path not found', { documentId });
+    return;
+  }
+
+  // Call this function recursively
+  const response = await fetch(`${supabaseUrl}/functions/v1/process-document`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      documentId,
+      storagePath,
+      agencyId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to trigger next job: ${response.status} - ${errorText}`);
+  }
 }
 
 // ============================================================================

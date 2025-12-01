@@ -23,6 +23,8 @@ interface DocumentListItemProps {
   status: string;
   createdAt: string;
   labels?: Label[];
+  /** Queue position: 0 = actively processing, 1+ = position in queue */
+  queuePosition?: number;
   isSelected?: boolean;
   onClick?: () => void;
   onDeleteClick?: () => void;
@@ -49,6 +51,7 @@ export function DocumentListItem({
   status,
   createdAt,
   labels = [],
+  queuePosition,
   isSelected = false,
   onClick,
   onDeleteClick,
@@ -232,9 +235,12 @@ export function DocumentListItem({
               {name}
             </p>
 
-            {/* Status indicator - AC-4.3.3 */}
+            {/* Status indicator - AC-4.3.3, AC-4.7.4 */}
             <div className="flex-shrink-0">
-              <DocumentStatusBadge status={status as DocumentStatusType} />
+              <DocumentStatusBadge
+                status={status as DocumentStatusType}
+                queuePosition={queuePosition}
+              />
             </div>
           </div>
 
