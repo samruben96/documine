@@ -1,0 +1,16 @@
+# Docling Document Parsing Service Dependencies
+# For AC-4.8.1, AC-4.8.2
+
+# Core document parsing
+docling>=2.28.2
+docling-core>=2.24.0
+
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# File handling
+python-multipart>=0.0.12
+
+# Type hints
+pydantic>=2.0.0

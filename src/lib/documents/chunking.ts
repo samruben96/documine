@@ -7,7 +7,7 @@
  * @module @/lib/documents/chunking
  */
 
-import type { PageMarker, BoundingBox } from '@/lib/llamaparse/client';
+import type { PageMarker, BoundingBox } from '@/lib/docling/client';
 
 const DEFAULT_TARGET_TOKENS = 500;
 const DEFAULT_OVERLAP_TOKENS = 50;
@@ -41,7 +41,7 @@ const DEFAULT_OPTIONS: ChunkOptions = {
  * 4. Add overlap between consecutive chunks
  * 5. Tag each chunk with page number
  *
- * @param markdown - Markdown content from LlamaParse
+ * @param markdown - Markdown content from Docling document parser
  * @param pageMarkers - Page boundary markers
  * @param options - Chunking options (target tokens, overlap)
  * @returns Array of document chunks with metadata
@@ -322,15 +322,15 @@ export function estimateTokenCount(text: string): number {
 }
 
 /**
- * Extract bounding boxes from LlamaParse JSON output.
+ * Extract bounding boxes from document parser JSON output.
  * Called separately when bounding box data is available.
  */
 export function extractBoundingBoxes(
-  _llamaParseJson: unknown
+  _parserJson: unknown
 ): Map<number, BoundingBox[]> {
-  // LlamaParse bounding boxes are in the JSON response
+  // Bounding boxes are in the JSON response from document parsers
   // For MVP, we return empty map as bounding boxes are optional (AC-4.6.5: NULL if not available)
-  // Full implementation would parse llamaparse JSON response for bbox coordinates
+  // Full implementation would parse the JSON response for bbox coordinates
   return new Map();
 }
 
@@ -348,7 +348,7 @@ export function attachBoundingBoxes(
   return chunks.map((chunk) => {
     const pageBoxes = boundingBoxes.get(chunk.pageNumber);
     // For now, return null as bounding box matching requires text position correlation
-    // which depends on LlamaParse JSON format
+    // which depends on document parser JSON format
     return {
       ...chunk,
       boundingBox: pageBoxes?.[0] || null,

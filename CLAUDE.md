@@ -57,16 +57,33 @@ mcp__supabase__execute_sql(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
 mcp__supabase__deploy_edge_function(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
 ```
 
+## Document Processing
+
+Document processing uses **Docling** (self-hosted) instead of LlamaParse. See `docs/deployment/docling.md` for deployment details.
+
+- **Local development:** `docker-compose up docling` then set `DOCLING_SERVICE_URL=http://localhost:8000`
+- **TypeScript client:** `src/lib/docling/client.ts`
+- **Edge Function:** `supabase/functions/process-document/index.ts`
+
 ## Known Issues / Bug Fixes
 
-### LlamaParse Page Separator (Fixed 2025-11-30)
+### LlamaParse Replaced by Docling (Story 4.8, 2025-11-30)
 
-**Issue:** All documents showed `page_count=1` regardless of actual page count.
+**Issue:** LlamaParse API had multiple issues:
+- Page separator placeholder case sensitivity (`{pageNumber}` vs `{page_number}`)
+- 75% table extraction accuracy insufficient for insurance documents
+- API costs accumulated with scale
 
-**Root Cause:** LlamaParse API uses `{pageNumber}` (camelCase) for the page separator placeholder, but code used `{page_number}` (snake_case).
+**Resolution:** Migrated to self-hosted Docling service:
+- 97.9% table extraction accuracy (IBM TableFormer model)
+- Zero API costs
+- Full data privacy
+- Same page marker format (`--- PAGE X ---`) for backward compatibility
 
-**Fix:** Changed placeholder in both files:
-- `supabase/functions/process-document/index.ts` (line 338)
-- `src/lib/llamaparse/client.ts` (line 107)
+**Files Changed:**
+- `src/lib/docling/client.ts` (new - replaces llamaparse client)
+- `src/lib/documents/chunking.ts` (updated import)
+- `supabase/functions/process-document/index.ts` (updated to call Docling)
+- `docling-service/` (new Python service)
 
-**Reference:** LlamaIndex GitHub issues #537, #721
+**Environment Variable:** `DOCLING_SERVICE_URL` replaces `LLAMA_CLOUD_API_KEY`

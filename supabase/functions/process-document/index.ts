@@ -5,15 +5,15 @@
  * 1. Check for stale jobs and mark failed
  * 2. Verify agency can process (no active job)
  * 3. Select next pending job in FIFO order
- * 4. Download PDF from Supabase Storage
- * 5. Extract text via LlamaParse API
+ * 4. Download document from Supabase Storage
+ * 5. Extract text via Docling service (self-hosted)
  * 6. Chunk text into semantic segments
  * 7. Generate embeddings via OpenAI
  * 8. Store chunks in document_chunks table
  * 9. Update document status
  * 10. Trigger next pending job for agency
  *
- * Implements AC-4.6.1 through AC-4.6.11 and AC-4.7.1 through AC-4.7.5
+ * Implements AC-4.6.1 through AC-4.6.11, AC-4.7.1 through AC-4.7.5, and AC-4.8.4
  *
  * @module supabase/functions/process-document
  */
@@ -22,7 +22,6 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Configuration
-const LLAMAPARSE_API_BASE = 'https://api.cloud.llamaindex.ai/api/parsing';
 const OPENAI_API_URL = 'https://api.openai.com/v1/embeddings';
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;
@@ -93,9 +92,9 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
-  const llamaparseKey = Deno.env.get('LLAMA_CLOUD_API_KEY');
+  const doclingServiceUrl = Deno.env.get('DOCLING_SERVICE_URL');
 
-  if (!supabaseUrl || !supabaseServiceKey || !openaiKey || !llamaparseKey) {
+  if (!supabaseUrl || !supabaseServiceKey || !openaiKey || !doclingServiceUrl) {
     return new Response(
       JSON.stringify({ success: false, error: 'Missing required environment variables' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -178,10 +177,10 @@ Deno.serve(async (req: Request) => {
     const pdfBuffer = await downloadFromStorage(supabase, processingStoragePath);
     log.info('PDF downloaded', { documentId: processingDocumentId, size: pdfBuffer.byteLength });
 
-    // Step 5: Send to LlamaParse
+    // Step 5: Send to Docling service
     const parseStartTime = Date.now();
-    const parseResult = await parsePdfWithRetry(pdfBuffer, processingStoragePath, llamaparseKey);
-    log.info('LlamaParse completed', {
+    const parseResult = await parseDocumentWithRetry(pdfBuffer, processingStoragePath, doclingServiceUrl);
+    log.info('Docling parsing completed', {
       documentId: processingDocumentId,
       duration: Date.now() - parseStartTime,
       pageCount: parseResult.pageCount,
@@ -292,29 +291,44 @@ async function downloadFromStorage(
 }
 
 // ============================================================================
-// LlamaParse Operations
+// Docling Operations (AC-4.8.4)
 // ============================================================================
 
-interface LlamaParseResult {
+interface DoclingResult {
   markdown: string;
   pageMarkers: PageMarker[];
   pageCount: number;
 }
 
-async function parsePdfWithRetry(
-  pdfBuffer: Uint8Array,
+interface DoclingApiResponse {
+  markdown: string;
+  page_markers: Array<{
+    page_number: number;
+    start_index: number;
+    end_index: number;
+  }>;
+  page_count: number;
+  processing_time_ms: number;
+}
+
+/**
+ * Parse document with retry logic.
+ * Implements AC-4.8.8: Retry logic (2 attempts with exponential backoff)
+ */
+async function parseDocumentWithRetry(
+  docBuffer: Uint8Array,
   filename: string,
-  apiKey: string
-): Promise<LlamaParseResult> {
+  serviceUrl: string
+): Promise<DoclingResult> {
   let lastError: Error | null = null;
 
-  // Retry once on failure (AC-4.6.10)
+  // Retry once on failure (AC-4.8.8)
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      return await parsePdf(pdfBuffer, filename, apiKey);
+      return await parseDocument(docBuffer, filename, serviceUrl);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      log.warn('LlamaParse failed, retrying', { attempt, error: lastError.message });
+      log.warn('Docling parse failed, retrying', { attempt, error: lastError.message });
 
       if (attempt < 2) {
         await sleep(2000 * attempt); // Exponential backoff
@@ -322,84 +336,83 @@ async function parsePdfWithRetry(
     }
   }
 
-  throw lastError || new Error('LlamaParse failed');
+  throw lastError || new Error('Docling parsing failed');
 }
 
-async function parsePdf(
-  pdfBuffer: Uint8Array,
+/**
+ * Parse document using Docling service.
+ * Implements AC-4.8.4: Edge Function calls Docling service instead of LlamaParse
+ */
+async function parseDocument(
+  docBuffer: Uint8Array,
   filename: string,
-  apiKey: string
-): Promise<LlamaParseResult> {
-  // Step 1: Upload PDF to start job
+  serviceUrl: string
+): Promise<DoclingResult> {
+  // Determine MIME type from filename
+  const ext = filename.toLowerCase().split('.').pop() || 'pdf';
+  const mimeTypes: Record<string, string> = {
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    tiff: 'image/tiff',
+    tif: 'image/tiff',
+  };
+  const mimeType = mimeTypes[ext] || 'application/octet-stream';
+
+  // Create form data with file
   const formData = new FormData();
-  const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
-  formData.append('file', blob, filename.split('/').pop() || 'document.pdf');
-  formData.append('result_type', 'markdown');
-  // Note: LlamaParse uses {pageNumber} (camelCase), not {page_number}
-  formData.append('page_separator', '--- PAGE {pageNumber} ---');
+  const blob = new Blob([docBuffer], { type: mimeType });
+  formData.append('file', blob, filename.split('/').pop() || 'document');
 
-  const uploadResponse = await fetch(`${LLAMAPARSE_API_BASE}/upload`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: formData,
-  });
+  // Send to Docling service with timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 150000); // 150s timeout (AC-4.8.4)
 
-  if (!uploadResponse.ok) {
-    const errorText = await uploadResponse.text();
-    throw new Error(`LlamaParse upload failed: ${uploadResponse.status} - ${errorText}`);
-  }
-
-  const { id: jobId } = await uploadResponse.json() as { id: string };
-
-  // Step 2: Poll for completion
-  await waitForJobCompletion(jobId, apiKey);
-
-  // Step 3: Get markdown result
-  const markdownResponse = await fetch(`${LLAMAPARSE_API_BASE}/job/${jobId}/result/markdown`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-
-  if (!markdownResponse.ok) {
-    throw new Error(`Failed to get markdown: ${markdownResponse.status}`);
-  }
-
-  const { markdown } = await markdownResponse.json() as { markdown: string };
-
-  // Extract page info
-  const { pageMarkers, pageCount } = extractPageInfo(markdown);
-
-  return { markdown, pageMarkers, pageCount };
-}
-
-async function waitForJobCompletion(jobId: string, apiKey: string): Promise<void> {
-  const maxWaitMs = 120000;
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < maxWaitMs) {
-    const response = await fetch(`${LLAMAPARSE_API_BASE}/job/${jobId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
+  try {
+    const response = await fetch(`${serviceUrl}/parse`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`Job status check failed: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Docling parse failed: ${response.status} - ${errorText}`);
     }
 
-    const status = await response.json() as { status: string; error_message?: string };
+    const data = (await response.json()) as DoclingApiResponse;
 
-    if (status.status === 'SUCCESS') {
-      return;
+    // Transform response to match expected interface
+    return {
+      markdown: data.markdown,
+      pageMarkers: data.page_markers.map((pm) => ({
+        pageNumber: pm.page_number,
+        startIndex: pm.start_index,
+        endIndex: pm.end_index,
+      })),
+      pageCount: data.page_count,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Docling parse timed out after 150 seconds');
     }
 
-    if (status.status === 'ERROR') {
-      throw new Error(`LlamaParse job failed: ${status.error_message || 'Unknown'}`);
-    }
-
-    await sleep(2000);
+    throw error;
   }
-
-  throw new Error('LlamaParse job timed out');
 }
 
+/**
+ * Extract page information from markdown content.
+ * The regex pattern matches: --- PAGE X ---
+ * This is compatible with the existing chunking service.
+ */
 function extractPageInfo(markdown: string): { pageMarkers: PageMarker[]; pageCount: number } {
   const pageMarkers: PageMarker[] = [];
   const pagePattern = /---\s*PAGE\s+(\d+)\s*---/gi;
