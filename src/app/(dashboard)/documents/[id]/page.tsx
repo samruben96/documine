@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
-import { SplitView, ChatPanelPlaceholder } from '@/components/layout/split-view';
+import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view';
 import { DocumentList } from '@/components/documents/document-list';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
+import { ChatPanel } from '@/components/chat';
+import { MobileDocumentChatTabs } from '@/components/layout/mobile-document-chat-tabs';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import {
   getDocuments,
@@ -192,6 +194,69 @@ export default function DocumentDetailPage() {
     toast.info('Upload cancelled');
   }, []);
 
+  // Document Viewer content (shared between desktop and mobile)
+  const documentViewerContent = (
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Document header */}
+      <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
+        <button
+          type="button"
+          onClick={() => router.push('/documents')}
+          className="sm:hidden p-1.5 rounded hover:bg-slate-100"
+          aria-label="Back to documents"
+        >
+          <ArrowLeft className="h-5 w-5 text-slate-600" />
+        </button>
+        {selectedDocument ? (
+          <>
+            <FileText className="h-5 w-5 text-slate-500" />
+            <h1 className="font-medium text-slate-800 truncate">
+              {selectedDocument.display_name || selectedDocument.filename}
+            </h1>
+          </>
+        ) : isLoading ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            <span className="text-sm text-slate-500">Loading...</span>
+          </div>
+        ) : (
+          <span className="text-sm text-slate-500">Document not found</span>
+        )}
+      </div>
+
+      {/* Document content placeholder */}
+      <div className="flex-1 flex items-center justify-center bg-slate-50">
+        {selectedDocument ? (
+          <div className="text-center">
+            <FileText className="mx-auto h-16 w-16 text-slate-300" />
+            <p className="mt-4 text-sm text-slate-600">
+              Document viewer coming soon
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              {selectedDocument.filename}
+            </p>
+          </div>
+        ) : !isLoading ? (
+          <div className="text-center">
+            <p className="text-sm text-slate-500">Document not found</p>
+            <button
+              type="button"
+              onClick={() => router.push('/documents')}
+              className="mt-2 text-sm text-slate-600 hover:text-slate-800 underline"
+            >
+              Back to documents
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  // Chat Panel content (shared between desktop and mobile)
+  const chatPanelContent = documentId ? (
+    <ChatPanel documentId={documentId} />
+  ) : null;
+
   return (
     <div className="h-[calc(100vh-3.5rem)]">
       <SplitView
@@ -205,68 +270,23 @@ export default function DocumentDetailPage() {
           </Sidebar>
         }
         main={
-          <div className="h-full flex">
-            {/* Document Viewer */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Document header */}
-              <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => router.push('/documents')}
-                  className="sm:hidden p-1.5 rounded hover:bg-slate-100"
-                  aria-label="Back to documents"
-                >
-                  <ArrowLeft className="h-5 w-5 text-slate-600" />
-                </button>
-                {selectedDocument ? (
-                  <>
-                    <FileText className="h-5 w-5 text-slate-500" />
-                    <h1 className="font-medium text-slate-800 truncate">
-                      {selectedDocument.display_name || selectedDocument.filename}
-                    </h1>
-                  </>
-                ) : isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                    <span className="text-sm text-slate-500">Loading...</span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-slate-500">Document not found</span>
-                )}
-              </div>
-
-              {/* Document content placeholder */}
-              <div className="flex-1 flex items-center justify-center bg-slate-50">
-                {selectedDocument ? (
-                  <div className="text-center">
-                    <FileText className="mx-auto h-16 w-16 text-slate-300" />
-                    <p className="mt-4 text-sm text-slate-600">
-                      Document viewer coming in Epic 5
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {selectedDocument.filename}
-                    </p>
-                  </div>
-                ) : !isLoading ? (
-                  <div className="text-center">
-                    <p className="text-sm text-slate-500">Document not found</p>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/documents')}
-                      className="mt-2 text-sm text-slate-600 hover:text-slate-800 underline"
-                    >
-                      Back to documents
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+          <>
+            {/* Desktop/Tablet: Split view with document + chat side-by-side */}
+            <div className="hidden md:block h-full">
+              <DocumentChatSplitView
+                documentViewer={documentViewerContent}
+                chatPanel={chatPanelContent}
+              />
             </div>
 
-            {/* Chat Panel Placeholder - hidden on mobile/tablet */}
-            <div className="hidden lg:block w-80">
-              <ChatPanelPlaceholder />
+            {/* Mobile: Tabbed interface - AC-5.1.8 */}
+            <div className="md:hidden h-full">
+              <MobileDocumentChatTabs
+                documentViewer={documentViewerContent}
+                chatPanel={chatPanelContent}
+              />
             </div>
-          </div>
+          </>
         }
       />
 

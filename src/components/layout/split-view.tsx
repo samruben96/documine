@@ -32,6 +32,56 @@ export function SplitView({ sidebar, main, className }: SplitViewProps) {
   );
 }
 
+interface DocumentChatSplitViewProps {
+  documentViewer: React.ReactNode;
+  chatPanel: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * Document Chat Split View Component
+ *
+ * Creates a two-panel layout for document viewer + chat panel.
+ * Implements AC-5.1.1: Split-view layout with document and chat side-by-side.
+ *
+ * Layout structure:
+ * - Document Viewer (min 40% width, flexible)
+ * - Chat Panel (360px fixed width on desktop)
+ *
+ * Responsive behavior:
+ * - Desktop (>1024px): Document (flex) + Chat (360px fixed)
+ * - Tablet (640-1024px): Document (60%) + Chat (40%)
+ * - Mobile (<640px): Handled by parent with tabbed interface
+ */
+export function DocumentChatSplitView({
+  documentViewer,
+  chatPanel,
+  className,
+}: DocumentChatSplitViewProps) {
+  return (
+    <div
+      className={cn(
+        'h-full grid',
+        // Desktop: Document viewer flexible, Chat panel 360px fixed
+        'lg:grid-cols-[minmax(40%,1fr)_360px]',
+        // Tablet: Document 60%, Chat 40%
+        'md:grid-cols-[60%_40%]',
+        // Mobile: Single column (tabbed interface handled by parent)
+        'grid-cols-1',
+        className
+      )}
+    >
+      {/* Document Viewer Panel - min 40% width, flex-grow */}
+      <div className="min-w-0 overflow-hidden">{documentViewer}</div>
+
+      {/* Chat Panel - 360px fixed on desktop, 40% on tablet, hidden on mobile */}
+      <div className="hidden md:block min-w-0 overflow-hidden border-l border-slate-200">
+        {chatPanel}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Document View Placeholder Component
  *
