@@ -14,16 +14,21 @@ import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
+const MAX_CHARACTER_LIMIT = 1000;
+const CHARACTER_COUNT_THRESHOLD = 900;
+
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  isLoading?: boolean;
 }
 
 export interface ChatInputRef {
   focus: () => void;
+  setValue: (value: string) => void;
 }
 
 /**
@@ -33,19 +38,35 @@ export interface ChatInputRef {
  * Implements AC-5.1.4: Send button with arrow icon, Primary Slate color, disabled when empty
  * Implements AC-5.1.5: Enter sends message, Shift+Enter inserts newline, multi-line support
  * Implements AC-5.1.6: Auto-focus on load with visible focus indicator (2px outline)
+ * Implements AC-5.2.1: Free-form natural language input
+ * Implements AC-5.2.2: Multi-line expansion up to 4 lines with smooth animation
+ * Implements AC-5.2.3: Character count display at 900+ characters
+ * Implements AC-5.2.4: Character limit enforcement (max 1000) with inline error
+ * Implements AC-5.2.9: Input disabled during response streaming (isLoading prop)
  */
 export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
   function ChatInput(
-    { onSend, disabled = false, placeholder = 'Ask a question...', className, autoFocus = false },
+    { onSend, disabled = false, placeholder = 'Ask a question...', className, autoFocus = false, isLoading = false },
     ref
   ) {
     const [value, setValue] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Expose focus method to parent
+    // Character count state
+    const characterCount = value.length;
+    const showCharacterCount = characterCount >= CHARACTER_COUNT_THRESHOLD;
+    const isOverLimit = characterCount > MAX_CHARACTER_LIMIT;
+
+    // Combined disabled state - AC-5.2.9
+    const isInputDisabled = disabled || isLoading;
+
+    // Expose focus and setValue methods to parent - AC-5.2.6
     useImperativeHandle(ref, () => ({
       focus: () => {
         textareaRef.current?.focus();
+      },
+      setValue: (newValue: string) => {
+        setValue(newValue);
       },
     }));
 
@@ -85,7 +106,8 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     const handleSend = useCallback(() => {
       const trimmedValue = value.trim();
-      if (trimmedValue && !disabled) {
+      // AC-5.2.4: Don't send if over limit
+      if (trimmedValue && !isInputDisabled && !isOverLimit) {
         onSend(trimmedValue);
         setValue('');
         // Reset height after clearing
@@ -93,72 +115,107 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
           textareaRef.current.style.height = 'auto';
         }
       }
-    }, [value, disabled, onSend]);
+    }, [value, isInputDisabled, isOverLimit, onSend]);
 
-    // Handle keyboard shortcuts - AC-5.1.5
+    // Handle keyboard shortcuts - AC-5.1.5, AC-5.2.9
     const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      // Enter sends message (without Shift)
+      // Enter sends message (without Shift) - but not when loading (AC-5.2.9) or over limit (AC-5.2.4)
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSend();
+        if (!isLoading && !isOverLimit) {
+          handleSend();
+        }
       }
       // Shift+Enter inserts newline (default behavior, no need to handle)
     };
 
     const isEmpty = value.trim().length === 0;
-    const isDisabled = disabled || isEmpty;
+    // AC-5.2.4: Also disable send when over limit
+    const isSendDisabled = isInputDisabled || isEmpty || isOverLimit;
 
     return (
-      <div className={cn('flex items-end gap-2', className)}>
-        {/* Multi-line Textarea with Auto-resize */}
-        <div className="relative flex-1">
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
-            rows={1}
-            className={cn(
-              // Base styles
-              'w-full resize-none rounded-lg border border-slate-300 px-4 py-3',
-              'text-sm text-slate-800 bg-white',
-              // Placeholder styling - AC-5.1.3: muted text color #64748b (slate-500)
-              'placeholder:text-slate-500',
-              // Focus styling - AC-5.1.6: 2px outline focus indicator
-              'focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-0 focus:border-slate-400',
-              // Disabled state
-              'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
-              // Smooth height transition
-              'transition-[height] duration-100 ease-in-out'
+      <div className={cn('flex flex-col gap-1', className)}>
+        <div className="flex items-end gap-2">
+          {/* Multi-line Textarea with Auto-resize */}
+          <div className="relative flex-1">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isInputDisabled}
+              rows={1}
+              className={cn(
+                // Base styles
+                'w-full resize-none rounded-lg border px-4 py-3',
+                'text-sm text-slate-800 bg-white',
+                // Border color - red when over limit, slate otherwise
+                isOverLimit ? 'border-red-500' : 'border-slate-300',
+                // Placeholder styling - AC-5.1.3: muted text color #64748b (slate-500)
+                'placeholder:text-slate-500',
+                // Focus styling - AC-5.1.6: 2px outline focus indicator
+                'focus:outline-none focus:ring-2 focus:ring-offset-0',
+                isOverLimit
+                  ? 'focus:ring-red-400 focus:border-red-500'
+                  : 'focus:ring-slate-400 focus:border-slate-400',
+                // Disabled state - AC-5.2.9
+                'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
+                // Smooth height transition - AC-5.2.2
+                'transition-all duration-150 ease-in-out'
+              )}
+              aria-label="Message input"
+              aria-describedby={isOverLimit ? 'character-limit-error' : undefined}
+              aria-invalid={isOverLimit}
+              style={{ minHeight: '44px', maxHeight: '96px' }}
+            />
+            {/* Character Count Display - AC-5.2.3 */}
+            {showCharacterCount && (
+              <span
+                className={cn(
+                  'absolute right-3 bottom-2 text-xs',
+                  isOverLimit ? 'text-red-600' : 'text-slate-400'
+                )}
+                aria-live="polite"
+              >
+                {characterCount}/{MAX_CHARACTER_LIMIT}
+              </span>
             )}
-            aria-label="Message input"
-            style={{ minHeight: '44px', maxHeight: '96px' }}
-          />
+          </div>
+
+          {/* Send Button - AC-5.1.4, AC-5.2.9 */}
+          <Button
+            type="button"
+            onClick={handleSend}
+            disabled={isSendDisabled}
+            variant="default"
+            size="icon"
+            className={cn(
+              // Size for touch target - minimum 44x44px per accessibility
+              'h-11 w-11 flex-shrink-0',
+              // Primary Slate color #475569 (using slate-600)
+              'bg-slate-600 hover:bg-slate-700',
+              // Disabled state - AC-5.2.9: grayed out when loading
+              'disabled:bg-slate-300 disabled:cursor-not-allowed',
+              // Focus indicator
+              'focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2'
+            )}
+            aria-label="Send message"
+          >
+            <Send className="h-5 w-5" />
+          </Button>
         </div>
 
-        {/* Send Button - AC-5.1.4 */}
-        <Button
-          type="button"
-          onClick={handleSend}
-          disabled={isDisabled}
-          variant="default"
-          size="icon"
-          className={cn(
-            // Size for touch target - minimum 44x44px per accessibility
-            'h-11 w-11 flex-shrink-0',
-            // Primary Slate color #475569 (using slate-600)
-            'bg-slate-600 hover:bg-slate-700',
-            // Disabled state
-            'disabled:bg-slate-300 disabled:cursor-not-allowed',
-            // Focus indicator
-            'focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2'
-          )}
-          aria-label="Send message"
-        >
-          <Send className="h-5 w-5" />
-        </Button>
+        {/* Error Message - AC-5.2.4 */}
+        {isOverLimit && (
+          <p
+            id="character-limit-error"
+            className="text-xs text-red-600 px-1"
+            role="alert"
+          >
+            Message too long. Please keep it under {MAX_CHARACTER_LIMIT} characters.
+          </p>
+        )}
       </div>
     );
   }

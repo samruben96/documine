@@ -1,14 +1,12 @@
 'use client';
 
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ChatInput } from './chat-input';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { ChatInput, type ChatInputRef } from './chat-input';
+import { ChatMessage } from './chat-message';
+import { SuggestedQuestions } from './suggested-questions';
+import { ThinkingIndicator } from './thinking-indicator';
+import { useChat } from '@/hooks/use-chat';
 
 interface ChatPanelProps {
   documentId: string;
@@ -21,31 +19,48 @@ interface ChatPanelProps {
  *
  * Implements AC-5.1.2: Scrollable conversation history with fixed input area.
  * Implements AC-5.1.3: Placeholder text "Ask a question..." with muted color.
+ * Implements AC-5.2.5: Suggested questions for empty conversations.
+ * Implements AC-5.2.6: Suggested question click behavior.
+ * Implements AC-5.2.7: Message send behavior with user message display.
+ * Implements AC-5.2.8: Thinking indicator while waiting for response.
+ * Implements AC-5.2.9: Input disabled during response.
  *
  * Layout:
  * - Scrollable conversation history area
+ * - Suggested questions when conversation is empty
+ * - Thinking indicator when loading
  * - Fixed input area at bottom
  */
 export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<{ focus: () => void } | null>(null);
+  const inputRef = useRef<ChatInputRef>(null);
 
-  // Empty messages array - will be populated when chat functionality is added
-  // Memoized to prevent unnecessary re-renders
-  const messages: Message[] = useMemo(() => [], []);
+  // Use the chat hook for state management
+  const { messages, isLoading, sendMessage } = useChat(documentId);
+
+  // Determine if conversation is empty (for showing suggestions)
+  const isEmptyConversation = messages.length === 0;
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  // Handle send message - placeholder for now
-  const handleSendMessage = (message: string) => {
-    // Will be implemented in Story 5.2/5.3 with actual AI chat
-    console.log('Message sent:', message, 'for document:', documentId);
-  };
+  // Handle send message
+  const handleSendMessage = useCallback((message: string) => {
+    sendMessage(message);
+  }, [sendMessage]);
+
+  // Handle suggested question click - AC-5.2.6
+  const handleSuggestionSelect = useCallback((question: string) => {
+    // Fill the input field with the selected question
+    if (inputRef.current) {
+      inputRef.current.setValue(question);
+      inputRef.current.focus();
+    }
+  }, []);
 
   // Expose focus method to parent
   useEffect(() => {
@@ -74,9 +89,10 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
         aria-live="polite"
         aria-label="Conversation history"
       >
-        {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center px-4">
+        {isEmptyConversation && !isLoading ? (
+          // Empty state with suggested questions - AC-5.2.5
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="text-center px-4 mb-6">
               <svg
                 className="mx-auto h-12 w-12 text-slate-300"
                 fill="none"
@@ -98,12 +114,17 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
                 Get answers with source citations
               </p>
             </div>
+            {/* Suggested Questions - AC-5.2.5, AC-5.2.6 */}
+            <SuggestedQuestions onSelect={handleSuggestionSelect} />
           </div>
         ) : (
+          // Messages and thinking indicator
           <div className="space-y-4">
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
+            {/* Thinking Indicator - AC-5.2.8 */}
+            {isLoading && <ThinkingIndicator />}
           </div>
         )}
       </div>
@@ -115,42 +136,8 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
           onSend={handleSendMessage}
           placeholder="Ask a question..."
           autoFocus
+          isLoading={isLoading}
         />
-      </div>
-    </div>
-  );
-}
-
-interface ChatMessageProps {
-  message: Message;
-}
-
-/**
- * Chat Message Component
- *
- * Displays a single message in the conversation.
- * User messages: right-aligned with primary color
- * AI messages: left-aligned with surface color
- */
-function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.role === 'user';
-
-  return (
-    <div
-      className={cn(
-        'flex',
-        isUser ? 'justify-end' : 'justify-start'
-      )}
-    >
-      <div
-        className={cn(
-          'max-w-[85%] rounded-lg px-4 py-2',
-          isUser
-            ? 'bg-slate-600 text-white' // Primary Slate #475569 (using slate-600 as closest)
-            : 'bg-slate-100 text-slate-800' // Surface color
-        )}
-      >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
       </div>
     </div>
   );

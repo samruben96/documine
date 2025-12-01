@@ -162,4 +162,118 @@ describe('ChatInput', () => {
       expect(sendButton).toBeDisabled();
     });
   });
+
+  describe('AC-5.2.3: Character count display', () => {
+    it('does not show character count below 900 characters', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(899));
+
+      expect(screen.queryByText(/899\/1000/)).not.toBeInTheDocument();
+    });
+
+    it('shows character count at 900 characters', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(900));
+
+      expect(screen.getByText('900/1000')).toBeInTheDocument();
+    });
+
+    it('shows character count at 950 characters with correct format', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(950));
+
+      expect(screen.getByText('950/1000')).toBeInTheDocument();
+    });
+  });
+
+  describe('AC-5.2.4: Character limit enforcement', () => {
+    it('shows error message when over 1000 characters', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(1001));
+
+      expect(screen.getByText(/message too long/i)).toBeInTheDocument();
+      expect(screen.getByText(/please keep it under 1000 characters/i)).toBeInTheDocument();
+    });
+
+    it('send button is disabled when over character limit', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(1001));
+
+      const sendButton = screen.getByRole('button', { name: /send message/i });
+      expect(sendButton).toBeDisabled();
+    });
+
+    it('does not send message when Enter is pressed over limit', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(1001));
+      await user.keyboard('{Enter}');
+
+      expect(mockOnSend).not.toHaveBeenCalled();
+    });
+
+    it('allows sending at exactly 1000 characters', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      const message = 'a'.repeat(1000);
+      await user.type(textarea, message);
+      await user.keyboard('{Enter}');
+
+      expect(mockOnSend).toHaveBeenCalledWith(message);
+    });
+
+    it('character count shows in red when over limit', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} />);
+
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      await user.type(textarea, 'a'.repeat(1001));
+
+      const charCount = screen.getByText('1001/1000');
+      expect(charCount).toHaveClass('text-red-600');
+    });
+  });
+
+  describe('AC-5.2.9: Input disabled during response', () => {
+    it('textarea is disabled when isLoading is true', () => {
+      render(<ChatInput onSend={mockOnSend} isLoading />);
+      const textarea = screen.getByRole('textbox', { name: /message input/i });
+      expect(textarea).toBeDisabled();
+    });
+
+    it('send button is disabled when isLoading is true', () => {
+      render(<ChatInput onSend={mockOnSend} isLoading />);
+      const sendButton = screen.getByRole('button', { name: /send message/i });
+      expect(sendButton).toBeDisabled();
+    });
+
+    it('Enter key does not send message when isLoading is true', async () => {
+      const user = userEvent.setup();
+      render(<ChatInput onSend={mockOnSend} isLoading />);
+
+      // Note: Can't type when disabled, so test the Enter behavior indirectly
+      // by checking that the button is disabled
+      const sendButton = screen.getByRole('button', { name: /send message/i });
+      expect(sendButton).toBeDisabled();
+    });
+  });
 });

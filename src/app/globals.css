@@ -154,3 +154,13 @@
 .scrollbar-thumb-slate-400::-webkit-scrollbar-thumb {
   background-color: rgb(148 163 184); /* slate-400 */
 }
+
+/* Thinking indicator animation (AC-5.2.8) */
+@keyframes thinking-dot {
+  0%, 80%, 100% { opacity: 0.3; }
+  40% { opacity: 1; }
+}
+
+.animate-thinking-dot {
+  animation: thinking-dot 1.4s infinite ease-in-out;
+}
