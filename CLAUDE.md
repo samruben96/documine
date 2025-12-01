@@ -1,5 +1,19 @@
 # Project: docuMINE
 
+## GitHub Repositories
+
+| Repo | Purpose | URL |
+|------|---------|-----|
+| **documine** (main) | Next.js app, TypeScript code | https://github.com/samruben96/documine |
+| **docling-for-documine** | Python Docling service | https://github.com/samruben96/docling-for-documine |
+
+## Deployments
+
+| Service | Platform | URL |
+|---------|----------|-----|
+| Docling Service | Railway | https://docling-for-documine-production.up.railway.app |
+| Supabase | Supabase Cloud | Project ID: `qfhzvkqbbtxvmwiixlhf` |
+
 ## Project Structure
 
 - **Git repository location:** `/Users/samruben/sams-tool/documine` (NOT the parent `sams-tool` folder)
@@ -13,6 +27,7 @@ sams-tool/
 ├── .bmad/                    # BMAD framework files
 ├── docs/                     # Project documentation & sprint artifacts
 │   └── sprint-artifacts/     # Stories, tech specs, sprint status
+├── docling-for-documine/     # Docling service (separate git repo)
 └── documine/                 # ← MAIN CODE REPO (git root is here)
     ├── src/
     ├── __tests__/
