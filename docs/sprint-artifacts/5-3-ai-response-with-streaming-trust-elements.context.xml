@@ -1,0 +1,301 @@
+<story-context id="story-5.3" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>3</storyId>
+    <title>AI Response with Streaming & Trust Elements</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-3-ai-response-with-streaming-trust-elements.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to receive AI answers that stream in word-by-word with source citations and confidence indicators</iWant>
+    <soThat>I can read answers quickly and verify their accuracy</soThat>
+    <tasks>
+      <task id="1" acs="5.3.2,5.3.3,5.3.4,5.3.5">Create Confidence Badge Component</task>
+      <task id="2" acs="5.3.1,5.3.6">Create Chat API Route with Streaming</task>
+      <task id="3" acs="5.3.6,5.3.7">Implement RAG Pipeline</task>
+      <task id="4" acs="5.3.1">Implement OpenAI Streaming Integration</task>
+      <task id="5" acs="5.3.2">Create Chat Service for Persistence</task>
+      <task id="6" acs="5.3.1,5.3.2">Update useChat Hook for Streaming</task>
+      <task id="7" acs="5.3.2,5.3.3,5.3.4,5.3.5">Update ChatMessage for Streaming & Trust Elements</task>
+      <task id="8" acs="5.3.8,5.3.9,5.3.10">Implement Error Handling</task>
+      <task id="9" acs="all">Update ChatPanel Integration</task>
+      <task id="10" acs="all">Testing and Verification</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="5.3.1" title="Streaming Response Display">
+      Response text streams word-by-word (50-100ms between words). User can read text as it appears.
+    </ac>
+    <ac id="5.3.2" title="Confidence Badge Display">
+      After streaming completes, confidence badge appears below response. Badge positioned directly after response content.
+    </ac>
+    <ac id="5.3.3" title="High Confidence Badge">
+      Green background (#d1fae5), checkmark icon, text "High Confidence"
+    </ac>
+    <ac id="5.3.4" title="Needs Review Badge">
+      Amber background (#fef3c7), warning icon, text "Needs Review"
+    </ac>
+    <ac id="5.3.5" title="Not Found Badge">
+      Gray background (#f1f5f9), circle icon, text "Not Found"
+    </ac>
+    <ac id="5.3.6" title="Confidence Thresholds">
+      >=0.85 similarity = High Confidence; 0.60-0.84 = Needs Review; &lt;0.60 or no chunks = Not Found
+    </ac>
+    <ac id="5.3.7" title="Not Found Response Handling">
+      Message: "I couldn't find information about that in this document." with Not Found badge
+    </ac>
+    <ac id="5.3.8" title="API Timeout Error">
+      Timeout (>30s): "I'm having trouble processing that. Please try again." with Retry button
+    </ac>
+    <ac id="5.3.9" title="Rate Limit Error">
+      Rate limit (429): "Too many requests. Please wait a moment." No retry button
+    </ac>
+    <ac id="5.3.10" title="Generic Error">
+      Generic errors: "Something went wrong. Please try again." with Retry button
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/prd.md" title="PRD" section="Document Q&A">
+        FR13-FR19: Natural language questions, source citations, confidence indicators, conversational flow
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Trust-Transparent AI Responses">
+        Novel pattern: Every AI response includes answer, source citation, confidence score. Thresholds: high>=0.85, needs_review>=0.60
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Streaming Response Format">
+        SSE format: text, source, confidence, done events. Content-Type: text/event-stream
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="API Contracts - Chat">
+        POST /api/chat (streaming): Request {documentId, message, conversationId?}, SSE response stream
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Tech Spec Epic 5" section="Story 5.3">
+        Detailed AC specs, streaming architecture, confidence badge colors, error handling specs
+      </doc>
+      <doc path="docs/epics.md" title="Epics" section="Epic 5: Document Q&A">
+        7 stories for chat interface, natural language input, AI response, source citations, document viewer, conversation history, responsive design
+      </doc>
+      <doc path="docs/sprint-artifacts/5-2-natural-language-query-input.md" title="Previous Story" section="Dev Agent Record">
+        Learnings: useChat hook foundation, ChatMessage styling, ThinkingIndicator, 80+ tests, placeholder response to replace
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing files to ENHANCE -->
+      <file path="src/hooks/use-chat.ts" kind="hook" symbol="useChat" reason="Add SSE streaming, real API call, replace placeholder response">
+        <interface>
+          export interface UseChatReturn {
+            messages: ChatMessageData[];
+            isLoading: boolean;
+            error: string | null;
+            sendMessage: (content: string) => Promise&lt;void&gt;;
+            clearMessages: () => void;
+          }
+        </interface>
+      </file>
+      <file path="src/components/chat/chat-message.tsx" kind="component" symbol="ChatMessage, ChatMessageData" reason="Add ConfidenceBadge, streaming text support, sources prop">
+        <interface>
+          export interface ChatMessageData {
+            id: string;
+            role: 'user' | 'assistant';
+            content: string;
+            createdAt: Date;
+            // Add: confidence?, sources?, isStreaming?
+          }
+        </interface>
+      </file>
+      <file path="src/components/chat/chat-panel.tsx" kind="component" symbol="ChatPanel" reason="Wire real API, pass documentId, handle retry">
+        <notes>Full integration with useChat hook already exists</notes>
+      </file>
+      <file path="src/components/chat/thinking-indicator.tsx" kind="component" symbol="ThinkingIndicator" reason="Keep showing during streaming">
+        <notes>Already implemented in Story 5.2</notes>
+      </file>
+
+      <!-- Existing files to REFERENCE (patterns) -->
+      <file path="src/lib/openai/embeddings.ts" kind="service" symbol="generateEmbeddings" reason="Pattern for OpenAI API calls, retry logic, batching">
+        <interface>
+          export async function generateEmbeddings(texts: string[], apiKey: string): Promise&lt;number[][]&gt;
+          Model: text-embedding-3-small, 1536 dimensions, batch size 20
+        </interface>
+      </file>
+      <file path="src/lib/supabase/server.ts" kind="client" symbol="createClient, createServiceClient" reason="Server-side Supabase for API routes">
+        <interface>
+          export async function createClient(): Promise&lt;SupabaseClient&lt;Database&gt;&gt;
+          export function createServiceClient(): SupabaseClient&lt;Database&gt;
+        </interface>
+      </file>
+      <file path="src/lib/errors.ts" kind="errors" symbol="ErrorCode, custom error classes" reason="Error handling patterns">
+        <interface>
+          export class DocumentNotFoundError extends Error { code = 'DOCUMENT_NOT_FOUND' }
+          export class UnauthorizedError extends Error { code = 'UNAUTHORIZED' }
+          // Add: ChatError, RateLimitError for Story 5.3
+        </interface>
+      </file>
+      <file path="src/lib/utils/api-response.ts" kind="utility" symbol="successResponse, errorResponse" reason="API response formatting">
+        <interface>
+          export function successResponse&lt;T&gt;(data: T): Response
+          export function errorResponse(code: string, message: string, status?: number): Response
+        </interface>
+      </file>
+
+      <!-- Files to CREATE -->
+      <file path="src/components/chat/confidence-badge.tsx" kind="component" symbol="ConfidenceBadge" reason="NEW - Trust element display">
+        <notes>Three variants: high, needs_review, not_found with specific colors and icons</notes>
+      </file>
+      <file path="src/app/api/chat/route.ts" kind="api" symbol="POST" reason="NEW - Streaming chat endpoint">
+        <notes>SSE streaming, Zod validation, 30s timeout, RLS document access check</notes>
+      </file>
+      <file path="src/lib/chat/rag.ts" kind="service" symbol="generateRAGResponse" reason="NEW - RAG pipeline orchestration">
+        <notes>Orchestrates: embedding, vector search, prompt building, streaming</notes>
+      </file>
+      <file path="src/lib/chat/vector-search.ts" kind="service" symbol="searchSimilarChunks" reason="NEW - pgvector similarity search">
+        <notes>Cosine similarity search on document_chunks, return top 5 with scores</notes>
+      </file>
+      <file path="src/lib/chat/service.ts" kind="service" symbol="ChatService" reason="NEW - Conversation CRUD">
+        <notes>getOrCreateConversation, saveUserMessage, saveAssistantMessage, getHistory</notes>
+      </file>
+      <file path="src/lib/chat/openai-stream.ts" kind="service" symbol="streamChatResponse" reason="NEW - GPT-4o streaming">
+        <notes>Build RAG prompt, stream tokens via SSE, extract citations</notes>
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="openai" version="^6.9.1" reason="GPT-4o streaming, embeddings" />
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Database, vector search" />
+        <package name="@supabase/ssr" version="^0.7.0" reason="Server-side auth" />
+        <package name="zod" version="^4.1.13" reason="Request validation" />
+        <package name="lucide-react" version="^0.554.0" reason="Icons (CheckCircle, AlertTriangle, Circle)" />
+      </npm>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14" reason="Test runner" />
+        <package name="@testing-library/react" version="^16.3.0" reason="Component testing" />
+        <package name="happy-dom" version="^20.0.10" reason="DOM environment" />
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing error class pattern from src/lib/errors.ts</constraint>
+    <constraint type="pattern">Use successResponse/errorResponse from src/lib/utils/api-response.ts for non-streaming responses</constraint>
+    <constraint type="pattern">Use createClient() for user-authenticated operations, createServiceClient() for admin operations</constraint>
+    <constraint type="pattern">All database tables have agency_id for RLS - include in queries explicitly</constraint>
+    <constraint type="naming">Components: PascalCase (ConfidenceBadge), files: kebab-case (confidence-badge.tsx)</constraint>
+    <constraint type="naming">API routes: kebab-case (/api/chat), hooks: use-*.ts</constraint>
+    <constraint type="testing">Tests mirror src/ structure in __tests__/, use vitest-environment happy-dom</constraint>
+    <constraint type="architecture">SSE streaming format from architecture.md: data: {"type": "...", "content": ...}</constraint>
+    <constraint type="accuracy">Confidence thresholds are critical: >=0.85 high, 0.60-0.84 needs_review, &lt;0.60 not_found</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ChatMessageData" kind="type" path="src/components/chat/chat-message.tsx">
+      interface ChatMessageData {
+        id: string;
+        role: 'user' | 'assistant';
+        content: string;
+        createdAt: Date;
+        confidence?: 'high' | 'needs_review' | 'not_found';  // Story 5.3 addition
+        sources?: SourceCitation[];  // Story 5.3 addition
+        isStreaming?: boolean;  // Story 5.3 addition
+      }
+    </interface>
+    <interface name="SourceCitation" kind="type" path="src/types/index.ts (create)">
+      interface SourceCitation {
+        pageNumber: number;
+        text: string;
+        chunkId: string;
+        boundingBox?: { x: number; y: number; width: number; height: number };
+      }
+    </interface>
+    <interface name="SSEEvent" kind="type" path="src/lib/chat/types.ts (create)">
+      type SSEEventType = 'text' | 'source' | 'confidence' | 'done' | 'error';
+      interface SSEEvent {
+        type: SSEEventType;
+        content: string | SourceCitation | ConfidenceLevel | DonePayload | ErrorPayload;
+      }
+    </interface>
+    <interface name="ChatRequest" kind="schema" path="src/app/api/chat/route.ts">
+      const chatRequestSchema = z.object({
+        documentId: z.string().uuid(),
+        message: z.string().min(1).max(2000),
+        conversationId: z.string().uuid().optional(),
+      });
+    </interface>
+    <interface name="VectorSearchResult" kind="type" path="src/lib/chat/vector-search.ts">
+      interface VectorSearchResult {
+        chunkId: string;
+        content: string;
+        pageNumber: number;
+        similarity: number;
+        boundingBox?: BoundingBox;
+      }
+    </interface>
+  </interfaces>
+
+  <database>
+    <table name="conversations">
+      <column name="id" type="uuid" pk="true" />
+      <column name="agency_id" type="uuid" fk="agencies.id" />
+      <column name="document_id" type="uuid" fk="documents.id" />
+      <column name="user_id" type="uuid" fk="users.id" />
+      <column name="created_at" type="timestamptz" />
+      <column name="updated_at" type="timestamptz" />
+      <notes>RLS policy: agency_id = user's agency</notes>
+    </table>
+    <table name="chat_messages">
+      <column name="id" type="uuid" pk="true" />
+      <column name="conversation_id" type="uuid" fk="conversations.id" />
+      <column name="agency_id" type="uuid" fk="agencies.id" />
+      <column name="role" type="text" values="user|assistant" />
+      <column name="content" type="text" />
+      <column name="sources" type="jsonb" nullable="true" />
+      <column name="confidence" type="text" nullable="true" values="high|needs_review|not_found" />
+      <column name="created_at" type="timestamptz" />
+      <notes>RLS policy: agency_id = user's agency</notes>
+    </table>
+    <table name="document_chunks">
+      <column name="id" type="uuid" pk="true" />
+      <column name="document_id" type="uuid" fk="documents.id" />
+      <column name="agency_id" type="uuid" fk="agencies.id" />
+      <column name="content" type="text" />
+      <column name="page_number" type="integer" />
+      <column name="chunk_index" type="integer" />
+      <column name="embedding" type="vector(1536)" />
+      <column name="bounding_box" type="jsonb" nullable="true" />
+      <column name="created_at" type="timestamptz" />
+      <index name="idx_document_chunks_embedding" type="ivfflat" columns="embedding" />
+      <notes>Vector search: SELECT *, 1 - (embedding &lt;=&gt; query_embedding) AS similarity ORDER BY similarity DESC LIMIT 5</notes>
+    </table>
+  </database>
+
+  <tests>
+    <standards>
+      Vitest with happy-dom for React components. Use @testing-library/react for component testing.
+      Mock external services (OpenAI, Supabase) using vi.mock(). Use vi.useFakeTimers() for time-dependent tests.
+      Tests organized in __tests__/ mirroring src/ structure.
+      Existing chat tests in __tests__/components/chat/ with 80+ tests passing.
+      Current test baseline: 621+ tests - maintain or increase.
+    </standards>
+    <locations>
+      <glob>__tests__/components/chat/*.test.tsx</glob>
+      <glob>__tests__/hooks/*.test.ts</glob>
+      <glob>__tests__/lib/chat/*.test.ts</glob>
+      <glob>__tests__/app/api/chat/*.test.ts</glob>
+    </locations>
+    <ideas>
+      <idea ac="5.3.2,5.3.3,5.3.4,5.3.5">ConfidenceBadge renders correct variant (high/needs_review/not_found) with correct colors and icons</idea>
+      <idea ac="5.3.6">calculateConfidence returns correct level for threshold values (0.85, 0.60, boundary cases)</idea>
+      <idea ac="5.3.1">useChat parses SSE stream events correctly, updates message content incrementally</idea>
+      <idea ac="5.3.8,5.3.9,5.3.10">Error messages display correctly: timeout with retry, rate limit without retry, generic with retry</idea>
+      <idea ac="5.3.7">Not found response shows correct message and badge</idea>
+      <idea ac="5.3.1">API route returns proper SSE headers (Content-Type: text/event-stream)</idea>
+      <idea ac="5.3.6">Vector search returns results sorted by similarity with correct scores</idea>
+      <idea ac="5.3.2">ChatMessage shows confidence badge only after streaming completes</idea>
+    </ideas>
+  </tests>
+</story-context>

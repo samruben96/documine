@@ -15,6 +15,13 @@ interface ChatPanelProps {
 }
 
 /**
+ * Check if any message is currently streaming
+ */
+function hasStreamingMessage(messages: { isStreaming?: boolean }[]): boolean {
+  return messages.some(m => m.isStreaming);
+}
+
+/**
  * Chat Panel Component
  *
  * Implements AC-5.1.2: Scrollable conversation history with fixed input area.
@@ -36,10 +43,13 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
   const inputRef = useRef<ChatInputRef>(null);
 
   // Use the chat hook for state management
-  const { messages, isLoading, sendMessage } = useChat(documentId);
+  const { messages, isLoading, sendMessage, retryMessage } = useChat(documentId);
 
   // Determine if conversation is empty (for showing suggestions)
   const isEmptyConversation = messages.length === 0;
+
+  // Check if we're currently streaming a response
+  const isStreaming = hasStreamingMessage(messages);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -121,10 +131,14 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
           // Messages and thinking indicator
           <div className="space-y-4">
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage
+                key={message.id}
+                message={message}
+                onRetry={retryMessage}
+              />
             ))}
-            {/* Thinking Indicator - AC-5.2.8 */}
-            {isLoading && <ThinkingIndicator />}
+            {/* Thinking Indicator - AC-5.2.8 - only show when loading and not streaming */}
+            {isLoading && !isStreaming && <ThinkingIndicator />}
           </div>
         )}
       </div>
@@ -136,7 +150,7 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
           onSend={handleSendMessage}
           placeholder="Ask a question..."
           autoFocus
-          isLoading={isLoading}
+          isLoading={isLoading || isStreaming}
         />
       </div>
     </div>

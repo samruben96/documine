@@ -1,17 +1,35 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { ChatMessageData } from '@/components/chat/chat-message';
+import type { ConfidenceLevel } from '@/components/chat/confidence-badge';
+import type { SourceCitation, SSEEvent } from '@/lib/chat/types';
+
+/**
+ * Extended message data with streaming support
+ */
+export interface ExtendedChatMessageData extends ChatMessageData {
+  confidence?: ConfidenceLevel;
+  sources?: SourceCitation[];
+  isStreaming?: boolean;
+  error?: {
+    code: string;
+    message: string;
+    canRetry: boolean;
+  };
+}
 
 /**
  * Return type for the useChat hook
  */
 export interface UseChatReturn {
-  messages: ChatMessageData[];
+  messages: ExtendedChatMessageData[];
   isLoading: boolean;
   error: string | null;
   sendMessage: (content: string) => Promise<void>;
+  retryMessage: (messageId: string) => Promise<void>;
   clearMessages: () => void;
+  conversationId: string | null;
 }
 
 /**
@@ -22,30 +40,49 @@ function generateId(): string {
 }
 
 /**
+ * Parse SSE event from stream line
+ */
+function parseSSELine(line: string): SSEEvent | null {
+  if (!line.startsWith('data: ')) {
+    return null;
+  }
+
+  const data = line.slice(6);
+  if (data === '[DONE]') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(data) as SSEEvent;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * useChat Hook
  *
  * Implements AC-5.2.7: Message send behavior with optimistic UI updates
  * Implements AC-5.2.8: Loading/thinking state tracking
  * Implements AC-5.2.9: Loading state for input disabled control
- *
- * This is the foundation hook - actual API integration will be added in Story 5.3.
- * For now, it provides:
- * - Message state management
- * - Optimistic UI updates for user messages
- * - Loading state tracking
- * - Placeholder sendMessage function
+ * Implements AC-5.3.1: SSE streaming response parsing
+ * Implements AC-5.3.2: Confidence and sources storage after streaming
  *
  * @param documentId - The ID of the document being chatted about
  * @returns UseChatReturn object with messages, state, and actions
  */
 export function useChat(documentId: string): UseChatReturn {
-  const [messages, setMessages] = useState<ChatMessageData[]>([]);
+  const [messages, setMessages] = useState<ExtendedChatMessageData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Track pending retry message content
+  const pendingRetryRef = useRef<{ messageId: string; content: string } | null>(null);
 
   /**
-   * Send a message and get a response
-   * Implements optimistic UI: user message appears immediately
+   * Send a message and stream the response
+   * Implements optimistic UI and SSE streaming
    */
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
@@ -54,42 +91,226 @@ export function useChat(documentId: string): UseChatReturn {
     setError(null);
 
     // Create user message with optimistic update
-    const userMessage: ChatMessageData = {
+    const userMessage: ExtendedChatMessageData = {
       id: generateId(),
       role: 'user',
       content: content.trim(),
       createdAt: new Date(),
     };
 
-    // Add user message immediately (optimistic UI - AC-5.2.7)
-    setMessages(prev => [...prev, userMessage]);
+    // Create placeholder assistant message for streaming
+    const assistantMessageId = generateId();
+    const assistantMessage: ExtendedChatMessageData = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      createdAt: new Date(),
+      isStreaming: true,
+    };
+
+    // Add both messages immediately (optimistic UI - AC-5.2.7)
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
 
     // Set loading state (AC-5.2.8)
     setIsLoading(true);
 
     try {
-      // TODO: Story 5.3 will implement actual API call here
-      // For now, simulate a placeholder response after a short delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Make streaming request to chat API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId,
+          message: content.trim(),
+          conversationId,
+        }),
+      });
 
-      // Placeholder assistant response - will be replaced with actual API integration
-      const assistantMessage: ChatMessageData = {
-        id: generateId(),
-        role: 'assistant',
-        content: `I received your question about document ${documentId}: "${content}"\n\nThis is a placeholder response. Full AI integration will be implemented in Story 5.3.`,
-        createdAt: new Date(),
-      };
+      // Handle non-streaming error responses
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: { message: 'Request failed' } }));
+        throw new Error(errorData.error?.message || 'Something went wrong. Please try again.');
+      }
 
-      setMessages(prev => [...prev, assistantMessage]);
+      // Process SSE stream
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let collectedContent = '';
+      let collectedSources: SourceCitation[] = [];
+      let collectedConfidence: ConfidenceLevel | undefined;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const event = parseSSELine(line);
+          if (!event) continue;
+
+          switch (event.type) {
+            case 'text':
+              // Append text to message content
+              collectedContent += event.content;
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: collectedContent }
+                    : msg
+                )
+              );
+              break;
+
+            case 'source':
+              // Collect source citations
+              collectedSources.push(event.content);
+              break;
+
+            case 'confidence':
+              // Store confidence level
+              collectedConfidence = event.content;
+              break;
+
+            case 'done':
+              // Update conversation ID and finalize message
+              setConversationId(event.content.conversationId);
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        content: collectedContent,
+                        confidence: collectedConfidence,
+                        sources: collectedSources,
+                        isStreaming: false,
+                      }
+                    : msg
+                )
+              );
+              break;
+
+            case 'error':
+              // Handle error event from stream
+              const canRetry = event.content.code !== 'RATE_LIMIT';
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? {
+                        ...msg,
+                        content: event.content.message,
+                        isStreaming: false,
+                        error: {
+                          code: event.content.code,
+                          message: event.content.message,
+                          canRetry,
+                        },
+                      }
+                    : msg
+                )
+              );
+              // Store retry info if applicable
+              if (canRetry) {
+                pendingRetryRef.current = {
+                  messageId: assistantMessageId,
+                  content: content.trim(),
+                };
+              }
+              break;
+          }
+        }
+      }
+
+      // Ensure streaming is marked complete if we got here normally
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === assistantMessageId && msg.isStreaming
+            ? {
+                ...msg,
+                confidence: collectedConfidence,
+                sources: collectedSources,
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
     } catch (err) {
-      // Handle errors
+      // Handle fetch errors
       const errorMessage = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
       setError(errorMessage);
+
+      // Update the assistant message to show error
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === assistantMessageId
+            ? {
+                ...msg,
+                content: errorMessage,
+                isStreaming: false,
+                error: {
+                  code: 'FETCH_ERROR',
+                  message: errorMessage,
+                  canRetry: true,
+                },
+              }
+            : msg
+        )
+      );
+
+      // Store for retry
+      pendingRetryRef.current = {
+        messageId: assistantMessageId,
+        content: content.trim(),
+      };
+
       console.error('Chat error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [documentId]);
+  }, [documentId, conversationId]);
+
+  /**
+   * Retry a failed message
+   */
+  const retryMessage = useCallback(async (messageId: string) => {
+    // Find the failed message and its preceding user message
+    const msgIndex = messages.findIndex(m => m.id === messageId);
+    if (msgIndex < 0) return;
+
+    const failedMessage = messages[msgIndex];
+    if (!failedMessage || !failedMessage.error?.canRetry) return;
+
+    // Find the user message that triggered this
+    let userContent = '';
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg?.role === 'user') {
+        userContent = msg.content;
+        break;
+      }
+    }
+
+    if (!userContent && pendingRetryRef.current?.messageId === messageId) {
+      userContent = pendingRetryRef.current.content;
+    }
+
+    if (!userContent) return;
+
+    // Remove the failed message and resend
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    await sendMessage(userContent);
+  }, [messages, sendMessage]);
 
   /**
    * Clear all messages (for "New Chat" functionality)
@@ -98,6 +319,8 @@ export function useChat(documentId: string): UseChatReturn {
     setMessages([]);
     setError(null);
     setIsLoading(false);
+    setConversationId(null);
+    pendingRetryRef.current = null;
   }, []);
 
   return {
@@ -105,6 +328,8 @@ export function useChat(documentId: string): UseChatReturn {
     isLoading,
     error,
     sendMessage,
+    retryMessage,
     clearMessages,
+    conversationId,
   };
 }
