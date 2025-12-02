@@ -1,13 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { FileText, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+/**
+ * Ref methods exposed by MobileDocumentChatTabs
+ * Used for programmatic tab switching (AC-5.5.10)
+ */
+export interface MobileDocumentChatTabsRef {
+  switchToDocument: () => void;
+  switchToChat: () => void;
+  activeTab: 'document' | 'chat';
+}
 
 interface MobileDocumentChatTabsProps {
   documentViewer: React.ReactNode;
   chatPanel: React.ReactNode;
   className?: string;
+  onTabChange?: (tab: 'document' | 'chat') => void;
 }
 
 /**
@@ -15,19 +26,46 @@ interface MobileDocumentChatTabsProps {
  *
  * Implements AC-5.1.8: Tabbed interface with [Document] and [Chat] tabs for mobile (<640px)
  * Implements AC-5.1.9: Tab indicator with visual distinction, 44x44px minimum touch targets
+ * Implements AC-5.5.10: Programmatic tab switching for source citation navigation
  *
  * Features:
  * - Only one panel visible at a time
  * - Tab bar at top of content area
  * - Active tab has bottom border accent
  * - 44x44px minimum touch targets for accessibility
+ * - Ref methods for programmatic tab switching
  */
-export function MobileDocumentChatTabs({
-  documentViewer,
-  chatPanel,
-  className,
-}: MobileDocumentChatTabsProps) {
+export const MobileDocumentChatTabs = forwardRef<
+  MobileDocumentChatTabsRef,
+  MobileDocumentChatTabsProps
+>(function MobileDocumentChatTabs(
+  { documentViewer, chatPanel, className, onTabChange },
+  ref
+) {
   const [activeTab, setActiveTab] = useState<'document' | 'chat'>('document');
+
+  // AC-5.5.10: Programmatic tab switch to Document
+  const switchToDocument = useCallback(() => {
+    setActiveTab('document');
+    onTabChange?.('document');
+  }, [onTabChange]);
+
+  // AC-5.5.10: Programmatic tab switch to Chat
+  const switchToChat = useCallback(() => {
+    setActiveTab('chat');
+    onTabChange?.('chat');
+  }, [onTabChange]);
+
+  // AC-5.5.10: Expose methods via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      switchToDocument,
+      switchToChat,
+      activeTab,
+    }),
+    [switchToDocument, switchToChat, activeTab]
+  );
 
   return (
     <div className={cn('h-full flex flex-col', className)}>
@@ -45,7 +83,7 @@ export function MobileDocumentChatTabs({
             id="tab-document"
             aria-controls="panel-document"
             aria-selected={activeTab === 'document'}
-            onClick={() => setActiveTab('document')}
+            onClick={switchToDocument}
             className={cn(
               // Base styles - 44x44px minimum touch target
               'flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px]',
@@ -69,7 +107,7 @@ export function MobileDocumentChatTabs({
             id="tab-chat"
             aria-controls="panel-chat"
             aria-selected={activeTab === 'chat'}
-            onClick={() => setActiveTab('chat')}
+            onClick={switchToChat}
             className={cn(
               // Base styles - 44x44px minimum touch target
               'flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px]',
@@ -118,4 +156,4 @@ export function MobileDocumentChatTabs({
       </div>
     </div>
   );
-}
+});

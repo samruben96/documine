@@ -32,7 +32,7 @@ export function SplitView({ sidebar, main, className }: SplitViewProps) {
   );
 }
 
-interface DocumentChatSplitViewProps {
+export interface DocumentChatSplitViewProps {
   documentViewer: React.ReactNode;
   chatPanel: React.ReactNode;
   className?: string;

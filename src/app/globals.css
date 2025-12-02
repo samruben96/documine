@@ -164,3 +164,14 @@
 .animate-thinking-dot {
   animation: thinking-dot 1.4s infinite ease-in-out;
 }
+
+/* Page-level fallback pulse animation (AC-5.5.9) */
+@keyframes page-pulse {
+  0%, 100% { border-color: transparent; }
+  50% { border-color: #475569; } /* slate-600 */
+}
+
+.animate-page-pulse {
+  animation: page-pulse 0.5s ease-in-out 2;
+  border: 2px solid transparent;
+}

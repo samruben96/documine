@@ -12,6 +12,7 @@ interface ChatPanelProps {
   documentId: string;
   className?: string;
   onFocusInput?: () => void;
+  onSourceClick?: (source: import('@/lib/chat/types').SourceCitation) => void;
 }
 
 /**
@@ -38,7 +39,7 @@ function hasStreamingMessage(messages: { isStreaming?: boolean }[]): boolean {
  * - Thinking indicator when loading
  * - Fixed input area at bottom
  */
-export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProps) {
+export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }: ChatPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<ChatInputRef>(null);
 
@@ -135,6 +136,7 @@ export function ChatPanel({ documentId, className, onFocusInput }: ChatPanelProp
                 key={message.id}
                 message={message}
                 onRetry={retryMessage}
+                onSourceClick={onSourceClick}
               />
             ))}
             {/* Thinking Indicator - AC-5.2.8 - only show when loading and not streaming */}

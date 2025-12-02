@@ -10,7 +10,14 @@ import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view
 import { DocumentList } from '@/components/documents/document-list';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
 import { ChatPanel } from '@/components/chat';
-import { MobileDocumentChatTabs } from '@/components/layout/mobile-document-chat-tabs';
+import {
+  MobileDocumentChatTabs,
+  type MobileDocumentChatTabsRef,
+} from '@/components/layout/mobile-document-chat-tabs';
+import {
+  DocumentViewer,
+  type DocumentViewerRef,
+} from '@/components/documents/document-viewer';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import {
   getDocuments,
@@ -23,6 +30,8 @@ import {
 } from '../actions';
 import { createClient } from '@/lib/supabase/client';
 import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } from '@/lib/documents/upload';
+import { getDocumentUrl } from '@/lib/utils/storage';
+import type { SourceCitation } from '@/lib/chat/types';
 
 /**
  * Document Detail Page
@@ -39,11 +48,17 @@ export default function DocumentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
   userAgencyInfoRef.current = userAgencyInfo;
 
   const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
+
+  // Refs for document viewer and mobile tabs (AC-5.5.4, AC-5.5.10)
+  const documentViewerRef = useRef<DocumentViewerRef>(null);
+  const mobileTabsRef = useRef<MobileDocumentChatTabsRef>(null);
 
   const { agencyId } = useAgencyId();
   const { documents, setDocuments, isConnected } = useDocumentStatus({
@@ -63,6 +78,55 @@ export default function DocumentDetailPage() {
       setSelectedDocument(doc || null);
     }
   }, [documentId, documents]);
+
+  // Load PDF URL when selected document changes (AC-5.5.1)
+  useEffect(() => {
+    async function loadPdfUrl() {
+      if (!selectedDocument?.storage_path) {
+        setPdfUrl(null);
+        return;
+      }
+
+      // Only load PDF for processed documents
+      if (selectedDocument.status !== 'completed') {
+        setPdfUrl(null);
+        return;
+      }
+
+      setPdfLoading(true);
+      try {
+        const supabase = createClient();
+        const url = await getDocumentUrl(supabase, selectedDocument.storage_path);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Failed to load PDF URL:', error);
+        toast.error('Failed to load document');
+        setPdfUrl(null);
+      } finally {
+        setPdfLoading(false);
+      }
+    }
+
+    loadPdfUrl();
+  }, [selectedDocument?.id, selectedDocument?.storage_path, selectedDocument?.status]);
+
+  // Handle source citation click (AC-5.5.4, AC-5.5.10)
+  const handleSourceClick = useCallback((source: SourceCitation) => {
+    // Check if we're on mobile (via window width or ref state)
+    const isMobile = window.innerWidth < 768; // md breakpoint
+
+    if (isMobile && mobileTabsRef.current) {
+      // AC-5.5.10: Switch to Document tab first, then highlight
+      mobileTabsRef.current.switchToDocument();
+      // Small delay to allow tab switch animation
+      setTimeout(() => {
+        documentViewerRef.current?.highlightSource(source);
+      }, 100);
+    } else {
+      // Desktop: Just highlight directly
+      documentViewerRef.current?.highlightSource(source);
+    }
+  }, []);
 
   async function loadUserAgencyInfo() {
     const result = await getUserAgencyInfo();
@@ -195,57 +259,90 @@ export default function DocumentDetailPage() {
   }, []);
 
   // Document Viewer content (shared between desktop and mobile)
+  // AC-5.5.1: PDF renders with text layer enabled
   const documentViewerContent = (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Document header */}
-      <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
-        <button
-          type="button"
-          onClick={() => router.push('/documents')}
-          className="sm:hidden p-1.5 rounded hover:bg-slate-100"
-          aria-label="Back to documents"
-        >
-          <ArrowLeft className="h-5 w-5 text-slate-600" />
-        </button>
-        {selectedDocument ? (
-          <>
-            <FileText className="h-5 w-5 text-slate-500" />
-            <h1 className="font-medium text-slate-800 truncate">
-              {selectedDocument.display_name || selectedDocument.filename}
-            </h1>
-          </>
-        ) : isLoading ? (
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-            <span className="text-sm text-slate-500">Loading...</span>
-          </div>
-        ) : (
-          <span className="text-sm text-slate-500">Document not found</span>
-        )}
-      </div>
+      {/* Document header - only shown when PDF not loading */}
+      {!pdfUrl && (
+        <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/documents')}
+            className="sm:hidden p-1.5 rounded hover:bg-slate-100"
+            aria-label="Back to documents"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          {selectedDocument ? (
+            <>
+              <FileText className="h-5 w-5 text-slate-500" />
+              <h1 className="font-medium text-slate-800 truncate">
+                {selectedDocument.display_name || selectedDocument.filename}
+              </h1>
+            </>
+          ) : isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              <span className="text-sm text-slate-500">Loading...</span>
+            </div>
+          ) : (
+            <span className="text-sm text-slate-500">Document not found</span>
+          )}
+        </div>
+      )}
 
-      {/* Document content placeholder */}
-      <div className="flex-1 flex items-center justify-center bg-slate-50">
-        {selectedDocument ? (
-          <div className="text-center">
-            <FileText className="mx-auto h-16 w-16 text-slate-300" />
-            <p className="mt-4 text-sm text-slate-600">
-              Document viewer coming soon
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              {selectedDocument.filename}
-            </p>
+      {/* Document content */}
+      <div className="flex-1 overflow-hidden">
+        {pdfLoading ? (
+          <div className="h-full flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+              <p className="mt-4 text-sm text-slate-500">Loading document...</p>
+            </div>
+          </div>
+        ) : pdfUrl ? (
+          // AC-5.5.1: Actual PDF viewer with text layer
+          <DocumentViewer
+            ref={documentViewerRef}
+            pdfUrl={pdfUrl}
+            className="h-full"
+          />
+        ) : selectedDocument && selectedDocument.status !== 'completed' ? (
+          <div className="h-full flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
+              <p className="mt-4 text-sm text-slate-600">
+                Document is being processed...
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                The viewer will be available once processing completes
+              </p>
+            </div>
+          </div>
+        ) : selectedDocument ? (
+          <div className="h-full flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <FileText className="mx-auto h-16 w-16 text-slate-300" />
+              <p className="mt-4 text-sm text-slate-600">
+                Unable to load document
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {selectedDocument.filename}
+              </p>
+            </div>
           </div>
         ) : !isLoading ? (
-          <div className="text-center">
-            <p className="text-sm text-slate-500">Document not found</p>
-            <button
-              type="button"
-              onClick={() => router.push('/documents')}
-              className="mt-2 text-sm text-slate-600 hover:text-slate-800 underline"
-            >
-              Back to documents
-            </button>
+          <div className="h-full flex items-center justify-center bg-slate-50">
+            <div className="text-center">
+              <p className="text-sm text-slate-500">Document not found</p>
+              <button
+                type="button"
+                onClick={() => router.push('/documents')}
+                className="mt-2 text-sm text-slate-600 hover:text-slate-800 underline"
+              >
+                Back to documents
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
@@ -253,8 +350,9 @@ export default function DocumentDetailPage() {
   );
 
   // Chat Panel content (shared between desktop and mobile)
+  // AC-5.5.4, AC-5.5.10: Pass source click handler for scroll and highlight
   const chatPanelContent = documentId ? (
-    <ChatPanel documentId={documentId} />
+    <ChatPanel documentId={documentId} onSourceClick={handleSourceClick} />
   ) : null;
 
   return (
@@ -279,9 +377,10 @@ export default function DocumentDetailPage() {
               />
             </div>
 
-            {/* Mobile: Tabbed interface - AC-5.1.8 */}
+            {/* Mobile: Tabbed interface - AC-5.1.8, AC-5.5.10 */}
             <div className="md:hidden h-full">
               <MobileDocumentChatTabs
+                ref={mobileTabsRef}
                 documentViewer={documentViewerContent}
                 chatPanel={chatPanelContent}
               />
