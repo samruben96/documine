@@ -44,6 +44,8 @@ function SourceCitationLink({ source, onClick, className }: SourceCitationLinkPr
         // AC-5.4.2: Subtle styling - small text, muted color
         'inline-flex items-center gap-0.5',
         'text-xs text-slate-500',
+        // AC-5.7.5: Minimum 44px touch target for accessibility
+        'min-h-[44px] min-w-[44px] px-2',
         // AC-5.4.2: Underline on hover, lighter color on hover
         'hover:text-slate-700 hover:underline',
         'focus:outline-none focus:ring-1 focus:ring-slate-400 focus:ring-offset-1 rounded',
@@ -142,6 +144,8 @@ export function SourceCitationList({
           onClick={() => setIsExpanded(true)}
           className={cn(
             'text-xs text-slate-500',
+            // AC-5.7.5: Minimum 44px touch target for accessibility
+            'min-h-[44px] px-2',
             'hover:text-slate-700 hover:underline',
             'focus:outline-none focus:ring-1 focus:ring-slate-400 focus:ring-offset-1 rounded',
             'transition-colors cursor-pointer'
@@ -159,9 +163,11 @@ export function SourceCitationList({
           onClick={() => setIsExpanded(false)}
           className={cn(
             'text-xs text-slate-500',
+            // AC-5.7.5: Minimum 44px touch target for accessibility
+            'min-h-[44px] px-2 ml-1',
             'hover:text-slate-700 hover:underline',
             'focus:outline-none focus:ring-1 focus:ring-slate-400 focus:ring-offset-1 rounded',
-            'transition-colors cursor-pointer ml-1'
+            'transition-colors cursor-pointer'
           )}
           aria-label="Show fewer sources"
         >

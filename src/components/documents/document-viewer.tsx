@@ -378,9 +378,9 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
               onClick={goToPrevPage}
               disabled={pageNumber <= 1 || isLoading}
               aria-label="Previous page"
-              className="h-9 w-9"
+              className="h-11 w-11"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </Button>
 
             <div className="flex items-center gap-1.5 text-sm">
@@ -404,9 +404,9 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
               onClick={goToNextPage}
               disabled={pageNumber >= numPages || isLoading}
               aria-label="Next page"
-              className="h-9 w-9"
+              className="h-11 w-11"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
@@ -418,9 +418,9 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
               onClick={fitToWidth}
               disabled={isLoading}
               aria-label="Fit to width"
-              className="h-9 w-9"
+              className="h-11 w-11"
             >
-              <Maximize2 className="h-4 w-4" />
+              <Maximize2 className="h-5 w-5" />
             </Button>
 
             <Button
@@ -429,9 +429,9 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
               onClick={zoomOut}
               disabled={scale <= MIN_ZOOM || isLoading}
               aria-label="Zoom out"
-              className="h-9 w-9"
+              className="h-11 w-11"
             >
-              <ZoomOut className="h-4 w-4" />
+              <ZoomOut className="h-5 w-5" />
             </Button>
 
             <span className="text-xs text-slate-500 w-12 text-center">
@@ -444,9 +444,9 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
               onClick={zoomIn}
               disabled={scale >= MAX_ZOOM || isLoading}
               aria-label="Zoom in"
-              className="h-9 w-9"
+              className="h-11 w-11"
             >
-              <ZoomIn className="h-4 w-4" />
+              <ZoomIn className="h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -458,6 +458,7 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
           onClick={handleContainerClick}
           role="document"
           aria-label="PDF document viewer"
+          style={{ touchAction: 'pan-x pan-y pinch-zoom' }}
         >
           {/* Loading State */}
           {isLoading && (
