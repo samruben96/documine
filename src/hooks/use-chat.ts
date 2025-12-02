@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ChatMessageData } from '@/components/chat/chat-message';
 import type { ConfidenceLevel } from '@/components/chat/confidence-badge';
 import type { SourceCitation, SSEEvent } from '@/lib/chat/types';
+import { log } from '@/lib/utils/logger';
 
 /**
  * Extended message data with streaming support
@@ -54,7 +55,8 @@ function parseSSELine(line: string): SSEEvent | null {
 
   try {
     return JSON.parse(data) as SSEEvent;
-  } catch {
+  } catch (error) {
+    log.warn('Failed to parse SSE event', { line: line.substring(0, 100), error: String(error) });
     return null;
   }
 }
@@ -95,6 +97,9 @@ export function useChat(documentId: string, options?: UseChatOptions): UseChatRe
   // Track pending retry message content
   const pendingRetryRef = useRef<{ messageId: string; content: string } | null>(null);
 
+  // Track AbortController for cancelling requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Sync conversation ID when it changes externally (e.g., from useConversation)
   useEffect(() => {
     if (options?.initialConversationId && conversationId !== options.initialConversationId) {
@@ -109,12 +114,26 @@ export function useChat(documentId: string, options?: UseChatOptions): UseChatRe
     }
   }, [options?.initialMessages, messages.length]);
 
+  // Cleanup: cancel any pending request on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   /**
    * Send a message and stream the response
    * Implements optimistic UI and SSE streaming
    */
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
+
+    // Cancel previous request if still streaming
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
     // Clear any previous errors
     setError(null);
@@ -144,6 +163,9 @@ export function useChat(documentId: string, options?: UseChatOptions): UseChatRe
     setIsLoading(true);
 
     try {
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
       // Make streaming request to chat API
       // Only include conversationId if it's not null (Zod expects string | undefined)
       const requestBody: { documentId: string; message: string; conversationId?: string } = {
@@ -160,6 +182,7 @@ export function useChat(documentId: string, options?: UseChatOptions): UseChatRe
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
+        signal: abortControllerRef.current.signal,
       });
 
       // Handle non-streaming error responses

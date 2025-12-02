@@ -88,8 +88,16 @@ development_status:
   5-4-source-citation-display: done
   5-5-document-viewer-with-highlight-navigation: done
   5-6-conversation-history-follow-up-questions: done
-  5-7-responsive-chat-experience: backlog
-  epic-5-retrospective: optional
+  5-7-responsive-chat-experience: drafted
+  # Stories 5.8-5.10 added based on RAG optimization research (2025-12-01)
+  # Story files drafted with full specifications
+  5-8-retrieval-quality-optimization: drafted
+  5-9-chunking-optimization: drafted
+  5-10-model-evaluation: drafted
+  # Story 5.11 added as bug fix (2025-12-01)
+  # Fixes streaming memory leaks, AI personality, and greeting handling
+  5-11-streaming-ai-personality-bugfix: done
+  epic-5-retrospective: completed
 
   # Epic 6: Quote Comparison
   epic-6: backlog

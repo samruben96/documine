@@ -26,9 +26,8 @@ import {
   retrieveContext,
   buildPrompt,
   chunksToSourceCitations,
-  getNotFoundMessage,
-  shouldShowNotFound,
 } from '@/lib/chat/rag';
+import { classifyIntent } from '@/lib/chat/intent';
 import { createChatStream } from '@/lib/chat/openai-stream';
 import type { SourceCitation } from '@/lib/chat/types';
 
@@ -146,25 +145,27 @@ export async function POST(request: Request): Promise<Response> {
       return errorResponse('CONFIG_ERROR', 'Service not configured', 500);
     }
 
+    // Classify query intent for logging/analytics (not used for decision making)
+    const queryIntent = classifyIntent(message);
+
+    log.info('Query intent classified', {
+      documentId,
+      intent: queryIntent,
+    });
+
     // Retrieve RAG context
-    console.log('DEBUG: Step 1 - Retrieving RAG context');
     const ragContext = await retrieveContext(
       supabase,
       documentId,
       message,
       openaiApiKey
     );
-    console.log('DEBUG: Step 2 - RAG context retrieved, chunks:', ragContext.chunks.length);
 
     // Build prompt with context
-    console.log('DEBUG: Step 3 - Building prompt');
     const promptMessages = buildPrompt(message, ragContext.chunks, previousMessages);
-    console.log('DEBUG: Step 4 - Prompt built, messages:', promptMessages.length);
 
     // Convert chunks to source citations for storage
-    console.log('DEBUG: Step 5 - Converting to source citations');
     const sources: SourceCitation[] = chunksToSourceCitations(ragContext.chunks);
-    console.log('DEBUG: Step 6 - Sources converted:', sources.length);
 
     log.info('Chat request processing', {
       documentId,
@@ -174,23 +175,15 @@ export async function POST(request: Request): Promise<Response> {
       chunksRetrieved: ragContext.chunks.length,
     });
 
-    // Handle "not found" case with immediate response
-    if (shouldShowNotFound(ragContext.confidence)) {
-      // For not_found, we still stream but with the not found message
-      const notFoundMessage = getNotFoundMessage();
-
-      // Update prompt to use not found message
-      const lastMessage = promptMessages[promptMessages.length - 1];
-      if (lastMessage) {
-        lastMessage.content =
-          `DOCUMENT CONTEXT: No relevant sections found for this query.\n\n` +
-          `USER QUESTION: ${message}\n\n` +
-          `Please respond with: "${notFoundMessage}"`;
-      }
-    }
+    // Note: We no longer force a "not found" response.
+    // The system prompt instructs GPT to say "I don't see that covered in this document"
+    // when information isn't available. This allows GPT to:
+    // - Respond naturally to greetings ("hello")
+    // - Give helpful general answers ("what can you tell me about this document?")
+    // - Appropriately say "not found" for specific questions with no matching context
+    // The confidence level is still tracked for UI display (badge color)
 
     // Create streaming response
-    console.log('DEBUG: About to create chat stream');
     log.info('Creating chat stream', {
       documentId,
       conversationId: conversation.id,
@@ -229,7 +222,6 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     // Return SSE response
-    console.log('DEBUG: Stream created, returning Response');
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -249,8 +241,6 @@ export async function POST(request: Request): Promise<Response> {
     // Log and return error with details for debugging
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error('CHAT API CAUGHT ERROR:', errorMessage);
-    console.error('CHAT API ERROR STACK:', errorStack);
     log.error(
       'Chat API error',
       error instanceof Error ? error : new Error(String(error))

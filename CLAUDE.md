@@ -162,3 +162,48 @@ Multiple bugs were discovered during Story 5.6 implementation and resolved:
   - `src/lib/chat/openai-stream.ts`
 
 **Key Learning:** In Next.js App Router, functions exported from `'use client'` files cannot be called from server-side code (API routes, server components). Pure utility functions should be in separate non-client modules.
+
+### Streaming & AI Personality Fixes (Story 5.11, 2025-12-01)
+
+Three issues fixed post-implementation:
+
+#### 1. Streaming Memory Leaks & Debug Logs
+**Issue:** Memory leaks when navigating away during streaming; DEBUG console.logs in production.
+**Fixes:**
+- Added `AbortController` to `useChat` hook - cancels pending requests on unmount or new message
+- Removed DEBUG console.log statements from `openai-stream.ts` and `route.ts`
+- Added SSE parsing error logging (was silently ignored)
+
+**Files Changed:**
+- `src/hooks/use-chat.ts` - AbortController + SSE error logging
+- `src/lib/chat/openai-stream.ts` - Removed DEBUG logs
+- `src/app/api/chat/route.ts` - Removed DEBUG logs
+
+#### 2. AI Personality Improvements
+**Issue:** AI responses inconsistent (temperature=1.0 default) and lacking personality.
+**Fixes:**
+- Set `temperature: 0.7` for balanced factual/conversational responses
+- Set `max_tokens: 1500` to prevent overly long responses
+- Enhanced system prompt with personality guidelines, response style, example phrases
+
+**Files Changed:**
+- `src/lib/chat/openai-stream.ts` - Added temperature/max_tokens
+- `src/lib/chat/rag.ts` - Rewrote SYSTEM_PROMPT with personality section
+
+#### 3. Greetings/General Questions Return "Not Found" (FIX-3)
+**Issue:** "hello" or "what can you tell me about this document?" returned "I couldn't find information about that in this document."
+**Root Cause:** Code in route.ts forced GPT to respond with canned "not found" message when RAG confidence was low, regardless of query type.
+**Fix:** Removed the forced "not found" override entirely. GPT now decides naturally based on the system prompt which says "If you can't find the information, be honest: 'I don't see that covered in this document'".
+
+**Files Changed:**
+- `src/lib/chat/intent.ts` - **NEW** - Query intent classifier (for logging/analytics)
+- `src/app/api/chat/route.ts` - Removed forced "not found" override
+
+**Key Learning:** Don't override LLM behavior with forced responses. The system prompt already instructs GPT how to handle missing context. GPT-4o is smart enough to respond conversationally to greetings, give helpful general answers, and say "not found" appropriately for unanswerable questions.
+
+**Key Configuration:**
+```typescript
+// OpenAI parameters (openai-stream.ts)
+temperature: 0.7,  // Balanced for insurance docs
+max_tokens: 1500   // Reasonable response length
+```
