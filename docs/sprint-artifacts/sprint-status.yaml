@@ -92,6 +92,9 @@ development_status:
   # Stories 5.8-5.10 added based on RAG optimization research (2025-12-01)
   # Story files drafted with full specifications
   5-8-retrieval-quality-optimization: done
+  # Story 5.8.1 added as bug fix (2025-12-02)
+  # Fixes large document processing timeouts and adds file size validation
+  5-8-1-large-document-processing: drafted
   5-9-chunking-optimization: drafted
   5-10-model-evaluation: drafted
   # Story 5.11 added as bug fix (2025-12-01)
