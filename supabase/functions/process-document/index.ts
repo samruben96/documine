@@ -55,6 +55,8 @@ interface DocumentChunk {
   pageNumber: number;
   chunkIndex: number;
   tokenCount: number;
+  chunkType: 'text' | 'table';
+  summary: string | null;
 }
 
 interface LogData {
@@ -463,8 +465,140 @@ function extractPageInfo(markdown: string): { pageMarkers: PageMarker[]; pageCou
 }
 
 // ============================================================================
-// Chunking Operations
+// Chunking Operations (Story 5.9: Table-Aware Chunking)
 // ============================================================================
+
+// Separator hierarchy for recursive splitting (most semantic to least)
+const SEPARATORS = ['\n\n', '\n', '. ', ' '];
+
+// Table detection regex - matches complete markdown tables
+const TABLE_PATTERN = /(\|[^\n]+\|\n\|[-:| ]+\|\n(?:\|[^\n]+\|\n?)+)/g;
+
+/**
+ * Extract tables from content and replace with placeholders.
+ * Story 5.9 (AC-5.9.3): Tables preserved as single chunks
+ */
+function extractTablesWithPlaceholders(content: string): {
+  textWithPlaceholders: string;
+  tables: Map<string, string>;
+} {
+  const tables = new Map<string, string>();
+  let tableIndex = 0;
+
+  const textWithPlaceholders = content.replace(TABLE_PATTERN, (match) => {
+    const placeholder = `{{TABLE_${tableIndex++}}}`;
+    tables.set(placeholder, match.trim());
+    return `\n${placeholder}\n`;
+  });
+
+  return { textWithPlaceholders, tables };
+}
+
+/**
+ * Generate a rule-based summary for a markdown table.
+ * Story 5.9 (AC-5.9.6): Summary used for embedding, raw table for answer generation.
+ */
+function generateTableSummary(tableMarkdown: string): string {
+  const lines = tableMarkdown.trim().split('\n');
+
+  if (lines.length < 2) {
+    return 'Table with unknown structure.';
+  }
+
+  const headerRow = lines[0];
+  const columns = headerRow
+    .split('|')
+    .filter((col) => col.trim())
+    .map((col) => col.trim());
+
+  const dataRows = lines.slice(2).filter((row) => row.includes('|'));
+  const rowCount = dataRows.length;
+
+  if (columns.length === 0) {
+    return `Table with ${rowCount} rows of data.`;
+  }
+
+  const columnList = columns.slice(0, 5).join(', ');
+  const columnSuffix = columns.length > 5 ? `, and ${columns.length - 5} more columns` : '';
+
+  return `Table with ${columns.length} columns (${columnList}${columnSuffix}) containing ${rowCount} rows of data.`;
+}
+
+/**
+ * RecursiveCharacterTextSplitter implementation.
+ * Story 5.9 (AC-5.9.1, AC-5.9.2): Separator hierarchy ["\n\n", "\n", ". ", " "]
+ */
+function recursiveCharacterTextSplitter(
+  text: string,
+  targetChars: number,
+  separators: string[] = SEPARATORS
+): string[] {
+  if (text.length <= targetChars) {
+    return text.trim() ? [text.trim()] : [];
+  }
+
+  if (separators.length === 0) {
+    return forceWordSplit(text, targetChars);
+  }
+
+  const separator = separators[0];
+  const remainingSeparators = separators.slice(1);
+  const splits = text.split(separator);
+
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const split of splits) {
+    const potentialChunk = currentChunk ? currentChunk + separator + split : split;
+
+    if (potentialChunk.length <= targetChars) {
+      currentChunk = potentialChunk;
+    } else {
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+      }
+
+      if (split.length > targetChars) {
+        const subChunks = recursiveCharacterTextSplitter(split, targetChars, remainingSeparators);
+        chunks.push(...subChunks);
+        currentChunk = '';
+      } else {
+        currentChunk = split;
+      }
+    }
+  }
+
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks.filter((c) => c.length > 0);
+}
+
+function forceWordSplit(text: string, targetChars: number): string[] {
+  const words = text.split(/\s+/);
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    if (current.length + word.length + 1 <= targetChars) {
+      current += (current ? ' ' : '') + word;
+    } else {
+      if (current) chunks.push(current);
+      if (word.length > targetChars) {
+        for (let i = 0; i < word.length; i += targetChars) {
+          chunks.push(word.slice(i, i + targetChars));
+        }
+        current = '';
+      } else {
+        current = word;
+      }
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
 
 function chunkMarkdown(markdown: string, pageMarkers: PageMarker[]): DocumentChunk[] {
   if (!markdown.trim()) return [];
@@ -478,14 +612,16 @@ function chunkMarkdown(markdown: string, pageMarkers: PageMarker[]): DocumentChu
   let globalIndex = 0;
 
   for (const page of pages) {
-    const pageChunks = splitIntoChunks(page.content, targetChars);
-    for (const content of pageChunks) {
-      allChunks.push({
-        content: content.trim(),
-        pageNumber: page.pageNumber,
-        chunkIndex: globalIndex++,
-        tokenCount: Math.ceil(content.length / CHARS_PER_TOKEN),
-      });
+    const pageChunks = chunkPageWithTableAwareness(
+      page.content,
+      targetChars,
+      page.pageNumber,
+      globalIndex
+    );
+
+    for (const chunk of pageChunks) {
+      allChunks.push(chunk);
+      globalIndex++;
     }
   }
 
@@ -521,46 +657,79 @@ function splitByPages(markdown: string, pageMarkers: PageMarker[]): PageContent[
   return pages.length > 0 ? pages : [{ pageNumber: 1, content: markdown }];
 }
 
-function splitIntoChunks(content: string, targetChars: number): string[] {
-  if (content.length <= targetChars) return [content];
+/**
+ * Chunk a single page's content with table awareness.
+ * Story 5.9 (AC-5.9.3, AC-5.9.4, AC-5.9.5): Tables as single chunks with metadata.
+ */
+function chunkPageWithTableAwareness(
+  content: string,
+  targetChars: number,
+  pageNumber: number,
+  startIndex: number
+): DocumentChunk[] {
+  // Step 1: Extract tables and replace with placeholders
+  const { textWithPlaceholders, tables } = extractTablesWithPlaceholders(content);
 
-  const chunks: string[] = [];
-  const paragraphs = content.split(/\n\n+/);
-  let current = '';
+  // Step 2: Split text content using recursive splitter
+  const textChunks = recursiveCharacterTextSplitter(textWithPlaceholders, targetChars);
 
-  for (const para of paragraphs) {
-    if (current.length + para.length <= targetChars) {
-      current += (current ? '\n\n' : '') + para;
-    } else {
-      if (current) chunks.push(current);
-      current = para.length > targetChars ? splitLongText(para, targetChars)[0] : para;
-      if (para.length > targetChars) {
-        chunks.push(...splitLongText(para, targetChars).slice(0, -1));
-        current = splitLongText(para, targetChars).pop() || '';
+  // Step 3: Process chunks - expand placeholders to table chunks
+  const finalChunks: DocumentChunk[] = [];
+  let chunkIndex = startIndex;
+
+  for (const chunk of textChunks) {
+    const placeholderMatches = chunk.match(/\{\{TABLE_\d+\}\}/g);
+
+    if (placeholderMatches && placeholderMatches.length > 0) {
+      let remaining = chunk;
+
+      for (const placeholder of placeholderMatches) {
+        const parts = remaining.split(placeholder);
+        const before = parts[0]?.trim();
+        remaining = parts.slice(1).join(placeholder);
+
+        if (before && before.length > 0) {
+          finalChunks.push(createTextChunk(before, pageNumber, chunkIndex++));
+        }
+
+        const tableContent = tables.get(placeholder);
+        if (tableContent) {
+          finalChunks.push(createTableChunk(tableContent, pageNumber, chunkIndex++));
+        }
       }
+
+      const after = remaining.trim();
+      if (after && after.length > 0) {
+        finalChunks.push(createTextChunk(after, pageNumber, chunkIndex++));
+      }
+    } else {
+      finalChunks.push(createTextChunk(chunk, pageNumber, chunkIndex++));
     }
   }
 
-  if (current) chunks.push(current);
-  return chunks.filter((c) => c.trim());
+  return finalChunks;
 }
 
-function splitLongText(text: string, targetChars: number): string[] {
-  const words = text.split(/\s+/);
-  const chunks: string[] = [];
-  let current = '';
+function createTextChunk(content: string, pageNumber: number, chunkIndex: number): DocumentChunk {
+  return {
+    content,
+    pageNumber,
+    chunkIndex,
+    tokenCount: Math.ceil(content.length / CHARS_PER_TOKEN),
+    chunkType: 'text',
+    summary: null,
+  };
+}
 
-  for (const word of words) {
-    if (current.length + word.length + 1 <= targetChars) {
-      current += (current ? ' ' : '') + word;
-    } else {
-      if (current) chunks.push(current);
-      current = word;
-    }
-  }
-
-  if (current) chunks.push(current);
-  return chunks;
+function createTableChunk(tableContent: string, pageNumber: number, chunkIndex: number): DocumentChunk {
+  return {
+    content: tableContent,
+    pageNumber,
+    chunkIndex,
+    tokenCount: Math.ceil(tableContent.length / CHARS_PER_TOKEN),
+    chunkType: 'table',
+    summary: generateTableSummary(tableContent),
+  };
 }
 
 function addOverlap(chunks: DocumentChunk[], overlapChars: number): DocumentChunk[] {
@@ -569,17 +738,33 @@ function addOverlap(chunks: DocumentChunk[], overlapChars: number): DocumentChun
   return chunks.map((chunk, i) => {
     if (i === 0) return chunk;
 
-    const prevContent = chunks[i - 1].content;
-    const overlap = prevContent.slice(-overlapChars).trim();
-    const separator = overlap ? '\n\n' : '';
-    const newContent = overlap + separator + chunk.content;
+    // Skip overlap for table chunks
+    if (chunk.chunkType === 'table') return chunk;
 
+    const prevChunk = chunks[i - 1];
+    if (prevChunk.chunkType === 'table') return chunk;
+
+    const overlap = getOverlapText(prevChunk.content, overlapChars);
+    if (!overlap || chunk.content.startsWith(overlap)) return chunk;
+
+    const newContent = overlap + '\n\n' + chunk.content;
     return {
       ...chunk,
       content: newContent,
       tokenCount: Math.ceil(newContent.length / CHARS_PER_TOKEN),
     };
   });
+}
+
+function getOverlapText(content: string, overlapChars: number): string {
+  if (content.length <= overlapChars) return content;
+
+  let overlap = content.slice(-overlapChars);
+  const firstSpace = overlap.indexOf(' ');
+  if (firstSpace > 0 && firstSpace < overlap.length / 2) {
+    overlap = overlap.slice(firstSpace + 1);
+  }
+  return overlap.trim();
 }
 
 // ============================================================================
@@ -843,6 +1028,7 @@ async function insertChunks(
   embeddings: number[][]
 ): Promise<void> {
   // Prepare chunks for insertion
+  // Story 5.9: Include chunk_type, summary, embedding_version
   const chunkRecords = chunks.map((chunk, i) => ({
     document_id: documentId,
     agency_id: agencyId,
@@ -851,6 +1037,9 @@ async function insertChunks(
     chunk_index: chunk.chunkIndex,
     bounding_box: null, // NULL if not available (AC-4.6.5)
     embedding: JSON.stringify(embeddings[i]), // Store as JSON string for vector column
+    chunk_type: chunk.chunkType, // Story 5.9 (AC-5.9.4)
+    summary: chunk.summary, // Story 5.9 (AC-5.9.6) - only for table chunks
+    embedding_version: 2, // Story 5.9 - version 2 for new table-aware chunking
   }));
 
   // Insert in batches of 100 to avoid payload size limits

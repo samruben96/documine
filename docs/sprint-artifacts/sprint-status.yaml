@@ -96,7 +96,7 @@ development_status:
   # Fixes large document processing timeouts and adds file size validation
   # REVIEWED 2025-12-02: Approved - test fix applied during review
   5-8-1-large-document-processing: done
-  5-9-chunking-optimization: drafted
+  5-9-chunking-optimization: done
   5-10-model-evaluation: drafted
   # Story 5.11 added as bug fix (2025-12-01)
   # Fixes streaming memory leaks, AI personality, and greeting handling

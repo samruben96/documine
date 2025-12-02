@@ -1,0 +1,879 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context Document - Story 5.9: Chunking Optimization (Phase 2)
+  Generated: 2025-12-02
+  Workflow: story-context
+
+  This context provides all relevant documentation and code artifacts
+  for implementing Story 5.9.
+-->
+<story-context epic="5" story="5.9" key="5-9-chunking-optimization">
+
+  <!-- ================================================================== -->
+  <!-- STORY INFORMATION -->
+  <!-- ================================================================== -->
+  <story-info>
+    <title>Chunking Optimization (Phase 2)</title>
+    <status>ready-for-dev</status>
+    <path>docs/sprint-artifacts/story-5.9-chunking-optimization.md</path>
+
+    <user-story>
+      <as-a>system processing insurance documents</as-a>
+      <i-want>to chunk documents more intelligently</i-want>
+      <so-that>semantic units remain intact and tables are preserved</so-that>
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC-5.9.1">
+        <title>RecursiveCharacterTextSplitter Implementation</title>
+        <description>Replace fixed-size chunking with recursive splitting using separators: ["\n\n", "\n", ". ", " "]</description>
+        <target>Chunk size: 500 tokens with 50 token overlap</target>
+      </criterion>
+      <criterion id="AC-5.9.2">
+        <title>Table-Aware Chunking</title>
+        <description>Detect tables in Docling output and emit as single chunks regardless of size</description>
+        <requirements>
+          - Table chunks include metadata: chunk_type: 'table'
+          - Table summaries generated for retrieval
+          - Raw table content stored for answer generation
+        </requirements>
+      </criterion>
+      <criterion id="AC-5.9.3">
+        <title>Document Re-processing Pipeline</title>
+        <description>Batch re-processing for existing documents with A/B testing capability</description>
+        <requirements>
+          - New embeddings stored in parallel with old
+          - Rollback capability
+        </requirements>
+      </criterion>
+      <criterion id="AC-5.9.4">
+        <title>Success Metrics</title>
+        <metrics>
+          - +15-20% improvement in semantic coherence
+          - +20% improvement for table-related queries
+          - No regression in response latency
+        </metrics>
+      </criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <dependency story="5.8" title="Retrieval Quality Optimization (Phase 1)" status="completed"/>
+    </dependencies>
+
+    <technical-notes>
+      <note>Update src/lib/documents/chunking.ts with recursive splitter</note>
+      <note>Modify supabase/functions/process-document/index.ts</note>
+      <note>Create migration for chunk metadata columns</note>
+      <note>Parallel embedding storage for A/B testing</note>
+      <note>Progress tracking for batch re-processing</note>
+    </technical-notes>
+  </story-info>
+
+  <!-- ================================================================== -->
+  <!-- EPIC CONTEXT -->
+  <!-- ================================================================== -->
+  <epic-context number="5" title="Document Q&A with Trust Transparency">
+    <goal>Enable users to have natural language conversations with their documents, with every answer backed by source citations and confidence indicators. This is the core value proposition of docuMINE.</goal>
+
+    <user-value>Users can ask questions about their insurance documents and get accurate, verifiable answers in seconds instead of hunting through PDFs manually.</user-value>
+
+    <functional-requirements>FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR32, FR34</functional-requirements>
+
+    <stories-in-epic>
+      <story id="5.1" title="Chat Interface Layout" status="completed"/>
+      <story id="5.2" title="Natural Language Query Input" status="completed"/>
+      <story id="5.3" title="AI Response with Streaming &amp; Trust Elements" status="completed"/>
+      <story id="5.4" title="Source Citation Display" status="completed"/>
+      <story id="5.5" title="Document Viewer with Highlight Navigation" status="completed"/>
+      <story id="5.6" title="Conversation History &amp; Follow-up Questions" status="completed"/>
+      <story id="5.7" title="Responsive Chat Experience" status="completed"/>
+      <story id="5.8" title="Retrieval Quality Optimization (Phase 1)" status="completed"/>
+      <story id="5.9" title="Chunking Optimization (Phase 2)" status="drafted" current="true"/>
+      <story id="5.10" title="Model Evaluation (Phase 3)" status="drafted"/>
+    </stories-in-epic>
+  </epic-context>
+
+  <!-- ================================================================== -->
+  <!-- ARCHITECTURE CONTEXT -->
+  <!-- ================================================================== -->
+  <architecture-context>
+    <tech-stack>
+      <frontend>Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui</frontend>
+      <backend>Supabase (Auth + PostgreSQL + Storage), Edge Functions</backend>
+      <ai>OpenAI GPT-4o (chat), text-embedding-3-small (embeddings), Cohere Rerank 3.5</ai>
+      <document-processing>Docling (self-hosted Python service)</document-processing>
+    </tech-stack>
+
+    <data-model>
+      <table name="document_chunks">
+        <column name="id" type="uuid" pk="true"/>
+        <column name="document_id" type="uuid" fk="documents.id"/>
+        <column name="agency_id" type="uuid" fk="agencies.id"/>
+        <column name="content" type="text"/>
+        <column name="page_number" type="integer"/>
+        <column name="chunk_index" type="integer"/>
+        <column name="bounding_box" type="jsonb" nullable="true"/>
+        <column name="embedding" type="vector(1536)"/>
+        <column name="created_at" type="timestamptz"/>
+        <!-- PROPOSED NEW COLUMNS FOR STORY 5.9 -->
+        <column name="chunk_type" type="text" nullable="true" proposed="true" description="'text' or 'table'"/>
+        <column name="table_summary" type="text" nullable="true" proposed="true" description="Summary for table chunks"/>
+        <column name="embedding_version" type="integer" default="1" proposed="true" description="For A/B testing"/>
+      </table>
+    </data-model>
+
+    <processing-pipeline>
+      <step number="1">Upload PDF to Supabase Storage</step>
+      <step number="2">Create processing_job with status='pending'</step>
+      <step number="3">Edge Function downloads PDF, sends to Docling service</step>
+      <step number="4">Docling extracts markdown with page markers and table structure</step>
+      <step number="5">Chunking service splits content (THIS STORY ENHANCES THIS STEP)</step>
+      <step number="6">Generate embeddings via OpenAI text-embedding-3-small</step>
+      <step number="7">Store chunks in document_chunks table</step>
+      <step number="8">Update document status to 'ready'</step>
+    </processing-pipeline>
+  </architecture-context>
+
+  <!-- ================================================================== -->
+  <!-- EXISTING CODE ARTIFACTS -->
+  <!-- ================================================================== -->
+  <code-artifacts>
+
+    <!-- Primary file to modify -->
+    <artifact
+      path="src/lib/documents/chunking.ts"
+      type="source"
+      relevance="critical"
+      action="modify">
+      <description>Document chunking service - main implementation target for recursive splitting and table awareness</description>
+      <current-implementation>
+        <summary>Current implementation uses fixed-size character-based splitting with overlap</summary>
+        <constants>
+          - DEFAULT_TARGET_TOKENS = 500
+          - DEFAULT_OVERLAP_TOKENS = 50
+          - CHARS_PER_TOKEN = 4 (rough approximation)
+        </constants>
+        <key-functions>
+          <function name="chunkMarkdown">Main entry point - splits by pages, then into chunks with overlap</function>
+          <function name="splitByPages">Splits content by '--- PAGE X ---' markers</function>
+          <function name="splitPageIntoChunks">Splits page content by sections (##) then paragraphs</function>
+          <function name="splitLargeParagraph">Handles paragraphs larger than target by sentence splitting</function>
+          <function name="addChunkOverlap">Adds overlap between consecutive chunks</function>
+        </key-functions>
+        <interfaces>
+          <interface name="DocumentChunk">content, pageNumber, chunkIndex, boundingBox, tokenCount</interface>
+          <interface name="ChunkOptions">targetTokens, overlapTokens</interface>
+        </interfaces>
+      </current-implementation>
+      <changes-needed>
+        <change>Implement RecursiveCharacterTextSplitter pattern with separators ["\n\n", "\n", ". ", " "]</change>
+        <change>Add table detection from markdown (Docling uses markdown tables)</change>
+        <change>Add chunk_type field to DocumentChunk interface</change>
+        <change>Add table_summary generation for table chunks</change>
+        <change>Preserve tables as single chunks regardless of size</change>
+      </changes-needed>
+    </artifact>
+
+    <!-- Edge Function - also needs updates -->
+    <artifact
+      path="supabase/functions/process-document/index.ts"
+      type="source"
+      relevance="high"
+      action="modify">
+      <description>Document processing edge function - needs to use enhanced chunking and store new metadata</description>
+      <current-implementation>
+        <summary>Orchestrates full processing pipeline from download to embedding storage</summary>
+        <chunking-code>
+          - Has own simplified chunking implementation (duplicated from chunking.ts)
+          - Uses same constants: TARGET_TOKENS=500, OVERLAP_TOKENS=50
+          - Functions: chunkMarkdown, splitByPages, splitIntoChunks, addOverlap
+        </chunking-code>
+        <insert-chunks-function>
+          - insertChunks() builds records with: document_id, agency_id, content, page_number, chunk_index, bounding_box, embedding
+          - Needs to add: chunk_type, table_summary, embedding_version
+        </insert-chunks-function>
+      </current-implementation>
+      <changes-needed>
+        <change>Import enhanced chunking from shared module OR duplicate enhanced logic</change>
+        <change>Pass new fields (chunk_type, table_summary) to insertChunks</change>
+        <change>Add embedding_version support for A/B testing</change>
+      </changes-needed>
+    </artifact>
+
+    <!-- Tests -->
+    <artifact
+      path="__tests__/unit/lib/documents/chunking.test.ts"
+      type="test"
+      relevance="high"
+      action="extend">
+      <description>Unit tests for chunking - need to add tests for table detection and recursive splitting</description>
+    </artifact>
+
+    <!-- Docling client - for understanding table output format -->
+    <artifact
+      path="src/lib/docling/client.ts"
+      type="source"
+      relevance="medium"
+      action="reference">
+      <description>Docling client - reference for understanding markdown output format including tables</description>
+      <output-format>
+        <page-markers>--- PAGE X ---</page-markers>
+        <table-format>Markdown tables with | delimiters</table-format>
+      </output-format>
+    </artifact>
+
+    <!-- RAG system - for understanding how chunks are used -->
+    <artifact
+      path="src/lib/chat/rag.ts"
+      type="source"
+      relevance="medium"
+      action="reference">
+      <description>RAG implementation - reference for how chunks are retrieved and used</description>
+      <relevance-to-story>
+        - Table summaries should be optimized for retrieval
+        - Full table content should be included in answer context
+      </relevance-to-story>
+    </artifact>
+
+  </code-artifacts>
+
+  <!-- ================================================================== -->
+  <!-- DOCLING OUTPUT ANALYSIS -->
+  <!-- ================================================================== -->
+  <docling-output-format>
+    <description>
+      Docling produces markdown output with specific formatting for tables.
+      The chunking system must detect and handle tables appropriately.
+    </description>
+
+    <page-marker-pattern>
+      <regex>---\s*PAGE\s+(\d+)\s*---</regex>
+      <example>--- PAGE 1 ---</example>
+    </page-marker-pattern>
+
+    <table-detection>
+      <description>
+        Docling outputs tables in standard markdown format.
+        Tables can be detected by:
+        1. Lines starting with | (pipe character)
+        2. Header separator line with |---|
+      </description>
+      <example><![CDATA[
+| Coverage Type | Limit | Deductible |
+|---------------|-------|------------|
+| General Liability | $1,000,000 | $5,000 |
+| Property | $500,000 | $10,000 |
+      ]]></example>
+      <detection-regex><![CDATA[
+        ^\|.*\|$           # Table row
+        ^\|[-:| ]+\|$      # Header separator
+      ]]></detection-regex>
+    </table-detection>
+
+    <table-handling-strategy>
+      <principle>Tables should remain intact as single chunks</principle>
+      <steps>
+        <step>Detect table boundaries in markdown content</step>
+        <step>Extract complete table including headers and all rows</step>
+        <step>Generate summary describing table contents for retrieval</step>
+        <step>Store full table as chunk_type='table'</step>
+        <step>Generate embedding from summary (for retrieval)</step>
+        <step>Store raw table content (for answer generation)</step>
+      </steps>
+    </table-handling-strategy>
+  </docling-output-format>
+
+  <!-- ================================================================== -->
+  <!-- RECURSIVE CHARACTER TEXT SPLITTER SPEC -->
+  <!-- ================================================================== -->
+  <recursive-splitter-spec>
+    <description>
+      RecursiveCharacterTextSplitter is a text splitting strategy from LangChain
+      that recursively tries different separators to split text into chunks
+      while preserving semantic coherence.
+    </description>
+
+    <algorithm>
+      <step number="1">Try to split text using first separator (double newline)</step>
+      <step number="2">If any segment is still too large, try next separator</step>
+      <step number="3">Continue recursively until all segments fit target size</step>
+      <step number="4">Merge small adjacent segments if under target size</step>
+      <step number="5">Add overlap between final chunks</step>
+    </algorithm>
+
+    <separators ordered="true">
+      <separator index="0" value="\n\n" description="Paragraph breaks - strongest semantic boundary"/>
+      <separator index="1" value="\n" description="Line breaks - section/list boundaries"/>
+      <separator index="2" value=". " description="Sentence boundaries"/>
+      <separator index="3" value=" " description="Word boundaries - last resort"/>
+    </separators>
+
+    <parameters>
+      <param name="chunk_size" value="500" unit="tokens"/>
+      <param name="chunk_overlap" value="50" unit="tokens"/>
+      <param name="length_function">Token count estimation (chars / 4)</param>
+    </parameters>
+
+    <pseudocode><![CDATA[
+function recursiveSplit(text, separators, targetSize, overlapSize) {
+  if (text.length <= targetSize) {
+    return [text];
+  }
+
+  const separator = separators[0];
+  const remainingSeparators = separators.slice(1);
+
+  // Split by current separator
+  const splits = text.split(separator);
+
+  const chunks = [];
+  let currentChunk = "";
+
+  for (const split of splits) {
+    if ((currentChunk + separator + split).length <= targetSize) {
+      currentChunk = currentChunk ? currentChunk + separator + split : split;
+    } else {
+      if (currentChunk) {
+        chunks.push(currentChunk);
+      }
+
+      // If split itself is too large and we have more separators
+      if (split.length > targetSize && remainingSeparators.length > 0) {
+        const subChunks = recursiveSplit(split, remainingSeparators, targetSize);
+        chunks.push(...subChunks);
+        currentChunk = "";
+      } else {
+        currentChunk = split;
+      }
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+}
+    ]]></pseudocode>
+  </recursive-splitter-spec>
+
+  <!-- ================================================================== -->
+  <!-- DATABASE MIGRATION NEEDED -->
+  <!-- ================================================================== -->
+  <database-migration>
+    <name>add_chunk_metadata_columns</name>
+    <description>Add columns for table detection and A/B testing</description>
+    <sql><![CDATA[
+-- Add chunk metadata columns for Story 5.9
+ALTER TABLE document_chunks
+ADD COLUMN IF NOT EXISTS chunk_type TEXT DEFAULT 'text' CHECK (chunk_type IN ('text', 'table'));
+
+ALTER TABLE document_chunks
+ADD COLUMN IF NOT EXISTS table_summary TEXT;
+
+-- Add embedding version for A/B testing (default 1 for existing chunks)
+ALTER TABLE document_chunks
+ADD COLUMN IF NOT EXISTS embedding_version INTEGER DEFAULT 1;
+
+-- Add index for chunk_type queries
+CREATE INDEX IF NOT EXISTS idx_document_chunks_type
+ON document_chunks(document_id, chunk_type);
+
+-- Add index for embedding version queries
+CREATE INDEX IF NOT EXISTS idx_document_chunks_version
+ON document_chunks(document_id, embedding_version);
+
+COMMENT ON COLUMN document_chunks.chunk_type IS 'Type of chunk: text or table';
+COMMENT ON COLUMN document_chunks.table_summary IS 'AI-generated summary for table chunks used in retrieval';
+COMMENT ON COLUMN document_chunks.embedding_version IS 'Version number for A/B testing different embedding strategies';
+    ]]></sql>
+  </database-migration>
+
+  <!-- ================================================================== -->
+  <!-- TABLE SUMMARY GENERATION -->
+  <!-- ================================================================== -->
+  <table-summary-spec>
+    <description>
+      For table chunks, generate a concise summary that describes:
+      1. What the table contains
+      2. Key column headers
+      3. Number of rows
+      4. Notable values if relevant
+
+      This summary is used for embedding and retrieval, while the full
+      table content is used for answer generation.
+    </description>
+
+    <approach>
+      <option name="rule-based" recommended="true">
+        Parse markdown table structure to generate summary without LLM call.
+        Faster and cheaper, sufficient for most insurance document tables.
+      </option>
+      <option name="llm-based">
+        Use GPT to generate summary. More accurate but adds latency and cost.
+        Consider for complex tables or when rule-based fails.
+      </option>
+    </approach>
+
+    <rule-based-algorithm><![CDATA[
+function generateTableSummary(tableMarkdown) {
+  const lines = tableMarkdown.trim().split('\n');
+  const headerRow = lines[0];
+  const dataRows = lines.slice(2); // Skip header separator
+
+  // Extract column names
+  const columns = headerRow
+    .split('|')
+    .filter(col => col.trim())
+    .map(col => col.trim());
+
+  // Count data rows
+  const rowCount = dataRows.filter(row => row.includes('|')).length;
+
+  return `Table with ${columns.length} columns (${columns.join(', ')}) ` +
+         `containing ${rowCount} rows of data.`;
+}
+    ]]></rule-based-algorithm>
+
+    <example>
+      <input><![CDATA[
+| Coverage Type | Limit | Deductible |
+|---------------|-------|------------|
+| General Liability | $1,000,000 | $5,000 |
+| Property | $500,000 | $10,000 |
+| Auto | $250,000 | $1,000 |
+      ]]></input>
+      <output>Table with 3 columns (Coverage Type, Limit, Deductible) containing 3 rows of data.</output>
+    </example>
+  </table-summary-spec>
+
+  <!-- ================================================================== -->
+  <!-- A/B TESTING STRATEGY -->
+  <!-- ================================================================== -->
+  <ab-testing-strategy>
+    <description>
+      Store new embeddings in parallel with existing ones to enable comparison
+      before full cutover.
+    </description>
+
+    <implementation>
+      <version number="1" description="Current chunking (fixed-size)"/>
+      <version number="2" description="Enhanced chunking (recursive + table-aware)"/>
+    </implementation>
+
+    <workflow>
+      <step number="1">Apply migration adding embedding_version column</step>
+      <step number="2">Re-process documents with new chunking, store with version=2</step>
+      <step number="3">Compare retrieval metrics between versions</step>
+      <step number="4">If version 2 better, update RAG to prefer version 2</step>
+      <step number="5">Once validated, set version 2 as default for new documents</step>
+      <step number="6">Optional: delete old version 1 chunks to save storage</step>
+    </workflow>
+
+    <rag-query-modification>
+      <description>Modify RAG query to filter by embedding_version</description>
+      <sql><![CDATA[
+SELECT * FROM match_document_chunks(
+  query_embedding := $1,
+  match_count := $2,
+  p_document_id := $3,
+  p_embedding_version := $4  -- NEW: filter by version
+)
+      ]]></sql>
+    </rag-query-modification>
+  </ab-testing-strategy>
+
+  <!-- ================================================================== -->
+  <!-- RE-PROCESSING PIPELINE -->
+  <!-- ================================================================== -->
+  <reprocessing-pipeline>
+    <description>
+      Batch re-processing of existing documents with new chunking strategy.
+      Should run in background without blocking normal operations.
+    </description>
+
+    <options>
+      <option name="edge-function" recommended="false">
+        Create new edge function for batch processing.
+        Con: Edge functions have timeout limits (550s).
+      </option>
+      <option name="cron-job" recommended="true">
+        Use Supabase scheduled function to process documents in batches.
+        Pro: Can run indefinitely, process N documents per invocation.
+      </option>
+      <option name="manual-script" recommended="false">
+        Local script that calls processing API for each document.
+        Pro: Full control. Con: Requires manual execution.
+      </option>
+    </options>
+
+    <progress-tracking>
+      <description>Track re-processing progress in database</description>
+      <table name="reprocessing_jobs" proposed="true">
+        <column name="id" type="uuid"/>
+        <column name="status" type="text" values="pending, processing, completed, failed"/>
+        <column name="total_documents" type="integer"/>
+        <column name="processed_count" type="integer"/>
+        <column name="failed_count" type="integer"/>
+        <column name="started_at" type="timestamptz"/>
+        <column name="completed_at" type="timestamptz"/>
+      </table>
+    </progress-tracking>
+  </reprocessing-pipeline>
+
+  <!-- ================================================================== -->
+  <!-- SUCCESS METRICS -->
+  <!-- ================================================================== -->
+  <success-metrics>
+    <metric name="semantic-coherence">
+      <target>+15-20% improvement</target>
+      <measurement>
+        Manual review of chunk boundaries on sample documents.
+        Score chunks on whether they contain complete semantic units.
+      </measurement>
+    </metric>
+
+    <metric name="table-query-accuracy">
+      <target>+20% improvement for table-related queries</target>
+      <measurement>
+        Test set of queries specifically targeting table data.
+        Compare retrieval recall and answer accuracy.
+      </measurement>
+    </metric>
+
+    <metric name="response-latency">
+      <target>No regression (stay under 3 seconds)</target>
+      <measurement>
+        Monitor average response time in production.
+        Ensure new chunking doesn't add processing overhead.
+      </measurement>
+    </metric>
+
+    <test-queries>
+      <query type="table">What are the coverage limits in the policy?</query>
+      <query type="table">What is the deductible for property coverage?</query>
+      <query type="table">List all exclusions in the policy.</query>
+      <query type="semantic">Is flood damage covered?</query>
+      <query type="semantic">What are my responsibilities as the insured?</query>
+    </test-queries>
+  </success-metrics>
+
+  <!-- ================================================================== -->
+  <!-- PARTY MODE ENHANCEMENTS (Agent Insights) -->
+  <!-- ================================================================== -->
+  <party-mode-insights generated="2025-12-02">
+
+    <!-- Winston (Architect) Insights -->
+    <insight agent="Winston" role="Architect">
+      <topic>Table Extraction Strategy</topic>
+      <recommendation>
+        Extract tables BEFORE recursive splitting using extract-placeholder-reinsert pattern:
+        1. Scan content for table boundaries
+        2. Replace tables with placeholders (e.g., {{TABLE_1}})
+        3. Run recursive text splitter on placeholder content
+        4. Reinsert table chunks at appropriate positions
+        This prevents tables from being split mid-row.
+      </recommendation>
+      <code-suggestion><![CDATA[
+function extractTablesWithPlaceholders(content: string): {
+  textWithPlaceholders: string;
+  tables: Map<string, string>;
+} {
+  const tables = new Map<string, string>();
+  let tableIndex = 0;
+
+  // Regex to match complete markdown tables
+  const tableRegex = /(\|[^\n]+\|\n\|[-:| ]+\|\n(?:\|[^\n]+\|\n?)+)/g;
+
+  const textWithPlaceholders = content.replace(tableRegex, (match) => {
+    const placeholder = `{{TABLE_${tableIndex++}}}`;
+    tables.set(placeholder, match);
+    return placeholder;
+  });
+
+  return { textWithPlaceholders, tables };
+}
+      ]]></code-suggestion>
+    </insight>
+
+    <insight agent="Winston" role="Architect">
+      <topic>Defensive Parsing for Docling Format Changes</topic>
+      <recommendation>
+        Add version detection and graceful degradation for Docling output changes.
+        Store detected format version in document metadata.
+      </recommendation>
+    </insight>
+
+    <!-- Amelia (Developer) Insights -->
+    <insight agent="Amelia" role="Developer">
+      <topic>Technical Debt - Duplicated Chunking Logic</topic>
+      <location>supabase/functions/process-document/index.ts:469</location>
+      <issue>Edge Function duplicates chunking implementation from src/lib/documents/chunking.ts</issue>
+      <recommendation>
+        Option A: Bundle shared chunking module for Edge Function import
+        Option B: Keep duplication but ensure both are updated together
+        For this story: Document the duplication, ensure both get updated
+      </recommendation>
+      <flag priority="medium">Refactor to shared module in future story</flag>
+    </insight>
+
+    <insight agent="Amelia" role="Developer">
+      <topic>Header-First Splitting</topic>
+      <location>src/lib/documents/chunking.ts:151</location>
+      <recommendation>
+        Current code already uses ## headers as primary split points.
+        Extend to support ### and #### for finer granularity.
+        Add new separator to list: ["\n## ", "\n### ", "\n\n", "\n", ". ", " "]
+      </recommendation>
+    </insight>
+
+    <!-- Murat (Test Architect) Insights -->
+    <insight agent="Murat" role="Test Architect">
+      <topic>Required Test Scenarios</topic>
+      <test-scenarios>
+        <scenario id="T1" risk="high">Simple table (3x3) - baseline functionality</scenario>
+        <scenario id="T2" risk="high">Large table (20+ rows) - no size limit regression</scenario>
+        <scenario id="T3" risk="medium">Tables with alignment (left/center/right)</scenario>
+        <scenario id="T4" risk="high">Tables adjacent to text (no content loss)</scenario>
+        <scenario id="T5" risk="high">Multiple tables per page (all detected)</scenario>
+        <scenario id="T6" risk="medium">Malformed tables (missing pipes, uneven columns)</scenario>
+        <scenario id="T7" risk="low">Empty tables (header only, no data rows)</scenario>
+        <scenario id="T8" risk="medium">Table at start/end of document (boundary conditions)</scenario>
+        <scenario id="T9" risk="high">Nested content within table cells (lists, bold text)</scenario>
+        <scenario id="T10" risk="medium">Tables spanning page boundaries</scenario>
+      </test-scenarios>
+    </insight>
+
+    <insight agent="Murat" role="Test Architect">
+      <topic>Performance Benchmarks</topic>
+      <benchmarks>
+        <benchmark metric="chunking_time_per_page" target="&lt; 50ms" critical="true"/>
+        <benchmark metric="memory_per_document" target="&lt; 100MB" critical="true"/>
+        <benchmark metric="batch_throughput" target="&gt; 10 docs/minute" critical="false"/>
+        <benchmark metric="table_detection_accuracy" target="&gt; 98%" critical="true"/>
+      </benchmarks>
+    </insight>
+
+    <insight agent="Murat" role="Test Architect">
+      <topic>Rollback Procedures</topic>
+      <rollback-plan>
+        <step n="1">Feature flag to switch RAG back to embedding_version=1</step>
+        <step n="2">SQL to delete version=2 chunks: DELETE FROM document_chunks WHERE embedding_version = 2</step>
+        <step n="3">Revert Edge Function deployment to previous version</step>
+        <step n="4">Document rollback timestamp and reason</step>
+      </rollback-plan>
+    </insight>
+
+    <!-- Mary (Analyst) Insights -->
+    <insight agent="Mary" role="Analyst">
+      <topic>Baseline Measurement Mechanism</topic>
+      <issue>Success criteria are aspirational without measurement baseline</issue>
+      <recommendation>
+        Before implementation, capture baseline metrics:
+        1. Run test query set against current chunks
+        2. Record: retrieval recall@5, average similarity, confidence distribution
+        3. Store baseline in docs/sprint-artifacts/5.9-baseline-metrics.json
+        4. Compare post-implementation metrics to baseline
+      </recommendation>
+      <baseline-collection-query><![CDATA[
+-- Collect baseline metrics for semantic coherence evaluation
+SELECT
+  d.id as document_id,
+  COUNT(dc.id) as chunk_count,
+  AVG(LENGTH(dc.content)) as avg_chunk_length,
+  COUNT(CASE WHEN dc.content LIKE '%|%|%' THEN 1 END) as chunks_with_tables
+FROM documents d
+JOIN document_chunks dc ON dc.document_id = d.id
+WHERE d.status = 'ready'
+GROUP BY d.id;
+      ]]></baseline-collection-query>
+    </insight>
+
+    <insight agent="Mary" role="Analyst">
+      <topic>Testable Success Criteria</topic>
+      <refined-criteria>
+        <criterion original="semantic-coherence">
+          <baseline>Count chunks that split mid-sentence or mid-paragraph</baseline>
+          <target>Reduce mid-unit splits by 15-20%</target>
+          <measurement>Manual audit of 100 chunks from 5 sample documents</measurement>
+        </criterion>
+        <criterion original="table-query-accuracy">
+          <baseline>Run 10 table-specific queries, measure recall@5</baseline>
+          <target>Improve recall@5 from ~60% to ~80% for table queries</target>
+          <measurement>Automated test with known-answer query set</measurement>
+        </criterion>
+      </refined-criteria>
+    </insight>
+
+  </party-mode-insights>
+
+  <!-- ================================================================== -->
+  <!-- ENHANCED TABLE DETECTION (from Party Mode) -->
+  <!-- ================================================================== -->
+  <enhanced-table-detection>
+    <algorithm name="extract-placeholder-reinsert">
+      <description>
+        Winston's recommended approach: extract tables before text splitting
+        to prevent tables from being split incorrectly.
+      </description>
+      <pseudocode><![CDATA[
+function chunkWithTableAwareness(content: string, options: ChunkOptions): DocumentChunk[] {
+  // Step 1: Extract tables and replace with placeholders
+  const { textWithPlaceholders, tables } = extractTablesWithPlaceholders(content);
+
+  // Step 2: Split text content using recursive splitter (tables excluded)
+  const textChunks = recursiveSplit(textWithPlaceholders, SEPARATORS, options.targetTokens);
+
+  // Step 3: Process chunks - expand placeholders back to table chunks
+  const finalChunks: DocumentChunk[] = [];
+  let chunkIndex = 0;
+
+  for (const chunk of textChunks) {
+    // Check if chunk contains table placeholder
+    const placeholderMatch = chunk.match(/\{\{TABLE_(\d+)\}\}/);
+
+    if (placeholderMatch) {
+      const placeholder = placeholderMatch[0];
+      const tableContent = tables.get(placeholder);
+
+      // Split chunk at placeholder
+      const [before, after] = chunk.split(placeholder);
+
+      // Add text before table (if any)
+      if (before.trim()) {
+        finalChunks.push(createTextChunk(before.trim(), chunkIndex++));
+      }
+
+      // Add table as its own chunk
+      if (tableContent) {
+        finalChunks.push(createTableChunk(tableContent, chunkIndex++));
+      }
+
+      // Add text after table (if any)
+      if (after.trim()) {
+        finalChunks.push(createTextChunk(after.trim(), chunkIndex++));
+      }
+    } else {
+      // Regular text chunk
+      finalChunks.push(createTextChunk(chunk, chunkIndex++));
+    }
+  }
+
+  return finalChunks;
+}
+      ]]></pseudocode>
+    </algorithm>
+
+    <table-regex-pattern><![CDATA[
+// Matches complete markdown tables including:
+// - Header row with pipes
+// - Separator row with dashes
+// - One or more data rows
+const TABLE_PATTERN = /(\|[^\n]+\|\n\|[-:| ]+\|\n(?:\|[^\n]+\|\n?)+)/g;
+
+// Test cases this pattern handles:
+// ✓ Simple 3x3 table
+// ✓ Tables with alignment markers (:---, :---:, ---:)
+// ✓ Tables with varying column counts
+// ✓ Tables with empty cells
+// ✓ Multiple tables in same content
+    ]]></table-regex-pattern>
+  </enhanced-table-detection>
+
+  <!-- ================================================================== -->
+  <!-- TEST PLAN (from Murat) -->
+  <!-- ================================================================== -->
+  <test-plan>
+    <unit-tests location="__tests__/unit/lib/documents/chunking.test.ts">
+      <test-suite name="Table Detection">
+        <test>detects simple markdown table</test>
+        <test>detects table with alignment markers</test>
+        <test>detects multiple tables in content</test>
+        <test>handles malformed table gracefully (falls back to text)</test>
+        <test>preserves table content exactly</test>
+      </test-suite>
+
+      <test-suite name="Recursive Splitting">
+        <test>splits by paragraph first</test>
+        <test>falls back to line breaks for large paragraphs</test>
+        <test>falls back to sentences for large lines</test>
+        <test>respects target token count</test>
+        <test>adds overlap between chunks</test>
+      </test-suite>
+
+      <test-suite name="Table-Aware Integration">
+        <test>extracts table, chunks text, reinserts correctly</test>
+        <test>handles text-table-text pattern</test>
+        <test>handles table at document start</test>
+        <test>handles table at document end</test>
+        <test>handles consecutive tables</test>
+      </test-suite>
+
+      <test-suite name="Table Summary Generation">
+        <test>generates summary with column names</test>
+        <test>includes row count in summary</test>
+        <test>handles empty table (header only)</test>
+        <test>handles table with many columns</test>
+      </test-suite>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Full pipeline: Docling output → chunks → embeddings</test>
+      <test>A/B version storage and retrieval</test>
+      <test>Re-processing job creates version 2 chunks</test>
+    </integration-tests>
+
+    <performance-tests>
+      <test>Chunking 100-page document under 5 seconds</test>
+      <test>Memory usage under 100MB for large documents</test>
+      <test>Batch re-processing 100 documents under 10 minutes</test>
+    </performance-tests>
+  </test-plan>
+
+  <!-- ================================================================== -->
+  <!-- IMPLEMENTATION CHECKLIST -->
+  <!-- ================================================================== -->
+  <implementation-checklist>
+    <phase name="1. Database Setup">
+      <task>Create migration for chunk_type, table_summary, embedding_version columns</task>
+      <task>Apply migration to Supabase project</task>
+      <task>Update TypeScript types (regenerate database.types.ts)</task>
+    </phase>
+
+    <phase name="2. Chunking Enhancement">
+      <task>Implement RecursiveCharacterTextSplitter in chunking.ts</task>
+      <task>Add table detection using markdown pattern matching</task>
+      <task>Add generateTableSummary function</task>
+      <task>Update DocumentChunk interface with chunk_type, table_summary</task>
+      <task>Write unit tests for new chunking logic</task>
+    </phase>
+
+    <phase name="3. Edge Function Update">
+      <task>Update process-document edge function with enhanced chunking</task>
+      <task>Add embedding_version parameter support</task>
+      <task>Update insertChunks to store new metadata fields</task>
+      <task>Deploy updated edge function</task>
+    </phase>
+
+    <phase name="4. A/B Testing Setup">
+      <task>Update RAG query to support embedding_version filter</task>
+      <task>Add feature flag for version selection</task>
+      <task>Create comparison dashboard/logging for metrics</task>
+    </phase>
+
+    <phase name="5. Re-processing">
+      <task>Implement batch re-processing job</task>
+      <task>Create progress tracking mechanism</task>
+      <task>Run re-processing on existing documents</task>
+      <task>Compare metrics between versions</task>
+    </phase>
+
+    <phase name="6. Validation">
+      <task>Test with sample insurance documents</task>
+      <task>Verify table queries return accurate results</task>
+      <task>Confirm no latency regression</task>
+      <task>Document findings and metrics</task>
+    </phase>
+  </implementation-checklist>
+
+</story-context>

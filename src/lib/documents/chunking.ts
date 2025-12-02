@@ -2,16 +2,30 @@
  * Document Chunking Service
  *
  * Splits markdown content into semantic chunks for embedding generation.
- * Implements AC-4.6.3, AC-4.6.4, AC-4.6.5: Semantic chunking with metadata.
+ * Story 5.9: Enhanced with RecursiveCharacterTextSplitter and table-aware chunking.
+ *
+ * Key Features:
+ * - Recursive text splitting with separator hierarchy ["\n\n", "\n", ". ", " "]
+ * - Table detection and preservation as single chunks
+ * - Table summary generation for retrieval optimization
+ * - Configurable chunk overlap
  *
  * @module @/lib/documents/chunking
  */
 
 import type { PageMarker, BoundingBox } from '@/lib/docling/client';
 
+// Configuration constants
 const DEFAULT_TARGET_TOKENS = 500;
 const DEFAULT_OVERLAP_TOKENS = 50;
 const CHARS_PER_TOKEN = 4; // Rough approximation
+
+// Separator hierarchy for recursive splitting (most semantic to least)
+const SEPARATORS = ['\n\n', '\n', '. ', ' '];
+
+// Table detection regex - matches complete markdown tables
+// Pattern: Header row | separator row | data rows
+const TABLE_PATTERN = /(\|[^\n]+\|\n\|[-:| ]+\|\n(?:\|[^\n]+\|\n?)+)/g;
 
 export interface ChunkOptions {
   targetTokens: number;
@@ -24,6 +38,8 @@ export interface DocumentChunk {
   chunkIndex: number;
   boundingBox: BoundingBox | null;
   tokenCount: number;
+  chunkType: 'text' | 'table';
+  summary: string | null;
 }
 
 const DEFAULT_OPTIONS: ChunkOptions = {
@@ -32,14 +48,172 @@ const DEFAULT_OPTIONS: ChunkOptions = {
 };
 
 /**
- * Chunk markdown content into semantic segments.
+ * Extract tables from content and replace with placeholders.
+ * Winston's recommended extract-placeholder-reinsert pattern.
+ */
+export function extractTablesWithPlaceholders(content: string): {
+  textWithPlaceholders: string;
+  tables: Map<string, string>;
+} {
+  const tables = new Map<string, string>();
+  let tableIndex = 0;
+
+  const textWithPlaceholders = content.replace(TABLE_PATTERN, (match) => {
+    const placeholder = `{{TABLE_${tableIndex++}}}`;
+    tables.set(placeholder, match.trim());
+    return `\n${placeholder}\n`;
+  });
+
+  return { textWithPlaceholders, tables };
+}
+
+/**
+ * Generate a rule-based summary for a markdown table.
+ * Fast and deterministic - avoids LLM calls for performance.
  *
- * Strategy:
+ * Story 5.9 (AC-5.9.6): Summary used for embedding, raw table for answer generation.
+ */
+export function generateTableSummary(tableMarkdown: string): string {
+  const lines = tableMarkdown.trim().split('\n');
+
+  if (lines.length < 2) {
+    return 'Table with unknown structure.';
+  }
+
+  const headerRow = lines[0] || '';
+
+  // Extract column names from header row
+  const columns = headerRow
+    .split('|')
+    .filter((col) => col.trim())
+    .map((col) => col.trim());
+
+  // Count data rows (skip header and separator)
+  const dataRows = lines.slice(2).filter((row) => row.includes('|'));
+  const rowCount = dataRows.length;
+
+  if (columns.length === 0) {
+    return `Table with ${rowCount} rows of data.`;
+  }
+
+  // Build summary
+  const columnList = columns.slice(0, 5).join(', ');
+  const columnSuffix = columns.length > 5 ? `, and ${columns.length - 5} more columns` : '';
+
+  return `Table with ${columns.length} columns (${columnList}${columnSuffix}) containing ${rowCount} rows of data.`;
+}
+
+/**
+ * RecursiveCharacterTextSplitter implementation.
+ * Splits text using a hierarchy of separators, recursively handling oversized segments.
+ *
+ * Story 5.9 (AC-5.9.1, AC-5.9.2): Separator hierarchy ["\n\n", "\n", ". ", " "]
+ */
+export function recursiveCharacterTextSplitter(
+  text: string,
+  targetChars: number,
+  separators: string[] = SEPARATORS
+): string[] {
+  // Base case: text fits within target
+  if (text.length <= targetChars) {
+    return text.trim() ? [text.trim()] : [];
+  }
+
+  // No more separators - force split at word boundaries
+  if (separators.length === 0) {
+    return forceWordSplit(text, targetChars);
+  }
+
+  const separator = separators[0]!;
+  const remainingSeparators = separators.slice(1);
+
+  // Split by current separator
+  const splits = text.split(separator);
+
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const split of splits) {
+    const potentialChunk = currentChunk
+      ? currentChunk + separator + split
+      : split;
+
+    if (potentialChunk.length <= targetChars) {
+      currentChunk = potentialChunk;
+    } else {
+      // Save current chunk if not empty
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+      }
+
+      // Handle segment that's too large - recurse with finer separator
+      if (split.length > targetChars) {
+        const subChunks = recursiveCharacterTextSplitter(
+          split,
+          targetChars,
+          remainingSeparators
+        );
+        chunks.push(...subChunks);
+        currentChunk = '';
+      } else {
+        currentChunk = split;
+      }
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks.filter((c) => c.length > 0);
+}
+
+/**
+ * Force split text at word boundaries when no separators work.
+ */
+function forceWordSplit(text: string, targetChars: number): string[] {
+  const words = text.split(/\s+/);
+  const chunks: string[] = [];
+  let currentChunk = '';
+
+  for (const word of words) {
+    if (currentChunk.length + word.length + 1 <= targetChars) {
+      currentChunk += (currentChunk ? ' ' : '') + word;
+    } else {
+      if (currentChunk) {
+        chunks.push(currentChunk);
+      }
+      // Handle word longer than target (rare)
+      if (word.length > targetChars) {
+        // Split word by characters as last resort
+        for (let i = 0; i < word.length; i += targetChars) {
+          chunks.push(word.slice(i, i + targetChars));
+        }
+        currentChunk = '';
+      } else {
+        currentChunk = word;
+      }
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+}
+
+/**
+ * Chunk markdown content into semantic segments with table awareness.
+ *
+ * Strategy (Story 5.9):
  * 1. Split content by page markers first
- * 2. Within each page, split by paragraph/section boundaries
- * 3. Merge small chunks, split large ones to target size
- * 4. Add overlap between consecutive chunks
- * 5. Tag each chunk with page number
+ * 2. Extract tables and replace with placeholders
+ * 3. Apply recursive text splitter to non-table content
+ * 4. Reinsert tables as separate chunks with summaries
+ * 5. Add overlap between consecutive text chunks
+ * 6. Tag each chunk with page number and type
  *
  * @param markdown - Markdown content from Docling document parser
  * @param pageMarkers - Page boundary markers
@@ -62,25 +236,25 @@ export function chunkMarkdown(
   // Split content by pages
   const pages = splitByPages(markdown, pageMarkers);
 
-  // Process each page into chunks
+  // Process each page into chunks with table awareness
   const allChunks: DocumentChunk[] = [];
   let globalChunkIndex = 0;
 
   for (const page of pages) {
-    const pageChunks = splitPageIntoChunks(page.content, targetChars, overlapChars);
+    const pageChunks = chunkPageWithTableAwareness(
+      page.content,
+      targetChars,
+      page.pageNumber,
+      globalChunkIndex
+    );
 
-    for (const chunkContent of pageChunks) {
-      allChunks.push({
-        content: chunkContent.trim(),
-        pageNumber: page.pageNumber,
-        chunkIndex: globalChunkIndex++,
-        boundingBox: null, // Bounding boxes extracted separately if available
-        tokenCount: estimateTokenCount(chunkContent),
-      });
+    for (const chunk of pageChunks) {
+      allChunks.push(chunk);
+      globalChunkIndex++;
     }
   }
 
-  // Add overlap between consecutive chunks
+  // Add overlap between consecutive text chunks (not table chunks)
   return addChunkOverlap(allChunks, overlapChars);
 }
 
@@ -134,130 +308,108 @@ function splitByPages(markdown: string, pageMarkers: PageMarker[]): PageContent[
 }
 
 /**
- * Split a single page's content into chunks respecting semantic boundaries
+ * Chunk a single page's content with table awareness.
+ * Story 5.9 (AC-5.9.3, AC-5.9.4, AC-5.9.5): Tables as single chunks with metadata.
  */
-function splitPageIntoChunks(
+function chunkPageWithTableAwareness(
   content: string,
   targetChars: number,
-  _overlapChars: number
-): string[] {
-  if (content.length <= targetChars) {
-    return [content];
-  }
+  pageNumber: number,
+  startIndex: number
+): DocumentChunk[] {
+  // Step 1: Extract tables and replace with placeholders
+  const { textWithPlaceholders, tables } = extractTablesWithPlaceholders(content);
 
-  const chunks: string[] = [];
+  // Step 2: Split text content using recursive splitter
+  const textChunks = recursiveCharacterTextSplitter(textWithPlaceholders, targetChars);
 
-  // First try to split by major sections (## headers)
-  const sections = splitByPattern(content, /(?=^##\s)/m);
+  // Step 3: Process chunks - expand placeholders to table chunks
+  const finalChunks: DocumentChunk[] = [];
+  let chunkIndex = startIndex;
 
-  for (const section of sections) {
-    if (section.length <= targetChars) {
-      chunks.push(section);
-    } else {
-      // Section too large, split by paragraphs
-      const paragraphs = splitByPattern(section, /\n\n+/);
-      let currentChunk = '';
+  for (const chunk of textChunks) {
+    // Check if chunk contains table placeholder
+    const placeholderMatches = chunk.match(/\{\{TABLE_\d+\}\}/g);
 
-      for (const para of paragraphs) {
-        if (currentChunk.length + para.length <= targetChars) {
-          currentChunk += (currentChunk ? '\n\n' : '') + para;
-        } else {
-          // Save current chunk if not empty
-          if (currentChunk) {
-            chunks.push(currentChunk);
-          }
+    if (placeholderMatches && placeholderMatches.length > 0) {
+      // Split chunk around table placeholders
+      let remaining = chunk;
 
-          // Handle paragraph larger than target
-          if (para.length > targetChars) {
-            const splitPara = splitLargeParagraph(para, targetChars);
-            chunks.push(...splitPara.slice(0, -1));
-            currentChunk = splitPara[splitPara.length - 1] || '';
-          } else {
-            currentChunk = para;
-          }
+      for (const placeholder of placeholderMatches) {
+        const parts = remaining.split(placeholder);
+        const before = parts[0]?.trim();
+        remaining = parts.slice(1).join(placeholder);
+
+        // Add text before table (if any)
+        if (before && before.length > 0) {
+          finalChunks.push(createTextChunk(before, pageNumber, chunkIndex++));
+        }
+
+        // Add table as its own chunk
+        const tableContent = tables.get(placeholder);
+        if (tableContent) {
+          finalChunks.push(createTableChunk(tableContent, pageNumber, chunkIndex++));
         }
       }
 
-      if (currentChunk) {
-        chunks.push(currentChunk);
+      // Add text after last table (if any)
+      const after = remaining.trim();
+      if (after && after.length > 0) {
+        finalChunks.push(createTextChunk(after, pageNumber, chunkIndex++));
       }
-    }
-  }
-
-  return chunks.filter((c) => c.trim().length > 0);
-}
-
-/**
- * Split content by pattern while keeping the delimiter with the following content
- */
-function splitByPattern(content: string, pattern: RegExp): string[] {
-  const parts = content.split(pattern);
-  return parts.filter((p) => p.trim().length > 0);
-}
-
-/**
- * Split a large paragraph by sentences when it exceeds target size
- */
-function splitLargeParagraph(paragraph: string, targetChars: number): string[] {
-  const sentences = paragraph.match(/[^.!?]+[.!?]+\s*/g) || [paragraph];
-  const chunks: string[] = [];
-  let currentChunk = '';
-
-  for (const sentence of sentences) {
-    if (currentChunk.length + sentence.length <= targetChars) {
-      currentChunk += sentence;
     } else {
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-      }
-
-      // Handle sentence larger than target (rare case)
-      if (sentence.length > targetChars) {
-        // Force split by character count
-        const forceSplit = forceChunkSplit(sentence, targetChars);
-        chunks.push(...forceSplit.slice(0, -1));
-        currentChunk = forceSplit[forceSplit.length - 1] || '';
-      } else {
-        currentChunk = sentence;
-      }
+      // Regular text chunk
+      finalChunks.push(createTextChunk(chunk, pageNumber, chunkIndex++));
     }
   }
 
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
-  }
-
-  return chunks;
+  return finalChunks;
 }
 
 /**
- * Force split content at word boundaries when all else fails
+ * Create a text chunk with metadata
  */
-function forceChunkSplit(content: string, targetChars: number): string[] {
-  const words = content.split(/\s+/);
-  const chunks: string[] = [];
-  let currentChunk = '';
-
-  for (const word of words) {
-    if (currentChunk.length + word.length + 1 <= targetChars) {
-      currentChunk += (currentChunk ? ' ' : '') + word;
-    } else {
-      if (currentChunk) {
-        chunks.push(currentChunk);
-      }
-      currentChunk = word;
-    }
-  }
-
-  if (currentChunk) {
-    chunks.push(currentChunk);
-  }
-
-  return chunks;
+function createTextChunk(
+  content: string,
+  pageNumber: number,
+  chunkIndex: number
+): DocumentChunk {
+  return {
+    content,
+    pageNumber,
+    chunkIndex,
+    boundingBox: null,
+    tokenCount: estimateTokenCount(content),
+    chunkType: 'text',
+    summary: null,
+  };
 }
 
 /**
- * Add overlap between consecutive chunks for context continuity
+ * Create a table chunk with metadata and summary.
+ * Story 5.9 (AC-5.9.4, AC-5.9.5, AC-5.9.6): Table preservation with summary.
+ */
+function createTableChunk(
+  tableContent: string,
+  pageNumber: number,
+  chunkIndex: number
+): DocumentChunk {
+  const summary = generateTableSummary(tableContent);
+
+  return {
+    content: tableContent,
+    pageNumber,
+    chunkIndex,
+    boundingBox: null,
+    tokenCount: estimateTokenCount(tableContent),
+    chunkType: 'table',
+    summary,
+  };
+}
+
+/**
+ * Add overlap between consecutive text chunks for context continuity.
+ * Tables don't get overlap - they're self-contained.
  */
 function addChunkOverlap(chunks: DocumentChunk[], overlapChars: number): DocumentChunk[] {
   if (chunks.length <= 1 || overlapChars <= 0) {
@@ -270,14 +422,19 @@ function addChunkOverlap(chunks: DocumentChunk[], overlapChars: number): Documen
     const chunk = chunks[i];
     if (!chunk) continue;
 
+    // Skip overlap for table chunks
+    if (chunk.chunkType === 'table') {
+      overlappedChunks.push(chunk);
+      continue;
+    }
+
     let content = chunk.content;
 
-    // Add overlap from previous chunk (last N characters)
+    // Add overlap from previous text chunk (skip if previous was table)
     if (i > 0) {
       const prevChunk = chunks[i - 1];
-      if (prevChunk) {
-        const prevContent = prevChunk.content;
-        const overlap = getOverlapText(prevContent, overlapChars);
+      if (prevChunk && prevChunk.chunkType === 'text') {
+        const overlap = getOverlapText(prevChunk.content, overlapChars);
         if (overlap && !content.startsWith(overlap)) {
           content = overlap + '\n\n' + content;
         }
