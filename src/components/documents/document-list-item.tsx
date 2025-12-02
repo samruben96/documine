@@ -5,6 +5,8 @@ import { FileText, MoreVertical, Trash2, Pencil, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
+import { ProcessingProgress } from './processing-progress';
+import type { ProgressData } from '@/hooks/use-processing-progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +27,8 @@ interface DocumentListItemProps {
   labels?: Label[];
   /** Queue position: 0 = actively processing, 1+ = position in queue */
   queuePosition?: number;
+  /** Story 5.12: Real-time processing progress data */
+  progressData?: ProgressData | null;
   isSelected?: boolean;
   onClick?: () => void;
   onDeleteClick?: () => void;
@@ -54,6 +58,7 @@ export function DocumentListItem({
   createdAt,
   labels = [],
   queuePosition,
+  progressData,
   isSelected = false,
   onClick,
   onDeleteClick,
@@ -238,12 +243,17 @@ export function DocumentListItem({
               {name}
             </p>
 
-            {/* Status indicator - AC-4.3.3, AC-4.7.4 */}
+            {/* Status indicator - AC-4.3.3, AC-4.7.4, Story 5.12 */}
             <div className="flex-shrink-0">
-              <DocumentStatusBadge
-                status={status as DocumentStatusType}
-                queuePosition={queuePosition}
-              />
+              {status === 'processing' && progressData ? (
+                // Story 5.12: Show detailed progress when available
+                <ProcessingProgress progressData={progressData} />
+              ) : (
+                <DocumentStatusBadge
+                  status={status as DocumentStatusType}
+                  queuePosition={queuePosition}
+                />
+              )}
             </div>
           </div>
 

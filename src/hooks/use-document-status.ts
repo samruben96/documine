@@ -8,6 +8,10 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/
 
 export type Document = Tables<'documents'>;
 
+// Polling interval for status updates (fallback for missed realtime events)
+const STATUS_POLL_INTERVAL_MS = 5000; // 5 seconds
+const MAX_CONSECUTIVE_ERRORS = 3; // Stop polling after this many consecutive errors
+
 interface UseDocumentStatusOptions {
   /** Agency ID for filtering realtime updates */
   agencyId: string;
@@ -49,6 +53,12 @@ export function useDocumentStatus({
   // Track previous document statuses to detect transitions
   const previousStatusRef = useRef<Map<string, string>>(new Map());
 
+  // Polling interval ref for status updates
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track consecutive fetch errors to implement backoff
+  const consecutiveErrorsRef = useRef(0);
+
   // Update previous status map when documents change
   useEffect(() => {
     const statusMap = new Map<string, string>();
@@ -57,6 +67,90 @@ export function useDocumentStatus({
     });
     previousStatusRef.current = statusMap;
   }, [documents]);
+
+  // Fetch latest document statuses from database
+  const fetchDocumentStatuses = useCallback(async () => {
+    if (!agencyId) return;
+
+    // Stop polling if too many consecutive errors (likely auth issue)
+    if (consecutiveErrorsRef.current >= MAX_CONSECUTIVE_ERRORS) {
+      return;
+    }
+
+    const supabase = createClient();
+    const { data: latestDocs, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      consecutiveErrorsRef.current++;
+      // Only log first error, not repeated ones
+      if (consecutiveErrorsRef.current === 1) {
+        console.error('Failed to fetch document statuses:', error);
+      }
+      // Stop polling after max errors
+      if (consecutiveErrorsRef.current >= MAX_CONSECUTIVE_ERRORS) {
+        console.warn('Stopping document status polling due to repeated errors');
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
+      return;
+    }
+
+    // Reset error count on successful fetch
+    consecutiveErrorsRef.current = 0;
+
+    if (latestDocs && latestDocs.length > 0) {
+      setDocuments((prev) => {
+        // Track which IDs we've seen to avoid duplicates
+        const seenIds = new Set<string>();
+
+        // Merge: update existing docs with latest data, preserve order
+        const mergedDocs: typeof latestDocs = [];
+
+        // First, process docs from database (authoritative source)
+        for (const latestDoc of latestDocs) {
+          if (seenIds.has(latestDoc.id)) continue;
+          seenIds.add(latestDoc.id);
+
+          const existingDoc = prev.find((d) => d.id === latestDoc.id);
+          const previousStatus = previousStatusRef.current.get(latestDoc.id);
+
+          // Check for status transitions
+          if (previousStatus && previousStatus !== latestDoc.status) {
+            if (previousStatus !== 'ready' && latestDoc.status === 'ready') {
+              toast.success(`${latestDoc.filename} is ready`, { duration: 4000 });
+              onDocumentReady?.(latestDoc);
+            } else if (previousStatus !== 'failed' && latestDoc.status === 'failed') {
+              toast.error(`${latestDoc.filename} processing failed`);
+              onDocumentFailed?.(latestDoc);
+            }
+          }
+
+          mergedDocs.push(existingDoc ? { ...existingDoc, ...latestDoc } : latestDoc);
+        }
+
+        // Check if anything actually changed to avoid unnecessary re-renders
+        const hasChanges = mergedDocs.some((doc, i) => {
+          const prevDoc = prev[i];
+          return !prevDoc || prevDoc.status !== doc.status || prevDoc.id !== doc.id;
+        }) || mergedDocs.length !== prev.length;
+
+        return hasChanges ? mergedDocs : prev;
+      });
+    }
+  }, [agencyId, onDocumentReady, onDocumentFailed]);
+
+  // Fetch latest status on mount (catches any changes that happened during navigation)
+  useEffect(() => {
+    if (agencyId) {
+      fetchDocumentStatuses();
+    }
+  }, [agencyId, fetchDocumentStatuses]);
 
   // Handle realtime payload
   const handleRealtimeChange = useCallback(
@@ -144,6 +238,33 @@ export function useDocumentStatus({
       }
     };
   }, [agencyId, handleRealtimeChange]);
+
+  // Polling fallback: Fetch document statuses periodically
+  // This catches any missed realtime events (race conditions, connection issues)
+  // CRITICAL: Always poll to detect status changes, not just when processing docs exist
+  // This fixes the chicken-and-egg problem where we need to detect the CHANGE to processing
+  useEffect(() => {
+    if (!agencyId) {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Always poll - this catches status changes we might miss from realtime
+    // The polling function is smart about avoiding unnecessary state updates
+    pollingIntervalRef.current = setInterval(() => {
+      fetchDocumentStatuses();
+    }, STATUS_POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [agencyId, fetchDocumentStatuses]);
 
   return {
     documents,

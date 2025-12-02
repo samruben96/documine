@@ -102,8 +102,17 @@ development_status:
   # Fixes streaming memory leaks, AI personality, and greeting handling
   5-11-streaming-ai-personality-bugfix: done
   # Story 5.12 added as enhancement (2025-12-02)
-  # Visual progress tracking for document processing (requires UX design)
-  5-12-processing-progress-visualization: drafted
+  # Visual progress tracking for document processing
+  # UX Design COMPLETE (Party Mode 2025-12-02), Context validated 2025-12-02
+  # Infrastructure fix applied 2025-12-02: Realtime + RLS policy for client access
+  # CODE REVIEWED 2025-12-02: Approved - clean implementation, all AC met
+  5-12-processing-progress-visualization: done
+  # Story 5.13 added as bug fix (2025-12-02)
+  # Docling PDF parsing robustness - handles libpdfium page-dimensions errors
+  5-13-docling-pdf-robustness: drafted
+  # Story 5.14 added as polish (2025-12-02)
+  # Fixes progress jumping and delete not reflecting in realtime
+  5-14-realtime-polish: drafted
   epic-5-retrospective: in-progress
 
   # Epic 6: Quote Comparison

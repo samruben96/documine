@@ -37,6 +37,20 @@ const CHARS_PER_TOKEN = 4;
 const DOCLING_TIMEOUT_MS = 300000; // 300s (5 min) - paid tier optimization
 const TOTAL_PROCESSING_TIMEOUT_MS = 480000; // 480s (8 min) - ensures error handling runs before platform timeout
 
+// Story 5.12: Progress reporting configuration
+// Stage weights for total_progress calculation:
+// downloading: 5% (quick), parsing: 60% (bulk), chunking: 10% (quick), embedding: 25%
+const STAGE_WEIGHTS = {
+  downloading: { start: 0, weight: 5 },
+  parsing: { start: 5, weight: 60 },
+  chunking: { start: 65, weight: 10 },
+  embedding: { start: 75, weight: 25 },
+} as const;
+
+// Progress update throttle (max once per second to avoid flooding Realtime)
+const PROGRESS_THROTTLE_MS = 1000;
+let lastProgressUpdate = 0;
+
 // Types
 interface ProcessingPayload {
   documentId: string;
@@ -62,6 +76,24 @@ interface DocumentChunk {
 interface LogData {
   [key: string]: unknown;
 }
+
+// Story 5.12: Progress data interface
+interface ProgressData {
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage_progress: number; // 0-100
+  stage_name: string; // User-friendly name
+  estimated_seconds_remaining: number | null;
+  total_progress: number; // 0-100 across all stages
+  updated_at: string;
+}
+
+// User-friendly stage names per UX design
+const STAGE_DISPLAY_NAMES: Record<ProgressData['stage'], string> = {
+  downloading: 'Loading file',
+  parsing: 'Reading document',
+  chunking: 'Preparing content',
+  embedding: 'Indexing for search',
+};
 
 // Structured logging
 const log = {
@@ -196,14 +228,55 @@ Deno.serve(async (req: Request) => {
     // Step 3: Update job status to 'processing'
     await updateJobStatus(supabase, processingDocumentId, 'processing');
 
+    // Story 5.12: Initialize progress reporting
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'downloading',
+      0,
+      estimateTimeRemaining(0, 'downloading', 0),
+      true // Force initial update
+    );
+
     // Step 4: Download PDF from Storage
     const pdfBuffer = await downloadFromStorage(supabase, processingStoragePath);
     log.info('PDF downloaded', { documentId: processingDocumentId, size: pdfBuffer.byteLength });
+
+    // Story 5.12: Report download complete
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'downloading',
+      100,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'downloading', 100),
+      true
+    );
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 5: Send to Docling service
+    // Story 5.12: Report parsing start (Docling doesn't report page-level progress, use time-based)
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'parsing',
+      0,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 0),
+      true
+    );
+
     const parseStartTime = Date.now();
     const parseResult = await parseDocumentWithRetry(pdfBuffer, processingStoragePath, doclingServiceUrl);
+
+    // Story 5.12: Report parsing complete
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'parsing',
+      100,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 100),
+      true
+    );
+
     log.info('Docling parsing completed', {
       documentId: processingDocumentId,
       duration: Date.now() - parseStartTime,
@@ -212,16 +285,69 @@ Deno.serve(async (req: Request) => {
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 6: Chunk the content
+    // Story 5.12: Report chunking start (fast stage, just show start/end)
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'chunking',
+      0,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'chunking', 0),
+      true
+    );
+
     const chunks = chunkMarkdown(parseResult.markdown, parseResult.pageMarkers);
+
+    // Story 5.12: Report chunking complete
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'chunking',
+      100,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'chunking', 100),
+      true
+    );
+
     log.info('Chunking completed', { documentId: processingDocumentId, chunkCount: chunks.length });
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 7: Generate embeddings
+    // Story 5.12: Report embedding progress with batch-level updates
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'embedding',
+      0,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'embedding', 0),
+      true
+    );
+
     const embeddingsStartTime = Date.now();
     const embeddings = await generateEmbeddingsWithRetry(
       chunks.map((c) => c.content),
-      openaiKey
+      openaiKey,
+      async (batchIndex, totalBatches) => {
+        // Story 5.12: Report embedding progress per batch
+        const progress = Math.round((batchIndex / totalBatches) * 100);
+        await updateJobProgress(
+          supabase,
+          processingDocumentId,
+          'embedding',
+          progress,
+          estimateTimeRemaining(pdfBuffer.byteLength, 'embedding', progress)
+        );
+      }
     );
+
+    // Story 5.12: Report embeddings complete
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'embedding',
+      100,
+      null, // No time remaining - we're done!
+      true
+    );
+
     log.info('Embeddings completed', {
       documentId: processingDocumentId,
       duration: Date.now() - embeddingsStartTime,
@@ -771,18 +897,29 @@ function getOverlapText(content: string, overlapChars: number): string {
 // Embeddings Operations
 // ============================================================================
 
+// Story 5.12: Progress callback type for embedding progress reporting
+type EmbeddingProgressCallback = (batchIndex: number, totalBatches: number) => Promise<void>;
+
 async function generateEmbeddingsWithRetry(
   texts: string[],
-  apiKey: string
+  apiKey: string,
+  onProgress?: EmbeddingProgressCallback
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const embeddings: number[][] = [];
+  const totalBatches = Math.ceil(texts.length / EMBEDDING_BATCH_SIZE);
 
   for (let i = 0; i < texts.length; i += EMBEDDING_BATCH_SIZE) {
+    const batchIndex = Math.floor(i / EMBEDDING_BATCH_SIZE) + 1;
     const batch = texts.slice(i, i + EMBEDDING_BATCH_SIZE);
     const batchEmbeddings = await generateBatchWithRetry(batch, apiKey);
     embeddings.push(...batchEmbeddings);
+
+    // Story 5.12: Report progress after each batch
+    if (onProgress) {
+      await onProgress(batchIndex, totalBatches);
+    }
   }
 
   return embeddings;
@@ -1063,4 +1200,99 @@ async function insertChunks(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ============================================================================
+// Story 5.12: Progress Reporting
+// ============================================================================
+
+/**
+ * Update job progress data for real-time UI updates.
+ * Story 5.12 (AC-5.12.1 through AC-5.12.4): Progress reporting
+ *
+ * @param supabase - Supabase client
+ * @param documentId - Document being processed
+ * @param stage - Current processing stage
+ * @param stageProgress - Progress within current stage (0-100)
+ * @param estimatedSecondsRemaining - Estimated time remaining (null if unknown)
+ * @param force - Force update even if throttled (for stage transitions)
+ */
+async function updateJobProgress(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string,
+  stage: ProgressData['stage'],
+  stageProgress: number,
+  estimatedSecondsRemaining: number | null = null,
+  force: boolean = false
+): Promise<void> {
+  // Throttle updates to avoid flooding Realtime (max once per second)
+  const now = Date.now();
+  if (!force && now - lastProgressUpdate < PROGRESS_THROTTLE_MS) {
+    return;
+  }
+  lastProgressUpdate = now;
+
+  // Calculate total progress based on stage weights
+  const stageConfig = STAGE_WEIGHTS[stage];
+  const totalProgress = Math.round(
+    stageConfig.start + (stageProgress / 100) * stageConfig.weight
+  );
+
+  const progressData: ProgressData = {
+    stage,
+    stage_progress: Math.round(stageProgress),
+    stage_name: STAGE_DISPLAY_NAMES[stage],
+    estimated_seconds_remaining: estimatedSecondsRemaining,
+    total_progress: totalProgress,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('processing_jobs')
+    .update({ progress_data: progressData })
+    .eq('document_id', documentId);
+
+  if (error) {
+    // Don't throw - progress updates are best-effort
+    log.warn('Failed to update progress', { error: error.message, documentId, stage });
+  }
+}
+
+/**
+ * Estimate time remaining based on file size and stage.
+ * Returns seconds.
+ */
+function estimateTimeRemaining(
+  fileSizeBytes: number,
+  stage: ProgressData['stage'],
+  stageProgress: number = 0
+): number | null {
+  const MB = 1024 * 1024;
+  const sizeMB = fileSizeBytes / MB;
+
+  // Base estimates per stage (in seconds) for ~10MB file
+  const baseEstimates: Record<ProgressData['stage'], number> = {
+    downloading: 10,
+    parsing: 120, // 2 min base for parsing
+    chunking: 15,
+    embedding: 60, // 1 min base for embeddings
+  };
+
+  // Scale by file size (larger files take proportionally longer)
+  const sizeMultiplier = Math.max(1, sizeMB / 10);
+  const baseTime = baseEstimates[stage] * sizeMultiplier;
+
+  // Adjust for progress within stage
+  const remainingTime = baseTime * ((100 - stageProgress) / 100);
+
+  // Add estimates for remaining stages
+  const stageOrder: ProgressData['stage'][] = ['downloading', 'parsing', 'chunking', 'embedding'];
+  const currentIndex = stageOrder.indexOf(stage);
+  let additionalTime = 0;
+
+  for (let i = currentIndex + 1; i < stageOrder.length; i++) {
+    additionalTime += baseEstimates[stageOrder[i]] * sizeMultiplier;
+  }
+
+  return Math.round(remainingTime + additionalTime);
 }

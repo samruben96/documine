@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       agencies: {
@@ -168,34 +143,43 @@ export type Database = {
           agency_id: string
           bounding_box: Json | null
           chunk_index: number
+          chunk_type: string | null
           content: string
           created_at: string
           document_id: string
           embedding: string | null
+          embedding_version: number | null
           id: string
           page_number: number
+          summary: string | null
         }
         Insert: {
           agency_id: string
           bounding_box?: Json | null
           chunk_index: number
+          chunk_type?: string | null
           content: string
           created_at?: string
           document_id: string
           embedding?: string | null
+          embedding_version?: number | null
           id?: string
           page_number: number
+          summary?: string | null
         }
         Update: {
           agency_id?: string
           bounding_box?: Json | null
           chunk_index?: number
+          chunk_type?: string | null
           content?: string
           created_at?: string
           document_id?: string
           embedding?: string | null
+          embedding_version?: number | null
           id?: string
           page_number?: number
+          summary?: string | null
         }
         Relationships: [
           {
@@ -210,6 +194,39 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_labels: {
+        Row: {
+          created_at: string
+          document_id: string
+          label_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          label_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_labels_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
             referencedColumns: ["id"]
           },
         ]
@@ -271,35 +288,53 @@ export type Database = {
           },
         ]
       }
-      document_labels: {
+      invitations: {
         Row: {
+          accepted_at: string | null
+          agency_id: string
           created_at: string
-          document_id: string
-          label_id: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          status: string
         }
         Insert: {
+          accepted_at?: string | null
+          agency_id: string
           created_at?: string
-          document_id: string
-          label_id: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by: string
+          role?: string
+          status?: string
         }
         Update: {
+          accepted_at?: string | null
+          agency_id?: string
           created_at?: string
-          document_id?: string
-          label_id?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "document_labels_document_id_fkey"
-            columns: ["document_id"]
+            foreignKeyName: "invitations_agency_id_fkey"
+            columns: ["agency_id"]
             isOneToOne: false
-            referencedRelation: "documents"
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "document_labels_label_id_fkey"
-            columns: ["label_id"]
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
             isOneToOne: false
-            referencedRelation: "labels"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -336,57 +371,6 @@ export type Database = {
           },
         ]
       }
-      invitations: {
-        Row: {
-          id: string
-          agency_id: string
-          email: string
-          role: string
-          status: string
-          invited_by: string
-          expires_at: string
-          created_at: string
-          accepted_at: string | null
-        }
-        Insert: {
-          id?: string
-          agency_id: string
-          email: string
-          role?: string
-          status?: string
-          invited_by: string
-          expires_at: string
-          created_at?: string
-          accepted_at?: string | null
-        }
-        Update: {
-          id?: string
-          agency_id?: string
-          email?: string
-          role?: string
-          status?: string
-          invited_by?: string
-          expires_at?: string
-          created_at?: string
-          accepted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invitations_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       processing_jobs: {
         Row: {
           completed_at: string | null
@@ -394,6 +378,7 @@ export type Database = {
           document_id: string
           error_message: string | null
           id: string
+          progress_data: Json | null
           started_at: string | null
           status: string
         }
@@ -403,6 +388,7 @@ export type Database = {
           document_id: string
           error_message?: string | null
           id?: string
+          progress_data?: Json | null
           started_at?: string | null
           status?: string
         }
@@ -412,6 +398,7 @@ export type Database = {
           document_id?: string
           error_message?: string | null
           id?: string
+          progress_data?: Json | null
           started_at?: string | null
           status?: string
         }
@@ -476,9 +463,16 @@ export type Database = {
           document_id: string
           error_message: string | null
           id: string
+          progress_data: Json | null
           started_at: string | null
           status: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "processing_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_queue_position: { Args: { p_document_id: string }; Returns: number }
       get_user_agency_id: { Args: never; Returns: string }
@@ -487,6 +481,20 @@ export type Database = {
         Returns: boolean
       }
       mark_stale_jobs_failed: { Args: never; Returns: number }
+      match_document_chunks: {
+        Args: {
+          match_count?: number
+          match_document_id: string
+          query_embedding: string
+        }
+        Returns: {
+          bounding_box: Json
+          content: string
+          id: string
+          page_number: number
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -615,9 +623,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useTransition, useEffect, useRef } from 'react';
+import { useState, useCallback, useTransition, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { FileText, Loader2 } from 'lucide-react';
 
@@ -10,6 +10,7 @@ import { DocumentList } from '@/components/documents/document-list';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
 import { DocumentStatus, type DocumentStatusType } from '@/components/documents/document-status';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
+import { useProcessingProgress } from '@/hooks/use-processing-progress';
 import {
   getDocuments,
   getUserAgencyInfo,
@@ -56,6 +57,16 @@ export default function DocumentsPage() {
     onDocumentReady: () => {},
     onDocumentFailed: () => {},
   });
+
+  // Story 5.12: Track processing document IDs for progress subscription
+  const processingDocumentIds = useMemo(() => {
+    return documents
+      .filter((doc) => doc.status === 'processing')
+      .map((doc) => doc.id);
+  }, [documents]);
+
+  // Story 5.12: Subscribe to processing progress updates
+  const { progressMap } = useProcessingProgress(processingDocumentIds);
 
   // Fetch queue positions for processing documents (AC-4.7.4)
   const fetchQueuePositions = useCallback(async (docs: Document[]) => {
@@ -183,7 +194,13 @@ export default function DocumentsPage() {
       });
 
       if (result.success && result.document) {
-        setDocuments((prev) => [result.document!, ...prev]);
+        // Add document only if not already in list (may have been added via realtime)
+        setDocuments((prev) => {
+          if (prev.some((doc) => doc.id === result.document!.id)) {
+            return prev;
+          }
+          return [result.document!, ...prev];
+        });
 
         // Refresh rate limit info after successful upload
         loadRateLimitInfo();
@@ -260,6 +277,7 @@ export default function DocumentsPage() {
               documents={documents}
               onFilesAccepted={handleFilesAccepted}
               queuePositions={queuePositions}
+              progressMap={progressMap}
               isLoading={isLoading}
               onRetryClick={handleRetryDocument}
             />

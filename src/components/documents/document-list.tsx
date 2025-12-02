@@ -11,6 +11,7 @@ import { DeleteDocumentModal } from './delete-document-modal';
 import { LabelFilter } from './label-filter';
 import type { Tables } from '@/types/database.types';
 import { getLabels, type Label } from '@/app/(dashboard)/documents/actions';
+import type { ProgressData } from '@/hooks/use-processing-progress';
 
 type Document = Tables<'documents'>;
 type DocumentWithLabels = Document & { labels?: Label[] };
@@ -20,6 +21,8 @@ interface DocumentListProps {
   onFilesAccepted: (files: File[]) => void;
   /** Map of document ID to queue position (0 = processing, 1+ = queued position) */
   queuePositions?: Map<string, number>;
+  /** Story 5.12: Map of document ID to processing progress data */
+  progressMap?: Map<string, ProgressData>;
   isLoading?: boolean;
   className?: string;
   /** Story 5.8.1 (AC-5.8.1.7): Callback to retry failed document */
@@ -43,6 +46,7 @@ export function DocumentList({
   documents,
   onFilesAccepted,
   queuePositions,
+  progressMap,
   isLoading = false,
   className,
   onRetryClick,
@@ -202,6 +206,7 @@ export function DocumentList({
                 createdAt={doc.created_at}
                 labels={doc.labels}
                 queuePosition={queuePositions?.get(doc.id)}
+                progressData={progressMap?.get(doc.id)}
                 isSelected={doc.id === selectedId}
                 onClick={() => handleDocumentClick(doc.id)}
                 onDeleteClick={() => handleDeleteClick(doc)}
