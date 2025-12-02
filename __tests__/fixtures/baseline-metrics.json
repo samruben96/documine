@@ -1,0 +1,69 @@
+{
+  "version": "1.0",
+  "description": "Baseline metrics for RAG retrieval quality (Story 5.8)",
+  "generatedAt": null,
+  "documentId": null,
+  "documentName": null,
+  "summary": {
+    "totalQueries": 0,
+    "avgSimilarityScore": 0,
+    "avgLatencyMs": 0,
+    "confidenceDistribution": {
+      "high": 0,
+      "needs_review": 0,
+      "not_found": 0
+    },
+    "confidencePercentages": {
+      "high": 0,
+      "needs_review": 0,
+      "not_found": 0
+    }
+  },
+  "byCategory": {
+    "simple_lookup": {
+      "queryCount": 0,
+      "avgSimilarityScore": 0,
+      "avgLatencyMs": 0,
+      "recallAt5": 0,
+      "confidenceDistribution": {
+        "high": 0,
+        "needs_review": 0,
+        "not_found": 0
+      }
+    },
+    "table_data": {
+      "queryCount": 0,
+      "avgSimilarityScore": 0,
+      "avgLatencyMs": 0,
+      "recallAt5": 0,
+      "confidenceDistribution": {
+        "high": 0,
+        "needs_review": 0,
+        "not_found": 0
+      }
+    },
+    "semantic": {
+      "queryCount": 0,
+      "avgSimilarityScore": 0,
+      "avgLatencyMs": 0,
+      "recallAt5": 0,
+      "confidenceDistribution": {
+        "high": 0,
+        "needs_review": 0,
+        "not_found": 0
+      }
+    },
+    "complex": {
+      "queryCount": 0,
+      "avgSimilarityScore": 0,
+      "avgLatencyMs": 0,
+      "recallAt5": 0,
+      "confidenceDistribution": {
+        "high": 0,
+        "needs_review": 0,
+        "not_found": 0
+      }
+    }
+  },
+  "queryResults": []
+}

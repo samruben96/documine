@@ -1,0 +1,228 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>5.8</storyId>
+    <title>Retrieval Quality Optimization (Phase 1)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-5.8-retrieval-quality-optimization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user asking questions about insurance documents</asA>
+    <iWant>more accurate and relevant answers with higher confidence</iWant>
+    <soThat>I can trust the AI responses and spend less time verifying</soThat>
+    <tasks>
+      <task id="1">Create Test Infrastructure
+        <subtask>Create test query set (50 queries, 4 categories)</subtask>
+        <subtask>Create baseline metrics recording script</subtask>
+        <subtask>Run baseline measurement on current implementation</subtask>
+        <subtask>Store results in fixtures</subtask>
+      </task>
+      <task id="2">Database Migration
+        <subtask>Create migration for tsvector column</subtask>
+        <subtask>Create migration for GIN index</subtask>
+        <subtask>Create migration for update trigger</subtask>
+        <subtask>Apply to Supabase project</subtask>
+        <subtask>Backfill existing chunks</subtask>
+      </task>
+      <task id="3">Hybrid Search Implementation
+        <subtask>Update vector-search.ts with FTS query</subtask>
+        <subtask>Implement score fusion (alpha=0.7)</subtask>
+        <subtask>Increase candidate pool to 20</subtask>
+        <subtask>Add unit tests for fusion algorithm</subtask>
+      </task>
+      <task id="4">Cohere Reranker Integration
+        <subtask>Create reranker.ts module</subtask>
+        <subtask>Implement Cohere API client</subtask>
+        <subtask>Add fallback logic for API failures</subtask>
+        <subtask>Add timeout handling (5s)</subtask>
+        <subtask>Integrate into RAG pipeline</subtask>
+      </task>
+      <task id="5">Confidence Threshold Update
+        <subtask>Update thresholds in confidence.ts</subtask>
+        <subtask>Update unit tests</subtask>
+        <subtask>Verify badge display unchanged</subtask>
+      </task>
+      <task id="6">Testing and Validation
+        <subtask>Run test query set post-optimization</subtask>
+        <subtask>Compare metrics to baseline</subtask>
+        <subtask>Verify latency requirements</subtask>
+        <subtask>Manual testing with real documents</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-5.8.1">Test query set of 50 queries exists with: 15 simple lookups, 10 table data queries, 15 semantic questions, 10 complex/multi-hop queries</criterion>
+    <criterion id="AC-5.8.2">Baseline metrics recorded: Recall@5, avg similarity, confidence distribution; stored in __tests__/fixtures/baseline-metrics.json</criterion>
+    <criterion id="AC-5.8.3">Cohere Rerank 3.5 API reorders results by relevance; top 5 reranked results used for RAG context; latency increase less than 300ms</criterion>
+    <criterion id="AC-5.8.4">Fallback to vector-only search when Cohere unavailable; warning logged; user experience unaffected</criterion>
+    <criterion id="AC-5.8.5">Hybrid search: PostgreSQL FTS runs alongside vector search; results fused with alpha=0.7 (70% vector, 30% keyword)</criterion>
+    <criterion id="AC-5.8.6">Database migration adds search_vector tsvector column, GIN index, and auto-update trigger on document_chunks</criterion>
+    <criterion id="AC-5.8.7">New confidence thresholds: >=0.75 High Confidence, 0.50-0.74 Needs Review, less than 0.50 Not Found</criterion>
+    <criterion id="AC-5.8.8">High Confidence responses >= 50% on test query set (up from ~30% baseline)</criterion>
+    <criterion id="AC-5.8.9">Not Found responses <= 25% on test query set (down from ~40% baseline)</criterion>
+    <criterion id="AC-5.8.10">P95 response latency remains less than 3 seconds (first token)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-5.md</path>
+        <title>Epic 5 Technical Specification</title>
+        <section>RAG Pipeline Optimization Stories (5.8-5.10)</section>
+        <snippet>Stories 5.8-5.10 added based on technical research to address observed pain points: low confidence scores, Not Found responses for answerable questions, chunking breaking semantic units. Includes hybrid search query, Cohere reranking, confidence threshold adjustments.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>ADR-006: RAG Pipeline Optimization</section>
+        <snippet>Implement three-phase optimization: Cohere Rerank 3.5 for cross-encoder reranking, hybrid search (BM25 + vector, alpha=0.7), adjusted confidence thresholds (>=0.75 High, 0.50-0.74 Needs Review, less than 0.50 Not Found).</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>NFR13-NFR16: Accuracy Requirements</section>
+        <snippet>Document extraction accuracy of 95%+ for standard insurance document formats. Q&A accuracy of 95%+ for factual questions. System correctly identifies "not found" for questions without answers. Confidence scoring accurately reflects actual confidence levels.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-5.8-retrieval-quality-optimization.md</path>
+        <title>Story 5.8 Full Specification</title>
+        <section>Key Learnings from Story 5.11</section>
+        <snippet>Critical discovery: Badge shows "Not Found" even when GPT gives excellent responses because badge is based on vector similarity, not response quality. Thresholds may be too strict - queries like "dwelling info" show false "not found" despite good responses.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/chat/vector-search.ts</path>
+        <kind>service</kind>
+        <symbol>searchSimilarChunks</symbol>
+        <lines>25-80</lines>
+        <reason>Primary file to modify: add hybrid search with FTS, increase candidate pool from 5 to 20</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/chat/confidence.ts</path>
+        <kind>utility</kind>
+        <symbol>calculateConfidence</symbol>
+        <lines>30-41</lines>
+        <reason>Update thresholds from 0.85/0.60 to 0.75/0.50 per AC-5.8.7</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/chat/rag.ts</path>
+        <kind>service</kind>
+        <symbol>retrieveContext</symbol>
+        <lines>62-100</lines>
+        <reason>Integrate reranker between vector search and context building</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/chat/types.ts</path>
+        <kind>types</kind>
+        <symbol>RetrievedChunk, RAGContext</symbol>
+        <lines>64-79</lines>
+        <reason>May need to extend with reranker score field</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST</symbol>
+        <lines>47-255</lines>
+        <reason>Chat endpoint that orchestrates the RAG pipeline; no changes expected but review for integration</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/use-chat.ts</path>
+        <kind>hook</kind>
+        <symbol>useChat</symbol>
+        <reason>Client-side chat hook; no changes expected</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/migrations/00002_enable_pgvector.sql</path>
+        <kind>migration</kind>
+        <symbol>pgvector extension</symbol>
+        <reason>Existing migration enabling pgvector; new migration needed for FTS support</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>openai</package>
+        <version>^6.9.1</version>
+        <purpose>GPT-4o for response generation, embeddings for query vectors</purpose>
+      </node>
+      <package>@supabase/supabase-js</package>
+      <version>^2.84.0</version>
+      <purpose>Database queries, RPC calls for vector search</purpose>
+      <package>zod</package>
+      <version>^4.1.13</version>
+      <purpose>Request validation</purpose>
+      <newDependency>
+        <package>cohere-ai</package>
+        <version>^7.x</version>
+        <purpose>Cohere Rerank 3.5 API for cross-encoder reranking</purpose>
+        <install>npm install cohere-ai</install>
+      </newDependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use existing lib/chat structure for new modules (reranker.ts, metrics.ts)</constraint>
+    <constraint type="testing">Vitest for unit/integration tests; follow existing test patterns in __tests__/</constraint>
+    <constraint type="api">Cohere API key must be server-side only (COHERE_API_KEY env var)</constraint>
+    <constraint type="fallback">Reranker failures must gracefully fall back to vector-only results</constraint>
+    <constraint type="performance">P95 latency must remain under 3 seconds; reranker timeout set to 5 seconds</constraint>
+    <constraint type="database">FTS migration must be additive (safe rollback); backfill existing chunks</constraint>
+    <constraint type="migration">Use Supabase MCP apply_migration for database changes</constraint>
+    <constraint type="logging">Use existing log utility (lib/utils/logger) for observability</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>match_document_chunks RPC</name>
+      <kind>PostgreSQL RPC function</kind>
+      <signature>match_document_chunks(query_embedding: vector, match_document_id: uuid, match_count: int) returns table(id, content, page_number, bounding_box, similarity)</signature>
+      <path>Database function (created in migration)</path>
+      <notes>Needs update to support hybrid search returning top 20 candidates</notes>
+    </interface>
+    <interface>
+      <name>Cohere Rerank API</name>
+      <kind>REST API</kind>
+      <signature>POST /rerank with model: "rerank-english-v3.0", query: string, documents: string[], top_n: int</signature>
+      <path>External API (https://api.cohere.ai/v1/rerank)</path>
+      <notes>Returns relevance_score for each document; use to reorder top 20 to top 5</notes>
+    </interface>
+    <interface>
+      <name>calculateConfidence</name>
+      <kind>function</kind>
+      <signature>calculateConfidence(topScore: number | null | undefined): ConfidenceLevel</signature>
+      <path>src/lib/chat/confidence.ts</path>
+      <notes>Thresholds changing from 0.85/0.60 to 0.75/0.50</notes>
+    </interface>
+    <interface>
+      <name>searchSimilarChunks</name>
+      <kind>function</kind>
+      <signature>searchSimilarChunks(supabase, documentId, queryEmbedding): Promise&lt;RetrievedChunk[]&gt;</signature>
+      <path>src/lib/chat/vector-search.ts</path>
+      <notes>Will be modified to support hybrid search with FTS fusion</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest framework with React Testing Library for components. Unit tests for pure functions (confidence calculation, score fusion). Integration tests mock Supabase and external APIs. Test files live in __tests__/ directory mirroring src/ structure. Use existing mocks in __tests__/mocks/supabase.ts.</standards>
+    <locations>
+      <location>__tests__/unit/lib/chat/</location>
+      <location>__tests__/integration/lib/chat/</location>
+      <location>__tests__/fixtures/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-5.8.1">Create test-queries.json fixture with 50 queries categorized by type (lookup, table, semantic, complex)</idea>
+      <idea ac="AC-5.8.2">Create baseline-metrics.json fixture schema; write script to populate from current implementation</idea>
+      <idea ac="AC-5.8.3">Unit test reranker.ts: mock Cohere API response, verify reordering logic, verify top 5 selection</idea>
+      <idea ac="AC-5.8.4">Unit test reranker fallback: mock Cohere timeout/error, verify original order preserved</idea>
+      <idea ac="AC-5.8.5">Unit test fuseScores function: verify alpha=0.7 weighting, handle null FTS scores</idea>
+      <idea ac="AC-5.8.6">Integration test: verify migration creates search_vector column, GIN index, trigger</idea>
+      <idea ac="AC-5.8.7">Unit test calculateConfidence: verify new thresholds 0.75/0.50</idea>
+      <idea ac="AC-5.8.8, AC-5.8.9">E2E test: run all 50 test queries, compare High Confidence >= 50%, Not Found <= 25%</idea>
+      <idea ac="AC-5.8.10">Performance test: measure P95 latency, verify under 3 seconds</idea>
+    </ideas>
+  </tests>
+</story-context>

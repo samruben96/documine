@@ -60,13 +60,21 @@ export type SSEEvent =
 
 /**
  * Retrieved chunk from vector search
+ * Story 5.8: Extended to include hybrid search scores
  */
 export interface RetrievedChunk {
   id: string;
   content: string;
   pageNumber: number;
   boundingBox: BoundingBox | null;
+  /** Combined score (from hybrid search) or vector similarity (from vector-only search) */
   similarityScore: number;
+  /** Optional: Raw vector similarity score (for hybrid search) */
+  vectorScore?: number;
+  /** Optional: Full-text search score (for hybrid search) */
+  ftsScore?: number;
+  /** Optional: Reranker relevance score (Story 5.8 AC-5.8.3) */
+  rerankerScore?: number;
 }
 
 /**

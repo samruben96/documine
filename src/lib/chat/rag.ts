@@ -1,11 +1,12 @@
 /**
  * RAG (Retrieval-Augmented Generation) Pipeline
  *
- * Orchestrates the full RAG flow for Story 5.3:
+ * Orchestrates the full RAG flow:
  * 1. Generate query embedding
- * 2. Search for similar chunks
- * 3. Calculate confidence
- * 4. Build prompt with context
+ * 2. Hybrid search for similar chunks (vector + FTS)
+ * 3. Rerank with Cohere (Story 5.8)
+ * 4. Calculate confidence
+ * 5. Build prompt with context
  *
  * @module @/lib/chat/rag
  */
@@ -13,7 +14,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 import { generateEmbeddings } from '@/lib/openai/embeddings';
-import { searchSimilarChunks } from './vector-search';
+import { searchSimilarChunks, getTopKChunks } from './vector-search';
+import { rerankChunks, isRerankerEnabled, getCohereApiKey } from './reranker';
 import { calculateConfidence, type ConfidenceLevel } from '@/lib/chat/confidence';
 import type { RAGContext, RetrievedChunk, ChatMessage, SourceCitation } from './types';
 import { log } from '@/lib/utils/logger';
@@ -53,6 +55,8 @@ EXAMPLE PHRASES:
 /**
  * Retrieve relevant chunks and build RAG context
  *
+ * Story 5.8: Updated to use hybrid search + Cohere reranking
+ *
  * @param supabase - Supabase client with user auth
  * @param documentId - The document to search
  * @param query - The user's question
@@ -75,8 +79,33 @@ export async function retrieveContext(
     throw new Error('Failed to generate query embedding');
   }
 
-  // Search for similar chunks
-  const chunks = await searchSimilarChunks(supabase, documentId, queryEmbedding);
+  // Step 1: Hybrid search for top 20 candidates
+  // AC-5.8.5: Combines vector + FTS with alpha=0.7
+  let chunks = await searchSimilarChunks(
+    supabase,
+    documentId,
+    queryEmbedding,
+    query, // Pass query text for FTS
+    { limit: 20 } // Get 20 candidates for reranking
+  );
+
+  // Step 2: Rerank with Cohere (if enabled)
+  // AC-5.8.3: Cross-encoder reranking
+  if (isRerankerEnabled() && chunks.length > 0) {
+    try {
+      const cohereApiKey = getCohereApiKey();
+      chunks = await rerankChunks(query, chunks, cohereApiKey, { topN: 5 });
+    } catch (error) {
+      // AC-5.8.4: Fallback to top 5 without reranking
+      log.warn('Reranker unavailable, using top 5 from hybrid search', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      chunks = getTopKChunks(chunks, 5);
+    }
+  } else {
+    // No reranker - just take top 5
+    chunks = getTopKChunks(chunks, 5);
+  }
 
   // Calculate confidence from top score
   const firstChunk = chunks[0];
@@ -89,6 +118,7 @@ export async function retrieveContext(
     chunksRetrieved: chunks.length,
     topScore,
     confidence,
+    rerankerUsed: isRerankerEnabled(),
     duration,
   });
 

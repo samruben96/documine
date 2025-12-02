@@ -1,0 +1,375 @@
+{
+  "version": "1.0",
+  "description": "Test query set for RAG retrieval quality measurement (Story 5.8)",
+  "totalQueries": 50,
+  "categories": {
+    "simple_lookup": {
+      "description": "Simple factual lookups (policy numbers, dates, names)",
+      "count": 15
+    },
+    "table_data": {
+      "description": "Queries requiring table data extraction (deductibles, limits)",
+      "count": 10
+    },
+    "semantic": {
+      "description": "Semantic/conceptual questions (coverage questions, exclusions)",
+      "count": 15
+    },
+    "complex": {
+      "description": "Complex multi-hop queries (comparisons, conditions)",
+      "count": 10
+    }
+  },
+  "queries": [
+    {
+      "id": "SL-001",
+      "category": "simple_lookup",
+      "query": "What is the policy number?",
+      "expectedType": "exact_match",
+      "notes": "Should find policy number in declarations page"
+    },
+    {
+      "id": "SL-002",
+      "category": "simple_lookup",
+      "query": "What is the effective date of this policy?",
+      "expectedType": "exact_match",
+      "notes": "Policy effective date lookup"
+    },
+    {
+      "id": "SL-003",
+      "category": "simple_lookup",
+      "query": "Who is the named insured?",
+      "expectedType": "exact_match",
+      "notes": "Named insured identification"
+    },
+    {
+      "id": "SL-004",
+      "category": "simple_lookup",
+      "query": "What is the policy expiration date?",
+      "expectedType": "exact_match",
+      "notes": "Expiration date lookup"
+    },
+    {
+      "id": "SL-005",
+      "category": "simple_lookup",
+      "query": "What is the property address on this policy?",
+      "expectedType": "exact_match",
+      "notes": "Insured property address"
+    },
+    {
+      "id": "SL-006",
+      "category": "simple_lookup",
+      "query": "Who is the insurance carrier?",
+      "expectedType": "exact_match",
+      "notes": "Insurance company name"
+    },
+    {
+      "id": "SL-007",
+      "category": "simple_lookup",
+      "query": "What is the agent name on this policy?",
+      "expectedType": "exact_match",
+      "notes": "Agent/broker information"
+    },
+    {
+      "id": "SL-008",
+      "category": "simple_lookup",
+      "query": "What is the mortgagee listed on the policy?",
+      "expectedType": "exact_match",
+      "notes": "Mortgage company identification"
+    },
+    {
+      "id": "SL-009",
+      "category": "simple_lookup",
+      "query": "What year was the home built?",
+      "expectedType": "exact_match",
+      "notes": "Year built lookup"
+    },
+    {
+      "id": "SL-010",
+      "category": "simple_lookup",
+      "query": "What is the square footage of the dwelling?",
+      "expectedType": "exact_match",
+      "notes": "Square footage lookup"
+    },
+    {
+      "id": "SL-011",
+      "category": "simple_lookup",
+      "query": "What type of construction is the home?",
+      "expectedType": "exact_match",
+      "notes": "Construction type (frame, masonry, etc.)"
+    },
+    {
+      "id": "SL-012",
+      "category": "simple_lookup",
+      "query": "What is the roof type?",
+      "expectedType": "exact_match",
+      "notes": "Roof material/type"
+    },
+    {
+      "id": "SL-013",
+      "category": "simple_lookup",
+      "query": "How many stories is the dwelling?",
+      "expectedType": "exact_match",
+      "notes": "Number of stories"
+    },
+    {
+      "id": "SL-014",
+      "category": "simple_lookup",
+      "query": "What is the premium amount?",
+      "expectedType": "exact_match",
+      "notes": "Total premium lookup"
+    },
+    {
+      "id": "SL-015",
+      "category": "simple_lookup",
+      "query": "What is the policy form number?",
+      "expectedType": "exact_match",
+      "notes": "Form number (HO-3, HO-5, etc.)"
+    },
+    {
+      "id": "TD-001",
+      "category": "table_data",
+      "query": "What is the dwelling coverage amount?",
+      "expectedType": "table_value",
+      "notes": "Coverage A limit"
+    },
+    {
+      "id": "TD-002",
+      "category": "table_data",
+      "query": "What is the personal property coverage limit?",
+      "expectedType": "table_value",
+      "notes": "Coverage C limit"
+    },
+    {
+      "id": "TD-003",
+      "category": "table_data",
+      "query": "What is the liability coverage limit?",
+      "expectedType": "table_value",
+      "notes": "Coverage E limit"
+    },
+    {
+      "id": "TD-004",
+      "category": "table_data",
+      "query": "What is the all-perils deductible?",
+      "expectedType": "table_value",
+      "notes": "Standard deductible amount"
+    },
+    {
+      "id": "TD-005",
+      "category": "table_data",
+      "query": "What is the wind/hail deductible?",
+      "expectedType": "table_value",
+      "notes": "Wind/hail specific deductible"
+    },
+    {
+      "id": "TD-006",
+      "category": "table_data",
+      "query": "What is the loss of use coverage amount?",
+      "expectedType": "table_value",
+      "notes": "Coverage D limit"
+    },
+    {
+      "id": "TD-007",
+      "category": "table_data",
+      "query": "What is the medical payments coverage limit?",
+      "expectedType": "table_value",
+      "notes": "Coverage F limit"
+    },
+    {
+      "id": "TD-008",
+      "category": "table_data",
+      "query": "What is the other structures coverage amount?",
+      "expectedType": "table_value",
+      "notes": "Coverage B limit"
+    },
+    {
+      "id": "TD-009",
+      "category": "table_data",
+      "query": "What is the ordinance or law coverage percentage?",
+      "expectedType": "table_value",
+      "notes": "Ordinance or law coverage"
+    },
+    {
+      "id": "TD-010",
+      "category": "table_data",
+      "query": "What is the water backup coverage limit?",
+      "expectedType": "table_value",
+      "notes": "Water backup endorsement limit"
+    },
+    {
+      "id": "SM-001",
+      "category": "semantic",
+      "query": "What does my policy cover?",
+      "expectedType": "conceptual",
+      "notes": "General coverage overview question"
+    },
+    {
+      "id": "SM-002",
+      "category": "semantic",
+      "query": "Is flood damage covered?",
+      "expectedType": "conceptual",
+      "notes": "Flood exclusion inquiry"
+    },
+    {
+      "id": "SM-003",
+      "category": "semantic",
+      "query": "Am I covered if a tree falls on my house?",
+      "expectedType": "conceptual",
+      "notes": "Falling objects coverage"
+    },
+    {
+      "id": "SM-004",
+      "category": "semantic",
+      "query": "Does the policy cover theft?",
+      "expectedType": "conceptual",
+      "notes": "Theft coverage inquiry"
+    },
+    {
+      "id": "SM-005",
+      "category": "semantic",
+      "query": "What happens if someone gets hurt on my property?",
+      "expectedType": "conceptual",
+      "notes": "Liability coverage explanation"
+    },
+    {
+      "id": "SM-006",
+      "category": "semantic",
+      "query": "Are my personal belongings covered outside the home?",
+      "expectedType": "conceptual",
+      "notes": "Off-premises coverage"
+    },
+    {
+      "id": "SM-007",
+      "category": "semantic",
+      "query": "What is not covered by this policy?",
+      "expectedType": "conceptual",
+      "notes": "Exclusions inquiry"
+    },
+    {
+      "id": "SM-008",
+      "category": "semantic",
+      "query": "How do I file a claim?",
+      "expectedType": "conceptual",
+      "notes": "Claims process"
+    },
+    {
+      "id": "SM-009",
+      "category": "semantic",
+      "query": "What should I do after a loss?",
+      "expectedType": "conceptual",
+      "notes": "Loss reporting duties"
+    },
+    {
+      "id": "SM-010",
+      "category": "semantic",
+      "query": "Is mold damage covered?",
+      "expectedType": "conceptual",
+      "notes": "Mold coverage/exclusion"
+    },
+    {
+      "id": "SM-011",
+      "category": "semantic",
+      "query": "Does this cover my detached garage?",
+      "expectedType": "conceptual",
+      "notes": "Other structures coverage"
+    },
+    {
+      "id": "SM-012",
+      "category": "semantic",
+      "query": "What about earthquake damage?",
+      "expectedType": "conceptual",
+      "notes": "Earthquake exclusion"
+    },
+    {
+      "id": "SM-013",
+      "category": "semantic",
+      "query": "Am I covered if my dog bites someone?",
+      "expectedType": "conceptual",
+      "notes": "Animal liability"
+    },
+    {
+      "id": "SM-014",
+      "category": "semantic",
+      "query": "What is replacement cost vs actual cash value?",
+      "expectedType": "conceptual",
+      "notes": "Valuation method explanation"
+    },
+    {
+      "id": "SM-015",
+      "category": "semantic",
+      "query": "Does the policy cover my home office equipment?",
+      "expectedType": "conceptual",
+      "notes": "Business property limitations"
+    },
+    {
+      "id": "CX-001",
+      "category": "complex",
+      "query": "If I have a fire and need to stay in a hotel, what's covered and for how long?",
+      "expectedType": "multi_hop",
+      "notes": "Loss of use + time limits"
+    },
+    {
+      "id": "CX-002",
+      "category": "complex",
+      "query": "Compare my dwelling coverage to personal property coverage limits",
+      "expectedType": "multi_hop",
+      "notes": "Coverage comparison requiring multiple lookups"
+    },
+    {
+      "id": "CX-003",
+      "category": "complex",
+      "query": "What are all my deductibles and when does each apply?",
+      "expectedType": "multi_hop",
+      "notes": "Multiple deductible explanation"
+    },
+    {
+      "id": "CX-004",
+      "category": "complex",
+      "query": "If a pipe bursts and causes water damage, what's my coverage and deductible?",
+      "expectedType": "multi_hop",
+      "notes": "Water damage coverage + deductible"
+    },
+    {
+      "id": "CX-005",
+      "category": "complex",
+      "query": "What endorsements are on my policy and what do they add?",
+      "expectedType": "multi_hop",
+      "notes": "Endorsement summary"
+    },
+    {
+      "id": "CX-006",
+      "category": "complex",
+      "query": "How much would I pay out of pocket if wind damages my roof?",
+      "expectedType": "multi_hop",
+      "notes": "Wind deductible calculation"
+    },
+    {
+      "id": "CX-007",
+      "category": "complex",
+      "query": "What are the conditions I must meet to maintain coverage?",
+      "expectedType": "multi_hop",
+      "notes": "Policy conditions summary"
+    },
+    {
+      "id": "CX-008",
+      "category": "complex",
+      "query": "If I rent out my home, does this policy still cover it?",
+      "expectedType": "multi_hop",
+      "notes": "Rental/occupancy conditions"
+    },
+    {
+      "id": "CX-009",
+      "category": "complex",
+      "query": "What valuables have special limits and what are those limits?",
+      "expectedType": "multi_hop",
+      "notes": "Special limits of liability"
+    },
+    {
+      "id": "CX-010",
+      "category": "complex",
+      "query": "How does my liability coverage protect me if I'm sued?",
+      "expectedType": "multi_hop",
+      "notes": "Liability + legal defense coverage"
+    }
+  ]
+}

@@ -88,10 +88,10 @@ development_status:
   5-4-source-citation-display: done
   5-5-document-viewer-with-highlight-navigation: done
   5-6-conversation-history-follow-up-questions: done
-  5-7-responsive-chat-experience: review
+  5-7-responsive-chat-experience: done
   # Stories 5.8-5.10 added based on RAG optimization research (2025-12-01)
   # Story files drafted with full specifications
-  5-8-retrieval-quality-optimization: drafted
+  5-8-retrieval-quality-optimization: done
   5-9-chunking-optimization: drafted
   5-10-model-evaluation: drafted
   # Story 5.11 added as bug fix (2025-12-01)
