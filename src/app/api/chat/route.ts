@@ -147,18 +147,24 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Retrieve RAG context
+    console.log('DEBUG: Step 1 - Retrieving RAG context');
     const ragContext = await retrieveContext(
       supabase,
       documentId,
       message,
       openaiApiKey
     );
+    console.log('DEBUG: Step 2 - RAG context retrieved, chunks:', ragContext.chunks.length);
 
     // Build prompt with context
+    console.log('DEBUG: Step 3 - Building prompt');
     const promptMessages = buildPrompt(message, ragContext.chunks, previousMessages);
+    console.log('DEBUG: Step 4 - Prompt built, messages:', promptMessages.length);
 
     // Convert chunks to source citations for storage
+    console.log('DEBUG: Step 5 - Converting to source citations');
     const sources: SourceCitation[] = chunksToSourceCitations(ragContext.chunks);
+    console.log('DEBUG: Step 6 - Sources converted:', sources.length);
 
     log.info('Chat request processing', {
       documentId,
@@ -184,6 +190,13 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Create streaming response
+    console.log('DEBUG: About to create chat stream');
+    log.info('Creating chat stream', {
+      documentId,
+      conversationId: conversation.id,
+      messageCount: promptMessages.length,
+    });
+
     const stream = createChatStream({
       messages: promptMessages,
       apiKey: openaiApiKey,
@@ -216,6 +229,7 @@ export async function POST(request: Request): Promise<Response> {
     });
 
     // Return SSE response
+    console.log('DEBUG: Stream created, returning Response');
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
@@ -232,15 +246,20 @@ export async function POST(request: Request): Promise<Response> {
       return errorResponse(error.code, error.message, 401);
     }
 
-    // Log and return generic error
+    // Log and return error with details for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('CHAT API CAUGHT ERROR:', errorMessage);
+    console.error('CHAT API ERROR STACK:', errorStack);
     log.error(
       'Chat API error',
       error instanceof Error ? error : new Error(String(error))
     );
     return errorResponse(
       'INTERNAL_ERROR',
-      'Something went wrong. Please try again.',
-      500
+      process.env.NODE_ENV === 'development' ? errorMessage : 'Something went wrong. Please try again.',
+      500,
+      process.env.NODE_ENV === 'development' ? { stack: errorStack } : undefined
     );
   }
 }

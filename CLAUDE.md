@@ -129,3 +129,36 @@ cd documine && docker-compose up docling
 - Docling Python service in separate repo: https://github.com/samruben96/docling-for-documine
 
 **Environment Variable:** `DOCLING_SERVICE_URL` replaces `LLAMA_CLOUD_API_KEY`
+
+### Epic 5 Chat Integration Bug Fixes (2025-12-01)
+
+Multiple bugs were discovered during Story 5.6 implementation and resolved:
+
+#### 1. Document Viewer Not Loading (Spinning Forever)
+**Issue:** Document viewer showed infinite loading spinner for ready documents.
+**Cause:** Code checked `status !== 'completed'` but documents have status `'ready'`.
+**Fix:** Changed to `status !== 'ready'` in `src/app/(dashboard)/documents/[id]/page.tsx`.
+
+#### 2. Vector Search 404 Error
+**Issue:** `match_document_chunks` RPC function returned 404 for similarity search.
+**Cause:** Function's search_path excluded pgvector's `extensions` schema, making `<=>` operator unavailable.
+**Fix:** Applied migration with `SET search_path = public, extensions` to include pgvector operators.
+
+#### 3. Chat Request Validation Error (`conversationId: null`)
+**Issue:** Chat API returned "Invalid request: expected string, received null".
+**Cause:** `useChat` hook sent `conversationId: null` but Zod expected `string | undefined`.
+**Fix:** Only include `conversationId` in request body when truthy in `src/hooks/use-chat.ts`.
+
+#### 4. Chat 500 Error - Client/Server Boundary Violation
+**Issue:** Chat API returned 500 error with message "Attempted to call calculateConfidence() from the server but calculateConfidence is on the client".
+**Cause:** `calculateConfidence()` was defined in `'use client'` component (`confidence-badge.tsx`) but called from server-side API route.
+**Fix:** Created shared server-compatible module `src/lib/chat/confidence.ts`:
+- Extracted `ConfidenceLevel` type and `calculateConfidence()` function
+- Updated client component to re-export from shared module (backward compatible)
+- Updated all server-side files to import from shared module:
+  - `src/lib/chat/types.ts`
+  - `src/lib/chat/rag.ts`
+  - `src/lib/chat/service.ts`
+  - `src/lib/chat/openai-stream.ts`
+
+**Key Learning:** In Next.js App Router, functions exported from `'use client'` files cannot be called from server-side code (API routes, server components). Pure utility functions should be in separate non-client modules.

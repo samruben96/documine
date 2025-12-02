@@ -1,0 +1,332 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>6</storyId>
+    <title>Conversation History & Follow-up Questions</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-6-conversation-history-follow-up-questions.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to ask follow-up questions and see conversation history</iWant>
+    <soThat>I can have a natural dialogue about my document</soThat>
+    <tasks>
+      <task id="1" title="Create Chat Service for Conversation CRUD" acs="5.6.2, 5.6.3, 5.6.10, 5.6.11, 5.6.12">
+        <subtask>Create src/lib/chat/service.ts with conversation operations</subtask>
+        <subtask>Implement getOrCreateConversation(documentId, userId) with upsert pattern for race condition safety</subtask>
+        <subtask>Implement getConversationMessages(conversationId) function</subtask>
+        <subtask>Implement saveUserMessage(conversationId, content) with error handling</subtask>
+        <subtask>Implement saveAssistantMessage(conversationId, content, sources, confidence) function</subtask>
+        <subtask>Implement createNewConversation(documentId, userId) for New Chat</subtask>
+        <subtask>Add TypeScript types matching database schema</subtask>
+        <subtask>Add proper error types and handling for all operations</subtask>
+      </task>
+      <task id="2" title="Create useConversation Hook" acs="5.6.1, 5.6.4, 5.6.11">
+        <subtask>Create src/hooks/use-conversation.ts hook</subtask>
+        <subtask>Implement loading state management for initial fetch</subtask>
+        <subtask>Load conversation and messages on documentId change</subtask>
+        <subtask>Expose messages, isLoading, error states</subtask>
+        <subtask>Handle case where no conversation exists (empty state)</subtask>
+        <subtask>Expose refetch function for after new message</subtask>
+        <subtask>Implement error state with retry capability</subtask>
+      </task>
+      <task id="3" title="Update Chat API Route for Conversation Persistence" acs="5.6.2, 5.6.6, 5.6.11">
+        <subtask>Update src/app/api/chat/route.ts to persist messages</subtask>
+        <subtask>Accept conversationId in request body</subtask>
+        <subtask>Save user message before RAG processing (fail fast if save fails)</subtask>
+        <subtask>Buffer streaming response content during generation</subtask>
+        <subtask>Save assistant message after streaming completes (on done event)</subtask>
+        <subtask>Include last 10 messages in RAG context</subtask>
+        <subtask>Return conversationId and messageId in done event</subtask>
+        <subtask>Handle and report save errors appropriately</subtask>
+      </task>
+      <task id="4" title="Build RAG Prompt with Conversation History" acs="5.6.5, 5.6.6">
+        <subtask>Update src/lib/chat/rag.ts to accept conversation history</subtask>
+        <subtask>Format messages as role: content pairs</subtask>
+        <subtask>Limit to last 10 individual messages</subtask>
+        <subtask>Implement token budget estimation (~4 chars per token)</subtask>
+        <subtask>Truncate oldest messages if history exceeds 6000 token budget</subtask>
+        <subtask>Place history between system prompt and current query</subtask>
+        <subtask>Test context understanding with follow-up queries</subtask>
+      </task>
+      <task id="5" title="Update ChatPanel for History Display" acs="5.6.1, 5.6.4, 5.6.11">
+        <subtask>Update src/components/chat/chat-panel.tsx to use useConversation</subtask>
+        <subtask>Render messages from database instead of local state only</subtask>
+        <subtask>Add loading skeleton while fetching history</subtask>
+        <subtask>Auto-scroll to bottom on new messages</subtask>
+        <subtask>Create empty state component with example questions</subtask>
+        <subtask>Handle error state with retry button</subtask>
+      </task>
+      <task id="6" title="Implement New Chat Button" acs="5.6.7">
+        <subtask>Add New Chat button to chat panel header</subtask>
+        <subtask>Use MessageSquarePlus icon from lucide-react</subtask>
+        <subtask>Style as ghost button per UX spec</subtask>
+        <subtask>Disable button while streaming response</subtask>
+        <subtask>Add Tooltip component with hover text</subtask>
+      </task>
+      <task id="7" title="Implement New Chat Confirmation Dialog" acs="5.6.8, 5.6.9">
+        <subtask>Create confirmation dialog using shadcn/ui Dialog component</subtask>
+        <subtask>Dialog title: Start a new conversation?</subtask>
+        <subtask>Cancel and Start New buttons</subtask>
+        <subtask>Add keyboard event handlers for Enter/Escape</subtask>
+      </task>
+      <task id="8" title="Integrate Conversation Flow in Document Page" acs="5.6.3, 5.6.4, 5.6.12">
+        <subtask>Update /documents/[id]/page.tsx to initialize conversation</subtask>
+        <subtask>Pass conversationId to ChatPanel</subtask>
+        <subtask>Handle conversation state across source click navigation</subtask>
+        <subtask>Ensure conversation persists across component re-renders</subtask>
+      </task>
+      <task id="9" title="Testing and Verification" acs="All">
+        <subtask>Unit tests for chat service (15-20 tests)</subtask>
+        <subtask>Hook tests for useConversation (8-10 tests)</subtask>
+        <subtask>Integration tests for conversation flow (5-8 tests)</subtask>
+        <subtask>Edge case tests (5 tests)</subtask>
+        <subtask>Run build and verify no type errors</subtask>
+        <subtask>Verify test baseline maintained (661+ tests passing)</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-5.6.1" title="Conversation History Visible in Chat Panel">
+      Conversation history visible in scrollable chat panel. Messages displayed in chronological order (oldest first). User messages right-aligned with primary color bubble. Assistant messages left-aligned with surface color bubble. Chat panel auto-scrolls to latest message on new messages.
+    </criterion>
+    <criterion id="AC-5.6.2" title="Conversations Persisted to Database">
+      Conversations persisted to database (conversations + chat_messages tables). User message saved to database before AI processing begins. Assistant message saved to database after streaming response completes. Sources and confidence stored with assistant messages (JSONB). Conversation updated_at timestamp updated on each message. If user message save fails, show error toast and do not proceed with AI call.
+    </criterion>
+    <criterion id="AC-5.6.3" title="Per-Document Conversations">
+      Each document has its own conversation (conversation.document_id). User can only access conversations for documents in their agency. Creating a conversation for a document with existing conversation returns existing. Conversation includes agency_id for RLS enforcement. Race condition handled: concurrent requests get same conversation (not duplicates).
+    </criterion>
+    <criterion id="AC-5.6.4" title="Returning to Document Shows Previous Conversation">
+      Returning to document shows previous conversation. Messages loaded from database on document page mount. Loading skeleton shown while fetching conversation history. Empty state shown if no previous conversation with example questions.
+    </criterion>
+    <criterion id="AC-5.6.5" title="Follow-up Questions Understand Context">
+      Follow-up questions understand context from conversation history. AI receives conversation history to maintain context.
+    </criterion>
+    <criterion id="AC-5.6.6" title="Last 10 Messages in RAG Prompt">
+      Last 10 individual messages included in RAG prompt (not 10 exchanges/20 messages). Messages formatted as role: content pairs. Older messages beyond 10 are not included (token efficiency). Token budget validated: history must fit within 6000 tokens. If history exceeds budget, truncate oldest messages first.
+    </criterion>
+    <criterion id="AC-5.6.7" title="New Chat Button Visible">
+      New Chat button visible in chat panel header. Button styled as ghost button per UX spec. Button disabled while AI is generating response. Button icon: MessageSquarePlus from lucide-react. Tooltip on hover: Start a fresh conversation about this document.
+    </criterion>
+    <criterion id="AC-5.6.8" title="New Chat Confirmation Dialog">
+      Clicking New Chat shows confirmation dialog: Start a new conversation? Dialog body: This will clear the current conversation from view. Your conversation history will be saved. Cancel and Start New buttons in dialog. Enter key confirms, Escape key cancels. Modal uses Dialog component from shadcn/ui.
+    </criterion>
+    <criterion id="AC-5.6.9" title="New Chat Creates New Conversation">
+      Confirming New Chat creates new conversation record. Chat panel clears and shows empty state with example questions. New conversation_id generated for subsequent messages. Old conversation remains in database.
+    </criterion>
+    <criterion id="AC-5.6.10" title="Old Conversations Not Deleted">
+      Old conversations remain in database (not deleted, just new one created). Only latest conversation shown for a document (by updated_at). Historical conversations preserved for audit/compliance. No manual delete conversation feature in MVP.
+    </criterion>
+    <criterion id="AC-5.6.11" title="Error Handling for Database Operations">
+      If saving user message fails: show error toast Failed to save message. Please try again. If saving assistant message fails: show warning toast but keep message visible in UI. If loading conversation fails: show error state with retry button. Network errors handled gracefully with user-friendly messages.
+    </criterion>
+    <criterion id="AC-5.6.12" title="Concurrent Access Handling">
+      Multiple browser tabs with same document share same conversation. Race condition on conversation creation handled via database upsert pattern. No duplicate conversations created for same document/user pair. New messages from other tabs not auto-synced (acceptable for MVP).
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Epic 5 Technical Specification">
+        <section>Story 5.6: Conversation History and Follow-up Questions</section>
+        <snippet>Comprehensive design for conversation persistence, RAG with history context, token budget management, streaming buffer pattern for message persistence.</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture">
+        <section>Data Architecture - conversations, chat_messages tables</section>
+        <snippet>Database schema with RLS policies for conversations and chat_messages. Includes agency_id enforcement and indexes for conversation_id.</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture">
+        <section>Implementation Patterns - Streaming Response Format</section>
+        <snippet>SSE event format: text, source, confidence, done, error types. Done payload includes conversationId and messageId.</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture">
+        <section>API Contracts - Chat</section>
+        <snippet>POST /api/chat request: documentId, message, conversationId. SSE response stream with text/source/confidence/done events.</snippet>
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification">
+        <section>ChatMessage Component</section>
+        <snippet>User messages right-aligned primary bubble, AI messages left-aligned surface bubble with confidence badges and source citations.</snippet>
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification">
+        <section>Empty State Patterns</section>
+        <snippet>Empty states guide action with example questions. Chat empty state: Ask anything about this document with 2-3 insurance-relevant questions.</snippet>
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification">
+        <section>Feedback Patterns</section>
+        <snippet>Toast notifications: success 3s auto-dismiss, error persistent until dismissed. Use sonner component for toasts.</snippet>
+      </doc>
+      <doc path="docs/ux-design-specification.md" title="UX Design Specification">
+        <section>Button Hierarchy</section>
+        <snippet>Ghost buttons: text only, slate color - for tertiary actions like New Chat. Primary: solid slate, Secondary: outline.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/lib/chat/service.ts" kind="service" symbol="getOrCreateConversation, saveUserMessage, saveAssistantMessage, getConversationHistory">
+        <lines>27-232</lines>
+        <reason>EXISTING: Core chat service with conversation CRUD already implemented. Needs extension for createNewConversation and getConversationMessages functions. Has MAX_HISTORY_MESSAGES=10 constant.</reason>
+      </artifact>
+      <artifact path="src/lib/chat/types.ts" kind="types" symbol="Conversation, ChatMessage, SourceCitation, SSEEvent, DonePayload">
+        <lines>1-114</lines>
+        <reason>EXISTING: TypeScript interfaces for Conversation, ChatMessage, SourceCitation already defined. SSEEvent types defined for streaming.</reason>
+      </artifact>
+      <artifact path="src/app/api/chat/route.ts" kind="api" symbol="POST /api/chat">
+        <lines>1-246</lines>
+        <reason>EXISTING: Chat streaming endpoint already handles conversation creation/persistence and message saving. Need to verify error handling meets AC-5.6.11 requirements.</reason>
+      </artifact>
+      <artifact path="src/hooks/use-chat.ts" kind="hook" symbol="useChat">
+        <lines>1-335</lines>
+        <reason>EXISTING: Client-side chat hook manages messages, streaming, conversationId state. Current approach uses local state - needs integration with useConversation for persistence loading.</reason>
+      </artifact>
+      <artifact path="src/lib/chat/rag.ts" kind="service" symbol="buildPrompt, retrieveContext">
+        <lines>1-178</lines>
+        <reason>EXISTING: RAG pipeline with buildPrompt already accepts conversationHistory parameter and formats as role: content pairs. Token budget truncation needs to be added per AC-5.6.6.</reason>
+      </artifact>
+      <artifact path="src/components/chat/chat-panel.tsx" kind="component" symbol="ChatPanel">
+        <lines>1-160</lines>
+        <reason>EXISTING: Chat panel with useChat hook, empty state with SuggestedQuestions, auto-scroll. Needs: New Chat button, loading skeleton, database message integration.</reason>
+      </artifact>
+      <artifact path="src/components/chat/chat-message.tsx" kind="component" symbol="ChatMessage">
+        <reason>EXISTING: Message display component with source citations and confidence badges. Used by ChatPanel.</reason>
+      </artifact>
+      <artifact path="src/components/chat/suggested-questions.tsx" kind="component" symbol="SuggestedQuestions">
+        <reason>EXISTING: Empty state suggested questions component. Insurance-relevant questions already defined.</reason>
+      </artifact>
+      <artifact path="src/app/(dashboard)/documents/[id]/page.tsx" kind="page" symbol="DocumentDetailPage">
+        <lines>1-408</lines>
+        <reason>EXISTING: Document detail page with split view, ChatPanel integration, source click handling. Conversation initialization needed per AC-5.6.3.</reason>
+      </artifact>
+      <artifact path="src/components/ui/dialog.tsx" kind="component" symbol="Dialog">
+        <reason>EXISTING: shadcn/ui Dialog component for New Chat confirmation modal (AC-5.6.8).</reason>
+      </artifact>
+      <artifact path="src/components/ui/skeleton.tsx" kind="component" symbol="Skeleton">
+        <reason>EXISTING: Skeleton loading component for conversation history loading state (AC-5.6.4).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0">Database queries with RLS for conversations and chat_messages</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client for API routes</package>
+        <package name="openai" version="^6.9.1">GPT-4o chat completions with streaming</package>
+        <package name="lucide-react" version="^0.554.0">Icons including MessageSquarePlus for New Chat button</package>
+        <package name="sonner" version="^2.0.7">Toast notifications for error handling</package>
+        <package name="zod" version="^4.1.13">Request validation schemas</package>
+        <package name="@radix-ui/react-dialog" version="^1.1.15">Dialog primitive for New Chat confirmation</package>
+        <package name="react" version="19.2.0">React 19 with hooks</package>
+        <package name="next" version="16.0.4">Next.js 16 App Router with streaming support</package>
+      </node>
+      <testing>
+        <package name="vitest" version="^4.0.14">Test runner</package>
+        <package name="@testing-library/react" version="^16.3.0">React component testing</package>
+        <package name="@testing-library/user-event" version="^14.6.1">User interaction simulation</package>
+        <package name="happy-dom" version="^20.0.10">DOM environment for tests</package>
+      </testing>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Architecture">RLS policies enforce agency_id on all conversation/message queries. Include agency_id in all inserts.</constraint>
+    <constraint source="Architecture">Streaming responses via Server-Sent Events - use ReadableStream with text/event-stream content type.</constraint>
+    <constraint source="Tech Spec">Token budget: 6000 tokens max for conversation history (~4 chars per token). Truncate oldest messages first.</constraint>
+    <constraint source="Tech Spec">MAX_HISTORY_MESSAGES = 10 individual messages, not 10 exchanges (20 messages).</constraint>
+    <constraint source="UX Spec">No loading spinners longer than 200ms - use skeleton shimmer instead.</constraint>
+    <constraint source="UX Spec">Toast notifications: sonner component, error toasts persistent, success toasts 3s auto-dismiss.</constraint>
+    <constraint source="Architecture">User message save must succeed before RAG processing (fail fast pattern).</constraint>
+    <constraint source="Tech Spec">Race condition handling via upsert pattern - INSERT ON CONFLICT or try-catch with unique violation detection.</constraint>
+    <constraint source="UX Spec">Ghost button style for New Chat: text only, slate color, no background.</constraint>
+    <constraint source="Architecture">API response format: { data: T, error: null } or { data: null, error: { code, message } }.</constraint>
+    <constraint source="Project">Test baseline: 661+ tests must continue passing. Add 33-43 new tests for this story.</constraint>
+    <constraint source="Dev Notes">No auto-sync for messages from other tabs in MVP - acceptable limitation.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ChatService" kind="module" path="src/lib/chat/service.ts">
+      <method signature="getOrCreateConversation(supabase, documentId, userId, agencyId): Promise&lt;Conversation&gt;">Get existing or create new conversation</method>
+      <method signature="getConversationMessages(supabase, conversationId): Promise&lt;ChatMessage[]&gt;">NEW: Get all messages for a conversation</method>
+      <method signature="saveUserMessage(supabase, conversationId, agencyId, content): Promise&lt;ChatMessage&gt;">Save user message to database</method>
+      <method signature="saveAssistantMessage(supabase, conversationId, agencyId, content, sources, confidence): Promise&lt;ChatMessage&gt;">Save assistant message with sources</method>
+      <method signature="getConversationHistory(supabase, conversationId): Promise&lt;ChatMessage[]&gt;">Get last 10 messages for RAG context</method>
+      <method signature="createNewConversation(supabase, documentId, userId, agencyId): Promise&lt;Conversation&gt;">NEW: Create fresh conversation (for New Chat)</method>
+    </interface>
+    <interface name="useConversation" kind="hook" path="src/hooks/use-conversation.ts">
+      <method signature="useConversation(documentId: string): UseConversationReturn">NEW: Hook for conversation state management</method>
+      <property name="conversation" type="Conversation | null">Current conversation record</property>
+      <property name="messages" type="ChatMessage[]">Messages loaded from database</property>
+      <property name="isLoading" type="boolean">Loading state for initial fetch</property>
+      <property name="error" type="string | null">Error state</property>
+      <method signature="refetch(): Promise&lt;void&gt;">Refetch conversation after new message</method>
+      <method signature="createNew(): Promise&lt;void&gt;">Create new conversation (New Chat)</method>
+    </interface>
+    <interface name="POST /api/chat" kind="REST" path="src/app/api/chat/route.ts">
+      <request>{ documentId: string, message: string, conversationId: string }</request>
+      <response>SSE stream: text | source | confidence | done | error events</response>
+      <done-payload>{ conversationId: string, messageId: string }</done-payload>
+      <error-payload>{ code: string, message: string }</error-payload>
+    </interface>
+    <interface name="Conversation" kind="type" path="src/lib/chat/types.ts">
+      <property name="id" type="string">UUID primary key</property>
+      <property name="agencyId" type="string">Agency ID for RLS</property>
+      <property name="documentId" type="string">Document this conversation belongs to</property>
+      <property name="userId" type="string">User who owns the conversation</property>
+      <property name="createdAt" type="Date">Creation timestamp</property>
+      <property name="updatedAt" type="Date">Last activity timestamp</property>
+    </interface>
+    <interface name="ChatMessage" kind="type" path="src/lib/chat/types.ts">
+      <property name="id" type="string">UUID primary key</property>
+      <property name="conversationId" type="string">Parent conversation</property>
+      <property name="agencyId" type="string">Agency ID for RLS</property>
+      <property name="role" type="user | assistant">Message author</property>
+      <property name="content" type="string">Message text</property>
+      <property name="sources" type="SourceCitation[] | null">Sources for assistant messages</property>
+      <property name="confidence" type="ConfidenceLevel | null">Confidence for assistant messages</property>
+      <property name="createdAt" type="Date">Creation timestamp</property>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest test runner with happy-dom environment. Testing Library for React components. Mock Supabase client for unit tests. Tests organized by type: __tests__/unit/, __tests__/components/, __tests__/hooks/, __tests__/integration/. Use describe/it pattern with clear test names. Mock external services (Supabase, OpenAI) at module level. Follow existing test patterns in __tests__/hooks/use-chat.test.ts and __tests__/lib/chat/ for chat-related tests.
+    </standards>
+    <locations>
+      <location pattern="__tests__/unit/lib/chat/service.test.ts">NEW: Chat service unit tests (15-20 tests)</location>
+      <location pattern="__tests__/hooks/use-conversation.test.ts">NEW: useConversation hook tests (8-10 tests)</location>
+      <location pattern="__tests__/hooks/use-chat.test.ts">EXISTING: Update for conversation integration</location>
+      <location pattern="__tests__/components/chat/chat-panel.test.tsx">EXISTING: Update for history loading, New Chat button</location>
+      <location pattern="__tests__/integration/chat/conversation-flow.test.ts">NEW: Integration tests (5-8 tests)</location>
+      <location pattern="__tests__/unit/lib/chat/rag.test.ts">NEW: Token budget truncation tests (3-5 tests)</location>
+    </locations>
+    <ideas>
+      <idea ac="5.6.1">Test messages render in chronological order with correct alignment</idea>
+      <idea ac="5.6.1">Test auto-scroll behavior on new message</idea>
+      <idea ac="5.6.2">Test saveUserMessage called before RAG processing</idea>
+      <idea ac="5.6.2">Test saveAssistantMessage called after streaming completes</idea>
+      <idea ac="5.6.2">Test sources/confidence JSONB stored correctly</idea>
+      <idea ac="5.6.3">Test getOrCreateConversation returns existing conversation</idea>
+      <idea ac="5.6.3">Test getOrCreateConversation creates new if none exists</idea>
+      <idea ac="5.6.3">Test race condition handling via upsert pattern</idea>
+      <idea ac="5.6.4">Test messages loaded from database on mount</idea>
+      <idea ac="5.6.4">Test loading skeleton shown while fetching</idea>
+      <idea ac="5.6.4">Test empty state with example questions when no conversation</idea>
+      <idea ac="5.6.5">Test follow-up context: after liability question, property damage understood</idea>
+      <idea ac="5.6.6">Test exactly 10 messages included in prompt</idea>
+      <idea ac="5.6.6">Test messages formatted as role: content pairs</idea>
+      <idea ac="5.6.6">Test token budget truncation from oldest messages</idea>
+      <idea ac="5.6.7">Test New Chat button renders in header</idea>
+      <idea ac="5.6.7">Test button disabled while streaming</idea>
+      <idea ac="5.6.7">Test tooltip appears on hover</idea>
+      <idea ac="5.6.8">Test dialog appears on New Chat click</idea>
+      <idea ac="5.6.8">Test Enter confirms, Escape cancels</idea>
+      <idea ac="5.6.9">Test new conversation created on confirm</idea>
+      <idea ac="5.6.9">Test chat panel shows empty state after new chat</idea>
+      <idea ac="5.6.10">Test old conversation not deleted from database</idea>
+      <idea ac="5.6.11">Test error toast on user message save failure</idea>
+      <idea ac="5.6.11">Test warning toast on assistant message save failure</idea>
+      <idea ac="5.6.11">Test error state with retry button on load failure</idea>
+      <idea ac="5.6.12">Test no duplicate conversations for same document/user</idea>
+      <idea ac="5.6.12">Test concurrent conversation creation returns same ID</idea>
+    </ideas>
+  </tests>
+</story-context>

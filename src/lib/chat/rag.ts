@@ -14,7 +14,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
 import { generateEmbeddings } from '@/lib/openai/embeddings';
 import { searchSimilarChunks } from './vector-search';
-import { calculateConfidence, type ConfidenceLevel } from '@/components/chat/confidence-badge';
+import { calculateConfidence, type ConfidenceLevel } from '@/lib/chat/confidence';
 import type { RAGContext, RetrievedChunk, ChatMessage, SourceCitation } from './types';
 import { log } from '@/lib/utils/logger';
 

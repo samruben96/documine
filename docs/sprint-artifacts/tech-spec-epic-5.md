@@ -845,7 +845,7 @@ OPENAI_API_KEY=sk-...
 | R5 | Streaming connection dropped on mobile | Incomplete responses | Low | Detect disconnect, show partial response + retry option |
 | R6 | OpenAI model changes affect response quality | Inconsistent user experience | Low | Pin to specific model version (gpt-4o-2024-05-13), test before upgrading |
 | R7 | Large documents overwhelm context window | GPT-4o context limits exceeded | Low | Limit to top 5 chunks (~2500 tokens), summarize if needed |
-| R8 | Bounding box data unavailable from LlamaParse | Highlights can't show exact location | Medium | Fallback to page-level highlight with flash animation |
+| R8 | Bounding box data unavailable from Docling | Highlights can't show exact location | Medium | Fallback to page-level highlight with flash animation |
 | R9 | Follow-up context makes prompts too large | Token limits, slow responses | Low | Limit to last 10 messages, summarize older context if needed |
 
 ### Assumptions
@@ -861,7 +861,7 @@ OPENAI_API_KEY=sk-...
 | A7 | Users primarily use desktop for document analysis | Insurance agents typically work on desktop |
 | A8 | 1000 character message limit is sufficient | Typical questions are much shorter |
 | A9 | OpenAI API remains available and performant | 99.9% SLA historically |
-| A10 | react-pdf handles all insurance PDF formats | Standard PDFs should work, scanned docs via LlamaParse OCR |
+| A10 | react-pdf handles all insurance PDF formats | Standard PDFs should work, scanned docs via Docling OCR |
 
 ### Open Questions
 

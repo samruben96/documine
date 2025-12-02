@@ -8,7 +8,7 @@
  */
 
 import OpenAI from 'openai';
-import type { ConfidenceLevel } from '@/components/chat/confidence-badge';
+import type { ConfidenceLevel } from '@/lib/chat/confidence';
 import type { SourceCitation, SSEEvent } from './types';
 import { RateLimitError, TimeoutError, ChatError } from '@/lib/errors';
 import { log } from '@/lib/utils/logger';
@@ -33,10 +33,14 @@ interface StreamChatOptions {
 export async function streamChatResponse(options: StreamChatOptions): Promise<void> {
   const { messages, apiKey, onText, onComplete, onError, signal } = options;
 
+  console.log('DEBUG: streamChatResponse called');
+  log.info('Starting OpenAI stream', { messageCount: messages.length });
   const openai = new OpenAI({ apiKey });
   const startTime = Date.now();
 
   try {
+    console.log('DEBUG: About to call OpenAI API');
+    log.info('Calling OpenAI chat.completions.create');
     const stream = await openai.chat.completions.create({
       model: CHAT_MODEL,
       messages,
@@ -72,8 +76,15 @@ export async function streamChatResponse(options: StreamChatOptions): Promise<vo
 
     onComplete(fullResponse);
   } catch (error) {
+    console.error('DEBUG: OpenAI stream error caught:', error);
     // Handle specific error types
     if (error instanceof OpenAI.APIError) {
+      console.error('DEBUG: OpenAI API Error - status:', error.status, 'message:', error.message);
+      log.error('OpenAI API error caught', error, {
+        status: error.status,
+        message: error.message,
+        code: error.code,
+      });
       if (error.status === 429) {
         log.warn('OpenAI rate limit hit', { status: error.status });
         onError(new RateLimitError());
@@ -129,8 +140,13 @@ export function createChatStream(options: {
   const { messages, apiKey, sources, confidence, conversationId, onComplete } = options;
   const encoder = new TextEncoder();
 
+  console.log('DEBUG: createChatStream called');
+  log.info('createChatStream called', { conversationId, sourceCount: sources.length });
+
   return new ReadableStream<Uint8Array>({
     async start(controller) {
+      console.log('DEBUG: Stream start() callback executing');
+      log.info('Stream start() callback executing');
       const abortController = new AbortController();
 
       try {
@@ -202,6 +218,7 @@ export function createChatStream(options: {
           },
         });
       } catch (error) {
+        console.error('DEBUG: createChatStream catch block error:', error);
         log.error('Stream creation failed', error instanceof Error ? error : new Error(String(error)));
         const errorEvent: SSEEvent = {
           type: 'error',

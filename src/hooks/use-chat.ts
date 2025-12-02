@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ChatMessageData } from '@/components/chat/chat-message';
 import type { ConfidenceLevel } from '@/components/chat/confidence-badge';
 import type { SourceCitation, SSEEvent } from '@/lib/chat/types';
@@ -60,6 +60,16 @@ function parseSSELine(line: string): SSEEvent | null {
 }
 
 /**
+ * Options for the useChat hook
+ */
+export interface UseChatOptions {
+  /** Initial conversation ID (from useConversation) */
+  initialConversationId?: string | null;
+  /** Initial messages to display (from useConversation) */
+  initialMessages?: ExtendedChatMessageData[];
+}
+
+/**
  * useChat Hook
  *
  * Implements AC-5.2.7: Message send behavior with optimistic UI updates
@@ -69,16 +79,35 @@ function parseSSELine(line: string): SSEEvent | null {
  * Implements AC-5.3.2: Confidence and sources storage after streaming
  *
  * @param documentId - The ID of the document being chatted about
+ * @param options - Optional configuration including initial conversation state
  * @returns UseChatReturn object with messages, state, and actions
  */
-export function useChat(documentId: string): UseChatReturn {
-  const [messages, setMessages] = useState<ExtendedChatMessageData[]>([]);
+export function useChat(documentId: string, options?: UseChatOptions): UseChatReturn {
+  const [messages, setMessages] = useState<ExtendedChatMessageData[]>(
+    options?.initialMessages ?? []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(
+    options?.initialConversationId ?? null
+  );
 
   // Track pending retry message content
   const pendingRetryRef = useRef<{ messageId: string; content: string } | null>(null);
+
+  // Sync conversation ID when it changes externally (e.g., from useConversation)
+  useEffect(() => {
+    if (options?.initialConversationId && conversationId !== options.initialConversationId) {
+      setConversationId(options.initialConversationId);
+    }
+  }, [options?.initialConversationId, conversationId]);
+
+  // Sync messages when they change externally (e.g., loaded from useConversation)
+  useEffect(() => {
+    if (options?.initialMessages && options.initialMessages.length > 0 && messages.length === 0) {
+      setMessages(options.initialMessages);
+    }
+  }, [options?.initialMessages, messages.length]);
 
   /**
    * Send a message and stream the response
@@ -116,16 +145,21 @@ export function useChat(documentId: string): UseChatReturn {
 
     try {
       // Make streaming request to chat API
+      // Only include conversationId if it's not null (Zod expects string | undefined)
+      const requestBody: { documentId: string; message: string; conversationId?: string } = {
+        documentId,
+        message: content.trim(),
+      };
+      if (conversationId) {
+        requestBody.conversationId = conversationId;
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          documentId,
-          message: content.trim(),
-          conversationId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       // Handle non-streaming error responses

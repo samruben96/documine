@@ -25,7 +25,7 @@ npx shadcn@latest init
 npx shadcn@latest add button input card dialog table tabs toast
 
 # Add additional dependencies
-npm install openai llamaindex resend zod
+npm install openai resend zod
 ```
 
 This establishes the base architecture with these decisions:
@@ -73,7 +73,7 @@ npm run dev
 | File Storage | Supabase Storage | Latest | FR8-12 | S3-compatible, RLS policies, same platform |
 | Authentication | Supabase Auth | Latest | FR1-7 | Email/OAuth, integrates with RLS |
 | AI/LLM | OpenAI GPT-4o | Latest | FR13-19, FR20-26 | Best accuracy for document analysis, function calling |
-| PDF Processing | LlamaParse + GPT-4o Vision | Latest | FR12, FR21 | LlamaParse for speed/tables, Vision fallback for complex |
+| PDF Processing | Docling (self-hosted) | Latest | FR12, FR21 | 97.9% table accuracy, zero API cost, full data privacy |
 | Multi-Tenancy | Row Level Security (RLS) | Native | FR27-30 | Database-level isolation per agency |
 | UI Components | shadcn/ui | Latest | All UI | Per UX spec, accessible, Tailwind-based |
 | Background Jobs | Supabase Edge Functions | Latest | FR12 | Document processing queue, no extra service |
@@ -135,8 +135,8 @@ documine/
 │   │   │   ├── client.ts             # OpenAI client
 │   │   │   ├── embeddings.ts         # Embedding generation
 │   │   │   └── chat.ts               # Chat completion
-│   │   ├── llamaparse/
-│   │   │   └── client.ts             # LlamaParse client
+│   │   ├── docling/
+│   │   │   └── client.ts             # Docling client
 │   │   ├── email/
 │   │   │   └── resend.ts             # Resend client
 │   │   └── utils/
@@ -173,7 +173,7 @@ documine/
 | **User Account & Access** | FR1-FR7 | Supabase Auth + RLS | Email/password, OAuth, session management |
 | **Document Management** | FR8-FR12 | Supabase Storage + PostgreSQL | Upload to Storage, metadata in DB, processing via Edge Functions |
 | **Document Q&A** | FR13-FR19 | OpenAI GPT-4o + pgvector | Embeddings for retrieval, GPT-4o for generation, streaming responses |
-| **Quote Comparison** | FR20-FR26 | LlamaParse + GPT-4o | Structured extraction, function calling for data alignment |
+| **Quote Comparison** | FR20-FR26 | Docling + GPT-4o | Structured extraction, function calling for data alignment |
 | **Agency Management** | FR27-FR30 | RLS policies + PostgreSQL | agency_id on all tables, RLS enforces isolation |
 | **Platform & Infrastructure** | FR31-FR34 | Vercel + Supabase | Edge deployment, managed services |
 
@@ -199,10 +199,11 @@ documine/
 - text-embedding-3-small for vector embeddings
 - Function calling for structured data extraction
 
-**LlamaParse**
-- Primary PDF parser for tables and structured content
-- ~6 second processing time per document
-- Markdown output optimized for RAG
+**Docling (Self-Hosted)**
+- Primary PDF parser for tables and structured content (IBM TableFormer model)
+- 97.9% table extraction accuracy vs 75% with previous solution
+- Self-hosted Python microservice on Railway
+- Markdown output optimized for RAG with page markers
 
 ### Integration Points
 
@@ -226,9 +227,9 @@ documine/
           │                │                     │
           ▼                ▼                     ▼
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐
-│    OpenAI       │  │   LlamaParse    │  │      Resend         │
-│  GPT-4o         │  │   PDF Parsing   │  │   Transactional     │
-│  Embeddings     │  │                 │  │   Email             │
+│    OpenAI       │  │    Docling      │  │      Resend         │
+│  GPT-4o         │  │  (Self-Hosted)  │  │   Transactional     │
+│  Embeddings     │  │  PDF Parsing    │  │   Email             │
 └─────────────────┘  └─────────────────┘  └─────────────────────┘
 ```
 
@@ -826,7 +827,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-local-service-key
 
 OPENAI_API_KEY=sk-...
-LLAMA_CLOUD_API_KEY=llx-...
+DOCLING_SERVICE_URL=http://localhost:8000  # Local Docling service
 RESEND_API_KEY=re_...
 
 # Production (Vercel Environment Variables)
@@ -835,7 +836,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 OPENAI_API_KEY=sk-...
-LLAMA_CLOUD_API_KEY=llx-...
+DOCLING_SERVICE_URL=https://docling-for-documine-production.up.railway.app
 RESEND_API_KEY=re_...
 ```
 
@@ -918,20 +919,23 @@ npm run build
 
 ---
 
-### ADR-002: LlamaParse + GPT-4o Vision for PDF Processing
+### ADR-002: Docling for PDF Processing (Updated 2025-11-30)
 
-**Status:** Accepted
+**Status:** Accepted (Updated from LlamaParse)
 
-**Context:** Insurance PDFs have complex tables, multi-column layouts, and varying quality. Need 95%+ extraction accuracy.
+**Context:** Insurance PDFs have complex tables, multi-column layouts, and varying quality. Need 95%+ extraction accuracy. Original LlamaParse solution had 75% table accuracy and API cost concerns.
 
-**Decision:** Use LlamaParse as primary parser (fast, good tables), GPT-4o Vision as fallback for complex pages.
+**Decision:** Use self-hosted Docling service (IBM TableFormer model) for all PDF processing.
 
 **Consequences:**
-- (+) Fast processing for standard documents (~6s)
-- (+) High accuracy on tables (declarations pages, quotes)
-- (+) Vision fallback handles edge cases
-- (-) Two services to manage
-- (-) Cost per page ($0.003 LlamaParse + token cost for Vision)
+- (+) 97.9% table extraction accuracy (critical for insurance documents)
+- (+) Zero API costs (self-hosted)
+- (+) Full data privacy (documents never leave our infrastructure)
+- (+) Same page marker format for backward compatibility
+- (-) Requires self-managed infrastructure (Railway deployment)
+- (-) Slightly longer processing time for large documents
+
+**Migration Note:** Completed Story 4.8 (2025-11-30). Docling service deployed at https://docling-for-documine-production.up.railway.app
 
 ---
 

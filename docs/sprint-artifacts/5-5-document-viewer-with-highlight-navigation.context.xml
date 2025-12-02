@@ -1,0 +1,289 @@
+<story-context id="5-5-document-viewer-with-highlight-navigation" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>5</storyId>
+    <title>Document Viewer with Highlight Navigation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-5-document-viewer-with-highlight-navigation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to click a source citation and see the relevant passage highlighted in the document</iWant>
+    <soThat>I can quickly verify the answer</soThat>
+    <tasks>
+      <task id="1" ac="5.5.1">Install and Configure PDF Dependencies
+        <subtask>Install react-pdf and pdfjs-dist packages</subtask>
+        <subtask>Configure webpack for pdfjs-dist worker in next.config.ts</subtask>
+        <subtask>Add canvas=false alias to prevent SSR issues</subtask>
+        <subtask>Verify PDF.js worker loads correctly</subtask>
+      </task>
+      <task id="2" ac="5.5.1">Create DocumentViewer Component
+        <subtask>Create src/components/documents/document-viewer.tsx</subtask>
+        <subtask>Implement PDF rendering using react-pdf Document/Page components</subtask>
+        <subtask>Enable text layer with renderTextLayer={true}</subtask>
+        <subtask>Handle PDF loading states (loading, error, success)</subtask>
+        <subtask>Add container with proper sizing and overflow handling</subtask>
+      </task>
+      <task id="3" ac="5.5.2">Implement Page Navigation
+        <subtask>Add toolbar component for navigation controls</subtask>
+        <subtask>Implement previous/next page buttons with icons</subtask>
+        <subtask>Add page number input with validation (1 to numPages)</subtask>
+        <subtask>Display "Page X of Y" indicator</subtask>
+        <subtask>Disable prev button on page 1, next on last page</subtask>
+        <subtask>Handle keyboard navigation (left/right arrows)</subtask>
+      </task>
+      <task id="4" ac="5.5.3">Implement Zoom Controls
+        <subtask>Add fit-to-width button that calculates optimal scale</subtask>
+        <subtask>Add zoom in (+) button with 25% increment</subtask>
+        <subtask>Add zoom out (-) button with 25% decrement</subtask>
+        <subtask>Constrain zoom between 50% and 200%</subtask>
+        <subtask>Store zoom level in component state</subtask>
+        <subtask>Apply scale to react-pdf Page component</subtask>
+      </task>
+      <task id="5" ac="5.5.4">Implement Scroll to Page on Source Click
+        <subtask>Expose scrollToPage(pageNumber) method from DocumentViewer</subtask>
+        <subtask>Use ref forwarding or context to expose method</subtask>
+        <subtask>Implement smooth scroll to target page element</subtask>
+        <subtask>Handle case where page not yet rendered (virtualization)</subtask>
+        <subtask>Integrate with SourceCitationList onClick handler from Story 5.4</subtask>
+      </task>
+      <task id="6" ac="5.5.5,5.5.6">Implement Highlight Overlay Component
+        <subtask>Create src/components/documents/highlight-overlay.tsx</subtask>
+        <subtask>Position overlay using absolute coordinates from bounding box</subtask>
+        <subtask>Apply yellow background color (#fef08a)</subtask>
+        <subtask>Add padding (6px) around highlight bounds</subtask>
+        <subtask>Calculate overlay position relative to PDF page</subtask>
+        <subtask>Handle coordinate system conversion (PDF to screen)</subtask>
+      </task>
+      <task id="7" ac="5.5.7">Implement Highlight Fade Animation
+        <subtask>Add fade-out animation after 3 second delay</subtask>
+        <subtask>Use CSS transition for opacity (0.5s ease-out)</subtask>
+        <subtask>Clean up highlight state after animation completes</subtask>
+        <subtask>Prevent memory leaks by clearing timeouts on unmount</subtask>
+      </task>
+      <task id="8" ac="5.5.8">Implement Highlight Dismiss Behavior
+        <subtask>Add click handler on document area to dismiss highlight</subtask>
+        <subtask>Clear highlight when new source citation clicked</subtask>
+        <subtask>Add Escape key listener to dismiss highlight</subtask>
+        <subtask>Use event delegation for efficient click handling</subtask>
+      </task>
+      <task id="9" ac="5.5.9">Implement Page-Level Fallback
+        <subtask>Detect when source has no bounding box data</subtask>
+        <subtask>Apply CSS pulse animation to page border</subtask>
+        <subtask>Use @keyframes for border-color pulse (2 cycles, 1s total)</subtask>
+        <subtask>Use slate-500 (#475569) for border highlight</subtask>
+        <subtask>Clean up animation class after completion</subtask>
+      </task>
+      <task id="10" ac="5.5.10">Implement Mobile Citation Navigation
+        <subtask>Detect mobile viewport using media query or hook</subtask>
+        <subtask>On source click: switch to Document tab first</subtask>
+        <subtask>Wait for tab transition to complete</subtask>
+        <subtask>Then execute scroll and highlight</subtask>
+        <subtask>Integrate with split-view tab state from Story 5.1</subtask>
+      </task>
+      <task id="11" ac="5.5.4,5.5.10">Integrate with Split View Layout
+        <subtask>Pass onSourceClick handler from split-view to ChatPanel</subtask>
+        <subtask>Connect DocumentViewer ref to split-view for scroll control</subtask>
+        <subtask>Handle source clicks through parent coordination</subtask>
+        <subtask>Ensure highlight state shared between components</subtask>
+      </task>
+      <task id="12" ac="all">Testing and Verification
+        <subtask>Write unit tests for DocumentViewer component</subtask>
+        <subtask>Write tests for page navigation (prev/next/direct)</subtask>
+        <subtask>Write tests for zoom controls (in/out/fit)</subtask>
+        <subtask>Write tests for highlight overlay positioning</subtask>
+        <subtask>Write tests for fade and dismiss behavior</subtask>
+        <subtask>Write tests for mobile tab switching</subtask>
+        <subtask>Run build and verify no type errors</subtask>
+        <subtask>Verify test baseline maintained</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="5.5.1" title="PDF Renders with Text Layer">
+      <criterion>PDF renders with text layer enabled (text is selectable)</criterion>
+      <criterion>Text selection works for copy/paste operations</criterion>
+      <criterion>Text layer overlay properly aligned with rendered PDF</criterion>
+    </ac>
+    <ac id="5.5.2" title="Page Navigation Controls">
+      <criterion>Previous/next page buttons visible in viewer toolbar</criterion>
+      <criterion>Page number input field allows direct page navigation</criterion>
+      <criterion>"Page X of Y" display shows current position</criterion>
+      <criterion>Navigation controls disabled at document boundaries (page 1, last page)</criterion>
+    </ac>
+    <ac id="5.5.3" title="Zoom Controls">
+      <criterion>Fit-to-width button scales PDF to container width</criterion>
+      <criterion>Zoom in (+) button increases scale by 25%</criterion>
+      <criterion>Zoom out (-) button decreases scale by 25%</criterion>
+      <criterion>Zoom level persists during page navigation</criterion>
+      <criterion>Minimum zoom: 50%, Maximum zoom: 200%</criterion>
+    </ac>
+    <ac id="5.5.4" title="Source Citation Scroll Navigation">
+      <criterion>Clicking source citation scrolls document viewer to target page</criterion>
+      <criterion>Scroll uses smooth animation (CSS scroll-behavior or JS)</criterion>
+      <criterion>Scroll completes within 300ms</criterion>
+    </ac>
+    <ac id="5.5.5" title="Highlight Color and Styling">
+      <criterion>Source passage highlighted with yellow background (#fef08a)</criterion>
+      <criterion>Highlight visible on any page background (light/dark)</criterion>
+      <criterion>Highlight color matches UX spec</criterion>
+    </ac>
+    <ac id="5.5.6" title="Highlight Padding">
+      <criterion>Highlight includes slight padding around text (4-8px)</criterion>
+      <criterion>Padding ensures highlight doesn't clip text edges</criterion>
+      <criterion>Padding consistent across different text sizes</criterion>
+    </ac>
+    <ac id="5.5.7" title="Highlight Fade Animation">
+      <criterion>Highlight fades out after 3 seconds</criterion>
+      <criterion>Fade uses gradual opacity transition (0.5s ease-out)</criterion>
+      <criterion>Animation is smooth and non-jarring</criterion>
+    </ac>
+    <ac id="5.5.8" title="Dismiss Highlight on Click">
+      <criterion>User can click elsewhere in document to dismiss highlight early</criterion>
+      <criterion>Clicking another source citation dismisses current and shows new</criterion>
+      <criterion>Escape key also dismisses active highlight</criterion>
+    </ac>
+    <ac id="5.5.9" title="Page-Level Fallback Highlight">
+      <criterion>If only page number available (no bounding box): page border flashes with subtle pulse</criterion>
+      <criterion>Pulse animation runs 2 times over 1 second</criterion>
+      <criterion>Border color uses primary slate (#475569)</criterion>
+      <criterion>Fallback provides visual feedback even without exact coordinates</criterion>
+    </ac>
+    <ac id="5.5.10" title="Mobile Citation Navigation">
+      <criterion>On mobile: clicking citation switches to Document tab first</criterion>
+      <criterion>Then scrolls to source page and applies highlight</criterion>
+      <criterion>Tab switch uses smooth transition</criterion>
+      <criterion>Highlight behavior identical to desktop after tab switch</criterion>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Epic 5 Technical Specification" section="Story 5.5: Document Viewer with Highlight Navigation">
+        Defines acceptance criteria AC-5.5.1 through AC-5.5.10 for PDF rendering with react-pdf, page navigation controls, zoom controls, source citation scroll navigation, highlight overlay with fade animation, and mobile tab switching behavior.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" title="Epic 5 Technical Specification" section="Dependencies and Integrations">
+        New dependencies required: react-pdf ^9.2.1 and pdfjs-dist ^4.10.38. Webpack config needed for PDF.js worker and canvas alias.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Novel Pattern: Trust-Transparent AI Responses">
+        Defines the pattern for AI responses with source citations and confidence indicators. Source citations link to document viewer for verification.
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Epic 5 - Document Q&A with Trust Transparency">
+        Story 5.5 covers PDF document viewer with text layer, page navigation, zoom controls, and highlight support for source citation verification.
+      </doc>
+      <doc path="docs/sprint-artifacts/5-4-source-citation-display.md" title="Story 5.4 (Previous)" section="Dev Agent Record">
+        SourceCitationList component created with onClick handler at src/components/chat/source-citation.tsx. This story implements the handler that receives clicks and triggers scroll + highlight.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/components/chat/source-citation.tsx" kind="component" symbol="SourceCitationList" reason="Source of onClick events - this story implements the handler that receives clicks and triggers document viewer scroll + highlight">
+        <interface>onSourceClick?: (source: SourceCitation) => void</interface>
+      </file>
+      <file path="src/lib/chat/types.ts" kind="types" symbol="SourceCitation, BoundingBox" reason="Type definitions for source citation data including pageNumber, text, chunkId, and optional boundingBox coordinates">
+        <interface>interface BoundingBox { x: number; y: number; width: number; height: number; }</interface>
+        <interface>interface SourceCitation { pageNumber: number; text: string; chunkId: string; boundingBox?: BoundingBox; similarityScore?: number; }</interface>
+      </file>
+      <file path="src/components/layout/split-view.tsx" kind="component" symbol="DocumentChatSplitView, DocumentViewPlaceholder" reason="Split view layout component - DocumentViewer replaces DocumentViewPlaceholder. Need to add ref forwarding and onSourceClick handler coordination">
+        <interface>DocumentChatSplitView({ documentViewer, chatPanel, className })</interface>
+      </file>
+      <file path="src/components/layout/mobile-document-chat-tabs.tsx" kind="component" symbol="MobileDocumentChatTabs" reason="Mobile tabbed interface - need to integrate tab switching when source citation clicked on mobile (AC-5.5.10)">
+      </file>
+      <file path="src/components/chat/chat-panel.tsx" kind="component" symbol="ChatPanel" reason="Chat panel that renders SourceCitationList - need to receive and forward onSourceClick handler from parent">
+      </file>
+      <file path="next.config.ts" kind="config" symbol="nextConfig" reason="Must be updated to add webpack config for pdfjs-dist worker and canvas=false alias">
+        <note>Currently has security headers only - needs webpack customization added</note>
+      </file>
+      <file path="src/components/ui/button.tsx" kind="component" symbol="Button" reason="UI component for toolbar buttons (prev/next page, zoom controls)">
+      </file>
+      <file path="src/components/ui/input.tsx" kind="component" symbol="Input" reason="UI component for page number input field">
+      </file>
+      <file path="__tests__/components/chat/source-citation.test.tsx" kind="test" symbol="SourceCitationList tests" lines="1-24+" reason="Test patterns to follow - 24 unit tests demonstrating component testing approach with fireEvent for interactions">
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <existing>
+          <package name="next" version="16.0.4">App Router framework with streaming support</package>
+          <package name="react" version="19.2.0">UI library</package>
+          <package name="react-dom" version="19.2.0">DOM rendering</package>
+          <package name="lucide-react" version="^0.554.0">Icon library for toolbar controls (ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2)</package>
+          <package name="tailwind-merge" version="^3.4.0">CSS class merging utility</package>
+          <package name="clsx" version="^2.1.1">Conditional class names</package>
+          <package name="@radix-ui/react-tabs" version="^1.1.13">Tabs primitive for mobile document/chat tabs</package>
+        </existing>
+        <required>
+          <package name="react-pdf" version="^9.2.1">PDF rendering with text layer support</package>
+          <package name="pdfjs-dist" version="^4.10.38">PDF.js library worker for react-pdf</package>
+        </required>
+        <devDependencies>
+          <package name="vitest" version="^4.0.14">Test framework</package>
+          <package name="@testing-library/react" version="^16.3.0">Component testing</package>
+          <package name="@testing-library/user-event" version="^14.6.1">User interaction simulation</package>
+          <package name="happy-dom" version="^20.0.10">DOM environment for tests</package>
+        </devDependencies>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">react-pdf requires PDF.js worker configuration. Add to next.config.ts: webpack config with canvas=false alias to prevent SSR issues</constraint>
+    <constraint source="tech-spec">PDF worker loaded from CDN for smaller bundle: pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`</constraint>
+    <constraint source="tech-spec">Zoom constrained between 50% minimum and 200% maximum</constraint>
+    <constraint source="tech-spec">Highlight color must be exactly #fef08a (yellow) per UX spec</constraint>
+    <constraint source="tech-spec">Highlight fade timeout is 3 seconds with 0.5s ease-out transition</constraint>
+    <constraint source="tech-spec">Page-level fallback uses slate-500 (#475569) for border pulse animation</constraint>
+    <constraint source="tech-spec">Scroll to page must complete within 300ms with smooth animation</constraint>
+    <constraint source="architecture">Components must be client components ('use client' directive) for React hooks and event handlers</constraint>
+    <constraint source="architecture">Use existing UI components from src/components/ui/ (Button, Input) for consistency</constraint>
+    <constraint source="architecture">Follow established testing patterns from __tests__/components/</constraint>
+    <constraint source="story-5.4">SourceCitationList already handles onClick - this story implements the receiving handler</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="DocumentViewerRef" kind="React.forwardRef interface">
+      <signature>
+interface DocumentViewerRef {
+  scrollToPage: (pageNumber: number) => void;
+  highlightSource: (source: SourceCitation) => void;
+}
+      </signature>
+      <path>src/components/documents/document-viewer.tsx (to create)</path>
+    </interface>
+    <interface name="SourceCitation onClick handler" kind="callback">
+      <signature>onSourceClick?: (source: SourceCitation) => void</signature>
+      <path>src/components/chat/source-citation.tsx (existing)</path>
+    </interface>
+    <interface name="PDF Document URL API" kind="REST endpoint">
+      <signature>GET /api/documents/[id]/url - Returns { data: { url: string; expiresAt: string }; error: null }</signature>
+      <note>Already implemented in Epic 4 - use to get signed URL for PDF viewing</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest test framework with React Testing Library for component tests. Follow established patterns from existing tests in __tests__/components/. Use fireEvent for user interactions, mock external dependencies. Run `npm run test` to execute, `npm run build` to verify no type errors.
+    </standards>
+    <locations>
+      <glob>__tests__/components/documents/document-viewer.test.tsx (to create)</glob>
+      <glob>__tests__/components/documents/highlight-overlay.test.tsx (to create)</glob>
+      <glob>__tests__/components/chat/source-citation.test.tsx (existing - 24 tests)</glob>
+    </locations>
+    <ideas>
+      <idea ac="5.5.1">Test PDF loads and renders with text layer enabled</idea>
+      <idea ac="5.5.2">Test page navigation: prev/next buttons disabled at boundaries, page input validation</idea>
+      <idea ac="5.5.3">Test zoom controls: in/out change scale by 25%, fit-to-width calculates optimal scale, constrained to 50%-200%</idea>
+      <idea ac="5.5.4">Test scrollToPage method scrolls to correct page with smooth behavior</idea>
+      <idea ac="5.5.5,5.5.6">Test highlight overlay positioned correctly with padding, correct yellow color</idea>
+      <idea ac="5.5.7">Test highlight fades after 3 seconds, verify timeout cleanup on unmount</idea>
+      <idea ac="5.5.8">Test highlight dismissed on click elsewhere, escape key, or new source click</idea>
+      <idea ac="5.5.9">Test page-level fallback pulse animation when no bounding box available</idea>
+      <idea ac="5.5.10">Test mobile citation click switches to Document tab before scroll/highlight</idea>
+    </ideas>
+  </tests>
+</story-context>

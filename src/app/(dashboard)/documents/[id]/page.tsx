@@ -87,8 +87,8 @@ export default function DocumentDetailPage() {
         return;
       }
 
-      // Only load PDF for processed documents
-      if (selectedDocument.status !== 'completed') {
+      // Only load PDF for processed documents (status 'ready' means processing complete)
+      if (selectedDocument.status !== 'ready') {
         setPdfUrl(null);
         return;
       }
@@ -307,7 +307,7 @@ export default function DocumentDetailPage() {
             pdfUrl={pdfUrl}
             className="h-full"
           />
-        ) : selectedDocument && selectedDocument.status !== 'completed' ? (
+        ) : selectedDocument && selectedDocument.status !== 'ready' ? (
           <div className="h-full flex items-center justify-center bg-slate-50">
             <div className="text-center">
               <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />

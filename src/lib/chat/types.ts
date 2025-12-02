@@ -3,7 +3,7 @@
  * @module @/lib/chat/types
  */
 
-import type { ConfidenceLevel } from '@/components/chat/confidence-badge';
+import type { ConfidenceLevel } from '@/lib/chat/confidence';
 
 /**
  * Bounding box for source highlight in document viewer

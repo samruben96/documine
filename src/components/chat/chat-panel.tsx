@@ -1,12 +1,42 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+/**
+ * Chat Panel Component
+ *
+ * Story 5.6: Conversation History & Follow-up Questions
+ * AC-5.6.1: Conversation history visible in scrollable chat panel
+ * AC-5.6.4: Returning to document shows previous conversation
+ * AC-5.6.7: New Chat button visible
+ * AC-5.6.8: New Chat confirmation dialog
+ * AC-5.6.11: Error handling for database operations
+ *
+ * @module @/components/chat/chat-panel
+ */
+
+import { useRef, useEffect, useCallback, useState } from 'react';
+import { MessageSquarePlus, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatInput, type ChatInputRef } from './chat-input';
 import { ChatMessage } from './chat-message';
 import { SuggestedQuestions } from './suggested-questions';
 import { ThinkingIndicator } from './thinking-indicator';
 import { useChat } from '@/hooks/use-chat';
+import { useConversation } from '@/hooks/use-conversation';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ChatPanelProps {
   documentId: string;
@@ -19,50 +49,150 @@ interface ChatPanelProps {
  * Check if any message is currently streaming
  */
 function hasStreamingMessage(messages: { isStreaming?: boolean }[]): boolean {
-  return messages.some(m => m.isStreaming);
+  return messages.some((m) => m.isStreaming);
+}
+
+/**
+ * Loading skeleton for conversation history
+ * AC-5.6.4: Loading skeleton shown while fetching conversation history
+ */
+function ChatLoadingSkeleton() {
+  return (
+    <div className="space-y-4 p-4" aria-label="Loading conversation">
+      {/* Assistant message skeleton */}
+      <div className="flex justify-start">
+        <div className="max-w-[80%] space-y-2">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+      </div>
+      {/* User message skeleton */}
+      <div className="flex justify-end">
+        <Skeleton className="h-10 w-32" />
+      </div>
+      {/* Another assistant message */}
+      <div className="flex justify-start">
+        <div className="max-w-[80%] space-y-2">
+          <Skeleton className="h-4 w-56" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Error state with retry button
+ * AC-5.6.11: Error state with retry button on load failure
+ */
+function ChatErrorState({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+      <div className="text-destructive mb-4">
+        <svg
+          className="mx-auto h-12 w-12"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+      </div>
+      <p className="text-sm text-slate-600 mb-4">{error}</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Try Again
+      </Button>
+    </div>
+  );
 }
 
 /**
  * Chat Panel Component
  *
- * Implements AC-5.1.2: Scrollable conversation history with fixed input area.
- * Implements AC-5.1.3: Placeholder text "Ask a question..." with muted color.
- * Implements AC-5.2.5: Suggested questions for empty conversations.
- * Implements AC-5.2.6: Suggested question click behavior.
- * Implements AC-5.2.7: Message send behavior with user message display.
- * Implements AC-5.2.8: Thinking indicator while waiting for response.
- * Implements AC-5.2.9: Input disabled during response.
- *
  * Layout:
+ * - Header with title and New Chat button
  * - Scrollable conversation history area
  * - Suggested questions when conversation is empty
  * - Thinking indicator when loading
  * - Fixed input area at bottom
  */
-export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }: ChatPanelProps) {
+export function ChatPanel({
+  documentId,
+  className,
+  onFocusInput,
+  onSourceClick,
+}: ChatPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<ChatInputRef>(null);
 
-  // Use the chat hook for state management
-  const { messages, isLoading, sendMessage, retryMessage } = useChat(documentId);
+  // Dialog state for New Chat confirmation
+  const [showNewChatDialog, setShowNewChatDialog] = useState(false);
+
+  // Use conversation hook for loading history (AC-5.6.4)
+  const {
+    conversation,
+    messages: persistedMessages,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    refetch: refetchHistory,
+    createNew: createNewConversation,
+  } = useConversation(documentId);
+
+  // Use the chat hook for sending messages and streaming
+  // Pass the loaded conversation ID and messages to sync state
+  const {
+    messages: streamingMessages,
+    isLoading,
+    sendMessage,
+    retryMessage,
+    clearMessages,
+    conversationId,
+  } = useChat(documentId, {
+    initialConversationId: conversation?.id ?? null,
+    initialMessages: persistedMessages,
+  });
+
+  // Merge persisted messages with streaming messages
+  // If streaming has messages, use those (they include persisted + new)
+  // Otherwise show persisted messages
+  // Both types are compatible with ChatMessageData
+  const displayMessages =
+    streamingMessages.length > 0 ? streamingMessages : persistedMessages;
 
   // Determine if conversation is empty (for showing suggestions)
-  const isEmptyConversation = messages.length === 0;
+  const isEmptyConversation = displayMessages.length === 0 && !isLoadingHistory;
 
   // Check if we're currently streaming a response
-  const isStreaming = hasStreamingMessage(messages);
+  const isStreaming = hasStreamingMessage(streamingMessages);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTop =
+        scrollContainerRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [displayMessages, isLoading]);
 
   // Handle send message
-  const handleSendMessage = useCallback((message: string) => {
-    sendMessage(message);
-  }, [sendMessage]);
+  const handleSendMessage = useCallback(
+    (message: string) => {
+      sendMessage(message);
+    },
+    [sendMessage]
+  );
 
   // Handle suggested question click - AC-5.2.6
   const handleSuggestionSelect = useCallback((question: string) => {
@@ -73,6 +203,29 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
     }
   }, []);
 
+  // Handle New Chat button click - AC-5.6.7
+  const handleNewChatClick = useCallback(() => {
+    setShowNewChatDialog(true);
+  }, []);
+
+  // Handle New Chat confirmation - AC-5.6.9
+  const handleNewChatConfirm = useCallback(async () => {
+    setShowNewChatDialog(false);
+    await createNewConversation();
+    clearMessages();
+  }, [createNewConversation, clearMessages]);
+
+  // Handle keyboard events for dialog - AC-5.6.8
+  const handleDialogKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleNewChatConfirm();
+      }
+    },
+    [handleNewChatConfirm]
+  );
+
   // Expose focus method to parent
   useEffect(() => {
     if (onFocusInput) {
@@ -81,18 +234,29 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
   }, [onFocusInput]);
 
   return (
-    <div
-      className={cn(
-        'h-full flex flex-col bg-white',
-        className
-      )}
-    >
-      {/* Chat Header */}
-      <div className="flex-shrink-0 h-14 border-b border-slate-200 flex items-center px-4">
+    <div className={cn('h-full flex flex-col bg-white', className)}>
+      {/* Chat Header with New Chat Button - AC-5.6.7 */}
+      <div className="flex-shrink-0 h-14 border-b border-slate-200 flex items-center justify-between px-4">
         <h2 className="font-medium text-slate-700">Chat</h2>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleNewChatClick}
+              disabled={isLoading || isStreaming}
+              aria-label="Start a new conversation"
+            >
+              <MessageSquarePlus className="h-5 w-5 text-slate-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Start a fresh conversation about this document
+          </TooltipContent>
+        </Tooltip>
       </div>
 
-      {/* Scrollable Conversation History Area - AC-5.1.2 */}
+      {/* Scrollable Conversation History Area - AC-5.6.1 */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto p-4"
@@ -100,7 +264,13 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
         aria-live="polite"
         aria-label="Conversation history"
       >
-        {isEmptyConversation && !isLoading ? (
+        {/* Loading State - AC-5.6.4 */}
+        {isLoadingHistory ? (
+          <ChatLoadingSkeleton />
+        ) : historyError ? (
+          /* Error State - AC-5.6.11 */
+          <ChatErrorState error={historyError} onRetry={refetchHistory} />
+        ) : isEmptyConversation && !isLoading ? (
           // Empty state with suggested questions - AC-5.2.5
           <div className="h-full flex flex-col items-center justify-center">
             <div className="text-center px-4 mb-6">
@@ -119,7 +289,7 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
                 />
               </svg>
               <p className="mt-4 text-sm text-slate-600">
-                Ask questions about this document
+                Ask anything about this document
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 Get answers with source citations
@@ -131,7 +301,7 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
         ) : (
           // Messages and thinking indicator
           <div className="space-y-4">
-            {messages.map((message) => (
+            {displayMessages.map((message) => (
               <ChatMessage
                 key={message.id}
                 message={message}
@@ -155,6 +325,28 @@ export function ChatPanel({ documentId, className, onFocusInput, onSourceClick }
           isLoading={isLoading || isStreaming}
         />
       </div>
+
+      {/* New Chat Confirmation Dialog - AC-5.6.8 */}
+      <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
+        <DialogContent onKeyDown={handleDialogKeyDown}>
+          <DialogHeader>
+            <DialogTitle>Start a new conversation?</DialogTitle>
+            <DialogDescription>
+              This will clear the current conversation from view. Your
+              conversation history will be saved.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowNewChatDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleNewChatConfirm}>Start New</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
