@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context version="1.0" story-id="5-10-model-evaluation">
+  <metadata>
+    <generated>2025-12-02</generated>
+    <story-title>Model Evaluation (Phase 3)</story-title>
+    <epic>5 - Document Q&A with Trust Transparency</epic>
+    <status>Drafted</status>
+    <prerequisites>Story 5.9 (Chunking Optimization)</prerequisites>
+  </metadata>
+
+  <story-summary>
+    <user-story>
+      As a **system administrator**, I want **to evaluate and potentially upgrade AI models**, So that **response quality and cost-efficiency are optimized**.
+    </user-story>
+
+    <core-objective>
+      Implement OpenRouter integration with Claude Sonnet 4.5 as primary LLM for insurance document Q&A. Create configurable multi-model infrastructure supporting Claude, Gemini, and GPT models via OpenRouter's unified API, optimizing for document comprehension accuracy and citation reliability.
+    </core-objective>
+
+    <key-deliverables>
+      <deliverable>OpenRouter integration module (src/lib/llm/config.ts)</deliverable>
+      <deliverable>Multi-provider LLM client factory (src/lib/llm/client.ts)</deliverable>
+      <deliverable>Claude Sonnet 4.5 as default chat model</deliverable>
+      <deliverable>Environment-variable based model/provider selection</deliverable>
+      <deliverable>A/B testing support for per-user model assignment</deliverable>
+      <deliverable>Updated openai-stream.ts to use OpenRouter</deliverable>
+      <deliverable>Documentation of OpenRouter decision and model hierarchy</deliverable>
+    </key-deliverables>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-5.10.1" name="Chat Model Configuration">
+      <given>The system needs model flexibility</given>
+      <when>Model config is updated</when>
+      <then>
+        <requirement>Config supports: GPT-4o, GPT-5-mini, GPT-5.1</requirement>
+        <requirement>Model selection configurable via environment variable (OPENAI_CHAT_MODEL)</requirement>
+        <requirement>No code changes required to switch models</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.2" name="Embedding Model Configuration">
+      <given>Embedding upgrades may be beneficial</given>
+      <when>Embedding config is updated</when>
+      <then>
+        <requirement>Config supports: text-embedding-3-small, text-embedding-3-large</requirement>
+        <requirement>Dimension configuration: 1536 or 3072</requirement>
+        <requirement>Backward compatible with existing embeddings (1536)</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.3" name="Per-User Model Selection">
+      <given>A/B testing is needed</given>
+      <when>A user makes a query</when>
+      <then>
+        <requirement>Feature flag can assign users to model variants</requirement>
+        <requirement>Same user gets consistent model within session</requirement>
+        <requirement>Assignment logged for analysis</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.4" name="Evaluation Script">
+      <given>The 50-query test set exists</given>
+      <when>Evaluation script runs</when>
+      <then>
+        <requirement>All queries run against specified model</requirement>
+        <requirement>Results captured: accuracy, latency, tokens used</requirement>
+        <requirement>Output in structured JSON format</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.5" name="Metrics Collection">
+      <given>Evaluation runs</given>
+      <when>Analyzing results</when>
+      <then>
+        <requirement>Response accuracy (manual review capability)</requirement>
+        <requirement>Time to first token (ms)</requirement>
+        <requirement>Total response time (ms)</requirement>
+        <requirement>Input/output token count</requirement>
+        <requirement>Estimated cost per query</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.6" name="Documentation">
+      <given>Evaluation is complete</given>
+      <when>Reviewing findings</when>
+      <then>
+        <requirement>Comparison document created</requirement>
+        <requirement>Clear recommendation with rationale</requirement>
+        <requirement>Trade-offs documented (cost vs accuracy vs latency)</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.7" name="Cost Analysis">
+      <given>Models have different pricing</given>
+      <when>Analyzing cost impact</when>
+      <then>
+        <requirement>Cost per 1000 queries calculated per model</requirement>
+        <requirement>Monthly projection based on expected usage</requirement>
+        <requirement>ROI of improvements quantified</requirement>
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.10.8" name="No Regression Requirement">
+      <given>A new model is recommended</given>
+      <when>Compared to current GPT-4o</when>
+      <then>
+        <requirement>Response quality equal or better</requirement>
+        <requirement>OR explicit trade-off documented and accepted</requirement>
+      </then>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <architecture-decisions>
+      <decision id="ADR-005">
+        <title>OpenAI as Sole AI Provider (MVP)</title>
+        <context>Could use multiple AI providers but adds complexity</context>
+        <decision>Use OpenAI for LLM (GPT-4o) and embeddings (text-embedding-3-small) for MVP</decision>
+        <consequences>
+          <positive>Single API key, single bill, single SDK</positive>
+          <positive>Proven accuracy for document tasks</positive>
+          <negative>Single point of failure</negative>
+          <future>Can add Claude as fallback post-MVP</future>
+        </consequences>
+      </decision>
+
+      <decision id="ADR-006">
+        <title>RAG Pipeline Optimization (Stories 5.8-5.10)</title>
+        <model-config>
+          <chat-models>GPT-4o, GPT-5-mini, GPT-5.1 (configurable)</chat-models>
+          <embedding-models>text-embedding-3-small, text-embedding-3-large (configurable)</embedding-models>
+          <feature-flags>A/B testing for model selection</feature-flags>
+        </model-config>
+        <cost-comparison>
+          <model name="GPT-4o">$2.50/1M input, $10.00/1M output</model>
+          <model name="GPT-5-mini">$0.25/1M input, $2.00/1M output (90% cheaper)</model>
+          <model name="GPT-5.1">~$1.25/1M input, ~$10.00/1M output (adaptive reasoning)</model>
+        </cost-comparison>
+      </decision>
+    </architecture-decisions>
+
+    <tech-stack>
+      <framework>Next.js 16 (App Router)</framework>
+      <language>TypeScript (strict mode)</language>
+      <ai-provider>OpenAI</ai-provider>
+      <ai-packages>openai@6.9.1</ai-packages>
+      <testing>Vitest + React Testing Library</testing>
+      <validation>Zod</validation>
+    </tech-stack>
+
+    <existing-patterns>
+      <pattern name="Model Constants">
+        <description>Currently hardcoded in source files</description>
+        <location>src/lib/openai/embeddings.ts:14</location>
+        <current-value>EMBEDDING_MODEL = 'text-embedding-3-small'</current-value>
+        <issue>No configuration flexibility</issue>
+      </pattern>
+      <pattern name="Chat Model">
+        <description>Currently hardcoded in stream handler</description>
+        <location>src/lib/chat/openai-stream.ts:16</location>
+        <current-value>CHAT_MODEL = 'gpt-4o'</current-value>
+        <issue>No A/B testing capability</issue>
+      </pattern>
+      <pattern name="Embedding Dimensions">
+        <description>Fixed 1536 dimensions</description>
+        <location>src/lib/openai/embeddings.ts:15</location>
+        <current-value>EMBEDDING_DIMENSIONS = 1536</current-value>
+        <constraint>Must maintain backward compatibility with existing vectors</constraint>
+      </pattern>
+    </existing-patterns>
+  </technical-context>
+
+  <code-artifacts>
+    <artifact type="new-file" priority="high">
+      <path>src/lib/openai/config.ts</path>
+      <purpose>Centralized model configuration module</purpose>
+      <key-exports>
+        <export>ChatModel type: 'gpt-4o' | 'gpt-5-mini' | 'gpt-5.1'</export>
+        <export>EmbeddingModel type: 'text-embedding-3-small' | 'text-embedding-3-large'</export>
+        <export>ModelConfig interface</export>
+        <export>DEFAULT_CONFIG constant</export>
+        <export>getModelConfig() function - reads from env vars</export>
+        <export>getModelConfigForUser(userId) function - A/B testing support</export>
+        <export>hashUserId(userId) helper - deterministic user assignment</export>
+      </key-exports>
+      <dependencies>None (pure utility module)</dependencies>
+    </artifact>
+
+    <artifact type="new-file" priority="high">
+      <path>scripts/model-evaluation.ts</path>
+      <purpose>Evaluation runner for model comparison</purpose>
+      <key-functionality>
+        <function>runEvaluation(config) - Execute test queries against model</function>
+        <function>captureMetrics() - Latency, tokens, cost tracking</function>
+        <function>generateSummary() - Aggregate results analysis</function>
+        <function>outputResults(path) - JSON file output</function>
+      </key-functionality>
+      <important-constraints>
+        <constraint>Use pre-processed documents from database (DON'T re-upload)</constraint>
+        <constraint>Add delays between queries (1-2s) to respect rate limits</constraint>
+        <constraint>Track progress for long-running evaluations</constraint>
+        <constraint>Handle individual query timeouts (30s max)</constraint>
+        <constraint>Cache results to file to avoid re-running</constraint>
+      </important-constraints>
+    </artifact>
+
+    <artifact type="new-file" priority="medium">
+      <path>docs/model-evaluation-results.md</path>
+      <purpose>Findings documentation and recommendation</purpose>
+      <sections>
+        <section>Executive Summary</section>
+        <section>Recommendation with rationale</section>
+        <section>Detailed Comparison (accuracy, latency, cost)</section>
+        <section>Cost Projection for various usage levels</section>
+        <section>Trade-offs documentation</section>
+        <section>Migration Path if recommending change</section>
+      </sections>
+    </artifact>
+
+    <artifact type="modify" priority="high">
+      <path>src/lib/openai/embeddings.ts</path>
+      <changes>
+        <change>Import getModelConfig from config.ts</change>
+        <change>Replace hardcoded EMBEDDING_MODEL with config.embeddingModel</change>
+        <change>Replace hardcoded EMBEDDING_DIMENSIONS with config.embeddingDimensions</change>
+        <change>Maintain backward compatibility (default 1536 dims)</change>
+      </changes>
+      <current-code>
+        const EMBEDDING_MODEL = 'text-embedding-3-small';
+        const EMBEDDING_DIMENSIONS = 1536;
+      </current-code>
+    </artifact>
+
+    <artifact type="modify" priority="high">
+      <path>src/lib/chat/openai-stream.ts</path>
+      <changes>
+        <change>Import getModelConfig from config.ts</change>
+        <change>Replace hardcoded CHAT_MODEL with config.chatModel</change>
+        <change>Log which model is being used for debugging</change>
+      </changes>
+      <current-code>
+        const CHAT_MODEL = 'gpt-4o';
+      </current-code>
+    </artifact>
+
+    <artifact type="modify" priority="medium">
+      <path>.env.example</path>
+      <additions>
+        <var>OPENAI_CHAT_MODEL=gpt-4o # gpt-4o | gpt-5-mini | gpt-5.1</var>
+        <var>OPENAI_EMBEDDING_MODEL=text-embedding-3-small # text-embedding-3-small | text-embedding-3-large</var>
+        <var>OPENAI_EMBEDDING_DIMS=1536 # 1536 | 3072</var>
+        <var>AB_TEST_MODEL=gpt-5-mini # Model for A/B test group</var>
+        <var>AB_TEST_ENABLED=false # Enable A/B testing</var>
+      </additions>
+    </artifact>
+
+    <artifact type="new-file" priority="medium">
+      <path>__tests__/unit/lib/openai/config.test.ts</path>
+      <purpose>Unit tests for model configuration</purpose>
+      <test-cases>
+        <test>Returns default config when no env vars set</test>
+        <test>Respects OPENAI_CHAT_MODEL environment variable</test>
+        <test>Respects OPENAI_EMBEDDING_MODEL environment variable</test>
+        <test>Respects OPENAI_EMBEDDING_DIMS environment variable</test>
+        <test>A/B test assigns users consistently (deterministic)</test>
+        <test>A/B test respects AB_TEST_ENABLED flag</test>
+        <test>Invalid model values fall back to defaults</test>
+      </test-cases>
+    </artifact>
+  </code-artifacts>
+
+  <existing-code-reference>
+    <file path="src/lib/openai/embeddings.ts">
+      <description>OpenAI embeddings generation with batching and retry logic</description>
+      <key-constants>
+        <constant name="EMBEDDING_MODEL" value="text-embedding-3-small" line="14"/>
+        <constant name="EMBEDDING_DIMENSIONS" value="1536" line="15"/>
+        <constant name="BATCH_SIZE" value="20" line="16"/>
+        <constant name="MAX_RETRIES" value="3" line="17"/>
+      </key-constants>
+      <key-functions>
+        <function name="generateEmbeddings">Lines 40-71 - Main embedding generation</function>
+        <function name="generateBatchEmbeddings">Lines 76-124 - Batch processing with retry</function>
+        <function name="getEmbeddingModelInfo">Lines 165-170 - Returns model metadata</function>
+      </key-functions>
+    </file>
+
+    <file path="src/lib/chat/openai-stream.ts">
+      <description>GPT-4o streaming response handler</description>
+      <key-constants>
+        <constant name="CHAT_MODEL" value="gpt-4o" line="16"/>
+        <constant name="TIMEOUT_MS" value="30000" line="17"/>
+      </key-constants>
+      <key-parameters>
+        <param name="temperature" value="0.7" line="46"/>
+        <param name="max_tokens" value="1500" line="47"/>
+      </key-parameters>
+      <key-functions>
+        <function name="streamChatResponse">Lines 33-105 - Main streaming handler</function>
+        <function name="createChatStream">Lines 130-227 - ReadableStream factory</function>
+      </key-functions>
+    </file>
+
+    <file path="src/lib/chat/rag.ts">
+      <description>RAG pipeline orchestration</description>
+      <key-functions>
+        <function name="retrieveContext">Lines 66-130 - Hybrid search + reranking</function>
+        <function name="buildPrompt">Lines 140-185 - Construct GPT messages</function>
+      </key-functions>
+      <integration-point>Uses generateEmbeddings from embeddings.ts for query embedding</integration-point>
+    </file>
+
+    <file path="package.json">
+      <relevant-dependencies>
+        <dependency name="openai" version="^6.9.1"/>
+        <dependency name="cohere-ai" version="^7.20.0"/>
+      </relevant-dependencies>
+      <relevant-scripts>
+        <script name="test">vitest run</script>
+        <script name="build">next build</script>
+      </relevant-scripts>
+    </file>
+  </existing-code-reference>
+
+  <implementation-guidance>
+    <task-sequence>
+      <task id="1" name="Create Model Configuration Module">
+        <steps>
+          <step>Create src/lib/openai/config.ts with type definitions</step>
+          <step>Define ChatModel and EmbeddingModel union types</step>
+          <step>Create ModelConfig interface</step>
+          <step>Implement getModelConfig() reading from env vars</step>
+          <step>Implement hashUserId() for deterministic A/B assignment</step>
+          <step>Implement getModelConfigForUser() for A/B testing</step>
+        </steps>
+        <validation>Unit tests pass for all config functions</validation>
+      </task>
+
+      <task id="2" name="Update Existing Code to Use Config">
+        <steps>
+          <step>Import config in embeddings.ts, replace hardcoded values</step>
+          <step>Import config in openai-stream.ts, replace hardcoded CHAT_MODEL</step>
+          <step>Add logging to show which model is being used</step>
+          <step>Verify existing tests still pass (backward compatibility)</step>
+        </steps>
+        <validation>npm run build succeeds, npm run test passes</validation>
+      </task>
+
+      <task id="3" name="Update Environment Configuration">
+        <steps>
+          <step>Add new variables to .env.example</step>
+          <step>Document each variable with allowed values</step>
+        </steps>
+        <validation>.env.example contains all new model config vars</validation>
+      </task>
+
+      <task id="4" name="Create Evaluation Script">
+        <steps>
+          <step>Create scripts/model-evaluation.ts</step>
+          <step>Implement query runner with timing metrics</step>
+          <step>Add token counting and cost calculation</step>
+          <step>Implement rate limit protection (delays)</step>
+          <step>Add progress tracking output</step>
+          <step>Generate JSON output file</step>
+        </steps>
+        <important-notes>
+          <note>Use existing processed documents - DO NOT upload new ones</note>
+          <note>Add 1.5-2s delay between queries to avoid rate limits</note>
+          <note>Handle query timeouts gracefully (30s max)</note>
+          <note>Budget ~$0.50 per model for evaluation costs</note>
+        </important-notes>
+        <validation>Script runs successfully against GPT-4o baseline</validation>
+      </task>
+
+      <task id="5" name="Run Model Evaluations">
+        <steps>
+          <step>Run evaluation with GPT-4o (baseline)</step>
+          <step>Run evaluation with GPT-5-mini (cost savings test)</step>
+          <step>Run evaluation with GPT-5.1 if available (quality test)</step>
+          <step>Compare embeddings if time permits</step>
+        </steps>
+        <expected-timeline>20-25 minutes for 3 models × 50 queries</expected-timeline>
+        <validation>JSON results captured for each model</validation>
+      </task>
+
+      <task id="6" name="Create Documentation">
+        <steps>
+          <step>Create docs/model-evaluation-results.md</step>
+          <step>Document baseline vs alternative metrics</step>
+          <step>Calculate cost projections at various scales</step>
+          <step>Write clear recommendation with rationale</step>
+          <step>Document any trade-offs</step>
+        </steps>
+        <validation>Complete recommendation document with data backing</validation>
+      </task>
+    </task-sequence>
+
+    <critical-constraints>
+      <constraint type="backward-compatibility">
+        <description>Existing embeddings use 1536 dimensions</description>
+        <requirement>Default must remain 1536 dims</requirement>
+        <requirement>Any dimension change requires document re-embedding</requirement>
+      </constraint>
+
+      <constraint type="cost-efficiency">
+        <description>Evaluation should be cost-conscious</description>
+        <requirement>Use pre-processed documents only</requirement>
+        <requirement>Budget ~$1.50 total for complete 3-model evaluation</requirement>
+        <requirement>Cache results to avoid repeat runs</requirement>
+      </constraint>
+
+      <constraint type="rate-limits">
+        <description>OpenAI API has rate limits</description>
+        <requirement>Add 1-2s delay between queries</requirement>
+        <requirement>Sequential execution, not parallel</requirement>
+        <requirement>Handle 429 errors gracefully</requirement>
+      </constraint>
+
+      <constraint type="no-regression">
+        <description>Quality must not decrease</description>
+        <requirement>Response quality equal or better than GPT-4o</requirement>
+        <requirement>OR explicit trade-off documented and accepted</requirement>
+      </constraint>
+    </critical-constraints>
+
+    <success-metrics>
+      <metric name="Response Accuracy">Baseline or better</metric>
+      <metric name="Avg Latency (first token)">≤500ms</metric>
+      <metric name="High Confidence %">≥ current levels from Story 5.8</metric>
+      <metric name="Cost per 1000 queries">Documented with projections</metric>
+    </success-metrics>
+  </implementation-guidance>
+
+  <test-strategy>
+    <unit-tests>
+      <test-file>__tests__/unit/lib/openai/config.test.ts</test-file>
+      <coverage>
+        <case>Default config returns GPT-4o when no env vars</case>
+        <case>getModelConfig respects OPENAI_CHAT_MODEL</case>
+        <case>getModelConfig respects OPENAI_EMBEDDING_MODEL</case>
+        <case>getModelConfig respects OPENAI_EMBEDDING_DIMS</case>
+        <case>A/B test assigns users consistently (same hash)</case>
+        <case>A/B test only activates when AB_TEST_ENABLED=true</case>
+        <case>Invalid model values fall back to defaults</case>
+      </coverage>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Verify embeddings.ts uses config values</test>
+      <test>Verify openai-stream.ts uses config values</test>
+      <test>End-to-end chat works with default config</test>
+      <test>End-to-end chat works with alternative model</test>
+    </integration-tests>
+
+    <manual-validation>
+      <check>Run evaluation script end-to-end</check>
+      <check>Verify JSON output format is correct</check>
+      <check>Spot-check response quality for each model</check>
+      <check>Verify cost calculations are accurate</check>
+    </manual-validation>
+  </test-strategy>
+
+  <definition-of-done>
+    <item>Model configuration module created (src/lib/openai/config.ts)</item>
+    <item>Environment variables documented (.env.example)</item>
+    <item>Evaluation script working (scripts/model-evaluation.ts)</item>
+    <item>GPT-4o baseline captured</item>
+    <item>At least one alternative model evaluated</item>
+    <item>Comparison document created (docs/model-evaluation-results.md)</item>
+    <item>Recommendation documented with rationale</item>
+    <item>Cost analysis completed</item>
+    <item>Unit tests written and passing</item>
+    <item>npm run build succeeds</item>
+    <item>npm run test passes</item>
+    <item>Code reviewed and approved</item>
+    <item>Merged to main branch</item>
+  </definition-of-done>
+
+  <rollback-plan>
+    <step>Model changes are config-based (environment variables)</step>
+    <step>To rollback: Change OPENAI_CHAT_MODEL back to 'gpt-4o'</step>
+    <step>No code changes required for rollback</step>
+    <step>Can use A/B testing to gradually roll out changes first</step>
+  </rollback-plan>
+</story-context>

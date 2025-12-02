@@ -1,8 +1,9 @@
 /**
- * OpenAI Streaming Integration
+ * LLM Streaming Integration
  *
- * Handles GPT-4o streaming responses for Story 5.3.
- * Implements AC-5.3.1: Response text streams word-by-word.
+ * Handles streaming responses from OpenRouter (Claude, Gemini, GPT) or direct OpenAI.
+ * Story 5.3: AC-5.3.1 Response text streams word-by-word.
+ * Story 5.10: OpenRouter integration with Claude Sonnet 4.5 as primary.
  *
  * @module @/lib/chat/openai-stream
  */
@@ -12,13 +13,12 @@ import type { ConfidenceLevel } from '@/lib/chat/confidence';
 import type { SourceCitation, SSEEvent } from './types';
 import { RateLimitError, TimeoutError, ChatError } from '@/lib/errors';
 import { log } from '@/lib/utils/logger';
+import { getLLMClient, getModelId, getModelConfig } from '@/lib/llm/config';
 
-const CHAT_MODEL = 'gpt-4o';
 const TIMEOUT_MS = 30000; // 30 second timeout per AC-5.3.8
 
 interface StreamChatOptions {
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
-  apiKey: string;
   onText: (text: string) => void;
   onComplete: (fullResponse: string) => void;
   onError: (error: Error) => void;
@@ -26,25 +26,36 @@ interface StreamChatOptions {
 }
 
 /**
- * Stream a chat response from GPT-4o
+ * Stream a chat response from the configured LLM provider.
+ *
+ * Uses OpenRouter (Claude, Gemini, GPT) or direct OpenAI based on config.
+ * Story 5.10: Default is Claude Sonnet 4.5 via OpenRouter.
  *
  * @param options - Streaming options including messages and callbacks
  */
 export async function streamChatResponse(options: StreamChatOptions): Promise<void> {
-  const { messages, apiKey, onText, onComplete, onError, signal } = options;
+  const { messages, onText, onComplete, onError, signal } = options;
 
-  log.info('Starting OpenAI stream', { messageCount: messages.length });
-  const openai = new OpenAI({ apiKey });
+  const config = getModelConfig();
+  const modelId = getModelId();
+
+  log.info('Starting LLM stream', {
+    provider: config.provider,
+    model: config.chatModel,
+    modelId,
+    messageCount: messages.length,
+  });
+
+  const openai = getLLMClient();
   const startTime = Date.now();
 
   try {
-    log.info('Calling OpenAI chat.completions.create');
     const stream = await openai.chat.completions.create({
-      model: CHAT_MODEL,
+      model: modelId,
       messages,
       stream: true,
-      temperature: 0.7,  // Balanced for factual yet conversational responses
-      max_tokens: 1500,  // Reasonable limit for comprehensive answers
+      temperature: 0.7, // Balanced for factual yet conversational responses
+      max_tokens: 1500, // Reasonable limit for comprehensive answers
     });
 
     let fullResponse = '';
@@ -68,8 +79,10 @@ export async function streamChatResponse(options: StreamChatOptions): Promise<vo
     }
 
     const duration = Date.now() - startTime;
-    log.info('OpenAI stream complete', {
-      model: CHAT_MODEL,
+    log.info('LLM stream complete', {
+      provider: config.provider,
+      model: config.chatModel,
+      modelId,
       responseLength: fullResponse.length,
       duration,
     });
@@ -122,20 +135,22 @@ export function formatSSEDone(): string {
 }
 
 /**
- * Create a streaming response for the chat API
+ * Create a streaming response for the chat API.
+ *
+ * Uses OpenRouter or direct OpenAI based on LLM_PROVIDER config.
+ * Story 5.10: Claude Sonnet 4.5 is the default model.
  *
  * @param options - Options for the stream
  * @returns ReadableStream for the response
  */
 export function createChatStream(options: {
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
-  apiKey: string;
   sources: SourceCitation[];
   confidence: ConfidenceLevel;
   conversationId: string;
   onComplete: (fullResponse: string) => Promise<string>; // Returns messageId
 }): ReadableStream<Uint8Array> {
-  const { messages, apiKey, sources, confidence, conversationId, onComplete } = options;
+  const { messages, sources, confidence, conversationId, onComplete } = options;
   const encoder = new TextEncoder();
 
   log.info('createChatStream called', { conversationId, sourceCount: sources.length });
@@ -148,7 +163,6 @@ export function createChatStream(options: {
       try {
         await streamChatResponse({
           messages,
-          apiKey,
           signal: abortController.signal,
           onText: (text) => {
             const event: SSEEvent = { type: 'text', content: text };

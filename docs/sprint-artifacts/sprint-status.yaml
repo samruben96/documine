@@ -97,7 +97,7 @@ development_status:
   # REVIEWED 2025-12-02: Approved - test fix applied during review
   5-8-1-large-document-processing: done
   5-9-chunking-optimization: done
-  5-10-model-evaluation: drafted
+  5-10-model-evaluation: done
   # Story 5.11 added as bug fix (2025-12-01)
   # Fixes streaming memory leaks, AI personality, and greeting handling
   5-11-streaming-ai-personality-bugfix: done

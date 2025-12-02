@@ -973,24 +973,202 @@ npm run build
 
 ---
 
-### ADR-005: OpenAI as Sole AI Provider (MVP)
+### ADR-005: OpenRouter Multi-Provider Integration (Story 5.10)
 
-**Status:** Accepted
+**Status:** Accepted (Updated 2025-12-02)
 
-**Context:** Could use multiple AI providers (OpenAI, Anthropic, etc.) but adds complexity.
+**Context:** Original decision was OpenAI-only for simplicity. Party Mode research (2025-12-02) identified Claude Sonnet 4.5 as superior for insurance document Q&A due to:
+- Better structured document handling and table comprehension
+- More consistent instruction following with less hallucination
+- 200K token context (vs 128K for GPT-4o)
+- Strong performance on "do not alter" instructions (critical for citations)
 
-**Decision:** Use OpenAI for LLM (GPT-4o) and embeddings (text-embedding-3-small) for MVP.
+**Decision:** Use OpenRouter as unified API gateway with Claude Sonnet 4.5 as primary model.
+
+**Model Hierarchy:**
+| Rank | Model | Use Case |
+|------|-------|----------|
+| 🥇 Primary | Claude Sonnet 4.5 | Complex queries, tables, citations |
+| 🥈 Cost-Opt | Gemini 2.5 Flash | High-volume, cost-sensitive |
+| 🥉 Fast | Claude Haiku 4.5 | Simple lookups, low latency |
+| 🔄 Fallback | GPT-4o | If others unavailable |
+
+**Configuration (Environment Variables):**
+```bash
+LLM_PROVIDER=openrouter           # openrouter | openai
+LLM_CHAT_MODEL=claude-sonnet-4.5  # claude-sonnet-4.5 | claude-haiku-4.5 | gemini-2.5-flash | gpt-4o
+OPENROUTER_API_KEY=sk-or-v1-xxx   # OpenRouter API key
+OPENAI_API_KEY=sk-xxx             # Still needed for embeddings
+```
 
 **Consequences:**
-- (+) Single API key, single bill, single SDK
-- (+) Proven accuracy for document tasks
-- (+) Large ecosystem and documentation
-- (-) Single point of failure
-- (-) No provider redundancy
-- Future: Can add Claude as fallback post-MVP
+- (+) Access to best model for each task (Claude for docs, GPT for embeddings)
+- (+) Single API for multiple providers (Anthropic, OpenAI, Google)
+- (+) Automatic failover if one provider is down
+- (+) Easy A/B testing across model architectures
+- (+) No vendor lock-in (config-based switching)
+- (-) Additional dependency on OpenRouter
+- (-) Slightly higher latency vs direct API (~50ms overhead)
+
+**Implementation:** `src/lib/llm/config.ts` - Centralized configuration with OpenRouter client factory
+
+**Research Sources:**
+- [OpenRouter Programming Rankings](https://openrouter.ai/rankings/programming) - Claude Sonnet 4.5 ranked #1
+- [Claude vs GPT-4o Comparison](https://www.vellum.ai/blog/claude-3-5-sonnet-vs-gpt4o)
+- [Best LLMs for Document Processing 2025](https://algodocs.com/best-llm-models-for-document-processing-in-2025/)
+
+---
+
+### ADR-006: RAG Pipeline Optimization (Stories 5.8-5.10)
+
+**Status:** Planned (2025-12-01)
+
+**Context:** Initial RAG implementation (Stories 5.1-5.6) showed lower than expected confidence scores (~30% High Confidence, ~40% Not Found). Technical research identified optimization opportunities.
+
+**Decision:** Implement three-phase optimization:
+
+**Phase 1 - Retrieval Quality (Story 5.8):**
+- Add Cohere Rerank 3.5 for cross-encoder reranking
+- Implement hybrid search (BM25 + vector, alpha=0.7)
+- Adjust confidence thresholds: ≥0.75 High, 0.50-0.74 Needs Review, <0.50 Not Found
+- Target: >50% High Confidence, <25% Not Found
+
+**Phase 2 - Chunking Optimization (Story 5.9):**
+- Replace fixed 1000-char chunking with recursive text splitter (500 tokens, 50 overlap)
+- Preserve tables as single chunks with GPT-generated summaries
+- Add chunk_type metadata for differentiated retrieval
+
+**Phase 3 - Model Evaluation (Story 5.10):**
+- Evaluate GPT-4o vs GPT-5-mini vs GPT-5.1
+- Compare text-embedding-3-small vs 3-large
+- Implement configurable model selection with feature flags
+
+**Consequences:**
+- (+) Expected 20-48% improvement in retrieval quality
+- (+) Better handling of table queries in insurance documents
+- (+) Cost optimization potential (GPT-5-mini is 90% cheaper)
+- (-) Additional dependency on Cohere API (with fallback)
+- (-) Requires document re-processing for chunking changes
+
+**New Dependencies:**
+- `cohere-ai` - Reranking API
+- `COHERE_API_KEY` environment variable
+
+**Database Changes:**
+```sql
+-- Story 5.8: Full-text search support
+ALTER TABLE document_chunks ADD COLUMN search_vector tsvector;
+CREATE INDEX idx_document_chunks_search ON document_chunks USING GIN(search_vector);
+
+-- Story 5.9: Chunk metadata
+ALTER TABLE document_chunks ADD COLUMN chunk_type varchar(20) DEFAULT 'text';
+ALTER TABLE document_chunks ADD COLUMN summary text;
+```
+
+---
+
+## RAG Pipeline Architecture (Updated)
+
+### Current Implementation (Stories 5.1-5.6)
+
+```
+Query → [Embedding] → [Vector Search (Top 5)] → [RAG Context] → [GPT-4o]
+```
+
+### Optimized Pipeline (Stories 5.8-5.10)
+
+```
+Query → [Embedding] → [Hybrid Search] → [Reranker] → [RAG Context] → [Model]
+              │              │               │              │           │
+              ▼              ▼               ▼              ▼           ▼
+         OpenAI         FTS + Vector    Cohere         Top 5       GPT-4o/
+         3-small          Fusion        Rerank       Reranked     5-mini/5.1
+                            ↓
+                    Top 20 Candidates
+                            ↓
+                    Reranked Top 5
+```
+
+### Hybrid Search Algorithm
+
+```sql
+-- Combines keyword (BM25) and vector similarity
+-- Alpha = 0.7 (70% vector, 30% keyword)
+WITH keyword_results AS (
+  SELECT id, ts_rank(search_vector, plainto_tsquery('english', $query)) as keyword_score
+  FROM document_chunks
+  WHERE document_id = $doc_id AND search_vector @@ plainto_tsquery('english', $query)
+),
+vector_results AS (
+  SELECT id, 1 - (embedding <=> $query_vector) as vector_score
+  FROM document_chunks
+  WHERE document_id = $doc_id
+  ORDER BY embedding <=> $query_vector
+  LIMIT 20
+)
+SELECT
+  COALESCE(k.id, v.id) as id,
+  COALESCE(k.keyword_score, 0) * 0.3 + COALESCE(v.vector_score, 0) * 0.7 as combined_score
+FROM keyword_results k
+FULL OUTER JOIN vector_results v ON k.id = v.id
+ORDER BY combined_score DESC
+LIMIT 20;
+```
+
+### Confidence Thresholds (Updated)
+
+| Level | Original Threshold | Updated Threshold (with Reranking) |
+|-------|-------------------|-----------------------------------|
+| High Confidence | ≥0.85 | ≥0.75 |
+| Needs Review | 0.60-0.84 | 0.50-0.74 |
+| Not Found | <0.60 | <0.50 |
+
+**Rationale:** Reranker scores have different distribution than raw vector similarity. Thresholds tuned based on research findings.
+
+### Chunking Strategy (Updated)
+
+| Aspect | Original | Optimized (Story 5.9) |
+|--------|----------|----------------------|
+| Method | Fixed 1000 characters | Recursive text splitter |
+| Size | 1000 chars | 500 tokens |
+| Overlap | None | 50 tokens |
+| Separators | Single split | ["\n\n", "\n", ". ", " "] |
+| Tables | Split with text | Preserved as single chunks |
+| Metadata | page_number only | + chunk_type, summary |
+
+### Model Configuration (Story 5.10 - Updated for OpenRouter)
+
+```typescript
+// src/lib/llm/config.ts - Configurable model selection
+type LLMProvider = 'openrouter' | 'openai';
+type ChatModel = 'claude-sonnet-4.5' | 'claude-haiku-4.5' | 'gemini-2.5-flash' | 'gpt-4o';
+type EmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large';
+
+interface ModelConfig {
+  provider: LLMProvider;
+  chatModel: ChatModel;
+  embeddingModel: EmbeddingModel;
+  embeddingDimensions: 1536 | 3072;
+}
+
+// Default: Claude Sonnet 4.5 via OpenRouter
+const DEFAULT_CONFIG: ModelConfig = {
+  provider: 'openrouter',
+  chatModel: 'claude-sonnet-4.5',
+  embeddingModel: 'text-embedding-3-small',
+  embeddingDimensions: 1536,
+};
+
+// Cost comparison (per 1M tokens, via OpenRouter)
+// Claude Sonnet 4.5: $3.00 input, $15.00 output
+// Claude Haiku 4.5: $0.80 input, $4.00 output
+// Gemini 2.5 Flash: $0.15 input, $0.60 output (cheapest)
+// GPT-4o: $2.50 input, $10.00 output
+```
 
 ---
 
 _Generated by BMAD Decision Architecture Workflow v1.0_
 _Date: 2025-11-24_
+_Updated: 2025-12-01 (ADR-006 for RAG Optimization)_
 _For: Sam_

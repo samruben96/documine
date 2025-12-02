@@ -138,12 +138,28 @@ export async function POST(request: Request): Promise<Response> {
     // Exclude the message we just saved (it's at the end)
     const previousMessages = history.slice(0, -1);
 
-    // Get OpenAI API key
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
+    // Verify LLM configuration
+    // OpenRouter: Needs OPENROUTER_API_KEY
+    // OpenAI: Needs OPENAI_API_KEY (also needed for embeddings)
+    const llmProvider = process.env.LLM_PROVIDER || 'openrouter';
+    const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
+    const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+
+    if (llmProvider === 'openrouter' && !hasOpenRouterKey) {
+      log.error('OPENROUTER_API_KEY not configured', new Error('Missing API key'));
+      return errorResponse('CONFIG_ERROR', 'Service not configured', 500);
+    }
+    if (llmProvider === 'openai' && !hasOpenAIKey) {
       log.error('OPENAI_API_KEY not configured', new Error('Missing API key'));
       return errorResponse('CONFIG_ERROR', 'Service not configured', 500);
     }
+    // OpenAI key is always needed for embeddings
+    if (!hasOpenAIKey) {
+      log.error('OPENAI_API_KEY not configured for embeddings', new Error('Missing API key'));
+      return errorResponse('CONFIG_ERROR', 'Service not configured', 500);
+    }
+
+    const openaiApiKey = process.env.OPENAI_API_KEY!;
 
     // Classify query intent for logging/analytics (not used for decision making)
     const queryIntent = classifyIntent(message);
@@ -192,7 +208,6 @@ export async function POST(request: Request): Promise<Response> {
 
     const stream = createChatStream({
       messages: promptMessages,
-      apiKey: openaiApiKey,
       sources,
       confidence: ragContext.confidence,
       conversationId: conversation.id,
