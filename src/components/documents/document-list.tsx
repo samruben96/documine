@@ -22,6 +22,8 @@ interface DocumentListProps {
   queuePositions?: Map<string, number>;
   isLoading?: boolean;
   className?: string;
+  /** Story 5.8.1 (AC-5.8.1.7): Callback to retry failed document */
+  onRetryClick?: (documentId: string) => void;
 }
 
 /**
@@ -43,6 +45,7 @@ export function DocumentList({
   queuePositions,
   isLoading = false,
   className,
+  onRetryClick,
 }: DocumentListProps) {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
@@ -202,6 +205,7 @@ export function DocumentList({
                 isSelected={doc.id === selectedId}
                 onClick={() => handleDocumentClick(doc.id)}
                 onDeleteClick={() => handleDeleteClick(doc)}
+                onRetryClick={onRetryClick ? () => onRetryClick(doc.id) : undefined}
               />
             ))}
           </div>

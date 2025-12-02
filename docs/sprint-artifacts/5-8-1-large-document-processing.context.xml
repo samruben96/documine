@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>5.8.1</story-id>
+    <story-key>5-8-1-large-document-processing</story-key>
+    <epic-id>5</epic-id>
+    <title>Large Document Processing Reliability</title>
+    <status>ready-for-dev</status>
+    <generated-date>2025-12-02</generated-date>
+  </metadata>
+
+  <story-details>
+    <user-story>
+      <as-a>user uploading insurance documents</as-a>
+      <i-want>reliable processing of large documents with clear feedback</i-want>
+      <so-that>I know what to expect and don't encounter silent failures</so-that>
+    </user-story>
+
+    <problem-statement>
+The current document processing pipeline has no file size validation at upload time, and the Edge Function can timeout when processing large documents (100+ pages), leaving documents stuck in "processing" status indefinitely. Users experience silent failures with no feedback about acceptable file sizes or processing time expectations.
+
+**Production Incident:** On 2025-12-02, a user uploaded "2025 B&amp;B Proposal(83).pdf" which caused Edge Function timeout (status 546) after 150s, leaving the document stuck in "processing" status with no recovery mechanism.
+    </problem-statement>
+
+    <design-decision type="hybrid-approach">
+      <decision>Hybrid Approach (Option C) - Balance Usability and Reliability</decision>
+      <rationale>
+After analyzing the production incident and considering user needs, we chose a balanced approach that:
+- Supports larger documents (up to 50MB) to accommodate comprehensive insurance policies
+- Provides early warning at 10MB to set user expectations
+- Uses moderate timeouts (180s Docling, 240s total) to handle most large documents while preventing indefinite hangs
+- Includes graceful failure handling with clear error messages and retry mechanism
+      </rationale>
+      <key-values>
+        <value name="Soft Warning Threshold">10MB (10 * 1024 * 1024 bytes)</value>
+        <value name="Hard Limit">50MB (existing system constraint)</value>
+        <value name="Docling Timeout">180s (3 minutes, up from 150s)</value>
+        <value name="Total Processing Timeout">240s (4 minutes)</value>
+        <value name="Safety Buffer">310s (before Edge Function 550s hard limit)</value>
+      </key-values>
+      <alternatives-considered>
+        <alternative name="Conservative (Story File Original)">
+          <values>15MB limit, 90s Docling timeout, 120s total</values>
+          <pros>Fail fast, simple implementation, prevents most timeouts</pros>
+          <cons>Too restrictive, users can't upload comprehensive policies</cons>
+        </alternative>
+        <alternative name="Permissive (Context File First Draft)">
+          <values>50MB with 25MB warning, 300s Docling timeout</values>
+          <pros>Very user-friendly, supports all document sizes</pros>
+          <cons>Risk of timeouts still high, complex error handling needed</cons>
+        </alternative>
+      </alternatives-considered>
+    </design-decision>
+
+    <solution-approach>
+Implement proactive file size validation (10MB soft warning, 50MB hard limit) with clear user warnings, add realistic processing time estimates based on page count, implement balanced timeout handling in Edge Function (180s Docling, 240s total), automatic retry mechanism, and ensure graceful degradation with user feedback when processing fails. This hybrid approach balances usability (supporting large documents) with reliability (preventing indefinite hangs).
+    </solution-approach>
+
+    <acceptance-criteria>
+      <criterion id="AC-5.8.1.1">
+        <description>Upload validation shows warning for PDFs 10-50MB: "Large file detected. Processing may take 3-5 minutes."</description>
+        <test-approach>Upload 15MB file, verify warning toast appears</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.2">
+        <description>Upload validation rejects PDFs over 50MB with error: "File too large. Maximum size is 50MB."</description>
+        <test-approach>Attempt to upload 51MB file, verify rejection error</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.3">
+        <description>Processing queue displays estimated time based on file size: "&lt;1 min" (&lt;5MB), "1-2 min" (5-20MB), "3-5 min" (20-50MB)</description>
+        <test-approach>Upload documents with varying sizes, verify correct estimates shown</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.4">
+        <description>Edge Function timeout adjusted from 150s to 180s for Docling parsing (balanced approach)</description>
+        <test-approach>Review Edge Function code, verify DOCLING_TIMEOUT = 180000</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.5">
+        <description>Edge Function implements total processing timeout check (240s) with graceful failure handling</description>
+        <test-approach>Mock timeout scenario, verify document marked 'failed' with clear error</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.6">
+        <description>"Retry" button appears on failed documents in document list</description>
+        <test-approach>Create failed document, verify retry button renders</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.7">
+        <description>Clicking "Retry" re-queues the document for processing</description>
+        <test-approach>Click retry button, verify document status changes to 'processing'</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.8">
+        <description>Failed documents display error message: "Processing timed out. Document may be too large or complex." with details button</description>
+        <test-approach>Failed document, verify error message and details</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.9">
+        <description>Clicking "Details" on failed document shows full error log</description>
+        <test-approach>Click details, verify error log dialog appears</test-approach>
+      </criterion>
+      <criterion id="AC-5.8.1.10">
+        <description>Processing time metrics logged: Docling duration, embedding duration, total duration</description>
+        <test-approach>Process document, verify logs contain timing metrics</test-approach>
+      </criterion>
+    </acceptance-criteria>
+  </story-details>
+
+  <architecture-context>
+    <relevant-sections>
+      <section name="Document Processing Pipeline">
+        <summary>
+Edge Function orchestrates: Download PDF → Docling Parse → Chunk → Embed → Store
+Current timeout: 150s for Docling parsing
+Queue management: FIFO with SKIP LOCKED, 1 active job per agency
+Stale job cleanup: Jobs &gt;10min marked as failed
+        </summary>
+        <key-decisions>
+          <decision>Edge Functions have 550s max execution time (Supabase limit)</decision>
+          <decision>Docling service is self-hosted on Railway, handles PDF parsing</decision>
+          <decision>Queue prevents concurrent processing per agency</decision>
+        </key-decisions>
+      </section>
+
+      <section name="Upload Validation">
+        <summary>
+Current validation: PDF only, 50MB max (DOCUMENT_CONSTANTS)
+Validation happens in upload-zone component (react-dropzone)
+Zod schemas in src/lib/validations/documents.ts
+        </summary>
+        <limitations>
+          <limitation>No warning for large files before upload</limitation>
+          <limitation>No file size guidance in UI</limitation>
+          <limitation>50MB is hard limit, no soft warnings</limitation>
+        </limitations>
+      </section>
+
+      <section name="Error Handling">
+        <summary>
+Custom error classes: DoclingError, ProcessingError, TimeoutError
+Errors saved to document.error_message field
+Failed documents show "Failed" badge but no retry mechanism
+        </summary>
+        <gaps>
+          <gap>No timeout handling in Edge Function</gap>
+          <gap>No retry mechanism for failed documents</gap>
+          <gap>Error messages not user-friendly</gap>
+        </gaps>
+      </section>
+    </relevant-sections>
+
+    <technical-constraints>
+      <constraint>
+        <name>Edge Function Timeout</name>
+        <description>Supabase Edge Functions have 550s maximum execution time</description>
+        <impact>Hybrid approach: 240s total budget leaves 310s safety buffer</impact>
+      </constraint>
+      <constraint>
+        <name>Docling Service Performance</name>
+        <description>Docling parsing time scales with document complexity (tables, images)</description>
+        <impact>180s timeout provides balance: handles most large docs, fails gracefully on extreme cases</impact>
+      </constraint>
+      <constraint>
+        <name>Supabase Storage Limits</name>
+        <description>50MB per file limit enforced at Storage level</description>
+        <impact>Hard limit at 50MB aligns with storage constraint</impact>
+      </constraint>
+      <constraint>
+        <name>Processing Budget Breakdown</name>
+        <description>240s total: Download(5s) + Parse(180s) + Chunk(5s) + Embed(30s) + Buffer(20s)</description>
+        <impact>Balanced approach allows large documents while preventing indefinite hangs</impact>
+      </constraint>
+    </technical-constraints>
+  </architecture-context>
+
+  <existing-code>
+    <file path="src/lib/validations/documents.ts">
+      <purpose>Document validation schemas and constants</purpose>
+      <key-exports>
+        <export name="DOCUMENT_CONSTANTS">Max file size, max files, MIME types</export>
+        <export name="uploadDocumentSchema">Zod schema for single file upload</export>
+        <export name="validateUploadFile">Validates single file, returns error message</export>
+      </key-exports>
+      <modification-points>
+        <point>Add SOFT_FILE_SIZE_WARNING constant (10MB) - hybrid approach</point>
+        <point>Add shouldWarnLargeFile(fileSize) function for 10-50MB range</point>
+      </modification-points>
+      <relevant-code><![CDATA[
+export const DOCUMENT_CONSTANTS = {
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_FILES: 5,
+  ACCEPTED_MIME_TYPE: 'application/pdf',
+} as const;
+
+export function validateUploadFile(file: File): {
+  success: boolean;
+  error?: string;
+} {
+  const result = uploadDocumentSchema.safeParse({ file });
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    return { success: false, error: issue?.message || 'Invalid file' };
+  }
+  return { success: true };
+}
+]]></relevant-code>
+    </file>
+
+    <file path="src/components/documents/upload-zone.tsx">
+      <purpose>Drag-and-drop upload component with validation</purpose>
+      <key-features>
+        <feature>react-dropzone for file handling</feature>
+        <feature>File rejection with toast messages</feature>
+        <feature>Upload progress display</feature>
+        <feature>Rate limit info display</feature>
+      </key-features>
+      <modification-points>
+        <point>Add file size warning logic in onDrop handler for 10-50MB files</point>
+        <point>Show warning toast: "Large file detected. Processing may take 3-5 minutes."</point>
+        <point>Update help text to mention "Recommended: under 10MB for fastest processing"</point>
+      </modification-points>
+      <relevant-code><![CDATA[
+const onDrop = useCallback(
+  (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+    // Handle rejected files
+    for (const rejection of rejectedFiles) {
+      // ... error handling
+      if (error.code === 'file-too-large') {
+        toast.error('File too large. Maximum size is 50MB');
+      }
+    }
+
+    // Handle accepted files
+    if (acceptedFiles.length > 0) {
+      onFilesAccepted(acceptedFiles);
+    }
+  },
+  [onFilesAccepted]
+);
+]]></relevant-code>
+    </file>
+
+    <file path="supabase/functions/process-document/index.ts">
+      <purpose>Edge Function for document processing orchestration</purpose>
+      <current-flow>
+        <step>Mark stale jobs as failed (>10min)</step>
+        <step>Check for active processing jobs</step>
+        <step>Get next pending job (FIFO)</step>
+        <step>Download PDF from Storage</step>
+        <step>Parse with Docling (150s timeout)</step>
+        <step>Chunk markdown</step>
+        <step>Generate embeddings (batched with retry)</step>
+        <step>Store chunks in database</step>
+        <step>Update document status to 'ready'</step>
+        <step>Trigger next pending job</step>
+      </current-flow>
+      <modification-points>
+        <point>Update DOCLING_TIMEOUT from 150s to 180s (balanced approach)</point>
+        <point>Add TOTAL_PROCESSING_TIMEOUT constant (240s)</point>
+        <point>Add timeout checking after each major step</point>
+        <point>Update error messages to be user-friendly and actionable</point>
+        <point>Add file size to processing metrics logging</point>
+      </modification-points>
+      <relevant-code><![CDATA[
+// Current timeout configuration
+const DOCLING_TIMEOUT = 150000; // 150s - will change to 180000
+
+// Need to add total processing timeout
+const TOTAL_PROCESSING_TIMEOUT = 240000; // 240s (4 minutes)
+
+// Docling parsing with retry
+async function parseDocumentWithRetry(
+  pdfBuffer: ArrayBuffer,
+  filename: string,
+  doclingServiceUrl: string,
+  maxRetries = 2
+): Promise<ParseResult> {
+  // ... retry logic with timeout
+  // Will change timeout to 180s
+}
+
+// Need to add timeout checking function
+function checkTimeout(startTime: number): void {
+  if (Date.now() - startTime > TOTAL_PROCESSING_TIMEOUT) {
+    throw new Error('Processing timeout: document too large or complex. Try splitting into smaller files.');
+  }
+}
+]]></relevant-code>
+    </file>
+
+    <file path="src/lib/documents/service.ts">
+      <purpose>Document database CRUD operations</purpose>
+      <key-functions>
+        <function name="createDocument">Creates document record with status='processing'</function>
+        <function name="createProcessingJob">Creates job and triggers Edge Function</function>
+        <function name="updateDocumentStatus">Updates status and error message</function>
+        <function name="retryProcessing">Existing function for retry (AC-5.8.1.7)</function>
+      </key-functions>
+      <modification-points>
+        <point>Add getPageCount function to extract from PDF metadata</point>
+        <point>Update createProcessingJob to include page count</point>
+        <point>Ensure retryProcessing resets error message</point>
+      </modification-points>
+    </file>
+
+    <file path="src/app/(dashboard)/documents/page.tsx">
+      <purpose>Documents list page</purpose>
+      <current-features>
+        <feature>Document grid with status badges</feature>
+        <feature>Upload zone</feature>
+        <feature>Queue position display</feature>
+      </current-features>
+      <modification-points>
+        <point>Add "Retry" button for failed documents</point>
+        <point>Add estimated time display for processing documents</point>
+        <point>Add error details dialog</point>
+      </modification-points>
+    </file>
+
+    <file path="src/lib/errors.ts">
+      <purpose>Custom error classes with typed error codes</purpose>
+      <existing-errors>
+        <error>DoclingError - Docling service failures</error>
+        <error>ProcessingError - Document processing failures</error>
+        <error>TimeoutError - Request timeout</error>
+      </existing-errors>
+      <modification-points>
+        <point>Ensure TimeoutError has user-friendly message</point>
+        <point>Add DocumentTooLargeError for clarity</point>
+      </modification-points>
+    </file>
+  </existing-code>
+
+  <dependencies>
+    <framework name="Next.js" version="16.0.4">
+      <usage>App Router, Server Actions, API Routes</usage>
+    </framework>
+    <library name="react-dropzone" version="14.3.8">
+      <usage>File upload UI with validation</usage>
+      <docs>https://react-dropzone.js.org/</docs>
+    </library>
+    <library name="zod" version="4.1.13">
+      <usage>Schema validation for file uploads</usage>
+      <note>Use .issues not .errors for Zod v4</note>
+    </library>
+    <library name="sonner" version="2.0.7">
+      <usage>Toast notifications for errors/warnings</usage>
+    </library>
+    <service name="Docling">
+      <url>https://docling-for-documine-production.up.railway.app</url>
+      <purpose>PDF parsing with 97.9% table accuracy</purpose>
+      <current-timeout>150s (needs increase to 300s)</current-timeout>
+    </service>
+    <service name="Supabase Edge Functions">
+      <max-execution-time>550s</max-execution-time>
+      <purpose>Document processing orchestration</purpose>
+    </service>
+  </dependencies>
+
+  <related-stories>
+    <story id="4.6" status="completed">
+      <title>Backend Document Processing Pipeline</title>
+      <relevance>Established Edge Function architecture and queue management</relevance>
+    </story>
+    <story id="4.8" status="completed">
+      <title>Migrate to Docling</title>
+      <relevance>Replaced LlamaParse with self-hosted Docling service</relevance>
+    </story>
+    <story id="5.8" status="completed">
+      <title>Retrieval Quality Optimization</title>
+      <relevance>RAG pipeline improvements, not directly related but same epic</relevance>
+    </story>
+  </related-stories>
+
+  <testing-context>
+    <test-framework>Vitest + React Testing Library</test-framework>
+    <test-patterns>
+      <pattern name="Component Tests">
+        <location>__tests__/components/</location>
+        <approach>Render component, simulate user interactions, verify UI updates</approach>
+      </pattern>
+      <pattern name="Unit Tests">
+        <location>__tests__/lib/</location>
+        <approach>Test pure functions in isolation with mocks</approach>
+      </pattern>
+      <pattern name="Integration Tests">
+        <location>__tests__/integration/</location>
+        <approach>Test Edge Function with mock Supabase/Docling</approach>
+      </pattern>
+    </test-patterns>
+    <existing-test-files>
+      <file path="__tests__/components/documents/upload-zone.test.tsx">
+        <coverage>Upload zone validation, drag-and-drop, error handling</coverage>
+        <needs-update>Add test for large file warning (25-50MB)</needs-update>
+      </file>
+      <file path="__tests__/lib/documents/service.test.ts">
+        <coverage>Document CRUD operations</coverage>
+        <needs-update>Add test for retry functionality</needs-update>
+      </file>
+    </existing-test-files>
+    <test-ideas>
+      <idea priority="high">Mock file upload with 15MB PDF, verify warning toast appears</idea>
+      <idea priority="high">Mock file upload with 9MB PDF, verify NO warning (below threshold)</idea>
+      <idea priority="high">Mock file upload with 51MB PDF, verify rejection error</idea>
+      <idea priority="high">Unit test shouldWarnLargeFile() for 9MB, 10MB, 25MB, 50MB, 51MB</idea>
+      <idea priority="high">Unit test estimateProcessingTime() for size ranges: 1MB, 6MB, 25MB, 50MB</idea>
+      <idea priority="medium">Integration test Edge Function timeout after 240s total</idea>
+      <idea priority="medium">Integration test Docling timeout after 180s</idea>
+      <idea priority="medium">Component test retry button on failed document</idea>
+      <idea priority="medium">Test checkTimeout() function throws at 240s boundary</idea>
+      <idea priority="low">E2E test full flow with 20MB document (manual)</idea>
+      <idea priority="low">Performance test: verify 10MB doc completes in 1-2 min</idea>
+    </test-ideas>
+  </testing-context>
+
+  <implementation-guidance>
+    <step-by-step>
+      <step number="1">
+        <task>Update validation constants (Hybrid Approach)</task>
+        <files>
+          <file>src/lib/validations/documents.ts</file>
+        </files>
+        <actions>
+          <action>Add SOFT_FILE_SIZE_WARNING = 10 * 1024 * 1024 constant (10MB)</action>
+          <action>Add shouldWarnLargeFile(fileSize: number): boolean function</action>
+          <action>Returns true if fileSize >= 10MB and &lt;= 50MB</action>
+          <action>Export new constant and function</action>
+        </actions>
+      </step>
+
+      <step number="2">
+        <task>Add large file warning to upload zone</task>
+        <files>
+          <file>src/components/documents/upload-zone.tsx</file>
+        </files>
+        <actions>
+          <action>Import shouldWarnLargeFile function</action>
+          <action>In onDrop handler, check accepted files for large size (10-50MB)</action>
+          <action>Show toast with warning message: "Large file detected. Processing may take 3-5 minutes."</action>
+          <action>Update help text to: "PDF files only, up to 50MB (recommended: under 10MB for fastest processing)"</action>
+        </actions>
+      </step>
+
+      <step number="3">
+        <task>Add estimated time calculation based on file size</task>
+        <files>
+          <file>src/lib/documents/processing.ts (NEW)</file>
+        </files>
+        <actions>
+          <action>Create estimateProcessingTime(fileSizeBytes: number): string function</action>
+          <action>Return: "&lt;1 min" (&lt;5MB), "1-2 min" (5-20MB), "3-5 min" (20-50MB)</action>
+          <action>Add formatBytes(bytes: number): string helper for display</action>
+          <action>Add unit tests for all size ranges</action>
+        </actions>
+      </step>
+
+      <step number="4">
+        <task>Update Edge Function timeouts (Balanced Approach)</task>
+        <files>
+          <file>supabase/functions/process-document/index.ts</file>
+        </files>
+        <actions>
+          <action>Change DOCLING_TIMEOUT from 150000 to 180000 (180s / 3 minutes)</action>
+          <action>Add TOTAL_PROCESSING_TIMEOUT = 240000 constant (240s / 4 minutes)</action>
+          <action>Add checkTimeout(startTime) function to verify within budget</action>
+          <action>Call checkTimeout() after download, parse, chunk, embed steps</action>
+          <action>Update error message: "Processing timeout: document too large or complex. Try splitting into smaller files."</action>
+          <action>Log file size in processing metrics</action>
+        </actions>
+      </step>
+
+      <step number="5">
+        <task>Add retry button UI</task>
+        <files>
+          <file>src/app/(dashboard)/documents/page.tsx</file>
+          <file>src/components/documents/document-card.tsx</file>
+        </files>
+        <actions>
+          <action>Show "Retry" button for status='failed'</action>
+          <action>Call retryProcessing server action on click</action>
+          <action>Show toast: "Retrying document processing..."</action>
+        </actions>
+      </step>
+
+      <step number="6">
+        <task>Add error details dialog</task>
+        <files>
+          <file>src/components/documents/error-details-dialog.tsx (NEW)</file>
+        </files>
+        <actions>
+          <action>Create dialog component with error log display</action>
+          <action>Show full error message from document.error_message</action>
+          <action>Add "Details" button to failed documents</action>
+        </actions>
+      </step>
+
+      <step number="7">
+        <task>Add estimated time display</task>
+        <files>
+          <file>src/app/(dashboard)/documents/page.tsx</file>
+        </files>
+        <actions>
+          <action>For processing documents, show estimated time</action>
+          <action>Use estimateProcessingTime(document.page_count)</action>
+          <action>Display as: "Processing... (~3-5 min)"</action>
+        </actions>
+      </step>
+
+      <step number="8">
+        <task>Write tests</task>
+        <files>
+          <file>__tests__/components/documents/upload-zone.test.tsx</file>
+          <file>__tests__/lib/documents/processing.test.ts (NEW)</file>
+          <file>__tests__/integration/edge-function-timeout.test.ts (NEW)</file>
+        </files>
+        <actions>
+          <action>Test large file warning toast</action>
+          <action>Test file size rejection</action>
+          <action>Test estimateProcessingTime function</action>
+          <action>Test retry button functionality</action>
+        </actions>
+      </step>
+
+      <step number="9">
+        <task>Manual testing</task>
+        <actions>
+          <action>Upload 30MB PDF, verify warning appears</action>
+          <action>Upload 51MB PDF, verify rejection</action>
+          <action>Process document, verify estimated time shown</action>
+          <action>Verify retry button on failed document works</action>
+          <action>Check error details dialog shows full error</action>
+        </actions>
+      </step>
+    </step-by-step>
+
+    <edge-cases>
+      <case>
+        <scenario>User uploads file exactly 10MB</scenario>
+        <expected>Warning shown (threshold is >=10MB)</expected>
+      </case>
+      <case>
+        <scenario>User uploads file at 9.9MB</scenario>
+        <expected>No warning, processes normally</expected>
+      </case>
+      <case>
+        <scenario>User uploads file exactly 50MB</scenario>
+        <expected>Warning shown, upload proceeds (at hard limit)</expected>
+      </case>
+      <case>
+        <scenario>User uploads file at 50.1MB</scenario>
+        <expected>Rejected: "File too large. Maximum size is 50MB."</expected>
+      </case>
+      <case>
+        <scenario>Processing reaches 240s total timeout</scenario>
+        <expected>Document marked failed with clear message, retry available</expected>
+      </case>
+      <case>
+        <scenario>Docling takes 185s (exceeds 180s timeout)</scenario>
+        <expected>Docling times out, document marked failed gracefully</expected>
+      </case>
+      <case>
+        <scenario>Multiple retries of same document</scenario>
+        <expected>Each retry resets error message and re-queues</expected>
+      </case>
+      <case>
+        <scenario>Retry while another document is processing</scenario>
+        <expected>Document queued, waits for active job to complete (FIFO)</expected>
+      </case>
+      <case>
+        <scenario>File size not available for estimate</scenario>
+        <expected>Show generic "Processing..." without time estimate</expected>
+      </case>
+    </edge-cases>
+
+    <gotchas>
+      <gotcha>
+        <issue>Zod v4 uses .issues not .errors</issue>
+        <solution>Use result.error.issues[0] to get first validation error</solution>
+      </gotcha>
+      <gotcha>
+        <issue>Edge Function timeout is 550s total, not per operation</issue>
+        <solution>Hybrid approach: 240s total budget leaves 310s safety buffer before hard limit</solution>
+      </gotcha>
+      <gotcha>
+        <issue>File size used for estimates, not page count</issue>
+        <solution>File size available immediately, page count requires PDF parsing</solution>
+      </gotcha>
+      <gotcha>
+        <issue>toast.warning may not be defined in sonner</issue>
+        <solution>Check sonner docs; use toast() with custom styling or toast.info() if needed</solution>
+      </gotcha>
+      <gotcha>
+        <issue>Timeout must be enforced across async operations</issue>
+        <solution>Store startTime at beginning, check Date.now() - startTime after each step</solution>
+      </gotcha>
+      <gotcha>
+        <issue>Retry reuses same Edge Function invocation</issue>
+        <solution>retryProcessing creates new processing_job, triggers Edge Function fresh</solution>
+      </gotcha>
+    </gotchas>
+  </implementation-guidance>
+
+  <definition-of-done>
+    <checklist>
+      <item>All 10 acceptance criteria verified and passing</item>
+      <item>Large file warning (10-50MB) shows on upload with correct message</item>
+      <item>Files over 50MB rejected with clear error</item>
+      <item>Estimated processing time displayed based on file size (not page count)</item>
+      <item>Edge Function DOCLING_TIMEOUT adjusted to 180s (3 minutes)</item>
+      <item>TOTAL_PROCESSING_TIMEOUT added at 240s (4 minutes) with checking</item>
+      <item>Timeout errors handled gracefully with user-friendly message</item>
+      <item>Retry button appears on failed documents</item>
+      <item>Retry functionality re-queues document successfully</item>
+      <item>Error details dialog shows full error log</item>
+      <item>Processing time metrics logged correctly (including file size)</item>
+      <item>Unit tests written for shouldWarnLargeFile() function</item>
+      <item>Unit tests for estimateProcessingTime() with all size ranges</item>
+      <item>Component tests updated for upload-zone warning (10MB threshold)</item>
+      <item>Integration test for Edge Function timeout (240s total)</item>
+      <item>Manual test: 9MB file (no warning), 15MB file (warning), 51MB file (rejected)</item>
+      <item>TypeScript compiles without errors (npm run build)</item>
+      <item>All tests pass (npm run test)</item>
+      <item>Manual testing completed with real large PDFs (10-50MB range)</item>
+      <item>Edge Function redeployed with new timeout values</item>
+      <item>Code reviewed and approved</item>
+      <item>Sprint status updated to 'done'</item>
+    </checklist>
+    <rationale>
+      <item>Hybrid approach balances usability (supporting large documents up to 50MB) with reliability (preventing indefinite hangs via timeouts)</item>
+      <item>10MB soft warning threshold gives early feedback without being too aggressive</item>
+      <item>180s Docling timeout + 240s total budget provides 310s safety buffer before Edge Function 550s hard limit</item>
+      <item>File size-based estimates are more accurate and available immediately (vs page count which requires parsing)</item>
+    </rationale>
+  </definition-of-done>
+</story-context>

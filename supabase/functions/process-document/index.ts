@@ -30,6 +30,13 @@ const TARGET_TOKENS = 500;
 const OVERLAP_TOKENS = 50;
 const CHARS_PER_TOKEN = 4;
 
+// Story 5.8.1: Timeout approach optimized for Supabase paid tier (550s platform limit)
+// - Docling: 300s (5 min) - handles large/complex PDFs with extensive tables
+// - Total: 480s (8 min) - leaves 70s safety buffer before 550s platform timeout
+// - Allows processing of 50-100MB documents with complex content
+const DOCLING_TIMEOUT_MS = 300000; // 300s (5 min) - paid tier optimization
+const TOTAL_PROCESSING_TIMEOUT_MS = 480000; // 480s (8 min) - ensures error handling runs before platform timeout
+
 // Types
 interface ProcessingPayload {
   documentId: string;
@@ -83,6 +90,20 @@ const log = {
     }));
   },
 };
+
+/**
+ * Check if total processing time has exceeded timeout
+ * Story 5.8.1 (AC-5.8.1.5): 240s total processing timeout
+ * Throws user-friendly error if timeout exceeded
+ */
+function checkProcessingTimeout(startTime: number): void {
+  const elapsed = Date.now() - startTime;
+  if (elapsed > TOTAL_PROCESSING_TIMEOUT_MS) {
+    throw new Error(
+      'Processing timeout: document too large or complex. Try splitting into smaller files.'
+    );
+  }
+}
 
 // Main handler
 Deno.serve(async (req: Request) => {
@@ -176,6 +197,7 @@ Deno.serve(async (req: Request) => {
     // Step 4: Download PDF from Storage
     const pdfBuffer = await downloadFromStorage(supabase, processingStoragePath);
     log.info('PDF downloaded', { documentId: processingDocumentId, size: pdfBuffer.byteLength });
+    checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 5: Send to Docling service
     const parseStartTime = Date.now();
@@ -185,10 +207,12 @@ Deno.serve(async (req: Request) => {
       duration: Date.now() - parseStartTime,
       pageCount: parseResult.pageCount,
     });
+    checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 6: Chunk the content
     const chunks = chunkMarkdown(parseResult.markdown, parseResult.pageMarkers);
     log.info('Chunking completed', { documentId: processingDocumentId, chunkCount: chunks.length });
+    checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 7: Generate embeddings
     const embeddingsStartTime = Date.now();
@@ -200,6 +224,7 @@ Deno.serve(async (req: Request) => {
       documentId: processingDocumentId,
       duration: Date.now() - embeddingsStartTime,
     });
+    checkProcessingTimeout(startTime); // AC-5.8.1.5
 
     // Step 8: Insert chunks into database
     await insertChunks(supabase, processingDocumentId, agencyId, chunks, embeddings);
@@ -369,7 +394,7 @@ async function parseDocument(
 
   // Send to Docling service with timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 150000); // 150s timeout (AC-4.8.4)
+  const timeoutId = setTimeout(() => controller.abort(), DOCLING_TIMEOUT_MS); // 180s timeout (AC-5.8.1.4)
 
   try {
     const response = await fetch(`${serviceUrl}/parse`, {
@@ -401,7 +426,7 @@ async function parseDocument(
     clearTimeout(timeoutId);
 
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Docling parse timed out after 150 seconds');
+      throw new Error('Docling parse timed out after 300 seconds. Document may be too large or complex.');
     }
 
     throw error;

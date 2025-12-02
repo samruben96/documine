@@ -7,12 +7,18 @@ import {
   validateUploadFile,
   validateUploadFiles,
   DOCUMENT_CONSTANTS,
+  shouldWarnLargeFile,
+  formatBytes,
 } from '@/lib/validations/documents';
 
 describe('Document Validation Schemas', () => {
   describe('DOCUMENT_CONSTANTS', () => {
     it('defines MAX_FILE_SIZE as 50MB', () => {
       expect(DOCUMENT_CONSTANTS.MAX_FILE_SIZE).toBe(50 * 1024 * 1024);
+    });
+
+    it('defines SOFT_FILE_SIZE_WARNING as 10MB (Story 5.8.1)', () => {
+      expect(DOCUMENT_CONSTANTS.SOFT_FILE_SIZE_WARNING).toBe(10 * 1024 * 1024);
     });
 
     it('defines MAX_FILES as 5', () => {
@@ -252,6 +258,59 @@ describe('Document Validation Schemas', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('At least one file is required');
+    });
+  });
+
+  // Story 5.8.1: Large file warning tests (AC-5.8.1.1)
+  describe('shouldWarnLargeFile', () => {
+    it('returns false for files under 10MB', () => {
+      const size = 5 * 1024 * 1024; // 5MB
+      expect(shouldWarnLargeFile(size)).toBe(false);
+    });
+
+    it('returns true for file exactly at 10MB', () => {
+      const size = 10 * 1024 * 1024; // 10MB
+      expect(shouldWarnLargeFile(size)).toBe(true);
+    });
+
+    it('returns true for file between 10-50MB', () => {
+      const size = 30 * 1024 * 1024; // 30MB
+      expect(shouldWarnLargeFile(size)).toBe(true);
+    });
+
+    it('returns true for file exactly at 50MB', () => {
+      const size = 50 * 1024 * 1024; // 50MB
+      expect(shouldWarnLargeFile(size)).toBe(true);
+    });
+
+    it('returns false for file over 50MB (would be rejected)', () => {
+      const size = 51 * 1024 * 1024; // 51MB
+      expect(shouldWarnLargeFile(size)).toBe(false);
+    });
+  });
+
+  describe('formatBytes', () => {
+    it('formats 0 bytes', () => {
+      expect(formatBytes(0)).toBe('0 Bytes');
+    });
+
+    it('formats bytes', () => {
+      expect(formatBytes(500)).toBe('500.0 Bytes');
+    });
+
+    it('formats kilobytes', () => {
+      expect(formatBytes(1024)).toBe('1.0 KB');
+      expect(formatBytes(1536)).toBe('1.5 KB');
+    });
+
+    it('formats megabytes', () => {
+      expect(formatBytes(1048576)).toBe('1.0 MB');
+      expect(formatBytes(10485760)).toBe('10.0 MB');
+      expect(formatBytes(52428800)).toBe('50.0 MB');
+    });
+
+    it('formats gigabytes', () => {
+      expect(formatBytes(1073741824)).toBe('1.0 GB');
     });
   });
 });

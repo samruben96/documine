@@ -45,8 +45,9 @@ describe('UploadZone', () => {
     it('displays file constraints text', () => {
       render(<UploadZone onFilesAccepted={mockOnFilesAccepted} />);
 
+      // Updated for Story 5.8.1: Help text now recommends under 10MB for fastest processing
       expect(
-        screen.getByText('PDF files only, up to 50MB each (max 5 files)')
+        screen.getByText('PDF files only, up to 50MB (recommended: under 10MB for fastest processing)')
       ).toBeInTheDocument();
     });
 

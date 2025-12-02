@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FileText, MoreVertical, Trash2, Pencil } from 'lucide-react';
+import { FileText, MoreVertical, Trash2, Pencil, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
@@ -28,6 +28,8 @@ interface DocumentListItemProps {
   isSelected?: boolean;
   onClick?: () => void;
   onDeleteClick?: () => void;
+  /** Story 5.8.1 (AC-5.8.1.7): Callback to retry failed documents */
+  onRetryClick?: () => void;
 }
 
 /**
@@ -55,6 +57,7 @@ export function DocumentListItem({
   isSelected = false,
   onClick,
   onDeleteClick,
+  onRetryClick,
 }: DocumentListItemProps) {
   const name = displayName || filename;
 
@@ -276,12 +279,31 @@ export function DocumentListItem({
             <div
               className={cn(
                 'flex items-center gap-0.5 -mr-1',
-                'opacity-0 group-hover:opacity-100 transition-opacity',
-                'focus-within:opacity-100',
+                // Show retry button always for failed docs (AC-5.8.1.6), otherwise on hover
+                status === 'failed' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                'transition-opacity focus-within:opacity-100',
                 // Always visible on touch devices
                 'max-md:opacity-100'
               )}
             >
+              {/* Retry button for failed documents - Story 5.8.1 (AC-5.8.1.6) */}
+              {status === 'failed' && onRetryClick && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRetryClick();
+                  }}
+                  className={cn(
+                    'p-1 rounded hover:bg-slate-200 text-amber-600 hover:text-amber-700 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                  )}
+                  aria-label={`Retry processing ${name}`}
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                </button>
+              )}
+
               {/* Edit/rename button - pencil icon - AC-4.5.1 */}
               <button
                 type="button"

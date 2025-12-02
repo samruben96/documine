@@ -235,6 +235,22 @@ export default function DocumentsPage() {
     toast.info('Upload cancelled');
   }, []);
 
+  /**
+   * Handle retry of failed document
+   * Story 5.8.1 (AC-5.8.1.7): Retry button re-queues document for processing
+   */
+  const handleRetryDocument = useCallback(async (documentId: string) => {
+    startTransition(async () => {
+      const result = await retryDocumentProcessing(documentId);
+      if (result.success) {
+        toast.success('Document re-queued for processing');
+        // Document status will update via realtime subscription
+      } else {
+        toast.error(result.error || 'Failed to retry document');
+      }
+    });
+  }, []);
+
   return (
     <div className="h-[calc(100vh-3.5rem)]">
       <SplitView
@@ -245,6 +261,7 @@ export default function DocumentsPage() {
               onFilesAccepted={handleFilesAccepted}
               queuePositions={queuePositions}
               isLoading={isLoading}
+              onRetryClick={handleRetryDocument}
             />
           </Sidebar>
         }

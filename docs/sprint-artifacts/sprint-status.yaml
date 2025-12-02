@@ -94,13 +94,17 @@ development_status:
   5-8-retrieval-quality-optimization: done
   # Story 5.8.1 added as bug fix (2025-12-02)
   # Fixes large document processing timeouts and adds file size validation
-  5-8-1-large-document-processing: drafted
+  # REVIEWED 2025-12-02: Approved - test fix applied during review
+  5-8-1-large-document-processing: done
   5-9-chunking-optimization: drafted
   5-10-model-evaluation: drafted
   # Story 5.11 added as bug fix (2025-12-01)
   # Fixes streaming memory leaks, AI personality, and greeting handling
   5-11-streaming-ai-personality-bugfix: done
-  epic-5-retrospective: completed
+  # Story 5.12 added as enhancement (2025-12-02)
+  # Visual progress tracking for document processing (requires UX design)
+  5-12-processing-progress-visualization: drafted
+  epic-5-retrospective: in-progress
 
   # Epic 6: Quote Comparison
   epic-6: backlog

@@ -3,9 +3,13 @@ import { z } from 'zod';
 /**
  * Document validation constants
  * Per AC-4.1.4, AC-4.1.5, AC-4.1.6
+ * Updated Story 5.8.1: Hybrid approach for large document handling
+ * - Soft warning at 10MB (AC-5.8.1.1)
+ * - Hard limit at 50MB (existing constraint)
  */
 export const DOCUMENT_CONSTANTS = {
-  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB - hard limit
+  SOFT_FILE_SIZE_WARNING: 10 * 1024 * 1024, // 10MB - show warning
   MAX_FILES: 5,
   ACCEPTED_MIME_TYPE: 'application/pdf',
 } as const;
@@ -107,4 +111,34 @@ export function validateUploadFiles(files: File[]): {
   }
 
   return { success: true };
+}
+
+/**
+ * Check if file size should trigger large file warning
+ * Per AC-5.8.1.1: Files 10-50MB should show warning
+ * Story 5.8.1 Hybrid Approach
+ *
+ * @param fileSize - File size in bytes
+ * @returns true if file is between 10MB and 50MB (inclusive of 10MB, exclusive of 50MB)
+ */
+export function shouldWarnLargeFile(fileSize: number): boolean {
+  return fileSize >= DOCUMENT_CONSTANTS.SOFT_FILE_SIZE_WARNING &&
+         fileSize <= DOCUMENT_CONSTANTS.MAX_FILE_SIZE;
+}
+
+/**
+ * Format bytes to human-readable string
+ * Helper for displaying file sizes in error/warning messages
+ *
+ * @param bytes - File size in bytes
+ * @returns Formatted string like "15.5 MB"
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }

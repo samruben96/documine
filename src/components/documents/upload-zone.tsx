@@ -5,6 +5,7 @@ import { useDropzone, FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
 import { Upload, FileText, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { shouldWarnLargeFile } from '@/lib/validations/documents';
 
 // Constants for file validation
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -104,6 +105,18 @@ export function UploadZone({
 
       // Handle accepted files
       if (acceptedFiles.length > 0) {
+        // Check for large files and show warning (AC-5.8.1.1)
+        // Story 5.8.1: Hybrid approach - warn on 10-50MB files
+        // Updated for paid tier: can handle larger docs with longer processing
+        for (const file of acceptedFiles) {
+          if (shouldWarnLargeFile(file.size)) {
+            const sizeMB = file.size / (1024 * 1024);
+            const timeEstimate = sizeMB > 30 ? '5-8 minutes' : '3-5 minutes';
+            toast.warning(`Large file detected. Processing may take ${timeEstimate}.`);
+            break; // Only show warning once per batch
+          }
+        }
+
         onFilesAccepted(acceptedFiles);
       }
     },
@@ -173,7 +186,7 @@ export function UploadZone({
             Drop a document here or click to upload
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            PDF files only, up to 50MB each (max 5 files)
+            PDF files only, up to 50MB (recommended: under 10MB for fastest processing)
           </p>
         </div>
 
