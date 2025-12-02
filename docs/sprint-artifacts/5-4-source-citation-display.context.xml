@@ -1,0 +1,177 @@
+<story-context id="5-4-source-citation-display" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>4</storyId>
+    <title>Source Citation Display</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/5-4-source-citation-display.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to see exactly where in the document an answer came from</iWant>
+    <soThat>I can verify the AI's response is accurate</soThat>
+    <tasks>
+      <task id="1">Create Source Citation Component (AC: 5.4.1, 5.4.2)</task>
+      <task id="2">Implement Multiple Sources Display (AC: 5.4.3)</task>
+      <task id="3">Implement Expandable Sources UI (AC: 5.4.4)</task>
+      <task id="4">Integrate Source Data from Stream (AC: 5.4.5)</task>
+      <task id="5">Update ChatMessage to Display Sources (AC: 5.4.1, 5.4.2)</task>
+      <task id="6">Verify Source Persistence (AC: 5.4.6)</task>
+      <task id="7">Add Click Handler for Source Navigation (AC: 5.4.1)</task>
+      <task id="8">Testing and Verification (AC: All)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-5.4.1">Source citation link appears after confidence badge: "View in document" or "Page X". Link uses arrow icon or text affordance indicating navigation.</criterion>
+    <criterion id="AC-5.4.2">Citation link styled subtly (small text, muted color). Underline appears on hover. Follows Trustworthy Slate color theme (#475569 text, lighter on hover).</criterion>
+    <criterion id="AC-5.4.3">Multiple sources show as: "Sources: Page 3, Page 7, Page 12" (each page is a link). Sources displayed in ascending page order. Each page number is independently clickable.</criterion>
+    <criterion id="AC-5.4.4">If more than 3 sources, show expandable "View X sources". Clicking expands to show all source links. Collapsed state shows first 3 sources + "and X more".</criterion>
+    <criterion id="AC-5.4.5">Source data includes: documentId, pageNumber, text excerpt, chunkId, similarityScore. Data passed from API response to component props. Text excerpt limited to 100 chars for display.</criterion>
+    <criterion id="AC-5.4.6">Source citations are saved with assistant message in database (sources JSONB column). Citations persist across page refreshes. Historical conversations show source citations.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 5.4: Source Citation Display</section>
+        <snippet>Story 5.4 implements source citation display below AI responses. Multiple sources show as "Sources: Page 3, Page 7, Page 12" format. Expandable UI for more than 3 sources.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-5.md</path>
+        <title>Epic 5 Technical Specification</title>
+        <section>Story 5.4 Acceptance Criteria</section>
+        <snippet>Details the 6 acceptance criteria for source citation display including styling, multiple sources format, expandable UI, and persistence requirements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Document</title>
+        <section>Novel Pattern: Trust-Transparent AI Responses</section>
+        <snippet>Every AI response includes source citations and confidence indicators. Users can click citations to navigate to exact document location. Trust through transparency.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/5-3-ai-response-with-streaming-trust-elements.md</path>
+        <title>Story 5.3 (Predecessor)</title>
+        <section>Dev Agent Record</section>
+        <snippet>Story 5.3 implemented streaming responses, confidence badges, and sources storage. ChatMessage already accepts sources prop. useChat already stores sources from SSE stream.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/chat/chat-message.tsx</path>
+        <kind>component</kind>
+        <symbol>ChatMessage</symbol>
+        <lines>1-143</lines>
+        <reason>Primary component to extend - already accepts sources prop (line 15), displays confidence badge (line 123-125). Source citations display will be added after confidence badge.</reason>
+      </file>
+      <file>
+        <path>src/components/chat/confidence-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>ConfidenceBadge</symbol>
+        <lines>1-102</lines>
+        <reason>Reference for styling patterns. Uses 11px font, subtle colors, inline-flex layout. Source citation component should follow similar styling conventions.</reason>
+      </file>
+      <file>
+        <path>src/lib/chat/types.ts</path>
+        <kind>types</kind>
+        <symbol>SourceCitation, BoundingBox</symbol>
+        <lines>8-28</lines>
+        <reason>Defines SourceCitation interface: pageNumber, text, chunkId, boundingBox?, similarityScore?. BoundingBox for highlight coordinates.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-chat.ts</path>
+        <kind>hook</kind>
+        <symbol>useChat, ExtendedChatMessageData</symbol>
+        <lines>1-336</lines>
+        <reason>Hook that manages chat state. Already collects sources from SSE stream (line 146, 178) and stores in message (line 196). Sources flow through to ChatMessage.</reason>
+      </file>
+      <file>
+        <path>src/lib/chat/service.ts</path>
+        <kind>service</kind>
+        <symbol>saveAssistantMessage</symbol>
+        <lines>1-233</lines>
+        <reason>Chat persistence service. Already saves sources JSONB to chat_messages table. Confirms AC-5.4.6 persistence foundation exists.</reason>
+      </file>
+      <file>
+        <path>src/app/api/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST handler</symbol>
+        <lines>1-247</lines>
+        <reason>Chat API that emits source events via SSE. Sources already included in stream response.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <reason>Icon library - use ChevronRight or ExternalLink for source navigation affordance</reason>
+      </node>
+      <node>
+        <package>tailwind-merge</package>
+        <version>^3.4.0</version>
+        <reason>cn() utility for conditional class merging</reason>
+      </node>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+        <reason>useState for expanded/collapsed state management</reason>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Follow existing styling patterns from confidence-badge.tsx (11px font, subtle colors)</constraint>
+    <constraint>Use Trustworthy Slate color theme: text-slate-500 base, hover:text-slate-700</constraint>
+    <constraint>Position sources below confidence badge in ChatMessage trust elements container</constraint>
+    <constraint>Only show sources for assistant messages when isStreaming=false</constraint>
+    <constraint>Sources prop already flows through - no API changes needed</constraint>
+    <constraint>Use project-relative paths for source navigation (Story 5.5 handles actual scroll)</constraint>
+    <constraint>onClick handler emits source data - parent component handles navigation</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>SourceCitation</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface SourceCitation { pageNumber: number; text: string; chunkId: string; boundingBox?: BoundingBox; similarityScore?: number; }</signature>
+      <path>src/lib/chat/types.ts:22-28</path>
+    </interface>
+    <interface>
+      <name>ChatMessageData.sources</name>
+      <kind>Component prop</kind>
+      <signature>sources?: SourceCitation[]</signature>
+      <path>src/components/chat/chat-message.tsx:15</path>
+    </interface>
+    <interface>
+      <name>SourceCitationProps</name>
+      <kind>Component props (to create)</kind>
+      <signature>interface SourceCitationProps { sources: SourceCitation[]; onSourceClick?: (source: SourceCitation) => void; className?: string; }</signature>
+      <path>src/components/chat/source-citation.tsx (new)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest with React Testing Library. Tests in __tests__/ mirroring src/ structure. Test component rendering, user interactions, accessibility. Follow patterns from existing chat component tests.</standards>
+    <locations>
+      <location>__tests__/components/chat/</location>
+      <location>__tests__/hooks/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-5.4.1">Test SourceCitation renders "Page X" link with correct text and icon</idea>
+      <idea ac="AC-5.4.2">Test hover state adds underline class, verify slate color classes applied</idea>
+      <idea ac="AC-5.4.3">Test multiple sources render in "Sources: Page 3, Page 7" format, sorted ascending</idea>
+      <idea ac="AC-5.4.4">Test expandable behavior: collapsed shows 3 + "and X more", click expands all</idea>
+      <idea ac="AC-5.4.5">Test source data flows correctly from props, text truncated to 100 chars</idea>
+      <idea ac="AC-5.4.6">Test ChatMessage displays sources from historical messages (mocked data)</idea>
+      <idea ac="AC-5.4.1">Test onClick handler fires with correct source data when link clicked</idea>
+      <idea ac="accessibility">Test keyboard navigation (Enter/Space triggers click)</idea>
+    </ideas>
+  </tests>
+</story-context>

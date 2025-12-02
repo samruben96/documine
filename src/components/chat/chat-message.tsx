@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { ConfidenceBadge, type ConfidenceLevel } from './confidence-badge';
+import { SourceCitationList } from './source-citation';
 import type { SourceCitation } from '@/lib/chat/types';
 import { RefreshCw } from 'lucide-react';
 
@@ -25,6 +26,7 @@ interface ChatMessageProps {
   message: ChatMessageData;
   className?: string;
   onRetry?: (messageId: string) => void;
+  onSourceClick?: (source: SourceCitation) => void;
 }
 
 /**
@@ -66,12 +68,17 @@ function formatRelativeTime(date: Date): string {
  * Implements AC-5.3.2: Confidence badge after streaming completes
  * Implements AC-5.3.3, AC-5.3.4, AC-5.3.5: Confidence badge variants
  * Implements AC-5.3.8, AC-5.3.9, AC-5.3.10: Error handling with retry button
+ *
+ * Implements AC-5.4.1, AC-5.4.2: Source citation display after confidence badge
+ * Implements AC-5.4.3, AC-5.4.4: Multiple sources and expandable sources UI
  */
-export function ChatMessage({ message, className, onRetry }: ChatMessageProps) {
+export function ChatMessage({ message, className, onRetry, onSourceClick }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const isStreaming = message.isStreaming;
   const hasError = !!message.error;
   const showConfidence = !isUser && !isStreaming && !hasError && message.confidence;
+  // AC-5.4.1: Only show sources for assistant messages after streaming completes
+  const showSources = !isUser && !isStreaming && !hasError && message.sources && message.sources.length > 0;
 
   // Memoize the relative time calculation
   const relativeTime = useMemo(() => formatRelativeTime(message.createdAt), [message.createdAt]);
@@ -118,16 +125,27 @@ export function ChatMessage({ message, className, onRetry }: ChatMessageProps) {
 
       {/* Trust elements container - shown after streaming completes */}
       {!isUser && !isStreaming && (
-        <div className="flex items-center gap-2 pl-1">
-          {/* Confidence Badge - AC-5.3.2, AC-5.3.3, AC-5.3.4, AC-5.3.5 */}
-          {showConfidence && (
-            <ConfidenceBadge confidence={message.confidence!} />
-          )}
+        <div className="flex flex-col gap-1 pl-1">
+          {/* Row 1: Confidence Badge + Timestamp */}
+          <div className="flex items-center gap-2">
+            {/* Confidence Badge - AC-5.3.2, AC-5.3.3, AC-5.3.4, AC-5.3.5 */}
+            {showConfidence && (
+              <ConfidenceBadge confidence={message.confidence!} />
+            )}
 
-          {/* Timestamp */}
-          <span className="text-xs text-slate-400">
-            {relativeTime}
-          </span>
+            {/* Timestamp */}
+            <span className="text-xs text-slate-400">
+              {relativeTime}
+            </span>
+          </div>
+
+          {/* Row 2: Source Citations - AC-5.4.1, AC-5.4.2, AC-5.4.3, AC-5.4.4 */}
+          {showSources && (
+            <SourceCitationList
+              sources={message.sources!}
+              onSourceClick={onSourceClick}
+            />
+          )}
         </div>
       )}
 

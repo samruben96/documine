@@ -81,11 +81,11 @@ development_status:
   epic-4-retrospective: completed
 
   # Epic 5: Document Q&A with Trust Transparency
-  epic-5: backlog
+  epic-5: contexted
   5-1-chat-interface-layout-split-view: done
   5-2-natural-language-query-input: done
-  5-3-ai-response-with-streaming-trust-elements: backlog
-  5-4-source-citation-display: backlog
+  5-3-ai-response-with-streaming-trust-elements: done
+  5-4-source-citation-display: done
   5-5-document-viewer-with-highlight-navigation: backlog
   5-6-conversation-history-follow-up-questions: backlog
   5-7-responsive-chat-experience: backlog
