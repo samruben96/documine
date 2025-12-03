@@ -65,9 +65,17 @@ interface ProcessingJobPayload {
 interface UseProcessingProgressResult {
   /** Map of document ID to progress data */
   progressMap: Map<string, ProgressData>;
+  /** Map of document ID to error message (for failed jobs) - Story 5.13 */
+  errorMap: Map<string, string>;
   /** Whether realtime connection is active */
   isConnected: boolean;
 }
+
+/**
+ * Story 5.14 (AC-5.14.3): Track documents that have received server progress data
+ * to prevent simulated progress from overriding actual server data
+ */
+type ProgressSource = 'server' | 'simulated';
 
 /**
  * Parse JSON progress_data from database into typed ProgressData
@@ -128,10 +136,16 @@ export function useProcessingProgress(
   const [progressMap, setProgressMap] = useState<Map<string, ProgressData>>(
     new Map()
   );
+  // Story 5.13: Track error messages for failed jobs
+  const [errorMap, setErrorMap] = useState<Map<string, string>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
 
   // Track job metadata for simulated progress (started_at times)
   const jobMetadataRef = useRef<Map<string, { started_at: string | null }>>(new Map());
+
+  // Story 5.14 (AC-5.14.3): Track which documents have received server progress data
+  // to prevent simulated progress from overriding actual server data
+  const progressSourceRef = useRef<Map<string, ProgressSource>>(new Map());
 
   // Polling interval ref for simulated progress
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -148,12 +162,33 @@ export function useProcessingProgress(
       // Store job metadata for simulation
       jobMetadataRef.current.set(job.document_id, { started_at: job.started_at });
 
+      // Story 5.13: Track error messages for failed jobs
+      if (job.status === 'failed' && job.error_message) {
+        setErrorMap((prev) => {
+          const next = new Map(prev);
+          next.set(job.document_id, job.error_message!);
+          return next;
+        });
+      }
+
       // If we have progress_data from the server, use it
+      // Story 5.14 (AC-5.14.3): Mark as server-sourced to prevent simulation override
       if (job.progress_data) {
         const progressData = parseProgressData(job.progress_data);
         if (progressData) {
+          // Mark this document as having server progress (stops simulation)
+          progressSourceRef.current.set(job.document_id, 'server');
+
           setProgressMap((prev) => {
             const next = new Map(prev);
+            const existing = prev.get(job.document_id);
+
+            // Story 5.14 (AC-5.14.1): Monotonic progress - only update if progress increased
+            // This prevents visual jumping when polling returns older data
+            if (existing && progressData.total_progress < existing.total_progress) {
+              return prev; // Don't regress
+            }
+
             next.set(job.document_id, progressData);
             return next;
           });
@@ -212,7 +247,7 @@ export function useProcessingProgress(
     const supabase = createClient();
     const { data: jobs, error } = await supabase
       .from('processing_jobs')
-      .select('id, document_id, status, progress_data, started_at, created_at')
+      .select('id, document_id, status, progress_data, error_message, started_at, created_at')
       .in('document_id', documentIds);
 
     if (error) {
@@ -297,6 +332,12 @@ export function useProcessingProgress(
         const next = new Map(prev);
 
         for (const [docId, progress] of prev) {
+          // Story 5.14 (AC-5.14.3): Skip simulation for documents with server progress
+          // This prevents simulated progress from overriding real server data
+          if (progressSourceRef.current.get(docId) === 'server') {
+            continue;
+          }
+
           // Only simulate progress during parsing stage
           if (progress.stage === 'parsing' && progress.stage_progress < 95) {
             const metadata = jobMetadataRef.current.get(docId);
@@ -402,10 +443,18 @@ export function useProcessingProgress(
         jobMetadataRef.current.delete(docId);
       }
     }
+
+    // Story 5.14: Clean up progress source tracking
+    for (const docId of progressSourceRef.current.keys()) {
+      if (!documentIds.includes(docId)) {
+        progressSourceRef.current.delete(docId);
+      }
+    }
   }, [documentIds]);
 
   return {
     progressMap,
+    errorMap,
     isConnected,
   };
 }

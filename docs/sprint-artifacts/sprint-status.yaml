@@ -116,7 +116,10 @@ development_status:
   5-13-docling-pdf-robustness: done
   # Story 5.14 added as polish (2025-12-02)
   # Fixes progress jumping and delete not reflecting in realtime
-  5-14-realtime-polish: drafted
+  # Context created 2025-12-02: 5-14-realtime-polish.context.xml
+  # IMPLEMENTED 2025-12-02: Monotonic progress, optimistic delete, connection indicator
+  # CODE REVIEWED 2025-12-02: APPROVED - all ACs verified
+  5-14-realtime-polish: done
   # Mini-retro (5.1-5.6) completed 2025-12-01: docs/sprint-artifacts/epic-5-retro-2025-12-01.md
   # Doc update session completed 2025-12-02 (Party Mode - epics.md, architecture.md)
   # FULL Epic 5 retrospective needed after 5.13/5.14 completion

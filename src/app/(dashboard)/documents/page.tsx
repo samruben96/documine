@@ -66,7 +66,11 @@ export default function DocumentsPage() {
   }, [documents]);
 
   // Story 5.12: Subscribe to processing progress updates
-  const { progressMap } = useProcessingProgress(processingDocumentIds);
+  const { progressMap, isConnected: isProgressConnected } = useProcessingProgress(processingDocumentIds);
+
+  // Story 5.14 (AC-5.14.7): Connection indicator should reflect actual subscription state
+  // Connected = documents channel is live OR progress channel is live (when there are processing docs)
+  const isAnyChannelConnected = isConnected || (processingDocumentIds.length > 0 && isProgressConnected);
 
   // Fetch queue positions for processing documents (AC-4.7.4)
   const fetchQueuePositions = useCallback(async (docs: Document[]) => {
@@ -268,6 +272,27 @@ export default function DocumentsPage() {
     });
   }, []);
 
+  /**
+   * Story 5.14 (AC-5.14.4): Optimistic delete - remove document from state immediately
+   */
+  const handleOptimisticDelete = useCallback((documentId: string) => {
+    setDocuments((prev) => prev.filter((doc) => doc.id !== documentId));
+  }, [setDocuments]);
+
+  /**
+   * Story 5.14 (AC-5.14.5): Restore document on delete failure
+   */
+  const handleRestoreDocument = useCallback((document: Document) => {
+    setDocuments((prev) => {
+      // Check if document is already in list (shouldn't happen, but be safe)
+      if (prev.some((doc) => doc.id === document.id)) {
+        return prev;
+      }
+      // Restore at the beginning of the list
+      return [document, ...prev];
+    });
+  }, [setDocuments]);
+
   return (
     <div className="h-[calc(100vh-3.5rem)]">
       <SplitView
@@ -280,6 +305,8 @@ export default function DocumentsPage() {
               progressMap={progressMap}
               isLoading={isLoading}
               onRetryClick={handleRetryDocument}
+              onOptimisticDelete={handleOptimisticDelete}
+              onRestoreDocument={handleRestoreDocument}
             />
           </Sidebar>
         }
@@ -313,16 +340,16 @@ export default function DocumentsPage() {
                   </div>
                 )}
 
-                {/* Connection status */}
+                {/* Connection status - Story 5.14 (AC-5.14.7) */}
                 {agencyId && (
                   <div className="mt-6 flex items-center justify-center gap-1.5">
                     <div
                       className={`h-2 w-2 rounded-full ${
-                        isConnected ? 'bg-emerald-500' : 'bg-slate-300'
+                        isAnyChannelConnected ? 'bg-emerald-500' : 'bg-slate-300'
                       }`}
                     />
                     <span className="text-xs text-slate-500">
-                      {isConnected ? 'Live updates active' : 'Connecting...'}
+                      {isAnyChannelConnected ? 'Live updates active' : 'Connecting...'}
                     </span>
                   </div>
                 )}

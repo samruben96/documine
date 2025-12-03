@@ -27,6 +27,10 @@ interface DocumentListProps {
   className?: string;
   /** Story 5.8.1 (AC-5.8.1.7): Callback to retry failed document */
   onRetryClick?: (documentId: string) => void;
+  /** Story 5.14 (AC-5.14.4): Callback to optimistically remove document from list */
+  onOptimisticDelete?: (documentId: string) => void;
+  /** Story 5.14 (AC-5.14.5): Callback to restore document after failed delete */
+  onRestoreDocument?: (document: DocumentWithLabels) => void;
 }
 
 /**
@@ -50,6 +54,8 @@ export function DocumentList({
   isLoading = false,
   className,
   onRetryClick,
+  onOptimisticDelete,
+  onRestoreDocument,
 }: DocumentListProps) {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
@@ -70,6 +76,9 @@ export function DocumentList({
     filename: string;
     display_name: string | null;
   } | null>(null);
+
+  // Story 5.14 (AC-5.14.5): Store full document for restoration on delete failure
+  const [documentToRestore, setDocumentToRestore] = useState<DocumentWithLabels | null>(null);
 
   // Load all labels for filter dropdown - AC-4.5.9
   useEffect(() => {
@@ -117,23 +126,43 @@ export function DocumentList({
   };
 
   // Handle delete button click - AC-4.4.1
-  const handleDeleteClick = useCallback((doc: Document) => {
+  const handleDeleteClick = useCallback((doc: DocumentWithLabels) => {
     setDocumentToDelete({
       id: doc.id,
       filename: doc.filename,
       display_name: doc.display_name,
     });
+    // Story 5.14 (AC-5.14.5): Store full document for potential restoration
+    setDocumentToRestore(doc);
     setDeleteModalOpen(true);
   }, []);
 
+  // Story 5.14 (AC-5.14.4): Optimistic delete - remove from UI immediately
+  const handleOptimisticDelete = useCallback(() => {
+    if (documentToDelete) {
+      // If we deleted the currently viewed document, navigate to /documents
+      if (documentToDelete.id === selectedId) {
+        router.push('/documents');
+      }
+      // Call parent's optimistic delete callback
+      onOptimisticDelete?.(documentToDelete.id);
+    }
+  }, [documentToDelete, selectedId, router, onOptimisticDelete]);
+
+  // Story 5.14 (AC-5.14.5): Restore document on delete failure
+  const handleDeleteError = useCallback(() => {
+    if (documentToRestore) {
+      onRestoreDocument?.(documentToRestore);
+    }
+    setDocumentToRestore(null);
+  }, [documentToRestore, onRestoreDocument]);
+
   // Handle successful deletion - AC-4.4.7, AC-4.4.8
   const handleDeleteSuccess = useCallback(() => {
-    // If we deleted the currently viewed document, navigate to /documents
-    if (documentToDelete && documentToDelete.id === selectedId) {
-      router.push('/documents');
-    }
+    // Clean up state after successful delete
     setDocumentToDelete(null);
-  }, [documentToDelete, selectedId, router]);
+    setDocumentToRestore(null);
+  }, []);
 
   // Show empty state when no documents exist
   if (!isLoading && documents.length === 0) {
@@ -263,6 +292,8 @@ export function DocumentList({
         onOpenChange={setDeleteModalOpen}
         document={documentToDelete}
         onSuccess={handleDeleteSuccess}
+        onOptimisticDelete={handleOptimisticDelete}
+        onError={handleDeleteError}
       />
     </div>
   );

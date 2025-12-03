@@ -24,6 +24,10 @@ interface DeleteDocumentModalProps {
     display_name: string | null;
   } | null;
   onSuccess?: () => void;
+  /** Story 5.14 (AC-5.14.4): Called immediately before server call to remove from UI */
+  onOptimisticDelete?: () => void;
+  /** Story 5.14 (AC-5.14.5): Called on server error to restore document */
+  onError?: () => void;
 }
 
 /**
@@ -36,21 +40,28 @@ export function DeleteDocumentModal({
   onOpenChange,
   document,
   onSuccess,
+  onOptimisticDelete,
+  onError,
 }: DeleteDocumentModalProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = () => {
     if (!document) return;
 
+    // Story 5.14 (AC-5.14.4): Optimistic delete - remove from UI immediately
+    onOptimisticDelete?.();
+    onOpenChange(false);
+
     startTransition(async () => {
       const result = await deleteDocumentAction(document.id);
 
       if (result.success) {
         toast.success('Document deleted');
-        onOpenChange(false);
         onSuccess?.();
       } else {
+        // Story 5.14 (AC-5.14.5): Restore document on failure
         toast.error(result.error || 'Failed to delete document');
+        onError?.();
       }
     });
   };
