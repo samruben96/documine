@@ -228,6 +228,11 @@ Agents don't want to learn new systems - they want tools that just work. docuMIN
 
 5. **Clean Over Clever:** Simple layouts, clear typography, obvious actions. No dashboards, widgets, or features competing for attention.
 
+**UI Research & Implementation:**
+- Detailed UI/UX architecture documented in `docs/architecture.md` (UI/UX Architecture section)
+- UI best practices research documented in `docs/research-ui-best-practices-2025-12-02.md`
+- UI polish tracked in Epic 6 (Stories 6.5-6.9)
+
 ### Key Interactions
 
 **Document Upload:**

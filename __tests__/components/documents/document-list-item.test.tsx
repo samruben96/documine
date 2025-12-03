@@ -71,16 +71,17 @@ describe('DocumentListItem', () => {
     });
   });
 
-  describe('AC-4.3.8: Selected Document Styling', () => {
+  describe('AC-4.3.8, AC-6.7.1-5: Selected Document Styling', () => {
     it('applies selected styling when isSelected is true', () => {
       const { container } = render(
         <DocumentListItem {...defaultProps} isSelected={true} />
       );
 
       // Styling is on the wrapper div, not the button
+      // Updated in Story 6.7 to use Tailwind semantic classes
       const wrapper = container.querySelector('.group');
-      expect(wrapper).toHaveClass('bg-[#f1f5f9]');
-      expect(wrapper).toHaveClass('border-l-[#475569]');
+      expect(wrapper).toHaveClass('bg-slate-100');
+      expect(wrapper).toHaveClass('border-l-slate-600');
     });
 
     it('does not apply selected styling when isSelected is false', () => {
@@ -90,24 +91,24 @@ describe('DocumentListItem', () => {
 
       // Styling is on the wrapper div, not the button
       const wrapper = container.querySelector('.group');
-      expect(wrapper).not.toHaveClass('bg-[#f1f5f9]');
+      expect(wrapper).not.toHaveClass('bg-slate-100');
       expect(wrapper).toHaveClass('border-l-transparent');
     });
 
-    it('sets aria-current="page" when selected', () => {
+    it('sets aria-selected="true" when selected (AC-6.7.5)', () => {
       render(<DocumentListItem {...defaultProps} isSelected={true} />);
 
       // The first button is the main document button
       const buttons = screen.getAllByRole('button');
-      expect(buttons[0]).toHaveAttribute('aria-current', 'page');
+      expect(buttons[0]).toHaveAttribute('aria-selected', 'true');
     });
 
-    it('does not set aria-current when not selected', () => {
+    it('sets aria-selected="false" when not selected', () => {
       render(<DocumentListItem {...defaultProps} isSelected={false} />);
 
       // The first button is the main document button
       const buttons = screen.getAllByRole('button');
-      expect(buttons[0]).not.toHaveAttribute('aria-current');
+      expect(buttons[0]).toHaveAttribute('aria-selected', 'false');
     });
   });
 
@@ -124,8 +125,8 @@ describe('DocumentListItem', () => {
     });
   });
 
-  describe('truncation', () => {
-    it('shows full filename in title attribute for truncated names', () => {
+  describe('truncation (AC-6.7.11-15)', () => {
+    it('applies truncate class to filename', () => {
       const longFilename =
         'this-is-a-very-long-document-filename-that-should-be-truncated.pdf';
       render(
@@ -133,7 +134,17 @@ describe('DocumentListItem', () => {
       );
 
       const filenameElement = screen.getByText(longFilename);
-      expect(filenameElement).toHaveAttribute('title', longFilename);
+      expect(filenameElement).toHaveClass('truncate');
+    });
+
+    it('filename is focusable for keyboard tooltip access', () => {
+      const longFilename = 'document.pdf';
+      render(
+        <DocumentListItem {...defaultProps} filename={longFilename} />
+      );
+
+      const filenameElement = screen.getByText(longFilename);
+      expect(filenameElement).toHaveAttribute('tabIndex', '0');
     });
   });
 

@@ -14,6 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { renameDocument, type Label } from '@/app/(dashboard)/documents/actions';
 import { toast } from 'sonner';
 import { LabelPill } from './label-pill';
@@ -161,11 +166,12 @@ export function DocumentListItem({
 
   return (
     <div
+      data-testid="document-list-item"
       className={cn(
         'group relative w-full px-3 py-2.5 transition-colors',
-        'hover:bg-slate-100',
-        // AC-4.3.8: Selected document styling
-        isSelected && 'bg-[#f1f5f9] border-l-2 border-l-[#475569]',
+        'hover:bg-slate-100 dark:hover:bg-slate-800',
+        // AC-4.3.8, AC-6.7.1-5: Selected document styling with dark mode support
+        isSelected && 'bg-slate-100 border-l-2 border-l-slate-600 dark:bg-slate-800 dark:border-l-slate-400',
         !isSelected && 'border-l-2 border-l-transparent',
         // Success highlight animation - AC-4.5.4
         showSuccess && 'bg-green-50'
@@ -228,20 +234,27 @@ export function DocumentListItem({
               'flex items-center gap-3 cursor-pointer',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
             )}
-            aria-current={isSelected ? 'page' : undefined}
+            aria-selected={isSelected}
           >
             {/* Document icon */}
             <div className="flex-shrink-0">
               <FileText className="h-4 w-4 text-slate-500" />
             </div>
 
-            {/* Filename - truncated */}
-            <p
-              className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700"
-              title={name}
-            >
-              {name}
-            </p>
+            {/* Filename - truncated with tooltip (AC-6.7.11-15) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p
+                  className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 dark:text-slate-300"
+                  tabIndex={0}
+                >
+                  {name}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[300px]">
+                <p className="break-all">{name}</p>
+              </TooltipContent>
+            </Tooltip>
 
             {/* Status indicator - AC-4.3.3, AC-4.7.4, Story 5.12 */}
             <div className="flex-shrink-0">

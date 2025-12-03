@@ -22,7 +22,8 @@ This document provides the complete epic and story breakdown for docuMINE, decom
 | 3 | Agency & Team Management | Admins can manage their agency, invite users, handle billing | FR5, FR6, FR7, FR28, FR29, FR30 |
 | 4 | Document Upload & Management | Users can upload, view, organize, and delete documents | FR8, FR9, FR10, FR11, FR12, FR27 |
 | 5 | Document Q&A with Trust Transparency | Users can chat with documents and verify answers | FR13, FR14, FR15, FR16, FR17, FR18, FR19, FR32, FR34 |
-| 6 | Quote Comparison | Users can compare multiple quotes side-by-side | FR20, FR21, FR22, FR23, FR24, FR25, FR26 |
+| 6 | Epic 5 Cleanup & Stabilization | Fix bugs, add E2E tests, ensure trust transparency works perfectly | (Quality/Polish) |
+| 7 | Quote Comparison | Users can compare multiple quotes side-by-side | FR20, FR21, FR22, FR23, FR24, FR25, FR26 |
 
 ---
 
@@ -99,13 +100,13 @@ This document provides the complete epic and story breakdown for docuMINE, decom
 | FR17 | Click-to-view source in document | Epic 5 | 5.4, 5.5 |
 | FR18 | Follow-up questions (conversation) | Epic 5 | 5.6 |
 | FR19 | Clear "not found" responses | Epic 5 | 5.3 |
-| FR20 | Select 2-4 documents for comparison | Epic 6 | 6.1 |
-| FR21 | Auto-extract quote data | Epic 6 | 6.2 |
-| FR22 | Aligned comparison view | Epic 6 | 6.3 |
-| FR23 | Highlight differences | Epic 6 | 6.3 |
-| FR24 | Flag gaps/conflicts | Epic 6 | 6.4 |
-| FR25 | Source citations for comparison data | Epic 6 | 6.5 |
-| FR26 | Export comparison results | Epic 6 | 6.6 |
+| FR20 | Select 2-4 documents for comparison | Epic 7 | 7.1 |
+| FR21 | Auto-extract quote data | Epic 7 | 7.2 |
+| FR22 | Aligned comparison view | Epic 7 | 7.3 |
+| FR23 | Highlight differences | Epic 7 | 7.3 |
+| FR24 | Flag gaps/conflicts | Epic 7 | 7.4 |
+| FR25 | Source citations for comparison data | Epic 7 | 7.5 |
+| FR26 | Export comparison results | Epic 7 | 7.6 |
 | FR27 | Isolated agency data | Epic 2, 4 | 2.2, 4.1 |
 | FR28 | Admin usage metrics | Epic 3 | 3.5 |
 | FR29 | Agency settings | Epic 3 | 3.1 |
@@ -1472,7 +1473,586 @@ So that **I can use docuMINE on any device**.
 
 ---
 
-## Epic 6: Quote Comparison
+### Story 5.8: Retrieval Quality Optimization (Phase 1)
+
+As a **user asking questions about insurance documents**,
+I want **more accurate and relevant answers with higher confidence**,
+So that **I can trust the AI responses and spend less time verifying**.
+
+**Acceptance Criteria:**
+
+**Given** the current RAG pipeline has low confidence scores
+**When** I ask questions about my document
+**Then** retrieval quality is improved through:
+
+**Baseline Metrics Infrastructure:**
+- Test query set of 50 queries (stratified by type: lookups, tables, semantic, complex)
+- Baseline measurements: Recall@5, average similarity score, confidence distribution
+- Metrics logged for comparison
+
+**Cohere Reranking Integration:**
+- Vector search retrieves top 20 candidates (up from 5)
+- Cohere Rerank 3.5 API reorders results by relevance
+- Top 5 reranked results used for RAG context
+- Reranker scores inform confidence calculation
+- Fallback to vector-only if Cohere unavailable
+
+**Hybrid Search (BM25 + Vector):**
+- PostgreSQL full-text search index on document_chunks.content
+- Hybrid query combines FTS and vector similarity
+- Alpha parameter: 0.7 (70% vector, 30% keyword)
+- Improved exact-match queries (policy numbers, coverage names)
+
+**Confidence Threshold Adjustment:**
+- Thresholds tuned based on reranker scores
+- New thresholds: ≥0.75 High, 0.50-0.74 Needs Review, <0.50 Not Found
+- A/B testing capability for threshold comparison
+
+**Success Metrics:**
+- High Confidence responses increase from ~30% to >50%
+- "Not Found" responses decrease from ~40% to <25%
+- Average similarity score improves from ~0.55 to >0.70
+- Response latency remains <3 seconds
+
+**Prerequisites:** Story 5.6
+
+**Technical Notes:**
+- Cohere SDK: `npm install cohere-ai`
+- Environment variable: `COHERE_API_KEY`
+- Migration to add tsvector column and GIN index
+- Update `src/lib/chat/rag.ts` for hybrid retrieval
+- Create `src/lib/chat/reranker.ts` for Cohere integration
+- Feature flags for A/B testing different configurations
+
+---
+
+### Story 5.8.1: Large Document Processing Reliability
+
+As a **user uploading large insurance documents**,
+I want **reliable processing of documents up to 50 pages**,
+So that **comprehensive policy documents don't fail or timeout**.
+
+**Added 2025-12-02:** Bug fix story addressing processing timeouts for large documents.
+**Completed 2025-12-02:** Implemented with 8MB file limit and timeout handling.
+
+**Acceptance Criteria:**
+
+**Given** a document larger than 20 pages
+**When** the document is processed
+**Then** processing completes successfully within 5 minutes
+**And** progress is reported at each stage
+**And** timeouts are handled gracefully with retry logic
+
+**And** file size validation prevents uploads over 8MB:
+- Client-side validation with clear error message
+- Server-side validation as backup
+- User sees "File too large. Maximum size is 8MB" toast
+
+**Technical Notes:**
+- Increased Edge Function timeout to 300 seconds
+- Added progress reporting to processing_jobs table
+- Implemented chunked processing for large documents
+- Added file size validation (8MB limit for Docling)
+- Files changed:
+  - `supabase/functions/process-document/index.ts`
+  - `src/components/documents/upload-zone.tsx`
+  - `src/lib/documents/validation.ts`
+
+---
+
+### Story 5.9: Chunking Optimization (Phase 2)
+
+As the **system processing insurance documents**,
+I want **to chunk documents more intelligently**,
+So that **semantic units remain intact and tables are preserved**.
+
+**Acceptance Criteria:**
+
+**Given** the current fixed-size chunking breaks semantic units
+**When** documents are processed
+**Then** chunking is improved through:
+
+**RecursiveCharacterTextSplitter:**
+- Replace fixed 1000-char chunking with recursive splitting
+- Chunk size: 500 tokens with 50 token overlap
+- Separators: `["\n\n", "\n", ". ", " "]`
+- Preserves paragraphs and sentences as units
+
+**Table-Aware Chunking:**
+- Detect tables in Docling output (already structured)
+- Tables emitted as single chunks regardless of size
+- Table chunks include metadata: `chunk_type: 'table'`
+- Table summaries generated for retrieval
+- Raw table content stored for answer generation
+
+**Document Re-processing Pipeline:**
+- Batch re-processing for existing documents
+- New embeddings stored in parallel with old
+- A/B testing before cutover
+- Rollback capability
+
+**Success Metrics:**
+- +15-20% improvement in semantic coherence
+- +20% improvement for table-related queries
+- No regression in response latency
+
+**Prerequisites:** Story 5.8
+
+**Technical Notes:**
+- Update `src/lib/documents/chunking.ts` with recursive splitter
+- Modify `supabase/functions/process-document/index.ts`
+- Create migration for chunk metadata columns
+- Parallel embedding storage for A/B testing
+- Progress tracking for batch re-processing
+
+---
+
+### Story 5.10: Model Evaluation (Phase 3)
+
+As a **system administrator**,
+I want **to evaluate and potentially upgrade AI models via OpenRouter**,
+So that **response quality and cost-efficiency are optimized with multi-provider flexibility**.
+
+**Updated 2025-12-02:** Based on Party Mode research, decision is to use **OpenRouter** for multi-model access with **Claude Sonnet 4.5** as primary model.
+
+**Acceptance Criteria:**
+
+**Given** OpenRouter provides multi-provider access
+**When** evaluating model configurations
+**Then** the following are assessed:
+
+**OpenRouter Integration:**
+- Configure OpenRouter as primary LLM provider
+- Support model hierarchy: Claude Sonnet 4.5 (primary), Claude Haiku 4.5 (fast), Gemini 2.5 Flash (cost-opt), GPT-4o (fallback)
+- Environment variables: `OPENROUTER_API_KEY`, `LLM_PROVIDER`, `LLM_CHAT_MODEL`
+
+**Why Claude for Insurance Documents:**
+- Superior structured document handling
+- Better instruction following, less hallucination
+- 200K context window (vs GPT-4o 128K)
+- Excellent table comprehension (60%+ of insurance docs are tables)
+
+**Embedding Model Evaluation:**
+- Compare text-embedding-3-small vs text-embedding-3-large
+- Test with 1536 dimensions (drop-in compatible)
+- Test with 3072 dimensions (if retrieval improvement significant)
+- Measure retrieval accuracy improvement
+
+**A/B Testing Framework:**
+- Feature flag for model selection per request
+- Metrics collection for comparison
+- User feedback mechanism (optional)
+
+**Cost Analysis:**
+- Calculate cost impact of model changes
+- Document ROI of improvements
+- Recommend optimal configuration
+
+**Success Metrics:**
+- Clear recommendation with supporting data
+- No regression in response quality
+- Cost-neutral or improved cost-efficiency
+
+**Prerequisites:** Story 5.9
+
+**Technical Notes:**
+- New config module: `src/lib/llm/config.ts`
+- OpenRouter client factory: `src/lib/llm/client.ts`
+- Update `src/lib/chat/openai-stream.ts` to use `getLLMClient()`
+- Feature flags for A/B testing
+
+---
+
+### Story 5.11: Streaming & AI Personality Bug Fixes
+
+As a **user asking questions about documents**,
+I want **streaming responses that are reliable and conversational**,
+So that **I have a pleasant chat experience without technical issues**.
+
+**Added 2025-12-01:** Bug fix story addressing issues discovered during Epic 5 implementation.
+
+**Acceptance Criteria:**
+
+**Given** the chat streaming implementation
+**When** users interact with the chat
+**Then** the following issues are fixed:
+
+**Streaming Reliability:**
+- AbortController properly cancels pending requests on unmount
+- No memory leaks when navigating away during streaming
+- SSE parsing errors logged (not silently ignored)
+- DEBUG console.logs removed from production
+
+**AI Personality:**
+- Temperature set to 0.7 for balanced responses
+- Max tokens set to 1500 for reasonable length
+- System prompt enhanced with personality guidelines
+- Greetings and general questions handled naturally (not forced "not found")
+
+**Query Intent Classification:**
+- New intent classifier identifies query types (greeting, lookup, analysis, etc.)
+- GPT decides naturally when to say "not found" based on context
+- No forced overrides that break conversational flow
+
+**Prerequisites:** Story 5.6
+
+**Technical Notes:**
+- `src/hooks/use-chat.ts` - AbortController
+- `src/lib/chat/openai-stream.ts` - Temperature/max_tokens
+- `src/lib/chat/rag.ts` - Enhanced system prompt
+- `src/lib/chat/intent.ts` - NEW query classifier
+- `src/app/api/chat/route.ts` - Removed forced "not found" override
+
+---
+
+### Story 5.12: Document Processing Progress Visualization
+
+As a **user uploading documents**,
+I want **visual feedback on processing progress beyond just "Analyzing..."**,
+So that **I understand what's happening and how long it might take**.
+
+**Added 2025-12-02:** Enhancement story for improved UX during document processing.
+**Completed 2025-12-02:** Full implementation with UX-approved design.
+
+**Acceptance Criteria:**
+
+**Given** a document is processing
+**When** I view the document in the list
+**Then** I see the current stage:
+- "Downloading..." (5-10s)
+- "Parsing document..." (1-5 min)
+- "Chunking content..." (5-15s)
+- "Generating embeddings..." (30s-2 min)
+
+**And** I see a progress bar (0-100%) for that stage
+
+**And** I see estimated time remaining (e.g., "~2 min remaining")
+
+**And** the UI updates in real-time via Supabase Realtime
+
+**And** the visual design is approved by UX Designer
+
+**Prerequisites:** Story 5.8.1 (Large Document Processing)
+
+**Technical Notes:**
+- Add `progress_data` JSONB column to `processing_jobs` table
+- Edge Function reports progress at each stage
+- Frontend subscribes via Supabase Realtime
+- New component: `src/components/documents/processing-progress.tsx`
+- RLS policy added for authenticated users to SELECT processing_jobs
+
+---
+
+### Story 5.13: Docling PDF Parsing Robustness
+
+As a **user uploading various PDF documents**,
+I want **robust handling of PDFs that cause parsing errors**,
+So that **documents don't fail silently and I get clear feedback**.
+
+**Added 2025-12-02:** Bug fix story for Docling libpdfium page-dimensions errors.
+
+**Status:** Drafted
+
+**Acceptance Criteria:**
+
+**Given** a PDF that causes libpdfium page-dimensions errors
+**When** the document is processed
+**Then** the error is caught gracefully
+**And** the document is marked as 'failed' with a helpful error message
+**And** the user sees actionable feedback (e.g., "This PDF format is not supported")
+
+**Technical Notes:**
+- Handle `libpdfium` errors in Edge Function
+- Add retry logic with alternative parsing strategy
+- Improve error messages in processing_jobs table
+
+---
+
+### Story 5.14: Realtime Progress Polish
+
+As a **user watching document processing**,
+I want **smooth progress updates without visual glitches**,
+So that **the experience feels polished and professional**.
+
+**Added 2025-12-02:** Polish story for realtime progress visualization.
+
+**Status:** Drafted
+
+**Acceptance Criteria:**
+
+**Given** a document is being processed
+**When** progress updates arrive via Realtime
+**Then** the progress bar animates smoothly (no jumping)
+**And** deleted documents are immediately removed from the list
+**And** status transitions are visually smooth
+
+**Technical Notes:**
+- Implement progress smoothing/interpolation
+- Subscribe to DELETE events for immediate removal
+- Add CSS transitions for status changes
+
+---
+
+## Epic 6: Epic 5 Cleanup & Stabilization + UI Polish
+
+**Goal:** Fix bugs discovered during Epic 5 testing, implement UI polish improvements, establish Playwright E2E testing, and ensure the application is polished and professional before building Quote Comparison.
+
+**User Value:** Users get a polished, reliable document Q&A experience where confidence badges are accurate, source citations navigate correctly, conversations persist across sessions, and the overall UI feels clean and professional.
+
+**Added:** 2025-12-02 based on Epic 5 Full Retrospective (Party Mode Analysis)
+**Updated:** 2025-12-02 - Added UI Polish stories (6.5-6.9) based on Party Mode UI exploration
+
+**Tech Spec:** `docs/sprint-artifacts/tech-spec-epic-6.md`
+**Research:** `docs/research-ui-best-practices-2025-12-02.md`
+
+---
+
+### Story 6.1: Fix Conversation Loading (406 Error)
+
+As a **user returning to a document**,
+I want **my previous conversation to load correctly**,
+So that **I can continue where I left off**.
+
+**Problem:** GET /conversations returns HTTP 406 - RLS policy allows INSERT but not SELECT.
+
+**Acceptance Criteria:**
+
+**Given** I have a conversation history with a document
+**When** I return to that document
+**Then** my previous messages load correctly
+**And** no 406 errors appear in console
+**And** conversation persists across page refresh
+
+**Prerequisites:** None (first story)
+
+**Technical Notes:**
+- Add/fix SELECT policy on conversations table
+- Verify chat_messages also has proper SELECT policy
+- Add Playwright E2E test for conversation persistence
+
+---
+
+### Story 6.2: Fix Confidence Score Calculation
+
+As a **user asking questions about documents**,
+I want **confidence badges to accurately reflect answer quality**,
+So that **I can trust the visual indicators**.
+
+**Problem:** Cohere reranker scores replace vector similarity, causing threshold mismatch. Correct answers show "Not Found" badge.
+
+**Acceptance Criteria:**
+
+**Given** I ask a question with a clear answer in the document
+**When** the AI provides the correct answer with sources
+**Then** confidence badge shows "High Confidence" or "Needs Review"
+**And** "Not Found" badge only appears when information genuinely isn't found
+
+**And** for greetings/conversational queries:
+**Then** confidence badge is hidden or shows "Conversational"
+
+**Prerequisites:** Story 6.1
+
+**Technical Notes:**
+- Separate vectorSimilarity and rerankerScore properties
+- Recalibrate thresholds for Cohere scores (0.30/0.10)
+- Add query intent awareness for badge display
+- Add Playwright E2E test for confidence accuracy
+
+---
+
+### Story 6.3: Fix Source Citation Navigation
+
+As a **user verifying AI answers**,
+I want **source citations to navigate to the correct page**,
+So that **I can quickly verify the answer**.
+
+**Problem:** Clicking "View page 2 in document" doesn't scroll the PDF viewer to page 2.
+
+**Acceptance Criteria:**
+
+**Given** an AI response with source citations
+**When** I click a citation link (e.g., "Page 2")
+**Then** the PDF viewer scrolls to that page
+**And** the page number input updates to show the current page
+**And** there is visual feedback on the citation click
+
+**Prerequisites:** Story 6.1
+
+**Technical Notes:**
+- Debug event flow from citation click to document viewer
+- Ensure page state is properly wired
+- Add Playwright E2E test for citation navigation
+
+---
+
+### Story 6.4: DEFERRED to Epic F4 (Mobile Optimization)
+
+**Note:** Mobile tab state preservation was deferred to Future Epic F4. Mobile optimization is not a priority for MVP. See Epic F4: Mobile Optimization for details.
+
+---
+
+### Story 6.5: Remove Stale UI Text & Fix Page Title
+
+As a **user visiting docuMINE**,
+I want **the UI to look professional without outdated references**,
+So that **I have confidence in the product**.
+
+**Problem:** "Coming in Epic 5" text appears in empty states. Browser tab shows "Create Next App" instead of "docuMINE".
+
+**Acceptance Criteria:**
+
+**Given** I am using docuMINE
+**When** I view any page
+**Then** no references to "Epic X" appear in the UI
+**And** the browser tab shows "docuMINE" (or "Document Name - docuMINE" for document pages)
+
+**Prerequisites:** None (independent)
+
+**Technical Notes:**
+- Update `src/app/layout.tsx` with proper metadata
+- Remove stale text from document pages
+- Add dynamic titles for document viewer pages
+- Effort: XS (15-30 minutes)
+
+---
+
+### Story 6.6: Connection Status & Realtime Indicator
+
+As a **user viewing documents**,
+I want **clear feedback about connection status**,
+So that **I know when the system is ready**.
+
+**Problem:** "Connecting..." text appears without ever resolving to a meaningful state.
+
+**Acceptance Criteria:**
+
+**Given** I am viewing a document
+**When** realtime connection is established
+**Then** I see "Connected" with a checkmark indicator
+**And** during connection I see "Connecting..." with a spinner
+**And** if disconnected I see appropriate offline indicator
+
+**Prerequisites:** None (independent)
+
+**Technical Notes:**
+- Update `src/hooks/use-realtime.ts` to expose connection state
+- Create `src/components/ui/connection-indicator.tsx`
+- Effort: S (1-2 hours)
+
+---
+
+### Story 6.7: Document Selection Visual Feedback
+
+As a **user navigating documents**,
+I want **to clearly see which document is currently selected**,
+So that **I can quickly orient myself**.
+
+**Problem:** No visual distinction between selected and unselected documents in the sidebar.
+
+**Acceptance Criteria:**
+
+**Given** I click on a document in the sidebar
+**When** the document loads
+**Then** the selected document has a distinct highlight (background color + left border)
+**And** hover states are visually distinct from selected state
+**And** selection is accessible (aria-selected attribute)
+
+**Prerequisites:** None (independent)
+
+**Technical Notes:**
+- Update `src/components/documents/document-list-item.tsx` with `isSelected` prop
+- Pass selection state from URL params
+- Effort: S (1-2 hours)
+
+---
+
+### Story 6.8: Empty State UX Improvement
+
+As a **new user**,
+I want **helpful guidance when no document is selected**,
+So that **I understand what to do next**.
+
+**Problem:** Empty state is bland ("Select a document") and doesn't inspire action.
+
+**Acceptance Criteria:**
+
+**Given** no document is selected
+**When** I view the documents page
+**Then** I see an engaging empty state with:
+- Friendly headline ("Ready to analyze your documents")
+- Clear description of what to do
+- Prominent upload button (if no documents)
+- Visual icon/illustration
+
+**And** different variants for "no documents" vs "select document" states
+
+**Prerequisites:** None (independent)
+
+**Technical Notes:**
+- Create `src/components/documents/empty-state.tsx` with variants
+- Follow empty state UX best practices from research
+- Effort: S (1-2 hours)
+
+---
+
+### Story 6.9: Long Filename Handling
+
+As a **user with verbose document names**,
+I want **to see full filenames without breaking the layout**,
+So that **I can distinguish between similarly named documents**.
+
+**Problem:** Long filenames are truncated without any way to see the full name.
+
+**Acceptance Criteria:**
+
+**Given** a document has a long filename
+**When** I view it in the sidebar
+**Then** the filename is truncated with ellipsis
+**And** a tooltip shows the full filename on hover
+**And** the same behavior applies in the document header
+
+**Prerequisites:** None (independent)
+
+**Technical Notes:**
+- Add shadcn/ui Tooltip component if needed
+- Update `src/components/documents/document-list-item.tsx`
+- Effort: XS (30 minutes - 1 hour)
+
+---
+
+### Story 6.8: Design System Refresh
+
+As a **user of docuMINE**,
+I want **a modern, visually engaging design with color and proper spacing**,
+So that **the application feels professional, inviting, and easy to use**.
+
+**Added:** 2025-12-02 based on user feedback ("too grey, doesn't feel modern")
+
+**Problem:** Current design dominated by slate/grey tones with no brand accent color. Spacing inconsistencies. Feels like "Enterprise Grey Syndrome."
+
+**Acceptance Criteria:**
+
+**Given** the current slate-only palette
+**When** viewing any page in docuMINE
+**Then** a brand accent color is visible in primary buttons, active states, and interactive elements
+**And** the color palette is refreshed with improved visual hierarchy
+**And** spacing is consistent across document list, chat panel, and settings
+**And** button styling is modern with proper hover/focus states
+**And** interactive states (hover, focus, selected) are visually distinct
+
+**Prerequisites:** Story 6.7 should complete first to avoid conflicts
+
+**Technical Notes:**
+- Update CSS custom properties in `globals.css`
+- Accent color: Electric Blue (#3b82f6) — CONFIRMED
+- Update shadcn/ui component variants
+- Spacing audit across major views
+- Effort: M (4-6 hours)
+- Full story: `docs/sprint-artifacts/story-6.8-design-system-refresh.md`
+
+---
+
+## Epic 7: Quote Comparison
 
 **Goal:** Enable users to compare multiple insurance quotes side-by-side, with automatic extraction of key data points, difference highlighting, and source verification.
 
@@ -1480,9 +2060,11 @@ So that **I can use docuMINE on any device**.
 
 **FRs Addressed:** FR20, FR21, FR22, FR23, FR24, FR25, FR26
 
+**Note:** Renumbered from Epic 6 (2025-12-02) to allow Epic 5 Cleanup first.
+
 ---
 
-### Story 6.1: Quote Selection Interface
+### Story 7.1: Quote Selection Interface
 
 As a **user**,
 I want **to select multiple documents for comparison**,
@@ -1523,7 +2105,7 @@ So that **I can compare quotes from different carriers**.
 
 ---
 
-### Story 6.2: Quote Data Extraction
+### Story 7.2: Quote Data Extraction
 
 As the **system**,
 I want **to extract structured data from insurance quote documents**,
@@ -1573,7 +2155,7 @@ So that **quotes can be compared in a standardized format**.
 
 ---
 
-### Story 6.3: Comparison Table View
+### Story 7.3: Comparison Table View
 
 As a **user**,
 I want **to see extracted quote data in a side-by-side table**,
@@ -1622,7 +2204,7 @@ So that **I can easily compare coverage details**.
 
 ---
 
-### Story 6.4: Gap & Conflict Identification
+### Story 7.4: Gap & Conflict Identification
 
 As a **user**,
 I want **to see coverage gaps and conflicts highlighted**,
@@ -1664,7 +2246,7 @@ So that **I can identify potential issues before recommending a quote**.
 
 ---
 
-### Story 6.5: Source Citations in Comparison
+### Story 7.5: Source Citations in Comparison
 
 As a **user**,
 I want **to verify any extracted value by viewing its source**,
@@ -1702,7 +2284,7 @@ So that **I can trust the comparison data**.
 
 ---
 
-### Story 6.6: Export Comparison Results
+### Story 7.6: Export Comparison Results
 
 As a **user**,
 I want **to export comparison results**,
@@ -1771,13 +2353,13 @@ So that **I can share them with clients or save for records**.
 | FR17 | Click-to-view source in document | Epic 5 | 5.4, 5.5 | ✓ |
 | FR18 | Follow-up questions (conversation) | Epic 5 | 5.6 | ✓ |
 | FR19 | Clear "not found" responses | Epic 5 | 5.3 | ✓ |
-| FR20 | Select 2-4 documents for comparison | Epic 6 | 6.1 | ✓ |
-| FR21 | Auto-extract quote data | Epic 6 | 6.2 | ✓ |
-| FR22 | Aligned comparison view | Epic 6 | 6.3 | ✓ |
-| FR23 | Highlight differences | Epic 6 | 6.3 | ✓ |
-| FR24 | Flag gaps/conflicts | Epic 6 | 6.4 | ✓ |
-| FR25 | Source citations for comparison data | Epic 6 | 6.5 | ✓ |
-| FR26 | Export comparison results | Epic 6 | 6.6 | ✓ |
+| FR20 | Select 2-4 documents for comparison | Epic 7 | 7.1 | ✓ |
+| FR21 | Auto-extract quote data | Epic 7 | 7.2 | ✓ |
+| FR22 | Aligned comparison view | Epic 7 | 7.3 | ✓ |
+| FR23 | Highlight differences | Epic 7 | 7.3 | ✓ |
+| FR24 | Flag gaps/conflicts | Epic 7 | 7.4 | ✓ |
+| FR25 | Source citations for comparison data | Epic 7 | 7.5 | ✓ |
+| FR26 | Export comparison results | Epic 7 | 7.6 | ✓ |
 | FR27 | Isolated agency data | Epic 1, 2, 4 | 1.2, 2.2, 4.1 | ✓ |
 | FR28 | Admin usage metrics | Epic 3 | 3.5 | ✓ |
 | FR29 | Agency settings | Epic 3 | 3.1 | ✓ |
@@ -1795,30 +2377,67 @@ So that **I can share them with clients or save for records**.
 
 **Epic Breakdown Complete!**
 
-| Epic | Stories | FRs Covered |
-|------|---------|-------------|
-| Epic 1: Foundation & Infrastructure | 6 stories | FR31, FR33, FR34 |
-| Epic 2: User Authentication & Onboarding | 6 stories | FR1-4, FR27 |
-| Epic 3: Agency & Team Management | 5 stories | FR5-7, FR28-30 |
-| Epic 4: Document Upload & Management | 7 stories | FR8-12, FR27, FR33 |
-| Epic 5: Document Q&A with Trust Transparency | 7 stories | FR13-19, FR32, FR34 |
-| Epic 6: Quote Comparison | 6 stories | FR20-26 |
-| **Total** | **37 stories** | **34 FRs (100%)** |
+| Epic | Stories | FRs Covered | Status |
+|------|---------|-------------|--------|
+| Epic 1: Foundation & Infrastructure | 6 stories | FR31, FR33, FR34 | ✅ Done |
+| Epic 2: User Authentication & Onboarding | 6 stories | FR1-4, FR27 | ✅ Done |
+| Epic 3: Agency & Team Management | 6 stories | FR5-7, FR28-30 | ✅ Done |
+| Epic 4: Document Upload & Management | 8 stories | FR8-12, FR27, FR33 | ✅ Done |
+| Epic 5: Document Q&A with Trust Transparency | 14 stories | FR13-19, FR32, FR34 | ✅ Done |
+| Epic 6: Epic 5 Cleanup & Stabilization + UI Polish | 8 stories | (Quality/Polish) | 🔄 Current |
+| Epic 7: Quote Comparison | 6 stories | FR20-26 | ⏳ Backlog |
+| **Total** | **54 stories** | **34 FRs (100%)** | |
+
+**Future Epics (Deferred from MVP):**
+
+| Epic | Stories | Reason |
+|------|---------|--------|
+| Epic F1: Email Infrastructure | 4 stories | Resend requires custom domain |
+| Epic F2: Billing Infrastructure | 5 stories | Manual tier assignment for MVP |
+| Epic F3: Document Processing Reliability | 3 stories | ~1-2% PDF failures can wait |
+| Epic F4: Mobile Optimization | 3 stories | Mobile not priority for MVP |
+
+**Note:** Epic 5 significantly expanded during implementation:
+- Stories 5.1-5.7: Core chat functionality (original scope)
+- Stories 5.8-5.10: RAG optimization (added based on research 2025-12-01)
+- Story 5.8.1: Large document processing reliability (bug fix 2025-12-02)
+- Story 5.11: Streaming & AI personality fixes (bug fix 2025-12-01)
+- Story 5.12: Processing progress visualization (enhancement 2025-12-02)
+- Stories 5.13-5.14: Docling robustness and Realtime polish (completed 2025-12-02)
+
+**Epic 5 Final Story Count:** 14 stories (all completed)
+
+**Epic 6 Added (2025-12-02):** Based on Epic 5 Full Retrospective:
+- Story 6.1: Fix Conversation Loading (406 Error) - DONE
+- Story 6.2: Fix Confidence Score Calculation - DONE
+- Story 6.3: Fix Source Citation Navigation - DONE
+- Story 6.4: Fix Mobile Tab State Preservation - DEFERRED to Epic F4
+
+**Epic 6 Expanded (2025-12-02):** Based on Party Mode UI exploration:
+- Story 6.5: Remove Stale UI Text & Fix Page Title (P0, XS)
+- Story 6.6: Connection Status & Realtime Indicator (P1, S)
+- Story 6.7: Document List UX Polish (P1, M) - Combined 6.7, 6.8, 6.9
+- Story 6.8: Design System Refresh (P1, M) - User feedback: "too grey"
+
+**Epic 6 Final Story Count:** 7 stories (6.4 deferred to F4, 6.7-6.9 combined)
+
+**UI Research:** `docs/research-ui-best-practices-2025-12-02.md`
 
 **Context Incorporated:**
 - ✅ PRD requirements - All 34 FRs mapped to stories
 - ✅ UX Design patterns - Trustworthy Slate theme, split view layout, streaming responses, confidence badges
-- ✅ Architecture decisions - Supabase stack, pgvector, LlamaParse, streaming SSE, RLS policies
+- ✅ Architecture decisions - Supabase stack, pgvector, Docling, streaming SSE, RLS policies
 
 **Implementation Sequence:**
-1. Epic 1 → Foundation (must be first)
-2. Epic 2 → Authentication (users can access)
-3. Epic 4 → Document Management (users can upload)
-4. Epic 5 → Document Q&A (core value - users can chat)
-5. Epic 3 → Agency Management (team features)
-6. Epic 6 → Quote Comparison (second pillar)
+1. Epic 1 → Foundation (must be first) ✅
+2. Epic 2 → Authentication (users can access) ✅
+3. Epic 4 → Document Management (users can upload) ✅
+4. Epic 5 → Document Q&A (core value - users can chat) ✅
+5. Epic 3 → Agency Management (team features) ✅
+6. Epic 6 → Cleanup & Stabilization (polish before next feature) 🔄
+7. Epic 7 → Quote Comparison (second pillar) ⏳
 
-**Ready for Phase 4 Implementation!**
+**Current Phase: Epic 6 - Cleanup & Stabilization**
 
 ---
 

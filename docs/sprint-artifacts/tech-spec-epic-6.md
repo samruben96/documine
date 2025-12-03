@@ -48,7 +48,7 @@ Key sources include:
 ## Objectives and Scope
 
 **In Scope:**
-- Fix 4 identified bugs from Epic 5 (Stories 6.1-6.4)
+- Fix 3 identified bugs from Epic 5 (Stories 6.1-6.3) - DONE
 - Implement 5 UI polish improvements (Stories 6.5-6.9)
 - Add Playwright E2E tests for each fix
 - Update CLAUDE.md with learnings
@@ -60,6 +60,7 @@ Key sources include:
 - Performance optimization beyond polish
 - Complete UI redesign
 - Quote comparison functionality
+- Mobile optimization (Story 6.4 deferred to Epic F4)
 
 ## Bug Analysis
 
@@ -396,60 +397,15 @@ test('clicking citation navigates to correct page', async ({ page }) => {
 
 ---
 
-### Story 6.4: Fix Mobile Tab State Preservation
+### Story 6.4: DEFERRED to Future Epic F4
 
-**Priority:** P1 - Important for mobile users
+**Status:** Deferred (2025-12-02)
 
-**Problem Statement:**
-When switching between Document and Chat tabs on mobile, the chat history disappears and shows empty state.
+**Reason:** Mobile optimization is not a priority for MVP. The mobile tab state preservation bug has been moved to Future Epic F4: Mobile Optimization.
 
-**Root Cause Analysis:**
-The responsive layout likely unmounts and remounts the ChatPanel component when switching tabs. If the chat state is only in component state (not loaded from database), it's lost on remount.
+**Original Scope:** Fix mobile tab state preservation - chat history disappears when switching between Document and Chat tabs on mobile viewport.
 
-The `useConversation` hook should reload history on mount, but either:
-- The hook isn't being called on remount
-- The 406 error (BUG-1) prevents loading
-
-**Dependencies:** Story 6.1 (406 fix) may resolve this.
-
-**Acceptance Criteria:**
-
-| AC | Description | Verification |
-|----|-------------|--------------|
-| AC-6.4.1 | Chat history persists when switching to Document tab and back | Playwright: mobile viewport, send message, switch tabs, switch back |
-| AC-6.4.2 | Chat input preserves draft text when switching tabs | Playwright: type in input, switch tabs, switch back, verify text |
-| AC-6.4.3 | Loading state shown while fetching conversation | Playwright: verify loading indicator |
-| AC-6.4.4 | Tab switch is instant (no full page reload) | Playwright: verify URL doesn't change |
-
-**Implementation Approach:**
-
-1. First, verify Story 6.1 is complete (406 fix). This may resolve the issue.
-
-2. If still broken, investigate:
-   - Is ChatPanel remounting? (add useEffect log)
-   - Is useConversation refetching? (add fetch log)
-   - Is the data coming back? (check network tab)
-
-3. Potential fixes:
-   - Use `key` prop to prevent remounting
-   - Lift conversation state to page level
-   - Use React context for chat state
-
-**Test Plan:**
-```typescript
-// __tests__/e2e/mobile-tab-state.spec.ts
-test('chat state persists across tab switches on mobile', async ({ page }) => {
-  // Set viewport to mobile (390x844)
-  // Navigate to document
-  // Click Chat tab
-  // Send message "Hello"
-  // Wait for response
-  // Click Document tab
-  // Click Chat tab
-  // Verify "Hello" message is visible
-  // Verify response is visible
-});
-```
+**See:** Epic F4 in sprint-status.yaml for future implementation.
 
 ---
 
@@ -570,28 +526,28 @@ export function ConnectionIndicator({ state }: { state: ConnectionState }) {
 
 ---
 
-### Story 6.7: Document Selection Visual Feedback
+### Story 6.7: Document List UX Polish (COMBINED)
 
-**Priority:** P1 - Navigation clarity
+**Priority:** P1 - UX Polish
+**Effort:** M (3-4 hours combined)
+**Status:** Combined 2025-12-02 (merged original 6.7, 6.8, 6.9)
 
 **Problem Statement:**
-When a document is selected, there's no visual indication in the sidebar showing which document is currently active.
+Three related UX issues in the document list/sidebar area:
+1. No visual indication which document is selected
+2. Bland empty state doesn't guide users
+3. Long filenames truncated without tooltip
 
-**Evidence (from Playwright snapshot):**
-All document items have identical styling:
-```yaml
-- button "Knox Acuity quote.pdf Ready" [ref=e105]
-- button "SJED Check List.pdf Ready" [ref=e134]
-# No visual distinction for selected item
-```
-
-**User Impact:** Users can't quickly identify which document they're viewing, especially with similar filenames.
+**User Impact:** Navigation confusion, poor onboarding experience, inability to distinguish similar documents.
 
 **Research Basis:**
 > "Highlighting hover and active states provides users with important interaction cues"
-> "Use color changes or subtle shadows to indicate hover and active states"
+> "Two parts instruction, one part delight" - Empty state rule of thumb
+> "Tooltips reveal full information on hover"
 
 **Acceptance Criteria:**
+
+*Document Selection Highlight (AC-6.7.1 - AC-6.7.5):*
 
 | AC | Description | Verification |
 |----|-------------|--------------|
@@ -599,170 +555,50 @@ All document items have identical styling:
 | AC-6.7.2 | Selected state persists across page navigation | Playwright: navigate, verify styling |
 | AC-6.7.3 | Hover state distinct from selected state | Manual testing |
 | AC-6.7.4 | Selection visible in both light and dark modes | Test both themes |
-| AC-6.7.5 | Accessible - not relying on color alone | Add aria-selected attribute |
+| AC-6.7.5 | Accessible - `aria-selected` attribute added | Code review |
 
-**Implementation Approach:**
-
-1. Update `src/components/documents/document-list-item.tsx`:
-```typescript
-interface DocumentListItemProps {
-  document: Document;
-  isSelected: boolean;  // New prop
-  onSelect: () => void;
-}
-
-export function DocumentListItem({ document, isSelected, onSelect }: DocumentListItemProps) {
-  return (
-    <button
-      onClick={onSelect}
-      aria-selected={isSelected}
-      className={cn(
-        'w-full p-3 rounded-lg transition-colors',
-        'hover:bg-muted/50',
-        isSelected && 'bg-primary/10 border-l-2 border-primary'
-      )}
-    >
-      {/* ... existing content */}
-    </button>
-  );
-}
-```
-
-2. Pass selected state from parent based on URL params.
-
-**Effort:** S (1-2 hours)
-
----
-
-### Story 6.8: Empty State UX Improvement
-
-**Priority:** P2 - Onboarding improvement
-
-**Problem Statement:**
-The empty state when no document is selected is bland and doesn't guide users effectively.
-
-**Current State:**
-```
-Select a document
-Choose a document from the sidebar to view and analyze it
-```
-
-**User Impact:** New users aren't inspired to take action. No clear value proposition shown.
-
-**Research Basis:**
-> "Two parts instruction, one part delight" - Empty state rule of thumb
-> "Action-focused empty states urge users toward action to fill the space"
-> "Clear CTA for primary action"
-
-**Acceptance Criteria:**
+*Empty State UX (AC-6.7.6 - AC-6.7.10):*
 
 | AC | Description | Verification |
 |----|-------------|--------------|
-| AC-6.8.1 | Empty state has engaging headline | Visual inspection |
-| AC-6.8.2 | Clear CTA button for upload (if no documents) | Playwright: verify button exists |
-| AC-6.8.3 | Different messaging for "no documents" vs "select document" | Test both states |
-| AC-6.8.4 | Visual illustration or icon | Design review |
-| AC-6.8.5 | Responsive on mobile | Test mobile viewport |
+| AC-6.7.6 | "No documents" state has engaging headline and illustration | Visual inspection |
+| AC-6.7.7 | Clear CTA button for upload when no documents exist | Playwright: verify button |
+| AC-6.7.8 | "Select document" state has clear guidance text | Visual inspection |
+| AC-6.7.9 | Different messaging for "no documents" vs "select document" | Test both states |
+| AC-6.7.10 | Empty states responsive on mobile | Test mobile viewport |
 
-**Implementation Approach:**
-
-1. Create `src/components/documents/empty-state.tsx`:
-```typescript
-interface EmptyStateProps {
-  variant: 'no-documents' | 'select-document';
-  onUpload?: () => void;
-}
-
-export function EmptyState({ variant, onUpload }: EmptyStateProps) {
-  if (variant === 'no-documents') {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <FileUp className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Ready to analyze your documents</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          Upload a policy, quote, or certificate and start asking questions in seconds
-        </p>
-        <Button onClick={onUpload} size="lg">
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Document
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-      <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-      <h2 className="text-xl font-semibold mb-2">Select a document to get started</h2>
-      <p className="text-muted-foreground max-w-md">
-        Choose a document from the sidebar to view it and chat with AI about its contents
-      </p>
-    </div>
-  );
-}
-```
-
-2. Replace existing empty state in document pages.
-
-**Effort:** S (1-2 hours)
-
----
-
-### Story 6.9: Long Filename Handling
-
-**Priority:** P2 - UX polish
-
-**Problem Statement:**
-Long filenames are truncated without any way for users to see the full name.
-
-**Evidence:**
-```yaml
-- paragraph [ref=e81]: 10.17.26 Kritzman.Ruben IWGR SA rv7.18 - Stacey Jones Event Design.pdf
-# This long name is truncated in the UI
-```
-
-**User Impact:** Users can't distinguish between similarly named documents. Insurance documents often have verbose naming conventions.
-
-**Research Basis:**
-> "Document Management UX: Clear identification of resources"
-> "Tooltips reveal full information on hover"
-
-**Acceptance Criteria:**
+*Long Filename Tooltip (AC-6.7.11 - AC-6.7.15):*
 
 | AC | Description | Verification |
 |----|-------------|--------------|
-| AC-6.9.1 | Long filenames truncate with ellipsis | Visual inspection |
-| AC-6.9.2 | Tooltip shows full filename on hover | Playwright: hover, verify tooltip |
-| AC-6.9.3 | Truncation doesn't break mid-word | Test various lengths |
-| AC-6.9.4 | Tooltip works on mobile (long press or always visible) | Mobile testing |
-| AC-6.9.5 | Truncation consistent across sidebar and header | Check both locations |
+| AC-6.7.11 | Long filenames truncate with ellipsis | Visual inspection |
+| AC-6.7.12 | Tooltip shows full filename on hover | Playwright: hover, verify tooltip |
+| AC-6.7.13 | Truncation preserves file extension visibility | Test various lengths |
+| AC-6.7.14 | Tooltip accessible via keyboard focus | Tab to item, verify tooltip |
+| AC-6.7.15 | Consistent truncation in sidebar and header | Check both locations |
 
-**Implementation Approach:**
+**Files to Modify:**
+- `src/components/documents/document-list-item.tsx` - Selection highlight, tooltip
+- `src/components/documents/document-list.tsx` - Pass selected state
+- `src/app/(dashboard)/documents/page.tsx` - Empty state
+- `src/app/(dashboard)/documents/[id]/page.tsx` - Pass selected ID
 
-1. Update `src/components/documents/document-list-item.tsx`:
-```typescript
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+**Files to Create:**
+- `src/components/documents/empty-state.tsx` - Reusable empty state component
 
-<Tooltip>
-  <TooltipTrigger asChild>
-    <p className="text-sm font-medium truncate max-w-[200px]">
-      {document.filename}
-    </p>
-  </TooltipTrigger>
-  <TooltipContent side="right" className="max-w-[300px]">
-    <p className="break-all">{document.filename}</p>
-  </TooltipContent>
-</Tooltip>
-```
+**Story File:** `docs/sprint-artifacts/story-6.7-document-list-ux-polish.md`
 
-2. Add shadcn/ui Tooltip component if not already installed:
-```bash
-npx shadcn@latest add tooltip
-```
+---
 
-3. Apply same pattern to document header.
+### Stories 6.8 & 6.9: COMBINED INTO 6.7
 
-**Effort:** XS (30 minutes - 1 hour)
+**Status:** Combined (2025-12-02)
+
+Original stories 6.8 (Empty State UX) and 6.9 (Long Filename Tooltip) have been merged into Story 6.7 (Document List UX Polish) as they:
+- All affect the document list/sidebar area
+- Share implementation files (`document-list-item.tsx`)
+- Have similar testing approaches
+- Combined effort remains sprint-sized (M = 3-4 hours)
 
 ---
 
@@ -802,10 +638,10 @@ For each bug:
 ```
 __tests__/
 ├── e2e/
-│   ├── conversation-persistence.spec.ts  # Story 6.1
-│   ├── confidence-display.spec.ts        # Story 6.2
-│   ├── citation-navigation.spec.ts       # Story 6.3
-│   └── mobile-tab-state.spec.ts          # Story 6.4
+│   ├── conversation-persistence.spec.ts  # Story 6.1 - DONE
+│   ├── confidence-display.spec.ts        # Story 6.2 - DONE
+│   ├── citation-navigation.spec.ts       # Story 6.3 - DONE
+│   # mobile-tab-state.spec.ts            # Story 6.4 - DEFERRED
 ├── fixtures/
 │   └── test-documents/                   # PDFs for testing
 └── playwright.config.ts
@@ -883,40 +719,36 @@ For each story in Epic 6:
 ## Story Order & Dependencies
 
 ```
-Story 6.1 (406 Error)
-    │
-    └──► Story 6.4 (Mobile Tab) - May be resolved by 6.1
+Story 6.1 (406 Error) - DONE
 
-Story 6.2 (Confidence) - Independent
+Story 6.2 (Confidence) - DONE
 
-Story 6.3 (Citation Nav) - Independent
+Story 6.3 (Citation Nav) - DONE
+
+Story 6.4 (Mobile Tab) - DEFERRED to Epic F4
 
 Story 6.5 (Stale Text) - Independent, P0
 
 Story 6.6 (Connection Status) - Independent
 
-Story 6.7 (Selection Highlight) - Independent
-
-Story 6.8 (Empty State) - Independent
-
-Story 6.9 (Filename Tooltip) - Independent
+Story 6.7 (Document List UX Polish) - Independent (COMBINED: selection, empty state, tooltips)
 ```
 
 **Recommended Order:**
 
-| Order | Story | Priority | Effort | Rationale |
-|-------|-------|----------|--------|-----------|
-| 1 | 6.5 | P0 | XS | Quick win, removes embarrassment |
-| 2 | 6.1 | P0 | S | Unblocks 6.4 and testing |
-| 3 | 6.2 | P0 | M | Core trust feature |
-| 4 | 6.3 | P1 | S | UX fix |
-| 5 | 6.4 | P1 | S | Verify after 6.1 |
-| 6 | 6.6 | P1 | S | User feedback |
-| 7 | 6.7 | P1 | S | Navigation clarity |
-| 8 | 6.9 | P2 | XS | Quick polish |
-| 9 | 6.8 | P2 | S | Onboarding improvement |
+| Order | Story | Priority | Effort | Status |
+|-------|-------|----------|--------|--------|
+| 1 | 6.1 | P0 | S | DONE |
+| 2 | 6.2 | P0 | M | DONE |
+| 3 | 6.3 | P1 | S | DONE |
+| 4 | 6.4 | P1 | S | DEFERRED to F4 |
+| 5 | 6.5 | P0 | XS | DONE |
+| 6 | 6.6 | P1 | S | DONE |
+| 7 | 6.7 | P1 | M | Drafted |
+| - | 6.8 | - | - | COMBINED into 6.7 |
+| - | 6.9 | - | - | COMBINED into 6.7 |
 
-**Total Estimated Effort:** ~8-12 hours (4 bugs + 5 polish)
+**Remaining Effort:** ~3-4 hours (1 combined UI polish story)
 
 ---
 
@@ -1210,12 +1042,12 @@ useEffect(() => {
 | 6.1 | `supabase/migrations/00008_*.sql` | `__tests__/e2e/conversation-persistence.spec.ts` |
 | 6.2 | `src/lib/chat/reranker.ts`, `src/lib/chat/confidence.ts`, `src/lib/chat/types.ts` | `__tests__/e2e/confidence-display.spec.ts` |
 | 6.3 | `src/components/chat/source-citation.tsx`, `src/app/(dashboard)/documents/[id]/page.tsx` | `__tests__/e2e/citation-navigation.spec.ts` |
-| 6.4 | `src/components/layout/split-view.tsx`, `src/hooks/use-conversation.ts` | `__tests__/e2e/mobile-tab-state.spec.ts` |
+| 6.4 | DEFERRED to Epic F4 | - |
 | 6.5 | `src/app/layout.tsx`, `src/app/(dashboard)/documents/[id]/page.tsx` | - |
 | 6.6 | `src/hooks/use-realtime.ts` | `src/components/ui/connection-indicator.tsx` |
-| 6.7 | `src/components/documents/document-list-item.tsx` | - |
-| 6.8 | `src/app/(dashboard)/documents/page.tsx` | `src/components/documents/empty-state.tsx` |
-| 6.9 | `src/components/documents/document-list-item.tsx` | - |
+| 6.7 (combined) | `src/components/documents/document-list-item.tsx`, `src/components/documents/document-list.tsx`, `src/app/(dashboard)/documents/page.tsx`, `src/app/(dashboard)/documents/[id]/page.tsx` | `src/components/documents/empty-state.tsx`, `__tests__/e2e/document-list-ux.spec.ts` |
+| 6.8 | COMBINED into 6.7 | - |
+| 6.9 | COMBINED into 6.7 | - |
 
 ---
 

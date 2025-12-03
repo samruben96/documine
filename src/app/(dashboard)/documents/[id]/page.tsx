@@ -4,6 +4,11 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
 import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view';
@@ -312,10 +317,18 @@ export default function DocumentDetailPage() {
           </button>
           {selectedDocument ? (
             <>
-              <FileText className="h-5 w-5 text-slate-500" />
-              <h1 className="font-medium text-slate-800 truncate">
-                {selectedDocument.display_name || selectedDocument.filename}
-              </h1>
+              <FileText className="h-5 w-5 text-slate-500 flex-shrink-0" />
+              {/* Filename with tooltip for truncated names (AC-6.7.15) */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h1 className="font-medium text-slate-800 dark:text-slate-200 truncate" tabIndex={0}>
+                    {selectedDocument.display_name || selectedDocument.filename}
+                  </h1>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[400px]">
+                  <p className="break-all">{selectedDocument.display_name || selectedDocument.filename}</p>
+                </TooltipContent>
+              </Tooltip>
             </>
           ) : isLoading ? (
             <div className="flex items-center gap-2">

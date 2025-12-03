@@ -174,18 +174,21 @@ development_status:
   # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.6-connection-status-indicator.md
   # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-6-connection-status-indicator.context.xml
   6-6-connection-status-indicator: done
-  # Story 6.7: Document Selection Visual Feedback (NEW - UI Polish)
-  # No highlight showing which document is selected in sidebar
-  # Priority: P1 - navigation clarity, S effort
-  6-7-document-selection-highlight: backlog
-  # Story 6.8: Empty State UX Improvement (NEW - UI Polish)
-  # Bland empty state doesn't guide users or inspire action
-  # Priority: P2 - onboarding improvement, S effort
-  6-8-empty-state-ux: backlog
-  # Story 6.9: Long Filename Handling (NEW - UI Polish)
-  # Long filenames truncated without tooltip
-  # Priority: P2 - UX polish, XS effort
-  6-9-long-filename-tooltip: backlog
+  # Story 6.7: Document List UX Polish (COMBINED - UI Polish)
+  # Combined 2025-12-02: Merged original 6.7, 6.8, 6.9 into single story
+  # Includes: selection highlight, empty state UX, filename tooltips
+  # Priority: P1 - UX polish, M effort (3-4 hours combined)
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.7-document-list-ux-polish.md
+  # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-7-document-list-ux-polish.context.xml
+  # IMPLEMENTED 2025-12-02: Selection highlight, empty states, filename tooltips
+  # 19 unit tests pass, E2E test created
+  6-7-document-list-ux-polish: review
+  # Story 6.8: Design System Refresh (NEW - Visual Polish)
+  # User feedback: "Too grey, doesn't feel modern"
+  # Introduces brand accent color, fixes spacing, modernizes look
+  # Priority: P1 - UX enhancement, M effort (4-6 hours)
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.8-design-system-refresh.md
+  6-8-design-system-refresh: drafted
   epic-6-retrospective: optional
 
   # Epic 7: Quote Comparison (RENUMBERED from Epic 6)
