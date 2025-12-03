@@ -25,6 +25,7 @@ import {
   createDocumentFromUpload,
   retryDocumentProcessing,
   deleteDocumentAction,
+  getProcessingJobError,
   type Document,
   type UserAgencyInfo,
 } from '../actions';
@@ -32,6 +33,27 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } from '@/lib/documents/upload';
 import { getDocumentUrl } from '@/lib/utils/storage';
 import type { SourceCitation } from '@/lib/chat/types';
+
+/**
+ * Hook to track if viewport is mobile (<768px)
+ * Used to conditionally render only ONE DocumentViewer instance
+ * to avoid ref attachment issues with hidden elements
+ */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Check initial value
+    const checkIsMobile = () => setIsMobile(window.innerWidth < 768);
+    checkIsMobile();
+
+    // Listen for resize
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  return isMobile;
+}
 
 /**
  * Document Detail Page
@@ -43,6 +65,7 @@ export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const documentId = params?.id;
+  const isMobile = useIsMobile();
 
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -307,6 +330,9 @@ export default function DocumentDetailPage() {
             pdfUrl={pdfUrl}
             className="h-full"
           />
+        ) : selectedDocument && selectedDocument.status === 'failed' ? (
+          // Story 5.13 (AC-5.13.1): Show user-friendly error message for failed documents
+          <FailedDocumentView documentId={selectedDocument.id} filename={selectedDocument.filename} />
         ) : selectedDocument && selectedDocument.status !== 'ready' ? (
           <div className="h-full flex items-center justify-center bg-slate-50">
             <div className="text-center">
@@ -368,24 +394,22 @@ export default function DocumentDetailPage() {
           </Sidebar>
         }
         main={
-          <>
-            {/* Desktop/Tablet: Split view with document + chat side-by-side */}
-            <div className="hidden md:block h-full">
-              <DocumentChatSplitView
-                documentViewer={documentViewerContent}
-                chatPanel={chatPanelContent}
-              />
-            </div>
-
-            {/* Mobile: Tabbed interface - AC-5.1.8, AC-5.5.10 */}
-            <div className="md:hidden h-full">
-              <MobileDocumentChatTabs
-                ref={mobileTabsRef}
-                documentViewer={documentViewerContent}
-                chatPanel={chatPanelContent}
-              />
-            </div>
-          </>
+          // Conditionally render ONLY ONE layout to avoid duplicate DocumentViewer instances
+          // This ensures the documentViewerRef attaches to the visible instance
+          isMobile ? (
+            // Mobile: Tabbed interface - AC-5.1.8, AC-5.5.10
+            <MobileDocumentChatTabs
+              ref={mobileTabsRef}
+              documentViewer={documentViewerContent}
+              chatPanel={chatPanelContent}
+            />
+          ) : (
+            // Desktop/Tablet: Split view with document + chat side-by-side
+            <DocumentChatSplitView
+              documentViewer={documentViewerContent}
+              chatPanel={chatPanelContent}
+            />
+          )
         }
       />
 
@@ -403,6 +427,72 @@ export default function DocumentDetailPage() {
 
       {/* Mobile bottom navigation */}
       <MobileBottomNav />
+    </div>
+  );
+}
+
+/**
+ * Story 5.13 (AC-5.13.1): Display user-friendly error for failed documents
+ * Fetches error message from processing_jobs table and displays it prominently
+ */
+function FailedDocumentView({ documentId, filename }: { documentId: string; filename: string }) {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchError() {
+      setIsLoading(true);
+      try {
+        // Use server action to bypass RLS restrictions on processing_jobs
+        const result = await getProcessingJobError(documentId);
+
+        if (result.success) {
+          setErrorMessage(result.errorMessage || null);
+        } else {
+          console.error('Failed to fetch error message:', result.error);
+          setErrorMessage(null);
+        }
+      } catch (err) {
+        console.error('Error fetching processing job:', err);
+        setErrorMessage(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchError();
+  }, [documentId]);
+
+  // Default message if no specific error was stored
+  const displayMessage = errorMessage || 'Document processing failed. Please try uploading again.';
+
+  return (
+    <div className="h-full flex items-center justify-center bg-slate-50">
+      <div className="max-w-md text-center px-6">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-slate-800 mb-2">
+          Processing Failed
+        </h3>
+        {isLoading ? (
+          <p className="text-sm text-slate-500">Loading error details...</p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600 mb-4">
+              {displayMessage}
+            </p>
+            <p className="text-xs text-slate-400 mb-4">
+              {filename}
+            </p>
+            <p className="text-xs text-slate-500">
+              Use the retry button in the document list to try again.
+            </p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -123,10 +123,30 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
     }, []);
 
     // Scroll to page implementation - AC-5.5.4
+    // Uses manual scrollTop calculation instead of scrollIntoView because
+    // scrollIntoView scrolls the window/body, not the overflow container
     const scrollToPage = useCallback((targetPage: number) => {
+      const scrollContainer = scrollContainerRef.current;
       const pageElement = pageRefs.current.get(targetPage);
-      if (pageElement && scrollContainerRef.current) {
-        pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      if (pageElement && scrollContainer) {
+        // Calculate position using getBoundingClientRect relative to scroll container
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const pageRect = pageElement.getBoundingClientRect();
+
+        // Calculate how far we need to scroll from current position
+        // pageRect.top - containerRect.top = distance from container top to page element
+        // Add current scrollTop to get absolute scroll position
+        const targetScrollTop =
+          scrollContainer.scrollTop + (pageRect.top - containerRect.top);
+
+        // Smooth scroll to the target position
+        scrollContainer.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth',
+        });
+
+        // Update page state
         setPageNumber(targetPage);
         setPageInputValue(String(targetPage));
         onPageChange?.(targetPage);
@@ -221,23 +241,20 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
     }, []);
 
     // Page navigation - AC-5.5.2
+    // Uses scrollToPage to ensure both state update AND scroll happen together
     const goToPrevPage = useCallback(() => {
-      setPageNumber((prev) => {
-        const newPage = Math.max(1, prev - 1);
-        setPageInputValue(String(newPage));
-        onPageChange?.(newPage);
-        return newPage;
-      });
-    }, [onPageChange]);
+      const newPage = Math.max(1, pageNumber - 1);
+      if (newPage !== pageNumber) {
+        scrollToPage(newPage);
+      }
+    }, [pageNumber, scrollToPage]);
 
     const goToNextPage = useCallback(() => {
-      setPageNumber((prev) => {
-        const newPage = Math.min(numPages, prev + 1);
-        setPageInputValue(String(newPage));
-        onPageChange?.(newPage);
-        return newPage;
-      });
-    }, [numPages, onPageChange]);
+      const newPage = Math.min(numPages, pageNumber + 1);
+      if (newPage !== pageNumber) {
+        scrollToPage(newPage);
+      }
+    }, [numPages, pageNumber, scrollToPage]);
 
     const handlePageInputChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,13 +265,13 @@ export const DocumentViewer = forwardRef<DocumentViewerRef, DocumentViewerProps>
 
     const handlePageInputBlur = useCallback(() => {
       const parsed = parseInt(pageInputValue, 10);
-      if (!isNaN(parsed) && parsed >= 1 && parsed <= numPages) {
-        setPageNumber(parsed);
-        onPageChange?.(parsed);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= numPages && parsed !== pageNumber) {
+        scrollToPage(parsed);
       } else {
+        // Reset to current page if invalid
         setPageInputValue(String(pageNumber));
       }
-    }, [pageInputValue, numPages, pageNumber, onPageChange]);
+    }, [pageInputValue, numPages, pageNumber, scrollToPage]);
 
     const handlePageInputKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLInputElement>) => {

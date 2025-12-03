@@ -1,0 +1,260 @@
+<story-context id="6-3-fix-source-citation-navigation" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.3</storyId>
+    <title>Fix Source Citation Navigation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-6.3-fix-source-citation-navigation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user verifying AI answers</asA>
+    <iWant>source citations to navigate to the correct page in the document</iWant>
+    <soThat>I can quickly verify the answer by seeing the actual source text</soThat>
+    <tasks>
+      <task id="1" ac="6.3.1">Debug Event Flow - Add console.log at each component boundary to trace where navigation breaks</task>
+      <task id="2" ac="6.3.1,6.3.2">Fix State Wiring - Verify currentPage state location and callback chain</task>
+      <task id="3" ac="6.3.1,6.3.4">Fix React-PDF Scroll - Implement scrollIntoView on page change with smooth animation</task>
+      <task id="4" ac="6.3.3">Add Visual Feedback - Active/pressed state on citation button</task>
+      <task id="5" ac="6.3.5">Mobile Tab Switch - Switch to Document tab before navigating</task>
+      <task id="6" ac="6.3.1-6.3.5">Write Playwright E2E Tests - Create citation-navigation.spec.ts</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="6.3.1">Citation Click Scrolls to Correct Page - When user clicks citation link, PDF viewer scrolls to that page</ac>
+    <ac id="6.3.2">Page Number Input Updates - After navigation, page number input/indicator shows correct page</ac>
+    <ac id="6.3.3">Visual Feedback on Click - Citation shows active state/brief highlight when clicked</ac>
+    <ac id="6.3.4">Smooth Scroll Animation - Scroll is animated (not instant jump)</ac>
+    <ac id="6.3.5">Mobile Tab Switch - On mobile, view switches to Document tab AND scrolls to correct page</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>BUG-3: Source Citation Navigation Broken</section>
+        <snippet>Page change event from citation click not properly wired to document viewer state. Root cause: callback chain may be broken between SourceCitation → ChatPanel → page.tsx → DocumentViewer.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Trust-Transparent AI Responses</section>
+        <snippet>FR17: Users can click source citations to view the relevant document section. Citations should include page number and optional bounding box for highlighting.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>PRD</title>
+        <section>FR17</section>
+        <snippet>Click-to-view source in document. Core trust feature - source citation must navigate to exact page (NFR14).</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-6.2-fix-confidence-score-calculation.md</path>
+        <title>Story 6.2 - Previous Story</title>
+        <section>Dev Agent Record</section>
+        <snippet>Established Playwright E2E testing patterns, data-testid attributes already in place. Reference: __tests__/e2e/confidence-display.spec.ts for test patterns.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/chat/source-citation.tsx</path>
+        <kind>component</kind>
+        <symbol>SourceCitationLink, SourceCitationList</symbol>
+        <lines>1-190</lines>
+        <reason>Contains onClick handler for citation clicks. Calls `onClick?.(source)` when clicked. Key file for debugging event origin.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-viewer.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentViewer, DocumentViewerRef, scrollToPage, highlightSource</symbol>
+        <lines>1-545</lines>
+        <reason>Contains scrollToPage and highlightSource methods exposed via forwardRef. Uses pageRefs Map to track page elements and scrollIntoView for navigation. Key file for scroll behavior.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/documents/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentDetailPage, handleSourceClick</symbol>
+        <lines>1-479</lines>
+        <reason>Contains handleSourceClick callback that should wire SourceCitation clicks to DocumentViewer. Uses documentViewerRef and mobileTabsRef. Key file for state wiring.</reason>
+      </file>
+      <file>
+        <path>src/components/chat/chat-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>ChatPanel, onSourceClick</symbol>
+        <lines>1-353</lines>
+        <reason>Receives onSourceClick prop and passes it to ChatMessage. Middleman in the callback chain.</reason>
+      </file>
+      <file>
+        <path>src/components/chat/chat-message.tsx</path>
+        <kind>component</kind>
+        <symbol>ChatMessage, onSourceClick</symbol>
+        <lines>1-163</lines>
+        <reason>Receives onSourceClick and passes it to SourceCitationList. Another link in the callback chain.</reason>
+      </file>
+      <file>
+        <path>src/components/layout/mobile-document-chat-tabs.tsx</path>
+        <kind>component</kind>
+        <symbol>MobileDocumentChatTabs, MobileDocumentChatTabsRef, switchToDocument</symbol>
+        <lines>1-160</lines>
+        <reason>Exposes switchToDocument method via ref for programmatic tab switching (AC-5.5.10). Mobile tab switch before navigation.</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/confidence-display.spec.ts</path>
+        <kind>test</kind>
+        <symbol>login, navigateToReadyDocument, sendMessage</symbol>
+        <lines>1-228</lines>
+        <reason>Reference for Playwright E2E test patterns. Includes login helper, document navigation, message sending, and badge verification patterns.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>react-pdf</package>
+        <version>^10.2.0</version>
+        <usage>PDF rendering with text layer. Document and Page components used in DocumentViewer.</usage>
+      </node>
+      <node>
+        <package>@playwright/test</package>
+        <version>^1.57.0</version>
+        <usage>E2E testing framework for citation-navigation.spec.ts</usage>
+      </node>
+      <node>
+        <package>next</package>
+        <version>16.0.4</version>
+        <usage>App Router with useParams, useRouter for document page routing</usage>
+      </node>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+        <usage>forwardRef, useImperativeHandle for DocumentViewer ref exposure</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>DocumentViewerRef</name>
+      <kind>interface</kind>
+      <signature>
+interface DocumentViewerRef {
+  scrollToPage: (pageNumber: number) => void;
+  highlightSource: (source: SourceCitation) => void;
+}
+      </signature>
+      <path>src/components/documents/document-viewer.tsx:36-39</path>
+    </interface>
+    <interface>
+      <name>MobileDocumentChatTabsRef</name>
+      <kind>interface</kind>
+      <signature>
+interface MobileDocumentChatTabsRef {
+  switchToDocument: () => void;
+  switchToChat: () => void;
+  activeTab: 'document' | 'chat';
+}
+      </signature>
+      <path>src/components/layout/mobile-document-chat-tabs.tsx:11-15</path>
+    </interface>
+    <interface>
+      <name>SourceCitation</name>
+      <kind>type</kind>
+      <signature>
+interface SourceCitation {
+  pageNumber: number;
+  text: string;
+  chunkId: string;
+  similarityScore: number;
+  boundingBox?: BoundingBox;
+}
+      </signature>
+      <path>src/lib/chat/types.ts</path>
+    </interface>
+    <interface>
+      <name>onSourceClick callback</name>
+      <kind>prop</kind>
+      <signature>(source: SourceCitation) => void</signature>
+      <path>src/components/chat/chat-panel.tsx:45</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint>
+      <category>Architecture</category>
+      <rule>Component Hierarchy: page.tsx owns state → DocumentViewer receives ref → ChatPanel passes callback → ChatMessage → SourceCitation</rule>
+    </constraint>
+    <constraint>
+      <category>Architecture</category>
+      <rule>State Lifting: currentPage state should be managed at page.tsx level, not in DocumentViewer</rule>
+    </constraint>
+    <constraint>
+      <category>Mobile</category>
+      <rule>Mobile Tab Switch: On mobile (width < 768px), must switch to Document tab before calling scrollToPage</rule>
+    </constraint>
+    <constraint>
+      <category>Accessibility</category>
+      <rule>Touch Targets: Citation buttons must maintain 44x44px minimum touch target (AC-5.7.5)</rule>
+    </constraint>
+    <constraint>
+      <category>UX</category>
+      <rule>Smooth Animation: Use scrollIntoView with behavior: 'smooth' for animated scroll (AC-6.3.4)</rule>
+    </constraint>
+    <constraint>
+      <category>Testing</category>
+      <rule>Test-Driven Bug Fixing: Write failing Playwright test first, then implement fix, verify test passes</rule>
+    </constraint>
+    <constraint>
+      <category>Testing</category>
+      <rule>data-testid Attributes: Use existing testids (chat-message, chat-panel). Add source-citation if needed.</rule>
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      <paragraph>Vitest for unit tests, Playwright for E2E tests. Tests live in __tests__/ directory. E2E tests use login helper, document navigation helpers, and assertion patterns from confidence-display.spec.ts. Run with: npx vitest (unit) or npx playwright test (E2E).</paragraph>
+    </standards>
+    <locations>
+      <location>__tests__/e2e/*.spec.ts</location>
+      <location>__tests__/lib/**/*.test.ts</location>
+      <location>__tests__/hooks/**/*.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="6.3.1">Test: Click citation link, verify page number input changes to expected page</idea>
+      <idea ac="6.3.2">Test: After navigation, verify page input value matches clicked citation page number</idea>
+      <idea ac="6.3.3">Test: Click citation, verify button has active/focus styling (CSS class check)</idea>
+      <idea ac="6.3.4">Manual test: Verify scroll animation is smooth, not instant jump</idea>
+      <idea ac="6.3.5">Test: Set mobile viewport (390x844), click citation, verify tab switches to Document then page changes</idea>
+    </ideas>
+  </tests>
+
+  <eventFlowAnalysis>
+    <currentFlow>
+      <step n="1">User clicks SourceCitationLink button in source-citation.tsx</step>
+      <step n="2">onClick handler calls onClick?.(source) → passes SourceCitation object</step>
+      <step n="3">SourceCitationList receives onSourceClick prop and passes to SourceCitationLink</step>
+      <step n="4">ChatMessage receives onSourceClick prop and passes to SourceCitationList</step>
+      <step n="5">ChatPanel receives onSourceClick prop and passes to ChatMessage</step>
+      <step n="6">page.tsx defines handleSourceClick callback</step>
+      <step n="7">handleSourceClick checks isMobile, calls mobileTabsRef.current?.switchToDocument() if needed</step>
+      <step n="8">After tab switch delay (100ms), calls documentViewerRef.current?.highlightSource(source)</step>
+      <step n="9">highlightSource in DocumentViewer calls scrollToPage(source.pageNumber)</step>
+      <step n="10">scrollToPage finds pageElement via pageRefs Map and calls scrollIntoView</step>
+    </currentFlow>
+    <debugStrategy>
+      <action>Add console.log('Citation clicked:', { pageNumber }) in SourceCitationLink onClick</action>
+      <action>Add console.log('handleSourceClick called:', { source }) in page.tsx</action>
+      <action>Add console.log('highlightSource called:', { source }) in DocumentViewer</action>
+      <action>Add console.log('scrollToPage:', { targetPage, pageElement }) in scrollToPage</action>
+      <action>Identify which log is NOT printed to find the break point</action>
+    </debugStrategy>
+    <likelyIssues>
+      <issue priority="1">onSourceClick prop may not be passed through component chain correctly</issue>
+      <issue priority="2">documentViewerRef.current may be null when accessed</issue>
+      <issue priority="3">pageRefs Map may not have the target page element registered</issue>
+      <issue priority="4">Mobile: tab switch + navigation timing issue (100ms delay may be insufficient)</issue>
+    </likelyIssues>
+  </eventFlowAnalysis>
+</story-context>

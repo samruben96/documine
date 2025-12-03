@@ -152,7 +152,13 @@ development_status:
   # Story 6.3: Fix Source Citation Navigation
   # Clicking citation doesn't scroll PDF to referenced page
   # Priority: P1 - UX broken but not blocking
-  6-3-fix-source-citation-navigation: backlog
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.3-fix-source-citation-navigation.md
+  # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-3-fix-source-citation-navigation.context.xml
+  # IMPLEMENTED 2025-12-03: Fixed dual-instance rendering, scrollToPage with getBoundingClientRect
+  # Root cause: TWO DocumentViewer instances in DOM, ref attached to hidden one
+  # Fix: Conditional rendering with useIsMobile() hook - only ONE instance exists
+  # CODE REVIEWED 2025-12-03: APPROVED - all 5 ACs verified, architectural fix correct
+  6-3-fix-source-citation-navigation: done
   # Story 6.4: Fix Mobile Tab State Preservation
   # Tab switching on mobile loses chat history
   # Priority: P1 - mobile UX issue, may be resolved by 6.1

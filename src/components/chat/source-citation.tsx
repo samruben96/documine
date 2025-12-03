@@ -48,8 +48,10 @@ function SourceCitationLink({ source, onClick, className }: SourceCitationLinkPr
         'min-h-[44px] min-w-[44px] px-2',
         // AC-5.4.2: Underline on hover, lighter color on hover
         'hover:text-slate-700 hover:underline',
+        // AC-6.3.3: Active/pressed state for visual feedback on click
+        'active:bg-slate-100 active:text-slate-800 active:scale-95',
         'focus:outline-none focus:ring-1 focus:ring-slate-400 focus:ring-offset-1 rounded',
-        'transition-colors cursor-pointer',
+        'transition-all duration-150 cursor-pointer',
         className
       )}
       aria-label={`View page ${source.pageNumber} in document`}
