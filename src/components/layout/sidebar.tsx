@@ -1,8 +1,44 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { useState, useEffect, createContext, useContext } from 'react';
+import { Menu, X, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+
+// Context to share sidebar state across components
+interface SidebarContextType {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
+const SidebarContext = createContext<SidebarContextType | null>(null);
+
+export function useSidebar() {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    return { isOpen: false, setIsOpen: () => {} };
+  }
+  return context;
+}
+
+interface SidebarProviderProps {
+  children: React.ReactNode;
+}
+
+export function SidebarProvider({ children }: SidebarProviderProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <SidebarContext.Provider value={{ isOpen, setIsOpen }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
 
 interface SidebarProps {
   children: React.ReactNode;
@@ -12,44 +48,18 @@ interface SidebarProps {
 /**
  * Responsive Sidebar Component
  *
- * Implements AC-4.3.10: Responsive sidebar behavior
+ * Implements AC-4.3.10 + AC-6.8.10: Responsive sidebar behavior
  * - Desktop (>1024px): Always visible at 240px width
- * - Tablet (640-1024px): Collapsible sidebar with hamburger toggle
- * - Mobile (<640px): Hidden, uses bottom navigation instead
+ * - Tablet (640-1024px): Collapsible sidebar with toggle in header
+ * - Mobile (<640px): Sheet overlay with document list
  */
 export function Sidebar({ children, className }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Close sidebar when clicking outside on tablet
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const sidebar = document.getElementById('sidebar');
-      const toggleButton = document.getElementById('sidebar-toggle');
-
-      if (
-        sidebar &&
-        !sidebar.contains(target) &&
-        toggleButton &&
-        !toggleButton.contains(target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
+  const { isOpen, setIsOpen } = useSidebar();
 
   // Close sidebar on route change (handled by parent)
   useEffect(() => {
     const handleResize = () => {
-      // Auto-close on desktop, keep closed on mobile
+      // Auto-close on desktop
       if (window.innerWidth >= 1024) {
         setIsOpen(false);
       }
@@ -57,68 +67,83 @@ export function Sidebar({ children, className }: SidebarProps) {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [setIsOpen]);
 
   return (
     <>
-      {/* Mobile/Tablet toggle button */}
-      <button
-        id="sidebar-toggle"
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'fixed top-4 left-4 z-50 p-2 rounded-md bg-white border border-slate-200 shadow-sm',
-          'lg:hidden', // Hide on desktop
-          'focus:outline-none focus:ring-2 focus:ring-primary'
-        )}
-        aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
-        aria-expanded={isOpen}
-      >
-        {isOpen ? (
-          <X className="h-5 w-5 text-slate-600" />
-        ) : (
-          <Menu className="h-5 w-5 text-slate-600" />
-        )}
-      </button>
-
       {/* Overlay for tablet */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/20 lg:hidden hidden sm:block"
           aria-hidden="true"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Desktop/Tablet Sidebar */}
       <aside
         id="sidebar"
         className={cn(
           // Base styles
-          'fixed top-0 left-0 z-40 h-full w-60 border-r border-slate-200 bg-slate-50 flex flex-col',
-          // Desktop: always visible
-          'lg:relative lg:translate-x-0',
-          // Tablet/Mobile: slide in/out
+          'fixed top-14 left-0 z-40 h-[calc(100vh-3.5rem)] w-60 border-r border-slate-200 bg-slate-50 flex flex-col',
+          // Desktop: fill parent (resizable panel), relative positioning
+          'lg:relative lg:top-0 lg:h-full lg:w-full lg:translate-x-0',
+          // Tablet: slide in/out
           'max-lg:transition-transform max-lg:duration-200 max-lg:ease-in-out',
           isOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full',
-          // Mobile: completely hidden (uses bottom nav)
+          // Mobile: completely hidden (uses Sheet)
           'max-sm:hidden',
           className
         )}
       >
-        {/* Sidebar header with padding for toggle button on tablet */}
-        <div className="h-14 flex-shrink-0 border-b border-slate-200 flex items-center px-4 sm:px-4 lg:px-4">
-          <span className="font-semibold text-slate-700 pl-10 sm:pl-10 lg:pl-0">
-            Documents
-          </span>
+        {/* Sidebar header */}
+        <div className="h-14 flex-shrink-0 border-b border-slate-200 flex items-center px-4">
+          <span className="font-semibold text-slate-700">Documents</span>
         </div>
 
         {/* Sidebar content */}
-        <div className="flex-1 overflow-hidden">
-          {children}
-        </div>
+        <div className="flex-1 overflow-hidden">{children}</div>
       </aside>
+
+      {/* Mobile Sheet - AC-6.8.10 */}
+      <div className="sm:hidden">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="h-14 border-b border-slate-200 flex items-center justify-center">
+              <SheetTitle className="text-slate-700">Documents</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-hidden h-[calc(100vh-3.5rem)]">
+              {children}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </>
+  );
+}
+
+/**
+ * Sidebar Toggle Button - for use in Header
+ * AC-6.8.7: Integrated into header to prevent logo truncation
+ */
+export function SidebarToggle() {
+  const { isOpen, setIsOpen } = useSidebar();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setIsOpen(!isOpen)}
+      className="lg:hidden"
+      aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
+      aria-expanded={isOpen}
+    >
+      {isOpen ? (
+        <X className="h-5 w-5" />
+      ) : (
+        <PanelLeft className="h-5 w-5" />
+      )}
+    </Button>
   );
 }
 

@@ -1,0 +1,211 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.8</storyId>
+    <title>Design System Refresh</title>
+    <status>in-progress</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-6.8-design-system-refresh.md</sourceStoryPath>
+    <phase>Phase 2 - UX Audit Enhancements</phase>
+  </metadata>
+
+  <story>
+    <asA>user of docuMINE</asA>
+    <iWant>a modern, visually engaging design with color and proper spacing</iWant>
+    <soThat>the application feels professional, inviting, and easy to use</soThat>
+    <tasks>
+      <phase name="Phase 1 - Core Design (COMPLETED)">
+        <task status="done">Define Electric Blue brand accent in globals.css</task>
+        <task status="done">Update button hover states with lift/shadow</task>
+        <task status="done">Fix spacing inconsistencies in document list and chat</task>
+        <task status="done">Update dark mode colors for new palette</task>
+        <task status="done">Apply accent color to navigation and interactive elements</task>
+      </phase>
+      <phase name="Phase 2 Sprint 1 - Critical Fixes">
+        <task status="pending" ac="6.8.7">Fix mobile header overflow - logo shows "uMINE"</task>
+        <task status="pending" ac="6.8.8">Verify primary button color is vibrant Electric Blue</task>
+        <task status="pending" ac="6.8.9">Add navigation active state indicator</task>
+      </phase>
+      <phase name="Phase 2 Sprint 2 - High Priority Features">
+        <task status="pending" ac="6.8.16">Add markdown rendering in chat messages</task>
+        <task status="pending" ac="6.8.10">Fix mobile sidebar toggle behavior</task>
+        <task status="pending" ac="6.8.18">Add source text highlighting in document viewer</task>
+      </phase>
+      <phase name="Phase 2 Sprint 3 - UX Polish">
+        <task status="pending" ac="6.8.15">Implement resizable side panels</task>
+        <task status="pending" ac="6.8.12">Add card depth and shadows with hover effects</task>
+        <task status="pending" ac="6.8.14">Enhance input focus states with glow effect</task>
+      </phase>
+      <phase name="Phase 2 Sprint 4 - Advanced Features">
+        <task status="pending" ac="6.8.17">Implement dockable/moveable chat panel</task>
+        <task status="pending" ac="6.8.11">Enhance auth pages visual design</task>
+        <task status="pending" ac="6.8.13">Improve empty state with animation and engaging copy</task>
+      </phase>
+      <phase name="Future">
+        <task status="deferred" ac="6.8.19">Microinteractions (tab transitions, message animations)</task>
+        <task status="deferred" ac="6.8.20">Skeleton loading states</task>
+        <task status="deferred" ac="6.8.21">Dark mode polish pass</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <phase name="Phase 1 - Core Design (COMPLETED)">
+      <criterion id="AC-6.8.1" status="done">Brand Accent Color - Electric Blue (#3b82f6) visible in primary buttons, active states, links, header accents</criterion>
+      <criterion id="AC-6.8.2" status="done">Updated Color Palette - Primary accent, clean white/dark backgrounds, subtle off-white (#f9fafb) surface, improved text hierarchy</criterion>
+      <criterion id="AC-6.8.3" status="done">Spacing Improvements - Uniform document list padding (py-3 px-4), chat vertical rhythm (gap-4), consistent card padding (p-6)</criterion>
+      <criterion id="AC-6.8.4" status="done">Button Styling Refresh - Primary buttons use accent, hover lift/shadow, ghost variants have accent, 8px radius</criterion>
+      <criterion id="AC-6.8.5" status="done">Interactive States - Hover background change, focus ring in accent color, active darkening, selected accent border</criterion>
+      <criterion id="AC-6.8.6" status="done">Visual Hierarchy Enhancement - Primary actions stand out, secondary subdued, disabled clearly indicated</criterion>
+    </phase>
+    <phase name="Phase 2 - Critical Issues">
+      <criterion id="AC-6.8.7" priority="critical" effort="XS">Mobile Header Overflow Fix - Logo displays fully without truncation on mobile, hide nav links behind hamburger menu</criterion>
+      <criterion id="AC-6.8.8" priority="critical" effort="S">Primary Button Color Verification - Buttons display vibrant Electric Blue (#3b82f6), not muted/dark variant</criterion>
+    </phase>
+    <phase name="Phase 2 - High Priority">
+      <criterion id="AC-6.8.9" priority="high" effort="XS">Navigation Active State - Current page has underline/highlight using Electric Blue accent</criterion>
+      <criterion id="AC-6.8.10" priority="high" effort="S">Mobile Sidebar Fix - Slide-over panel shows full document list, search input, upload button, proper close</criterion>
+      <criterion id="AC-6.8.11" priority="high" effort="M">Auth Pages Visual Enhancement - Subtle gradient/pattern background, branded icon, value proposition text, modern card shadow</criterion>
+    </phase>
+    <phase name="Phase 2 - Medium Priority">
+      <criterion id="AC-6.8.12" priority="medium" effort="S">Card Depth and Shadows - Subtle default shadow (shadow-sm), enhanced hover (shadow-md), border accent on hover, icons use accent</criterion>
+      <criterion id="AC-6.8.13" priority="medium" effort="S">Empty State Enhancement - Animated illustration (float/pulse), engaging copy, clear CTA button</criterion>
+      <criterion id="AC-6.8.14" priority="medium" effort="XS">Input Focus States - Border color change to Electric Blue, subtle glow (ring-2 ring-primary/20), smooth transition</criterion>
+    </phase>
+    <phase name="Phase 2 - Feature Enhancements">
+      <criterion id="AC-6.8.15" priority="high" effort="M">Resizable Side Panels - Drag to resize document sidebar (200-400px), chat panel (300-600px), persist in localStorage, double-click to reset</criterion>
+      <criterion id="AC-6.8.16" priority="high" effort="S">Markdown Rendering in Chat - Bold, italic, code, lists, headers, clickable links using react-markdown with remark-gfm</criterion>
+      <criterion id="AC-6.8.17" priority="medium" effort="L">Dockable/Moveable Chat Panel - Drag to right/bottom/floating positions, snap to dock positions, persist in localStorage, minimize/expand toggle</criterion>
+      <criterion id="AC-6.8.18" priority="high" effort="M">Source Text Highlighting in Document - Click citation scrolls to page AND highlights text passage, yellow/amber background, fades after 3-5s</criterion>
+    </phase>
+    <phase name="Future">
+      <criterion id="AC-6.8.19" priority="low" effort="M">Microinteractions - Tab underline slide, message fade-in, document select transition, button tactile feedback</criterion>
+      <criterion id="AC-6.8.20" priority="low" effort="M">Skeleton Loading States - Skeleton loaders instead of spinners, progressive loading for chat, optimistic UI</criterion>
+      <criterion id="AC-6.8.21" priority="low" effort="S">Dark Mode Polish - Verify all accent colors, check contrast ratios WCAG AA, ensure card depth/separation</criterion>
+    </phase>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/story-6.8-design-system-refresh.md" title="Story 6.8 Specification" section="Full story with Phase 2 enhancements" snippet="User Story, Design Research, 21 acceptance criteria, Phase 2 implementation order"/>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-6.md" title="Epic 6 Technical Specification" section="UI Polish Stories" snippet="Covers Epic 6 cleanup and stabilization, testing strategy, component dependencies"/>
+      <doc path="docs/architecture.md" title="System Architecture" section="UI/UX Architecture" snippet="Layout architecture, component hierarchy, design philosophy, responsive breakpoints, accessibility requirements"/>
+      <doc path="docs/research-ui-best-practices-2025-12-02.md" title="UI Research" section="2025 SaaS Trends" snippet="Color trends, UX patterns, empty state best practices, microinteraction guidance"/>
+    </docs>
+    <code>
+      <artifact path="src/app/globals.css" kind="styles" symbol="CSS variables" lines="1-184" reason="Phase 1 complete - Electric Blue palette defined, need to verify OKLCH rendering"/>
+      <artifact path="src/components/ui/button.tsx" kind="component" symbol="Button" reason="Primary button styling uses new accent color"/>
+      <artifact path="src/components/ui/input.tsx" kind="component" symbol="Input" reason="AC-6.8.14: Focus states need glow effect"/>
+      <artifact path="src/components/layout/header.tsx" kind="component" symbol="Header" lines="1-75" reason="AC-6.8.7: Mobile overflow fix, AC-6.8.9: Active nav state"/>
+      <artifact path="src/components/layout/sidebar.tsx" kind="component" symbol="Sidebar" reason="AC-6.8.10: Mobile sidebar fix"/>
+      <artifact path="src/components/layout/split-view.tsx" kind="component" symbol="SplitView" reason="AC-6.8.15: Resizable panels implementation"/>
+      <artifact path="src/components/layout/mobile-document-chat-tabs.tsx" kind="component" symbol="MobileDocumentChatTabs" reason="Mobile responsive behavior"/>
+      <artifact path="src/components/chat/chat-panel.tsx" kind="component" symbol="ChatPanel" reason="AC-6.8.17: Dockable/moveable chat"/>
+      <artifact path="src/components/chat/chat-message.tsx" kind="component" symbol="ChatMessage" lines="1-163" reason="AC-6.8.16: Markdown rendering, current plain text whitespace-pre-wrap"/>
+      <artifact path="src/components/chat/source-citation.tsx" kind="component" symbol="SourceCitationList" reason="AC-6.8.18: Source text highlighting integration"/>
+      <artifact path="src/components/documents/document-viewer.tsx" kind="component" symbol="DocumentViewer" reason="AC-6.8.18: Text highlighting in PDF.js text layer"/>
+      <artifact path="src/components/documents/document-list-empty.tsx" kind="component" symbol="DocumentListEmpty" reason="AC-6.8.13: Empty state enhancement"/>
+      <artifact path="src/app/(auth)/login/page.tsx" kind="page" symbol="LoginPage" reason="AC-6.8.11: Auth pages visual enhancement"/>
+      <artifact path="src/app/(auth)/signup/page.tsx" kind="page" symbol="SignupPage" reason="AC-6.8.11: Auth pages visual enhancement"/>
+      <artifact path="src/app/(auth)/reset-password/page.tsx" kind="page" symbol="ResetPasswordPage" reason="AC-6.8.11: Auth pages visual enhancement"/>
+      <artifact path="src/app/(auth)/layout.tsx" kind="layout" symbol="AuthLayout" reason="AC-6.8.11: Shared auth layout for gradient background"/>
+      <artifact path="src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" reason="AC-6.8.12: Card depth and shadows"/>
+    </code>
+    <dependencies>
+      <current>
+        <dep name="tailwindcss" version="^4" purpose="Utility-first CSS framework"/>
+        <dep name="@radix-ui/react-tooltip" version="^1.2.8" purpose="Tooltip component for hover states"/>
+        <dep name="lucide-react" version="^0.554.0" purpose="Icons"/>
+        <dep name="next-themes" version="^0.4.6" purpose="Dark mode support"/>
+        <dep name="react-pdf" version="^10.2.0" purpose="PDF rendering, text layer for highlighting"/>
+        <dep name="pdfjs-dist" version="^5.4.449" purpose="PDF.js text layer API for highlighting"/>
+      </current>
+      <toAdd>
+        <dep name="react-markdown" version="^9.x" purpose="AC-6.8.16: Markdown rendering in chat"/>
+        <dep name="remark-gfm" version="^4.x" purpose="AC-6.8.16: GitHub-flavored markdown (tables, strikethrough)"/>
+        <dep name="react-resizable-panels" version="^2.x" purpose="AC-6.8.15: Resizable panel layout"/>
+        <dep name="react-rnd" version="^10.x" purpose="AC-6.8.17: Resizable and draggable chat panel"/>
+      </toAdd>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture.md">Follow shadcn/ui patterns - use existing components where possible</constraint>
+    <constraint source="architecture.md">Responsive breakpoints: sm=640px, md=768px (tablet/tabs), lg=1024px (desktop split)</constraint>
+    <constraint source="architecture.md">WCAG 2.1 AA compliance - 4.5:1 contrast for text, visible focus rings</constraint>
+    <constraint source="architecture.md">Respect prefers-reduced-motion for animations</constraint>
+    <constraint source="story">Electric Blue accent confirmed: #3b82f6 (blue-500), hover #2563eb (blue-600)</constraint>
+    <constraint source="story">Out of scope: Major dark mode rework (just verify), logo changes, marketing site</constraint>
+    <constraint source="tech-spec">All changes must pass npm run build and npm run test</constraint>
+    <constraint source="tech-spec">Add Playwright E2E tests for visual changes</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="CSS Custom Properties" kind="CSS Variables" path="src/app/globals.css">
+      <signature>--primary: oklch(0.59 0.2 255) /* Electric Blue */</signature>
+      <signature>--primary-foreground: oklch(1 0 0) /* White */</signature>
+      <signature>--ring: oklch(0.59 0.2 255) /* Focus ring color */</signature>
+    </interface>
+    <interface name="ChatMessageData" kind="TypeScript Interface" path="src/components/chat/chat-message.tsx">
+      <signature>interface ChatMessageData { id: string; role: 'user' | 'assistant'; content: string; ... }</signature>
+    </interface>
+    <interface name="useIsMobile" kind="React Hook" path="src/hooks/use-mobile.ts">
+      <signature>function useIsMobile(): boolean</signature>
+    </interface>
+    <interface name="DocumentViewer" kind="React Component" path="src/components/documents/document-viewer.tsx">
+      <signature>DocumentViewer({ documentId, onPageChange, currentPage, onHighlightText? })</signature>
+    </interface>
+    <interface name="PDF.js TextLayer API" kind="External Library" path="pdfjs-dist">
+      <signature>page.getTextContent() returns TextContent with items[].str and transform</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <framework>Vitest + React Testing Library for unit tests</framework>
+      <framework>Playwright for E2E visual testing</framework>
+      <pattern>Test component rendering and interactions</pattern>
+      <pattern>Test responsive behavior at mobile/tablet/desktop breakpoints</pattern>
+      <pattern>Test light/dark mode color consistency</pattern>
+    </standards>
+    <locations>
+      <location>__tests__/components/ - Component unit tests</location>
+      <location>__tests__/e2e/ - Playwright E2E tests</location>
+      <location>.playwright-mcp/ux-audit/ - UX audit screenshots for reference</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-6.8.7">E2E: Mobile viewport test for header logo visibility</idea>
+      <idea ac="AC-6.8.8">Visual regression: Screenshot compare of primary button color</idea>
+      <idea ac="AC-6.8.9">E2E: Verify active nav link has distinct styling on each page</idea>
+      <idea ac="AC-6.8.10">E2E: Mobile viewport - click sidebar toggle, verify document list appears</idea>
+      <idea ac="AC-6.8.15">E2E: Drag panel resize handle, verify panel width changes</idea>
+      <idea ac="AC-6.8.16">Unit: Render ChatMessage with markdown content, verify bold/code rendering</idea>
+      <idea ac="AC-6.8.18">E2E: Click source citation, verify text highlight appears on page</idea>
+    </ideas>
+  </tests>
+
+  <implementationNotes>
+    <note priority="high">
+      PHASE 2 SPRINT 1 (CRITICAL FIXES):
+      1. AC-6.8.7: Header needs hamburger menu on mobile - hide nav links, show only logo + menu icon
+      2. AC-6.8.8: Verify OKLCH color renders correctly across browsers (Chrome, Firefox, Safari)
+      3. AC-6.8.9: Add usePathname() to detect current route, apply accent underline
+    </note>
+    <note priority="high">
+      PHASE 2 SPRINT 2 (FEATURES):
+      1. AC-6.8.16: Install react-markdown + remark-gfm, wrap chat message content
+      2. AC-6.8.10: Mobile sidebar needs Sheet component from shadcn/ui
+      3. AC-6.8.18: PDF.js text layer highlighting - find text match, apply CSS class, remove after timeout
+    </note>
+    <note priority="medium">
+      NEW DEPENDENCIES TO INSTALL:
+      npm install react-markdown remark-gfm react-resizable-panels react-rnd
+    </note>
+    <note priority="medium">
+      UX AUDIT SCREENSHOTS LOCATION:
+      Reference screenshots captured at .playwright-mcp/ux-audit/ for comparison:
+      - 01-login-desktop.png through 12-chat-mobile.png
+    </note>
+  </implementationNotes>
+</story-context>

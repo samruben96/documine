@@ -190,7 +190,12 @@ development_status:
   # Priority: P1 - UX enhancement, M effort (4-6 hours)
   # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.8-design-system-refresh.md
   # CONTEXT 2025-12-03: Context file created at docs/sprint-artifacts/6-8-design-system-refresh.context.xml
-  # IMPLEMENTED 2025-12-03: Electric Blue accent, button hover effects, spacing fixes, dark mode
+  # PHASE 1 DONE 2025-12-03: Electric Blue accent, button hover effects, spacing fixes, dark mode
+  # PHASE 2 DONE 2025-12-03: UX Audit enhancements - 12 ACs implemented
+  # Phase 2 includes: resizable panels, markdown chat, dockable chat
+  # Phase 2 includes: mobile header fix, nav active state, auth page visuals, card depth
+  # AC-6.8.18 (Source Text Highlighting) moved to Future Epic F5
+  # CODE REVIEWED 2025-12-03: APPROVED - All ACs verified, ready to merge
   6-8-design-system-refresh: done
   epic-6-retrospective: optional
 
@@ -243,3 +248,11 @@ development_status:
   f4-1-mobile-tab-state-preservation: future
   f4-2-mobile-responsive-polish: future
   f4-3-touch-gesture-improvements: future
+
+  # Epic F5: Document Viewer Enhancements (Deferred from Story 6.8)
+  # Source: Story 6.8 AC-6.8.18 - 2025-12-03
+  # Reason: Requires PDF.js text layer work, significant effort
+  epic-f5-document-viewer-enhancements: future
+  f5-1-source-text-highlighting: future
+  f5-2-text-selection-highlighting: future
+  f5-3-search-within-document: future

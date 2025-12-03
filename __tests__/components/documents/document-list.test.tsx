@@ -281,9 +281,10 @@ describe('DocumentList', () => {
         />
       );
 
-      expect(screen.getByText('No documents yet')).toBeInTheDocument();
+      // AC-6.7.6, AC-6.8.13: Updated engaging copy
+      expect(screen.getByText('Your documents await')).toBeInTheDocument();
       expect(
-        screen.getByText('Upload your first document to get started')
+        screen.getByText(/Drop a policy, quote, or certificate/)
       ).toBeInTheDocument();
     });
 

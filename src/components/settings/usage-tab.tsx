@@ -39,14 +39,14 @@ export function UsageTab({ metrics }: UsageTabProps) {
   return (
     <div className="space-y-6 mt-6">
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Documents Card - AC-3.5.1 */}
+        {/* Documents Card - AC-3.5.1, AC-6.8.12: Brand accent icons */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-medium">Documents Uploaded</CardTitle>
               <CardDescription>PDF documents analyzed</CardDescription>
             </div>
-            <FileText className="h-5 w-5 text-muted-foreground" />
+            <FileText className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -62,14 +62,14 @@ export function UsageTab({ metrics }: UsageTabProps) {
           </CardContent>
         </Card>
 
-        {/* Queries Card - AC-3.5.2 */}
+        {/* Queries Card - AC-3.5.2, AC-6.8.12: Brand accent icons */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-medium">Questions Asked</CardTitle>
               <CardDescription>AI queries submitted</CardDescription>
             </div>
-            <MessageSquare className="h-5 w-5 text-muted-foreground" />
+            <MessageSquare className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -85,28 +85,28 @@ export function UsageTab({ metrics }: UsageTabProps) {
           </CardContent>
         </Card>
 
-        {/* Active Users Card - AC-3.5.3 */}
+        {/* Active Users Card - AC-3.5.3, AC-6.8.12: Brand accent icons */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-medium">Active Users</CardTitle>
               <CardDescription>Users with activity in last 7 days</CardDescription>
             </div>
-            <Users className="h-5 w-5 text-muted-foreground" />
+            <Users className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{metrics.activeUsers}</div>
           </CardContent>
         </Card>
 
-        {/* Storage Card - AC-3.5.4 */}
+        {/* Storage Card - AC-3.5.4, AC-6.8.12: Brand accent icons */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-medium">Storage Used</CardTitle>
               <CardDescription>Total document storage</CardDescription>
             </div>
-            <HardDrive className="h-5 w-5 text-muted-foreground" />
+            <HardDrive className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{formatStorage(metrics.storageUsedBytes)}</div>

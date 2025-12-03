@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
-import { FileText, FileUp, Loader2 } from 'lucide-react';
+import { FileText, FileUp, Loader2, Sparkles, MessageSquare } from 'lucide-react';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
 import { SplitView, DocumentViewPlaceholder, ChatPanelPlaceholder } from '@/components/layout/split-view';
@@ -341,31 +341,51 @@ export default function DocumentsPage() {
         }
         main={
           <div className="h-full flex">
-            {/* Main content - Empty states (AC-6.7.6-10) */}
+            {/* Main content - Empty states (AC-6.7.6-10, AC-6.8.13) */}
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-900">
               <div className="text-center max-w-md">
-                {/* Icon - different for each state (AC-6.7.9) */}
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
-                  {documents.length > 0 ? (
-                    <FileText className="h-8 w-8 text-slate-400 dark:text-slate-500" />
-                  ) : (
-                    <FileUp className="h-8 w-8 text-slate-400 dark:text-slate-500" />
-                  )}
+                {/* Animated icon container - AC-6.8.13 */}
+                <div className="relative inline-block">
+                  {/* Decorative sparkles */}
+                  <Sparkles className="absolute -top-2 -right-2 h-5 w-5 text-primary/60 animate-pulse" />
+
+                  {/* Main icon with floating animation */}
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 animate-float">
+                    {documents.length > 0 ? (
+                      <FileText className="h-10 w-10 text-primary" />
+                    ) : (
+                      <FileUp className="h-10 w-10 text-primary" />
+                    )}
+                  </div>
                 </div>
 
-                {/* Headline - different messaging (AC-6.7.8, AC-6.7.9) */}
-                <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
+                {/* Headline - different messaging (AC-6.7.8, AC-6.7.9, AC-6.8.13) */}
+                <h2 className="mt-6 text-xl font-semibold text-slate-800 dark:text-slate-200">
                   {documents.length > 0
                     ? 'Choose a document to explore'
-                    : 'Ready to analyze your documents'}
+                    : 'Your documents await'}
                 </h2>
 
-                {/* Description (AC-6.7.8) */}
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                {/* Description (AC-6.7.8, AC-6.8.13) */}
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   {documents.length > 0
-                    ? 'Select a document from the sidebar to view it and chat with AI about its contents'
+                    ? 'Select a document from the sidebar to view it and unlock AI-powered insights'
                     : 'Upload a policy, quote, or certificate and start asking questions in seconds'}
                 </p>
+
+                {/* Feature highlights when documents exist */}
+                {documents.length > 0 && (
+                  <div className="mt-6 flex items-center justify-center gap-6 text-xs text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-primary/60" />
+                      <span>View PDF</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare className="h-4 w-4 text-primary/60" />
+                      <span>Ask Questions</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Upload zone when no documents - AC-6.7.7 */}
                 {documents.length === 0 && !isLoading && (

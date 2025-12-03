@@ -37,6 +37,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ChatDockControls } from '@/components/layout/split-view';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatPanelProps {
   documentId: string;
@@ -137,6 +139,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<ChatInputRef>(null);
+  const isMobile = useIsMobile();
 
   // Dialog state for New Chat confirmation
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
@@ -235,25 +238,29 @@ export function ChatPanel({
 
   return (
     <div className={cn('h-full flex flex-col bg-white', className)} data-testid="chat-panel">
-      {/* Chat Header with New Chat Button - AC-5.6.7 */}
+      {/* Chat Header with New Chat Button and Dock Controls - AC-5.6.7, AC-6.8.17 */}
       <div className="flex-shrink-0 h-14 border-b border-slate-200 flex items-center justify-between px-4">
         <h2 className="font-medium text-slate-700">Chat</h2>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={handleNewChatClick}
-              disabled={isLoading || isStreaming}
-              aria-label="Start a new conversation"
-            >
-              <MessageSquarePlus className="h-5 w-5 text-slate-500" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            Start a fresh conversation about this document
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleNewChatClick}
+                disabled={isLoading || isStreaming}
+                aria-label="Start a new conversation"
+              >
+                <MessageSquarePlus className="h-5 w-5 text-slate-500" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Start a fresh conversation about this document
+            </TooltipContent>
+          </Tooltip>
+          {/* AC-6.8.17: Dock position and collapse controls (desktop only) */}
+          {!isMobile && <ChatDockControls />}
+        </div>
       </div>
 
       {/* Scrollable Conversation History Area - AC-5.6.1 */}

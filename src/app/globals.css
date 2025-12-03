@@ -181,3 +181,13 @@
   animation: page-pulse 0.5s ease-in-out 2;
   border: 2px solid transparent;
 }
+
+/* Subtle float animation for empty states (AC-6.8.13) */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

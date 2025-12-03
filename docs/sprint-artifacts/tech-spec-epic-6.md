@@ -590,15 +590,65 @@ Three related UX issues in the document list/sidebar area:
 
 ---
 
-### Stories 6.8 & 6.9: COMBINED INTO 6.7
+### Story 6.8: Design System Refresh (EXPANDED)
+
+**Priority:** P1 - UX Enhancement
+**Effort:** L (Phase 1 done, Phase 2 in progress)
+**Status:** In Progress (2025-12-03)
+
+**Problem Statement:**
+User feedback indicated the UI was "too grey" and didn't feel modern. Phase 1 introduced Electric Blue accent color. Phase 2 (UX Audit) identified 15 additional enhancements based on comprehensive Playwright screenshots.
+
+**Phase 1 (COMPLETED 2025-12-03):**
+- Electric Blue brand accent (#3b82f6) applied throughout
+- Button hover effects with lift/shadow
+- Spacing consistency fixes
+- Dark mode color updates
+
+**Phase 2 Acceptance Criteria (AC-6.8.7 through AC-6.8.21):**
+
+| AC | Description | Priority | Effort |
+|----|-------------|----------|--------|
+| AC-6.8.7 | Mobile header overflow fix - logo shows "uMINE" | Critical | XS |
+| AC-6.8.8 | Primary button color verification (vibrant blue) | Critical | S |
+| AC-6.8.9 | Navigation active state indicator | High | XS |
+| AC-6.8.10 | Mobile sidebar fix (slide-over panel) | High | S |
+| AC-6.8.11 | Auth pages visual enhancement (gradient, icons) | High | M |
+| AC-6.8.12 | Card depth & shadows with hover | Medium | S |
+| AC-6.8.13 | Empty state enhancement (animation, CTA) | Medium | S |
+| AC-6.8.14 | Input focus states (glow effect) | Medium | XS |
+| AC-6.8.15 | Resizable side panels (localStorage persist) | High | M |
+| AC-6.8.16 | Markdown rendering in chat (react-markdown) | High | S |
+| AC-6.8.17 | Dockable/moveable chat panel (react-rnd) | Medium | L |
+| AC-6.8.18 | Source text highlighting in document | High | M |
+| AC-6.8.19 | Microinteractions (deferred) | Low | M |
+| AC-6.8.20 | Skeleton loading states (deferred) | Low | M |
+| AC-6.8.21 | Dark mode polish (deferred) | Low | S |
+
+**New Dependencies Required:**
+```bash
+npm install react-markdown remark-gfm react-resizable-panels react-rnd
+```
+
+**Files to Modify:**
+- `src/components/layout/header.tsx` - Mobile hamburger menu, active nav state
+- `src/components/layout/sidebar.tsx` - Mobile sheet component
+- `src/components/layout/split-view.tsx` - Resizable panels
+- `src/components/chat/chat-message.tsx` - Markdown rendering
+- `src/components/chat/chat-panel.tsx` - Dockable behavior
+- `src/components/documents/document-viewer.tsx` - Text highlighting
+- `src/app/(auth)/*.tsx` - Auth page visual enhancement
+
+**Story File:** `docs/sprint-artifacts/story-6.8-design-system-refresh.md`
+**Context File:** `docs/sprint-artifacts/6-8-design-system-refresh.context.xml`
+
+---
+
+### Story 6.9: COMBINED INTO 6.7
 
 **Status:** Combined (2025-12-02)
 
-Original stories 6.8 (Empty State UX) and 6.9 (Long Filename Tooltip) have been merged into Story 6.7 (Document List UX Polish) as they:
-- All affect the document list/sidebar area
-- Share implementation files (`document-list-item.tsx`)
-- Have similar testing approaches
-- Combined effort remains sprint-sized (M = 3-4 hours)
+Original Story 6.9 (Long Filename Tooltip) has been merged into Story 6.7 (Document List UX Polish)
 
 ---
 
@@ -727,11 +777,13 @@ Story 6.3 (Citation Nav) - DONE
 
 Story 6.4 (Mobile Tab) - DEFERRED to Epic F4
 
-Story 6.5 (Stale Text) - Independent, P0
+Story 6.5 (Stale Text) - DONE
 
-Story 6.6 (Connection Status) - Independent
+Story 6.6 (Connection Status) - DONE
 
-Story 6.7 (Document List UX Polish) - Independent (COMBINED: selection, empty state, tooltips)
+Story 6.7 (Document List UX Polish) - DONE (selection, empty state, tooltips)
+
+Story 6.8 (Design System Refresh) - IN PROGRESS (Phase 1 done, Phase 2 started)
 ```
 
 **Recommended Order:**
@@ -744,11 +796,11 @@ Story 6.7 (Document List UX Polish) - Independent (COMBINED: selection, empty st
 | 4 | 6.4 | P1 | S | DEFERRED to F4 |
 | 5 | 6.5 | P0 | XS | DONE |
 | 6 | 6.6 | P1 | S | DONE |
-| 7 | 6.7 | P1 | M | Drafted |
-| - | 6.8 | - | - | COMBINED into 6.7 |
+| 7 | 6.7 | P1 | M | DONE |
+| 8 | 6.8 | P1 | L | IN PROGRESS (Phase 2) |
 | - | 6.9 | - | - | COMBINED into 6.7 |
 
-**Remaining Effort:** ~3-4 hours (1 combined UI polish story)
+**Remaining Effort:** Story 6.8 Phase 2 (~8-12 hours across 4 sprints)
 
 ---
 
@@ -768,26 +820,33 @@ Story 6.7 (Document List UX Polish) - Independent (COMBINED: selection, empty st
 Epic 6 is complete when:
 
 **Bug Fixes (Stories 6.1-6.4):**
-1. All 4 bugs are fixed and verified via Playwright
-2. No console errors on document page load
-3. Confidence badges match answer quality
-4. Citation clicks navigate PDF correctly
-5. Mobile tab switching preserves state
+1. ✅ All 4 bugs are fixed and verified via Playwright
+2. ✅ No console errors on document page load
+3. ✅ Confidence badges match answer quality
+4. ✅ Citation clicks navigate PDF correctly
+5. ⏸️ Mobile tab switching preserves state (DEFERRED to F4)
 
 **UI Polish (Stories 6.5-6.9):**
-6. No stale "Epic X" text in UI
-7. Page title shows "docuMINE" (and document name when applicable)
-8. Connection status indicator works correctly
-9. Selected document visually highlighted in sidebar
-10. Empty state is engaging with clear CTA
-11. Long filenames show tooltip on hover
+6. ✅ No stale "Epic X" text in UI
+7. ✅ Page title shows "docuMINE" (and document name when applicable)
+8. ✅ Connection status indicator works correctly
+9. ✅ Selected document visually highlighted in sidebar
+10. ✅ Empty state is engaging with clear CTA
+11. ✅ Long filenames show tooltip on hover
+
+**Design System Refresh (Story 6.8):**
+12. ✅ Phase 1: Electric Blue accent color applied
+13. ⏳ Phase 2: Mobile header/nav fixes (AC-6.8.7-9)
+14. ⏳ Phase 2: Markdown rendering, source highlighting (AC-6.8.16,18)
+15. ⏳ Phase 2: Resizable panels, input focus (AC-6.8.14,15)
+16. ⏳ Phase 2: Auth pages, empty state, dockable chat (AC-6.8.11,13,17)
 
 **Quality Gates:**
-12. All existing tests pass
-13. Build succeeds
-14. CLAUDE.md updated with learnings
-15. RLS policy documentation added
-16. UI research documented
+17. All existing tests pass
+18. Build succeeds
+19. CLAUDE.md updated with learnings
+20. RLS policy documentation added
+21. UI research documented
 
 ---
 
@@ -1045,9 +1104,20 @@ useEffect(() => {
 | 6.4 | DEFERRED to Epic F4 | - |
 | 6.5 | `src/app/layout.tsx`, `src/app/(dashboard)/documents/[id]/page.tsx` | - |
 | 6.6 | `src/hooks/use-realtime.ts` | `src/components/ui/connection-indicator.tsx` |
-| 6.7 (combined) | `src/components/documents/document-list-item.tsx`, `src/components/documents/document-list.tsx`, `src/app/(dashboard)/documents/page.tsx`, `src/app/(dashboard)/documents/[id]/page.tsx` | `src/components/documents/empty-state.tsx`, `__tests__/e2e/document-list-ux.spec.ts` |
-| 6.8 | COMBINED into 6.7 | - |
+| 6.7 | `src/components/documents/document-list-item.tsx`, `src/components/documents/document-list.tsx`, `src/components/documents/document-list-empty.tsx` | `__tests__/e2e/document-list-ux.spec.ts` |
+| 6.8 (Phase 2) | See table below | `__tests__/e2e/design-system.spec.ts` |
 | 6.9 | COMBINED into 6.7 | - |
+
+### Story 6.8 Phase 2 - Detailed File Changes
+
+| Sprint | AC | Files to Modify |
+|--------|-----|-----------------|
+| Sprint 1 | 6.8.7-9 | `src/components/layout/header.tsx` (mobile menu, active state) |
+| Sprint 2 | 6.8.10,16,18 | `src/components/layout/sidebar.tsx`, `src/components/chat/chat-message.tsx`, `src/components/documents/document-viewer.tsx` |
+| Sprint 3 | 6.8.12,14,15 | `src/components/layout/split-view.tsx`, `src/components/ui/input.tsx`, card components |
+| Sprint 4 | 6.8.11,13,17 | `src/app/(auth)/*.tsx`, `src/components/documents/document-list-empty.tsx`, `src/components/chat/chat-panel.tsx` |
+
+**New Dependencies:** `react-markdown`, `remark-gfm`, `react-resizable-panels`, `react-rnd`
 
 ---
 
@@ -1065,5 +1135,5 @@ After Epic 6 completion, add to CLAUDE.md:
 
 _Generated by BMAD Epic Tech Context Workflow_
 _Date: 2025-12-02_
-_Updated: 2025-12-02 (Added recommendations from Epic 5 retrospective)_
-_Source: Epic 5 Full Retrospective (Party Mode Analysis)_
+_Updated: 2025-12-03 (Story 6.8 Phase 2 expansion - UX Audit enhancements)_
+_Source: Epic 5 Full Retrospective, Playwright UX Audit (2025-12-03)_

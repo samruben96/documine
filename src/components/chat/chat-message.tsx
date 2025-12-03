@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { ConfidenceBadge, type ConfidenceLevel } from './confidence-badge';
 import { SourceCitationList } from './source-citation';
@@ -104,13 +106,70 @@ export function ChatMessage({ message, className, onRetry, onSourceClick }: Chat
             : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200' // Surface color for assistant
         )}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">
-          {message.content}
-          {/* Streaming cursor indicator */}
-          {isStreaming && (
-            <span className="inline-block w-1.5 h-4 ml-0.5 bg-slate-400 animate-pulse" />
-          )}
-        </p>
+        {/* AC-6.8.16: Markdown rendering for assistant messages */}
+        {isUser ? (
+          <p className="text-sm whitespace-pre-wrap break-words">
+            {message.content}
+          </p>
+        ) : (
+          <div className="text-sm markdown-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="my-1 leading-relaxed">{children}</p>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                em: ({ children }) => <em className="italic">{children}</em>,
+                code: ({ children }) => (
+                  <code className="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono">
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className="my-2 p-3 bg-slate-200 dark:bg-slate-700 rounded-md overflow-x-auto">
+                    {children}
+                  </pre>
+                ),
+                ul: ({ children }) => <ul className="my-1 ml-4 list-disc">{children}</ul>,
+                ol: ({ children }) => <ol className="my-1 ml-4 list-decimal">{children}</ol>,
+                li: ({ children }) => <li className="my-0.5">{children}</li>,
+                h1: ({ children }) => <h1 className="text-lg font-bold mt-2 mb-1">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base font-bold mt-2 mb-1">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>,
+                a: ({ href, children }) => (
+                  <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    {children}
+                  </a>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-2 border-primary pl-3 italic my-2">
+                    {children}
+                  </blockquote>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-2">
+                    <table className="min-w-full text-xs border-collapse">{children}</table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="border border-slate-300 dark:border-slate-600 px-2 py-1 bg-slate-100 dark:bg-slate-700 font-medium text-left">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-slate-300 dark:border-slate-600 px-2 py-1">
+                    {children}
+                  </td>
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+            {/* Streaming cursor indicator */}
+            {isStreaming && (
+              <span className="inline-block w-1.5 h-4 ml-0.5 bg-slate-400 animate-pulse" />
+            )}
+          </div>
+        )}
 
         {/* Retry button for errors - AC-5.3.8, AC-5.3.10 */}
         {hasError && message.error?.canRetry && onRetry && (

@@ -2396,6 +2396,7 @@ So that **I can share them with clients or save for records**.
 | Epic F2: Billing Infrastructure | 5 stories | Manual tier assignment for MVP |
 | Epic F3: Document Processing Reliability | 3 stories | ~1-2% PDF failures can wait |
 | Epic F4: Mobile Optimization | 3 stories | Mobile not priority for MVP |
+| Epic F5: Document Viewer Enhancements | 3 stories | Requires PDF.js text layer work |
 
 **Note:** Epic 5 significantly expanded during implementation:
 - Stories 5.1-5.7: Core chat functionality (original scope)

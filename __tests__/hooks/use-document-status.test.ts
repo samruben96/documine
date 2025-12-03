@@ -25,6 +25,7 @@ const mockSupabase = {
   from: vi.fn().mockReturnValue({
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    order: vi.fn().mockResolvedValue({ data: [], error: null }), // For fetchDocuments
     single: vi.fn().mockResolvedValue({
       data: { agency_id: 'agency-123' },
     }),
