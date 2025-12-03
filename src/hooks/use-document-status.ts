@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/types/database.types';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { ConnectionState } from '@/components/ui/connection-indicator';
 
 export type Document = Tables<'documents'>;
 
@@ -28,8 +29,10 @@ interface UseDocumentStatusResult {
   documents: Document[];
   /** Update documents list (e.g., after new upload) */
   setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
-  /** Whether realtime connection is active */
+  /** Whether realtime connection is active (backward compatible) */
   isConnected: boolean;
+  /** Story 6.6: Granular connection state for UI indicator */
+  connectionState: ConnectionState;
 }
 
 /**
@@ -48,10 +51,14 @@ export function useDocumentStatus({
   onDocumentFailed,
 }: UseDocumentStatusOptions): UseDocumentStatusResult {
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
-  const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
 
   // Track previous document statuses to detect transitions
   const previousStatusRef = useRef<Map<string, string>>(new Map());
+
+  // Story 6.6: Use ref for realtime change handler to prevent effect re-runs
+  // when onDocumentReady/onDocumentFailed callbacks change (they're often inline functions)
+  const handleRealtimeChangeRef = useRef<((payload: RealtimePostgresChangesPayload<Document>) => void) | null>(null);
 
   // Polling interval ref for status updates
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -199,6 +206,9 @@ export function useDocumentStatus({
     [onDocumentReady, onDocumentFailed]
   );
 
+  // Keep ref updated with latest handler (avoids effect re-runs when callbacks change)
+  handleRealtimeChangeRef.current = handleRealtimeChange;
+
   // Set up realtime subscription
   useEffect(() => {
     if (!agencyId) return;
@@ -218,14 +228,25 @@ export function useDocumentStatus({
             filter: `agency_id=eq.${agencyId}`,
           },
           (payload) => {
-            handleRealtimeChange(payload as RealtimePostgresChangesPayload<Document>);
+            // Use ref to always call the latest handler without re-creating the channel
+            handleRealtimeChangeRef.current?.(payload as RealtimePostgresChangesPayload<Document>);
           }
         )
         .subscribe((status) => {
-          setIsConnected(status === 'SUBSCRIBED');
-          if (status === 'CHANNEL_ERROR') {
+          // Story 6.6: Map Supabase channel statuses to ConnectionState
+          // Note: Supabase may send multiple status callbacks during connection
+          // We only update state on definitive status changes to prevent flickering
+          if (status === 'SUBSCRIBED') {
+            setConnectionState('connected');
+          } else if (status === 'CHANNEL_ERROR') {
+            setConnectionState('disconnected');
             console.error('Realtime channel error for documents');
+          } else if (status === 'TIMED_OUT') {
+            setConnectionState('reconnecting');
+          } else if (status === 'CLOSED') {
+            setConnectionState('disconnected');
           }
+          // For other statuses (like 'JOINING'), keep current state
         });
     };
 
@@ -237,7 +258,7 @@ export function useDocumentStatus({
         supabase.removeChannel(channel);
       }
     };
-  }, [agencyId, handleRealtimeChange]);
+  }, [agencyId]); // Removed handleRealtimeChange - using ref instead to prevent flicker
 
   // Polling fallback: Fetch document statuses periodically
   // This catches any missed realtime events (race conditions, connection issues)
@@ -269,7 +290,8 @@ export function useDocumentStatus({
   return {
     documents,
     setDocuments,
-    isConnected,
+    isConnected: connectionState === 'connected',
+    connectionState,
   };
 }
 

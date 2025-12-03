@@ -171,7 +171,9 @@ development_status:
   # Story 6.6: Connection Status & Realtime Indicator (NEW - UI Polish)
   # "Connecting..." never resolves to meaningful state
   # Priority: P1 - user feedback improvement, S effort
-  6-6-connection-status-indicator: backlog
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.6-connection-status-indicator.md
+  # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-6-connection-status-indicator.context.xml
+  6-6-connection-status-indicator: done
   # Story 6.7: Document Selection Visual Feedback (NEW - UI Polish)
   # No highlight showing which document is selected in sidebar
   # Priority: P1 - navigation clarity, S effort

@@ -11,6 +11,7 @@ import { UploadZone, type UploadingFile } from '@/components/documents/upload-zo
 import { DocumentStatus, type DocumentStatusType } from '@/components/documents/document-status';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import { useProcessingProgress } from '@/hooks/use-processing-progress';
+import { ConnectionIndicator, type ConnectionState } from '@/components/ui/connection-indicator';
 import {
   getDocuments,
   getUserAgencyInfo,
@@ -52,7 +53,7 @@ export default function DocumentsPage() {
 
   const { agencyId } = useAgencyId();
 
-  const { documents, setDocuments, isConnected } = useDocumentStatus({
+  const { documents, setDocuments, isConnected, connectionState: docConnectionState } = useDocumentStatus({
     agencyId: agencyId || '',
     onDocumentReady: () => {},
     onDocumentFailed: () => {},
@@ -66,11 +67,39 @@ export default function DocumentsPage() {
   }, [documents]);
 
   // Story 5.12: Subscribe to processing progress updates
-  const { progressMap, isConnected: isProgressConnected } = useProcessingProgress(processingDocumentIds);
+  const { progressMap, isConnected: isProgressConnected, connectionState: progressConnectionState } = useProcessingProgress(processingDocumentIds);
 
   // Story 5.14 (AC-5.14.7): Connection indicator should reflect actual subscription state
   // Connected = documents channel is live OR progress channel is live (when there are processing docs)
   const isAnyChannelConnected = isConnected || (processingDocumentIds.length > 0 && isProgressConnected);
+
+  // Story 6.6: Compute combined connection state from both channels
+  // Priority: connected > reconnecting > connecting > disconnected
+  // If any channel is connected, show connected
+  // If any channel is reconnecting, show reconnecting
+  // If all channels are connecting, show connecting
+  // Otherwise show disconnected
+  const combinedConnectionState = useMemo((): ConnectionState => {
+    const hasProgressChannel = processingDocumentIds.length > 0;
+    const states = hasProgressChannel
+      ? [docConnectionState, progressConnectionState]
+      : [docConnectionState];
+
+    // If any channel is connected, we're connected
+    if (states.includes('connected')) {
+      return 'connected';
+    }
+    // If any channel is reconnecting, show reconnecting
+    if (states.includes('reconnecting')) {
+      return 'reconnecting';
+    }
+    // If any channel is still connecting, show connecting
+    if (states.includes('connecting')) {
+      return 'connecting';
+    }
+    // All channels disconnected
+    return 'disconnected';
+  }, [docConnectionState, progressConnectionState, processingDocumentIds.length]);
 
   // Fetch queue positions for processing documents (AC-4.7.4)
   const fetchQueuePositions = useCallback(async (docs: Document[]) => {
@@ -340,17 +369,10 @@ export default function DocumentsPage() {
                   </div>
                 )}
 
-                {/* Connection status - Story 5.14 (AC-5.14.7) */}
+                {/* Connection status - Story 6.6 */}
                 {agencyId && (
-                  <div className="mt-6 flex items-center justify-center gap-1.5">
-                    <div
-                      className={`h-2 w-2 rounded-full ${
-                        isAnyChannelConnected ? 'bg-emerald-500' : 'bg-slate-300'
-                      }`}
-                    />
-                    <span className="text-xs text-slate-500">
-                      {isAnyChannelConnected ? 'Live updates active' : 'Connecting...'}
-                    </span>
+                  <div className="mt-6 flex items-center justify-center">
+                    <ConnectionIndicator state={combinedConnectionState} />
                   </div>
                 )}
               </div>

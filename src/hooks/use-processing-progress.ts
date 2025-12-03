@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import type { Json } from '@/types/database.types';
+import type { ConnectionState } from '@/components/ui/connection-indicator';
 
 /**
  * Story 5.12: Processing progress data interface
@@ -67,8 +68,10 @@ interface UseProcessingProgressResult {
   progressMap: Map<string, ProgressData>;
   /** Map of document ID to error message (for failed jobs) - Story 5.13 */
   errorMap: Map<string, string>;
-  /** Whether realtime connection is active */
+  /** Whether realtime connection is active (backward compatible) */
   isConnected: boolean;
+  /** Story 6.6: Granular connection state for UI indicator */
+  connectionState: ConnectionState;
 }
 
 /**
@@ -138,10 +141,14 @@ export function useProcessingProgress(
   );
   // Story 5.13: Track error messages for failed jobs
   const [errorMap, setErrorMap] = useState<Map<string, string>>(new Map());
-  const [isConnected, setIsConnected] = useState(false);
+  // Story 6.6: Track granular connection state
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
 
   // Track job metadata for simulated progress (started_at times)
   const jobMetadataRef = useRef<Map<string, { started_at: string | null }>>(new Map());
+
+  // Story 6.6: Use ref for realtime change handler to prevent effect re-runs
+  const handleRealtimeChangeRef = useRef<((payload: RealtimePostgresChangesPayload<ProcessingJobPayload>) => void) | null>(null);
 
   // Story 5.14 (AC-5.14.3): Track which documents have received server progress data
   // to prevent simulated progress from overriding actual server data
@@ -233,6 +240,9 @@ export function useProcessingProgress(
     },
     [documentIds, updateProgressForJob]
   );
+
+  // Keep ref updated with latest handler (avoids effect re-runs)
+  handleRealtimeChangeRef.current = handleRealtimeChange;
 
   // Fetch progress data from database
   // Used for initial load AND as polling fallback for missed realtime updates
@@ -378,9 +388,14 @@ export function useProcessingProgress(
   // Set up realtime subscription
   useEffect(() => {
     // Don't subscribe if no documents to track
+    // Story 6.6: When inactive, set state to 'connected' since there's nothing to connect to
     if (documentIds.length === 0) {
+      setConnectionState('connected');
       return;
     }
+
+    // Reset to connecting while setting up new channel
+    setConnectionState('connecting');
 
     const supabase = createClient();
     let channel: RealtimeChannel;
@@ -398,16 +413,27 @@ export function useProcessingProgress(
             table: 'processing_jobs',
           },
           (payload) => {
-            handleRealtimeChange(
+            // Use ref to always call the latest handler without re-creating the channel
+            handleRealtimeChangeRef.current?.(
               payload as RealtimePostgresChangesPayload<ProcessingJobPayload>
             );
           }
         )
         .subscribe((status) => {
-          setIsConnected(status === 'SUBSCRIBED');
-          if (status === 'CHANNEL_ERROR') {
+          // Story 6.6: Map Supabase channel statuses to ConnectionState
+          // Note: Supabase may send multiple status callbacks during connection
+          // We only update state on definitive status changes to prevent flickering
+          if (status === 'SUBSCRIBED') {
+            setConnectionState('connected');
+          } else if (status === 'CHANNEL_ERROR') {
+            setConnectionState('disconnected');
             console.error('Realtime channel error for processing_jobs');
+          } else if (status === 'TIMED_OUT') {
+            setConnectionState('reconnecting');
+          } else if (status === 'CLOSED') {
+            setConnectionState('disconnected');
           }
+          // For other statuses (like 'JOINING'), keep current state
         });
     };
 
@@ -419,7 +445,7 @@ export function useProcessingProgress(
         supabase.removeChannel(channel);
       }
     };
-  }, [documentIds, handleRealtimeChange]);
+  }, [documentIds]); // Removed handleRealtimeChange - using ref instead to prevent flicker
 
   // Clean up progress for documents no longer being tracked
   useEffect(() => {
@@ -455,6 +481,7 @@ export function useProcessingProgress(
   return {
     progressMap,
     errorMap,
-    isConnected,
+    isConnected: connectionState === 'connected',
+    connectionState,
   };
 }

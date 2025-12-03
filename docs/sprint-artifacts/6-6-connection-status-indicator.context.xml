@@ -1,0 +1,193 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.6</storyId>
+    <title>Connection Status &amp; Realtime Indicator</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-6.6-connection-status-indicator.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user viewing a document in docuMINE</asA>
+    <iWant>to see whether my connection is active and working</iWant>
+    <soThat>I know my chat messages will be delivered and I'll receive responses</soThat>
+    <tasks>
+      <task id="1" ac="all">Analyze Current Realtime Implementation
+        <subtask>Find where "Connecting..." text is rendered</subtask>
+        <subtask>Identify existing realtime hooks and their connection state handling</subtask>
+        <subtask>Determine best approach to expose connection state</subtask>
+      </task>
+      <task id="2" ac="6.6.1-6.6.4">Create ConnectionIndicator Component
+        <subtask>Create src/components/ui/connection-indicator.tsx</subtask>
+        <subtask>Define connection state types</subtask>
+        <subtask>Implement indicator variants (connecting, connected, disconnected, reconnecting)</subtask>
+        <subtask>Style with appropriate colors and icons</subtask>
+        <subtask>Ensure subtle, non-distracting appearance</subtask>
+      </task>
+      <task id="3" ac="6.6.1-6.6.5">Expose Connection State
+        <subtask>Update or create hook to expose ConnectionState</subtask>
+        <subtask>Handle all Supabase channel subscription statuses</subtask>
+        <subtask>Implement reconnection detection</subtask>
+      </task>
+      <task id="4" ac="6.6.1-6.6.5">Integrate Into Document Page
+        <subtask>Replace static "Connecting..." text with ConnectionIndicator</subtask>
+        <subtask>Pass connection state from hook to component</subtask>
+        <subtask>Test all connection states</subtask>
+      </task>
+      <task id="5" ac="6.6.1-6.6.5">Verify All States
+        <subtask>Verify "Connected" shows after page load</subtask>
+        <subtask>Verify "Connecting..." shows during initial load</subtask>
+        <subtask>Verify "Offline" shows when network disconnected</subtask>
+        <subtask>Verify "Reconnecting..." shows during recovery</subtask>
+        <subtask>Run npm run build</subtask>
+        <subtask>Run npm run test</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-6.6.1" priority="high">
+      <description>Shows "Connected" with green checkmark when realtime connected</description>
+      <verification>Playwright - verify text contains "Connected"</verification>
+    </criterion>
+    <criterion id="AC-6.6.2" priority="high">
+      <description>Shows "Connecting..." with spinner during connection</description>
+      <verification>Visual inspection during page load</verification>
+    </criterion>
+    <criterion id="AC-6.6.3" priority="high">
+      <description>Shows "Offline" or "Disconnected" when connection lost</description>
+      <verification>Manual test - disconnect network, verify UI</verification>
+    </criterion>
+    <criterion id="AC-6.6.4" priority="medium">
+      <description>Indicator is subtle, not distracting during normal operation</description>
+      <verification>Design review - should not distract from main content</verification>
+    </criterion>
+    <criterion id="AC-6.6.5" priority="medium">
+      <description>Auto-reconnect attempts shown to user</description>
+      <verification>Manual test - restore network after disconnect</verification>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-6.md" title="Epic 6 Tech Spec" section="Story 6.6">
+        <snippet>Detailed implementation approach including ConnectionIndicator component structure, useRealtimeConnection hook pattern, and integration steps.</snippet>
+      </doc>
+      <doc path="docs/prd.md" title="Product Requirements Document" section="User Experience Principles">
+        <snippet>"Speed You Can Feel: Responses appear fast. Progress indicators during processing. No unnecessary loading states or animations."</snippet>
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="State Management">
+        <snippet>Server State: Supabase Realtime handles synchronization with automatic reconnection logic.</snippet>
+      </doc>
+      <doc path="docs/research-ui-best-practices-2025-12-02.md" title="UI Best Practices Research" section="Feedback Principles">
+        <snippet>"Immediate responses or indicators to user inputs" - Core chatbot UX principle. "Feedback principle: users need to know system state."</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" lines="343-355">
+        <symbol>Connection status indicator (inline JSX)</symbol>
+        <reason>Current location of "Connecting..." text to replace. Uses isAnyChannelConnected boolean. Line 73 defines: isAnyChannelConnected = isConnected || (processingDocumentIds.length > 0 &amp;&amp; isProgressConnected)</reason>
+      </file>
+      <file path="src/hooks/use-document-status.ts" kind="hook" lines="44-274">
+        <symbol>useDocumentStatus, isConnected</symbol>
+        <reason>Existing realtime hook that exposes isConnected state. Uses .subscribe() callback with status === 'SUBSCRIBED' check. Must understand this pattern to extend for additional states.</reason>
+      </file>
+      <file path="src/hooks/use-processing-progress.ts" kind="hook" lines="133-460">
+        <symbol>useProcessingProgress, isConnected</symbol>
+        <reason>Another realtime hook with isConnected state. Same pattern as use-document-status. Both hooks should be considered when determining combined connection state.</reason>
+      </file>
+      <file path="src/components/ui/tooltip.tsx" kind="component">
+        <symbol>Tooltip</symbol>
+        <reason>Existing shadcn/ui component for tooltips - may be useful for connection indicator details on hover.</reason>
+      </file>
+      <file path="src/lib/supabase/client.ts" kind="utility">
+        <symbol>createClient</symbol>
+        <reason>Supabase client factory used by realtime hooks. Connection to Supabase realtime is established here.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="tailwind-merge" version="^3.4.0" />
+        <package name="class-variance-authority" version="^0.7.1" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use existing hook patterns from use-document-status.ts and use-processing-progress.ts</constraint>
+    <constraint type="pattern">Components use PascalCase naming (ConnectionIndicator)</constraint>
+    <constraint type="pattern">Hooks use camelCase with "use" prefix</constraint>
+    <constraint type="ux">Indicator must be subtle during normal operation - not distract from document content</constraint>
+    <constraint type="ux">Follow shadcn/ui component patterns for consistency</constraint>
+    <constraint type="architecture">Client component - must use 'use client' directive</constraint>
+    <constraint type="supabase">Handle all RealtimeChannel subscription statuses: SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="RealtimeChannel.subscribe callback" kind="callback">
+      <signature>(status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR') => void</signature>
+      <path>src/hooks/use-document-status.ts:224-230</path>
+    </interface>
+    <interface name="ConnectionState type" kind="type" proposed="true">
+      <signature>type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting'</signature>
+      <path>src/components/ui/connection-indicator.tsx (to be created)</path>
+    </interface>
+    <interface name="ConnectionIndicatorProps" kind="props" proposed="true">
+      <signature>interface ConnectionIndicatorProps { state: ConnectionState; className?: string; }</signature>
+      <path>src/components/ui/connection-indicator.tsx (to be created)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest for unit tests, Playwright for E2E. React Testing Library for component tests. Test files in __tests__/ directory mirroring src/ structure.</standards>
+    <locations>
+      <location>__tests__/components/ui/connection-indicator.test.tsx</location>
+      <location>__tests__/e2e/connection-indicator.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-6.6.1">Unit test: ConnectionIndicator renders "Connected" text and green icon when state='connected'</idea>
+      <idea ac="AC-6.6.2">Unit test: ConnectionIndicator renders "Connecting..." text and spinner when state='connecting'</idea>
+      <idea ac="AC-6.6.3">Unit test: ConnectionIndicator renders "Offline" text and red icon when state='disconnected'</idea>
+      <idea ac="AC-6.6.4">Visual regression test: Indicator is appropriately sized and positioned</idea>
+      <idea ac="AC-6.6.5">E2E test: Navigate to documents page, wait for "Connected" state to appear</idea>
+    </ideas>
+  </tests>
+
+  <implementation-notes>
+    <note priority="high">
+      EXISTING INDICATOR LOCATION: The "Connecting..." text is at src/app/(dashboard)/documents/page.tsx:352.
+      It currently shows "Live updates active" when connected, "Connecting..." otherwise.
+      Replace this inline JSX with the new ConnectionIndicator component.
+    </note>
+    <note priority="high">
+      HOOKS ALREADY EXPOSE isConnected: Both use-document-status.ts and use-processing-progress.ts
+      already expose isConnected boolean. The page combines them into isAnyChannelConnected (line 73).
+      Extend this to track more granular connection states.
+    </note>
+    <note priority="medium">
+      SUPABASE CHANNEL STATUSES: The .subscribe() callback receives status values:
+      - 'SUBSCRIBED' → connected
+      - 'CHANNEL_ERROR' → disconnected
+      - 'TIMED_OUT' → could indicate reconnecting
+      - 'CLOSED' → disconnected
+      Map these to ConnectionState values.
+    </note>
+    <note priority="medium">
+      MULTIPLE CHANNELS: The documents page subscribes to TWO channels:
+      1. Documents channel (via useDocumentStatus)
+      2. Processing progress channel (via useProcessingProgress)
+      Consider showing "Connected" if ANY channel is connected, "Offline" only if ALL fail.
+    </note>
+    <note priority="low">
+      ICONS: Use lucide-react icons consistent with existing UI:
+      - CheckCircle or Check for connected
+      - Loader2 (with animate-spin) for connecting
+      - WifiOff for offline
+      - RefreshCw (with animate-spin) for reconnecting
+    </note>
+  </implementation-notes>
+</story-context>
