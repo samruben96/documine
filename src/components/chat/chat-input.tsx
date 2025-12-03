@@ -146,6 +146,7 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
               placeholder={placeholder}
               disabled={isInputDisabled}
               rows={1}
+              data-testid="chat-input"
               className={cn(
                 // Base styles
                 'w-full resize-none rounded-lg border px-4 py-3',

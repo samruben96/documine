@@ -12,7 +12,7 @@
 | Service | Platform | URL |
 |---------|----------|-----|
 | Docling Service | Railway | https://docling-for-documine-production.up.railway.app |
-| Supabase | Supabase Cloud | Project ID: `qfhzvkqbbtxvmwiixlhf` |
+| Supabase | Supabase Cloud | Project ID: `nxuzurxiaismssiiydst` |
 
 ## Project Structure
 
@@ -80,14 +80,16 @@ This project uses the BMAD Method for development. Stories are tracked in `docs/
 
 ## Supabase
 
-- **Project ID:** `qfhzvkqbbtxvmwiixlhf`
+- **Project ID:** `nxuzurxiaismssiiydst`
 - **Project Name:** Testing and messing
 - **Region:** us-east-2
 
-Use this project ID for Supabase MCP operations:
+**IMPORTANT:** The Supabase MCP integration for this project can ONLY access this project ID: `nxuzurxiaismssiiydst`
+
+Use this project ID for all Supabase MCP operations:
 ```
-mcp__supabase__execute_sql(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
-mcp__supabase__deploy_edge_function(project_id: "qfhzvkqbbtxvmwiixlhf", ...)
+mcp__supabase__execute_sql(project_id: "nxuzurxiaismssiiydst", ...)
+mcp__supabase__deploy_edge_function(project_id: "nxuzurxiaismssiiydst", ...)
 ```
 
 ## Document Processing
@@ -207,3 +209,105 @@ Three issues fixed post-implementation:
 temperature: 0.7,  // Balanced for insurance docs
 max_tokens: 1500   // Reasonable response length
 ```
+
+### PDF "page-dimensions" Error Handling (Story 5.13, 2025-12-02)
+
+**Issue:** Some PDFs fail to parse with libpdfium error: "could not find the page-dimensions for the given page"
+**Root Cause:** PDF format issue in libpdfium when performing cell matching during table extraction
+**Reference:** https://github.com/docling-project/docling/issues/2536
+
+**Resolution:** Implemented robust error handling and retry logic:
+
+1. **Error Detection (AC-5.13.1):**
+   - Edge Function detects "page-dimensions", "MediaBox", or "libpdfium" errors
+   - Returns user-friendly message: "This PDF has an unusual format that our system can't process. Try re-saving it with Adobe Acrobat or a PDF converter."
+
+2. **Retry with Fallback (AC-5.13.2):**
+   - On page-dimensions error, retry with `?disable_cell_matching=true`
+   - Docling service initializes two converters (standard and fallback)
+   - Fallback converter disables `do_cell_matching` in table extraction
+
+3. **Diagnostic Logging (AC-5.13.3):**
+   - Logs PDF size, filename, error type for analysis
+   - Structured logging helps identify problematic PDF patterns
+
+4. **UI Error Display:**
+   - Failed documents show user-friendly error in document viewer
+   - Error message fetched from `processing_jobs.error_message`
+   - `FailedDocumentView` component displays message prominently
+
+**Files Changed:**
+- `supabase/functions/process-document/index.ts` - Error detection, retry logic, user-friendly messages
+- `src/app/(dashboard)/documents/[id]/page.tsx` - FailedDocumentView component
+- `src/hooks/use-processing-progress.ts` - Added errorMap for error messages
+- Docling service: `main.py` - Added `disable_cell_matching` query param, fallback converter
+
+**User-Friendly Error Messages:**
+```typescript
+const USER_FRIENDLY_ERRORS = {
+  'page-dimensions': 'This PDF has an unusual format that our system can\'t process. Try re-saving it with Adobe Acrobat or a PDF converter.',
+  'timeout': 'Processing timeout: document too large or complex. Try splitting into smaller files.',
+  'unsupported-format': 'This file format is not supported. Please upload a PDF, DOCX, or image file.',
+};
+```
+
+### Conversation Loading 406 Error Fix (Story 6.1, 2025-12-02)
+
+**Issue:** Users could not load their conversation history. The Supabase client returned HTTP 406 "Not Acceptable" when querying the conversations table.
+
+**Root Cause:** The `useConversation` hook used `.single()` modifier when querying for an existing conversation. Per Supabase/PostgREST behavior, `.single()` returns HTTP 406 (PGRST116) when 0 rows match the query - but we expected graceful handling of "no conversation exists yet" case.
+
+**Reference:** https://github.com/orgs/supabase/discussions/2284
+
+**Resolution:** Changed from `.single()` to `.maybeSingle()` in the conversation query:
+- `.single()` - Throws 406 error if 0 or >1 rows match
+- `.maybeSingle()` - Returns `null` data (no error) if 0 rows match, error only if >1 rows
+
+**Files Changed:**
+- `src/hooks/use-conversation.ts` - Changed `.single()` to `.maybeSingle()` on line 90, added error logging
+- `__tests__/hooks/use-conversation.test.ts` - Updated mocks to use `maybeSingle()` instead of `single()`
+- `__tests__/e2e/conversation-persistence.spec.ts` - **NEW** - Playwright E2E test for conversation persistence
+
+**Key Learning:** When querying Supabase for a record that may or may not exist, always use `.maybeSingle()` instead of `.single()`. The `.single()` modifier is for cases where you expect exactly one row and want an error if that assumption is violated.
+
+```typescript
+// ❌ Bad - throws 406 when no conversation exists
+const { data } = await supabase
+  .from('conversations')
+  .select('*')
+  .eq('document_id', documentId)
+  .single();
+
+// ✅ Good - returns null data gracefully when no conversation exists
+const { data } = await supabase
+  .from('conversations')
+  .select('*')
+  .eq('document_id', documentId)
+  .maybeSingle();
+```
+
+## Playwright E2E Testing
+
+Playwright was added for E2E testing in Epic 6. Configuration and tests are located at:
+
+- **Config:** `playwright.config.ts`
+- **Tests:** `__tests__/e2e/`
+
+**Run E2E tests:**
+```bash
+# Run all E2E tests
+npx playwright test
+
+# Run with headed browser (see what's happening)
+npx playwright test --headed
+
+# Run specific test file
+npx playwright test conversation-persistence
+```
+
+**Test components have `data-testid` attributes:**
+- `chat-panel` - Main chat panel container
+- `chat-message` - Individual chat messages (with `data-role` attribute)
+- `chat-input` - Message input textarea
+- `suggested-questions` - Suggested questions container
+- `document-list` - Document sidebar list

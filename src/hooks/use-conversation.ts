@@ -77,6 +77,9 @@ export function useConversation(documentId: string): UseConversationReturn {
       }
 
       // Try to get existing conversation (most recent by updated_at)
+      // Use maybeSingle() instead of single() to handle 0 rows gracefully
+      // single() returns 406 error when 0 rows match, maybeSingle() returns null
+      // Reference: https://github.com/orgs/supabase/discussions/2284
       const { data: existingConversation, error: findError } = await supabase
         .from('conversations')
         .select('*')
@@ -84,10 +87,15 @@ export function useConversation(documentId: string): UseConversationReturn {
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (findError && findError.code !== 'PGRST116') {
-        // PGRST116 = no rows found, which is fine
+      if (findError) {
+        // Log the actual error for debugging (RLS rejection vs other issues)
+        console.error('Conversation load error:', {
+          code: findError.code,
+          message: findError.message,
+          hint: findError.hint,
+        });
         throw new Error('Failed to load conversation');
       }
 

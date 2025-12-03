@@ -23,6 +23,7 @@ function createChainableMock() {
     order: vi.fn(() => mock),
     limit: vi.fn(() => mock),
     single: vi.fn(),
+    maybeSingle: vi.fn(), // Used by useConversation for graceful 0-row handling
     auth: {
       getUser: vi.fn(),
     },
@@ -51,7 +52,7 @@ describe('useConversation', () => {
   describe('Initial loading state', () => {
     it('starts with isLoading true', () => {
       // Never resolve to stay in loading
-      mockSupabase.single.mockImplementation(() => new Promise(() => {}));
+      mockSupabase.maybeSingle.mockImplementation(() => new Promise(() => {}));
 
       const { result } = renderHook(() => useConversation('doc-123'));
 
@@ -63,9 +64,10 @@ describe('useConversation', () => {
 
   describe('AC-5.6.4: Empty conversation handling', () => {
     it('handles case where no conversation exists', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      // maybeSingle returns null data with no error when 0 rows match
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116', message: 'No rows returned' },
+        error: null,
       });
 
       const { result } = renderHook(() => useConversation('doc-123'));
@@ -99,9 +101,9 @@ describe('useConversation', () => {
 
   describe('Hook interface', () => {
     it('exposes refetch function', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116' },
+        error: null,
       });
 
       const { result } = renderHook(() => useConversation('doc-123'));
@@ -114,9 +116,9 @@ describe('useConversation', () => {
     });
 
     it('exposes createNew function', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116' },
+        error: null,
       });
 
       const { result } = renderHook(() => useConversation('doc-123'));
@@ -129,9 +131,9 @@ describe('useConversation', () => {
     });
 
     it('returns conversation, messages, isLoading, error states', async () => {
-      mockSupabase.single.mockResolvedValueOnce({
+      mockSupabase.maybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116' },
+        error: null,
       });
 
       const { result } = renderHook(() => useConversation('doc-123'));
@@ -162,7 +164,8 @@ describe('useConversation', () => {
         { id: 'm1', conversation_id: 'conv-1', agency_id: 'agency-1', role: 'user', content: 'Hi', sources: null, confidence: null, created_at: '2024-01-01T00:00:00Z' },
       ];
 
-      mockSupabase.single.mockResolvedValueOnce({ data: existingConv, error: null });
+      // maybeSingle returns data when conversation exists
+      mockSupabase.maybeSingle.mockResolvedValueOnce({ data: existingConv, error: null });
       // Message loading uses order().select() chain, mock at order
       mockSupabase.order.mockReturnValue({
         ...mockSupabase,

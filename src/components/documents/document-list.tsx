@@ -174,7 +174,7 @@ export function DocumentList({
   }
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col h-full', className)} data-testid="document-list">
       {/* Search and filter - AC-4.3.6, AC-4.5.9 */}
       <div className="flex-shrink-0 p-3 border-b border-slate-200 space-y-2">
         <div className="relative">

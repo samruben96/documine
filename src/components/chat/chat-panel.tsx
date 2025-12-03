@@ -234,7 +234,7 @@ export function ChatPanel({
   }, [onFocusInput]);
 
   return (
-    <div className={cn('h-full flex flex-col bg-white', className)}>
+    <div className={cn('h-full flex flex-col bg-white', className)} data-testid="chat-panel">
       {/* Chat Header with New Chat Button - AC-5.6.7 */}
       <div className="flex-shrink-0 h-14 border-b border-slate-200 flex items-center justify-between px-4">
         <h2 className="font-medium text-slate-700">Chat</h2>
@@ -296,7 +296,7 @@ export function ChatPanel({
               </p>
             </div>
             {/* Suggested Questions - AC-5.2.5, AC-5.2.6 */}
-            <SuggestedQuestions onSelect={handleSuggestionSelect} />
+            <SuggestedQuestions onSelect={handleSuggestionSelect} data-testid="suggested-questions" />
           </div>
         ) : (
           // Messages and thinking indicator

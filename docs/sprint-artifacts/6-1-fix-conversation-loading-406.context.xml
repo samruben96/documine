@@ -1,0 +1,249 @@
+<story-context id="6-1-fix-conversation-loading-406" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.1</storyId>
+    <title>Fix Conversation Loading (406 Error)</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-6.1-fix-conversation-loading-406.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user returning to a document</asA>
+    <iWant>my previous conversation to load correctly</iWant>
+    <soThat>I can continue where I left off without losing context</soThat>
+    <tasks>
+      <task id="1" ac="6.1.1,6.1.3">Diagnose RLS Policy Issue
+        <subtask>Query pg_policies to see current conversation policies</subtask>
+        <subtask>Test get_user_agency_id() function returns correct value</subtask>
+        <subtask>Verify user record has agency_id populated</subtask>
+        <subtask>Check if conversation has correct agency_id when created</subtask>
+      </task>
+      <task id="2" ac="6.1.1,6.1.2">Fix RLS Policy
+        <subtask>Create migration to add/fix SELECT policy on conversations</subtask>
+        <subtask>Apply migration to local database</subtask>
+        <subtask>Verify policy works for authenticated user</subtask>
+        <subtask>Deploy migration to production</subtask>
+      </task>
+      <task id="3" ac="6.1.2">Verify chat_messages Policy
+        <subtask>Check chat_messages SELECT policy exists</subtask>
+        <subtask>Verify policy allows reading messages for user's conversations</subtask>
+        <subtask>Add policy if missing</subtask>
+      </task>
+      <task id="4" ac="6.1.2,6.1.3,6.1.4">Write Playwright E2E Test
+        <subtask>Create __tests__/e2e/conversation-persistence.spec.ts</subtask>
+        <subtask>Test conversation loads on document view</subtask>
+        <subtask>Test conversation persists across refresh</subtask>
+        <subtask>Verify no console errors</subtask>
+      </task>
+      <task id="5" ac="6.1.5">Verify and Document
+        <subtask>Manual test with different user accounts</subtask>
+        <subtask>Update CLAUDE.md with RLS policy summary</subtask>
+        <subtask>Document fix in story file</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="6.1.1">
+      <description>RLS Policy Allows SELECT</description>
+      <given>a user has created conversations</given>
+      <when>they query the conversations table</when>
+      <then>RLS policy allows SELECT for their own conversations (scoped to their agency)</then>
+      <verification>SQL query in Supabase dashboard</verification>
+    </ac>
+    <ac id="6.1.2">
+      <description>Conversation History Loads</description>
+      <given>I have an existing conversation with a document</given>
+      <when>I navigate to that document</when>
+      <then>my previous messages load correctly in the chat panel</then>
+      <verification>Playwright test - navigate to doc, verify messages appear</verification>
+    </ac>
+    <ac id="6.1.3">
+      <description>No Console Errors</description>
+      <given>I am viewing a document with conversation history</given>
+      <when>the page loads</when>
+      <then>no 406 errors appear in browser console</then>
+      <verification>Playwright test - check console messages</verification>
+    </ac>
+    <ac id="6.1.4">
+      <description>Conversation Persists Across Refresh</description>
+      <given>I send a message and receive a response</given>
+      <when>I refresh the page</when>
+      <then>both my message and the AI response are still visible</then>
+      <verification>Playwright test - send message, refresh, verify message appears</verification>
+    </ac>
+    <ac id="6.1.5">
+      <description>User Cannot See Other Users' Conversations</description>
+      <given>two users in the same agency</given>
+      <when>user A views a document</when>
+      <then>user A cannot see user B's conversations for that document</then>
+      <verification>Manual test with different user</verification>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-6.md</path>
+        <title>Epic 6 Technical Specification</title>
+        <section>BUG-1: Conversation Loading 406 Error</section>
+        <snippet>HTTP 406 "Not Acceptable" in Supabase context typically means RLS policy rejection. The conversation is created server-side (service role bypasses RLS), but loaded client-side (RLS applies).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>RLS Policies, Data Architecture</section>
+        <snippet>Row Level Security policies enforce agency isolation: Users can only see/modify data where agency_id matches their own. All tables have RLS enabled.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.2: Database Schema &amp; RLS Policies</section>
+        <snippet>RLS policies enforce agency isolation - users can only see/modify data where agency_id matches their own. All tables have RLS enabled.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/migrations/00003_rls_policies.sql</path>
+        <kind>migration</kind>
+        <symbol>Conversations scoped to agency - SELECT</symbol>
+        <lines>96-110</lines>
+        <reason>Contains the RLS policy that may be causing the 406 error. Policy uses get_user_agency_id() function which may return NULL.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-conversation.ts</path>
+        <kind>hook</kind>
+        <symbol>useConversation</symbol>
+        <lines>80-87</lines>
+        <reason>Client-side conversation loading code. Queries conversations table with user_id filter where RLS applies agency_id check.</reason>
+      </file>
+      <file>
+        <path>src/lib/chat/service.ts</path>
+        <kind>service</kind>
+        <symbol>getOrCreateConversation, saveUserMessage, saveAssistantMessage</symbol>
+        <lines>29-122</lines>
+        <reason>Server-side conversation creation uses service role (bypasses RLS). Need to verify agency_id is set correctly when creating conversations.</reason>
+      </file>
+      <file>
+        <path>src/app/api/chat/route.ts</path>
+        <kind>route</kind>
+        <symbol>POST handler</symbol>
+        <lines>all</lines>
+        <reason>Chat API route that creates conversations server-side. May need to verify agency_id propagation.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-document-status.ts</path>
+        <kind>hook</kind>
+        <symbol>useDocumentStatus</symbol>
+        <lines>192-197</lines>
+        <reason>Reference for Supabase realtime subscription patterns (from Story 5.14).</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database client with RLS enforcement</usage>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+        <usage>Server-side rendering support for Supabase auth</usage>
+      </node>
+      <node>
+        <package>next</package>
+        <version>16.0.4</version>
+        <usage>Framework - App Router with server/client separation</usage>
+      </node>
+      <devDependency>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <usage>Unit test framework</usage>
+      </devDependency>
+      <devDependency>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+        <usage>React component testing</usage>
+      </devDependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>All database queries from client-side must pass RLS policies</rule>
+      <source>docs/architecture.md#RLS-Policies</source>
+    </constraint>
+    <constraint type="architecture">
+      <rule>Server-side operations can use service_role to bypass RLS, but must set agency_id correctly</rule>
+      <source>docs/architecture.md#ADR-004</source>
+    </constraint>
+    <constraint type="testing">
+      <rule>Test-Driven Bug Fixing (TDBF): Write failing Playwright test first, then implement fix</rule>
+      <source>docs/sprint-artifacts/tech-spec-epic-6.md#Testing-Strategy</source>
+    </constraint>
+    <constraint type="security">
+      <rule>Users must not be able to see other users' conversations, even in same agency</rule>
+      <source>Story AC-6.1.5</source>
+    </constraint>
+    <constraint type="pattern">
+      <rule>Use get_user_agency_id() helper function for RLS policies - defined in 00003_rls_policies.sql</rule>
+      <source>supabase/migrations/00003_rls_policies.sql:19-22</source>
+    </constraint>
+    <constraint type="migration">
+      <rule>New migration file should be numbered 00008_fix_conversation_rls.sql</rule>
+      <source>Existing migrations end at 00007</source>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>conversations table SELECT</name>
+      <kind>Supabase RLS Policy</kind>
+      <signature>CREATE POLICY "Conversations scoped to agency - SELECT" ON conversations FOR SELECT USING (agency_id = get_user_agency_id())</signature>
+      <path>supabase/migrations/00003_rls_policies.sql:96-98</path>
+    </interface>
+    <interface>
+      <name>get_user_agency_id</name>
+      <kind>PostgreSQL function</kind>
+      <signature>CREATE OR REPLACE FUNCTION get_user_agency_id() RETURNS UUID AS $$ SELECT agency_id FROM users WHERE id = auth.uid(); $$ LANGUAGE SQL SECURITY DEFINER STABLE</signature>
+      <path>supabase/migrations/00003_rls_policies.sql:19-22</path>
+    </interface>
+    <interface>
+      <name>useConversation hook</name>
+      <kind>React hook</kind>
+      <signature>function useConversation(documentId: string): UseConversationReturn</signature>
+      <path>src/hooks/use-conversation.ts:46</path>
+    </interface>
+    <interface>
+      <name>getOrCreateConversation</name>
+      <kind>service function</kind>
+      <signature>async function getOrCreateConversation(supabase: SupabaseClient&lt;Database&gt;, documentId: string, userId: string, agencyId: string): Promise&lt;Conversation&gt;</signature>
+      <path>src/lib/chat/service.ts:29-122</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing follows Test-Driven Bug Fixing (TDBF) methodology from tech-spec-epic-6. For bugs: 1) Write failing Playwright test first, 2) Commit failing test, 3) Implement fix, 4) Verify test passes, 5) Commit fix with passing test. Unit tests use Vitest with @testing-library/react. Tests organized by feature in __tests__/ directory with unit/, integration/, and e2e/ subdirectories.
+    </standards>
+    <locations>
+      <location>__tests__/e2e/</location>
+      <location>__tests__/unit/</location>
+      <location>__tests__/integration/</location>
+      <location>__tests__/hooks/use-conversation.test.ts</location>
+      <location>__tests__/lib/chat/service.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="6.1.1">SQL test: Query pg_policies WHERE tablename = 'conversations' to verify SELECT policy exists with correct USING clause</idea>
+      <idea ac="6.1.2">E2E test: Navigate to document with ready status, verify messages array is populated (not 406)</idea>
+      <idea ac="6.1.3">E2E test: Check page.evaluate(() => console.messages) for 406 errors after page load</idea>
+      <idea ac="6.1.4">E2E test: Send message, wait for response, page.reload(), verify message text is visible</idea>
+      <idea ac="6.1.5">Manual: Login as user A, create conversation, login as user B (same agency), verify user B sees empty chat for same document</idea>
+      <idea ac="all">Unit test: Test get_user_agency_id() returns non-NULL for authenticated user with valid users record</idea>
+    </ideas>
+  </tests>
+</story-context>

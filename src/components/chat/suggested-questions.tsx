@@ -12,6 +12,7 @@ interface SuggestedQuestionsProps {
   onSelect: (question: string) => void;
   className?: string;
   suggestions?: string[];
+  'data-testid'?: string;
 }
 
 /**
@@ -29,9 +30,10 @@ export function SuggestedQuestions({
   onSelect,
   className,
   suggestions = DEFAULT_SUGGESTIONS,
+  'data-testid': testId,
 }: SuggestedQuestionsProps) {
   return (
-    <div className={cn('flex flex-col items-center gap-4', className)}>
+    <div className={cn('flex flex-col items-center gap-4', className)} data-testid={testId}>
       <p className="text-sm text-slate-500">Try asking:</p>
       <div className="flex flex-wrap justify-center gap-2">
         {suggestions.map((question) => (

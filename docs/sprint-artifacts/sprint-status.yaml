@@ -81,7 +81,7 @@ development_status:
   epic-4-retrospective: completed
 
   # Epic 5: Document Q&A with Trust Transparency
-  epic-5: contexted
+  epic-5: done
   5-1-chat-interface-layout-split-view: done
   5-2-natural-language-query-input: done
   5-3-ai-response-with-streaming-trust-elements: done
@@ -122,18 +122,68 @@ development_status:
   5-14-realtime-polish: done
   # Mini-retro (5.1-5.6) completed 2025-12-01: docs/sprint-artifacts/epic-5-retro-2025-12-01.md
   # Doc update session completed 2025-12-02 (Party Mode - epics.md, architecture.md)
-  # FULL Epic 5 retrospective needed after 5.13/5.14 completion
-  epic-5-retrospective: optional
+  # FULL Epic 5 retrospective completed 2025-12-02: docs/sprint-artifacts/epic-5-full-retrospective.md
+  # Identified 4 bugs requiring cleanup before proceeding to Quote Comparison
+  epic-5-retrospective: completed
 
-  # Epic 6: Quote Comparison
-  epic-6: backlog
-  6-1-quote-selection-interface: backlog
-  6-2-quote-data-extraction: backlog
-  6-3-comparison-table-view: backlog
-  6-4-gap-conflict-identification: backlog
-  6-5-source-citations-in-comparison: backlog
-  6-6-export-comparison-results: backlog
+  # Epic 6: Epic 5 Cleanup & Stabilization + UI Polish
+  # Source: Epic 5 Full Retrospective + Party Mode UI Exploration - 2025-12-02
+  # Reason: 4 bugs + 5 UI polish items undermining trust transparency UX
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-6.md
+  # Research: docs/research-ui-best-practices-2025-12-02.md
+  epic-6: contexted
+  # Story 6.1: Fix Conversation Loading (406 Error)
+  # RLS policy allows INSERT but not SELECT - users can't load their conversations
+  # Priority: P0 - blocks other testing
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.1-fix-conversation-loading-406.md
+  # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-1-fix-conversation-loading-406.context.xml
+  # IMPLEMENTED 2025-12-02: Fixed .single() to .maybeSingle(), Playwright E2E test added
+  # CODE REVIEWED 2025-12-02: APPROVED - all ACs verified, all tasks complete
+  6-1-fix-conversation-loading-406: done
+  # Story 6.2: Fix Confidence Score Calculation
+  # Cohere reranker scores replace vector similarity - wrong thresholds
+  # Priority: P0 - core trust feature broken
+  6-2-fix-confidence-score-calculation: backlog
+  # Story 6.3: Fix Source Citation Navigation
+  # Clicking citation doesn't scroll PDF to referenced page
+  # Priority: P1 - UX broken but not blocking
+  6-3-fix-source-citation-navigation: backlog
+  # Story 6.4: Fix Mobile Tab State Preservation
+  # Tab switching on mobile loses chat history
+  # Priority: P1 - mobile UX issue, may be resolved by 6.1
+  6-4-fix-mobile-tab-state: backlog
+  # Story 6.5: Remove Stale UI Text & Fix Page Title (NEW - UI Polish)
+  # "Coming in Epic 5" text and "Create Next App" page title
+  # Priority: P0 - embarrassment fix, XS effort
+  6-5-remove-stale-text-fix-title: backlog
+  # Story 6.6: Connection Status & Realtime Indicator (NEW - UI Polish)
+  # "Connecting..." never resolves to meaningful state
+  # Priority: P1 - user feedback improvement, S effort
+  6-6-connection-status-indicator: backlog
+  # Story 6.7: Document Selection Visual Feedback (NEW - UI Polish)
+  # No highlight showing which document is selected in sidebar
+  # Priority: P1 - navigation clarity, S effort
+  6-7-document-selection-highlight: backlog
+  # Story 6.8: Empty State UX Improvement (NEW - UI Polish)
+  # Bland empty state doesn't guide users or inspire action
+  # Priority: P2 - onboarding improvement, S effort
+  6-8-empty-state-ux: backlog
+  # Story 6.9: Long Filename Handling (NEW - UI Polish)
+  # Long filenames truncated without tooltip
+  # Priority: P2 - UX polish, XS effort
+  6-9-long-filename-tooltip: backlog
   epic-6-retrospective: optional
+
+  # Epic 7: Quote Comparison (RENUMBERED from Epic 6)
+  # Moved to Epic 7 to allow Epic 5 cleanup first
+  epic-7: backlog
+  7-1-quote-selection-interface: backlog
+  7-2-quote-data-extraction: backlog
+  7-3-comparison-table-view: backlog
+  7-4-gap-conflict-identification: backlog
+  7-5-source-citations-in-comparison: backlog
+  7-6-export-comparison-results: backlog
+  epic-7-retrospective: optional
 
 # ===========================================
 # FUTURE EPICS (Deferred from MVP per Epic 2 Retrospective)

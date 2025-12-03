@@ -90,6 +90,8 @@ export function ChatMessage({ message, className, onRetry, onSourceClick }: Chat
         isUser ? 'items-end' : 'items-start',
         className
       )}
+      data-testid="chat-message"
+      data-role={message.role}
     >
       {/* Message Bubble */}
       <div
