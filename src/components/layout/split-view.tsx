@@ -135,7 +135,7 @@ export function ChatPanelPlaceholder() {
           />
         </svg>
         <p className="mt-4 text-sm">Chat with your document</p>
-        <p className="mt-1 text-xs text-slate-400">Coming in Epic 5</p>
+        <p className="mt-1 text-xs text-slate-400">Select a document to start chatting</p>
       </div>
     </div>
   );

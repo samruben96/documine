@@ -102,6 +102,20 @@ export default function DocumentDetailPage() {
     }
   }, [documentId, documents]);
 
+  // AC-6.5.3: Update page title with document name
+  useEffect(() => {
+    if (selectedDocument) {
+      const docName = selectedDocument.display_name || selectedDocument.filename;
+      document.title = `${docName} - docuMINE`;
+    } else {
+      document.title = 'docuMINE';
+    }
+    // Cleanup: reset title when leaving page
+    return () => {
+      document.title = 'docuMINE';
+    };
+  }, [selectedDocument]);
+
   // Load PDF URL when selected document changes (AC-5.5.1)
   useEffect(() => {
     async function loadPdfUrl() {

@@ -35,7 +35,7 @@ export function ComingSoonTab({ title, description }: ComingSoonTabProps) {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-slate-900 mb-1">Coming in Epic 3</h3>
+          <h3 className="text-lg font-medium text-slate-900 mb-1">Coming Soon</h3>
           <p className="text-sm text-slate-500 max-w-sm">
             This feature is planned for a future release. Stay tuned for updates.
           </p>

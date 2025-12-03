@@ -159,14 +159,15 @@ development_status:
   # Fix: Conditional rendering with useIsMobile() hook - only ONE instance exists
   # CODE REVIEWED 2025-12-03: APPROVED - all 5 ACs verified, architectural fix correct
   6-3-fix-source-citation-navigation: done
-  # Story 6.4: Fix Mobile Tab State Preservation
-  # Tab switching on mobile loses chat history
-  # Priority: P1 - mobile UX issue, may be resolved by 6.1
-  6-4-fix-mobile-tab-state: backlog
+  # Story 6.4: DEFERRED to Future Epic F4
+  # Moved 2025-12-02: Mobile optimization not priority for MVP
+  # See: epic-f4-mobile-optimization
   # Story 6.5: Remove Stale UI Text & Fix Page Title (NEW - UI Polish)
   # "Coming in Epic 5" text and "Create Next App" page title
   # Priority: P0 - embarrassment fix, XS effort
-  6-5-remove-stale-text-fix-title: backlog
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.5-remove-stale-text-fix-title.md
+  # IMPLEMENTED 2025-12-02: Fixed page title, removed stale Epic references, dynamic doc titles
+  6-5-remove-stale-text-fix-title: done
   # Story 6.6: Connection Status & Realtime Indicator (NEW - UI Polish)
   # "Connecting..." never resolves to meaningful state
   # Priority: P1 - user feedback improvement, S effort
@@ -226,3 +227,11 @@ development_status:
   f3-1-pypdfium2-backend-evaluation: future
   f3-2-multi-backend-fallback-chain: future
   f3-3-pdf-preprocessing-normalization: future
+
+  # Epic F4: Mobile Optimization (Deferred from Epic 6)
+  # Source: Epic 6 Story 6.4 - 2025-12-02
+  # Reason: Mobile optimization not priority for MVP
+  epic-f4-mobile-optimization: future
+  f4-1-mobile-tab-state-preservation: future
+  f4-2-mobile-responsive-polish: future
+  f4-3-touch-gesture-improvements: future
