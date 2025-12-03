@@ -37,6 +37,26 @@ const CHARS_PER_TOKEN = 4;
 const DOCLING_TIMEOUT_MS = 300000; // 300s (5 min) - paid tier optimization
 const TOTAL_PROCESSING_TIMEOUT_MS = 480000; // 480s (8 min) - ensures error handling runs before platform timeout
 
+// Story 5.13: PDF parsing robustness - error detection patterns
+// Known libpdfium errors that indicate PDF format issues (not corruption)
+const PAGE_DIMENSIONS_ERROR_PATTERNS = [
+  'could not find the page-dimensions',
+  'could not find page-dimensions',
+  'page-dimensions',
+  'MediaBox',
+  'libpdfium',
+] as const;
+
+// User-friendly error messages for specific error types
+const USER_FRIENDLY_ERRORS: Record<string, string> = {
+  'page-dimensions':
+    'This PDF has an unusual format that our system can\'t process. Try re-saving it with Adobe Acrobat or a PDF converter.',
+  'timeout':
+    'Processing timeout: document too large or complex. Try splitting into smaller files.',
+  'unsupported-format':
+    'This file format is not supported. Please upload a PDF, DOCX, or image file.',
+};
+
 // Story 5.12: Progress reporting configuration
 // Stage weights for total_progress calculation:
 // downloading: 5% (quick), parsing: 60% (bulk), chunking: 10% (quick), embedding: 25%
@@ -465,8 +485,11 @@ interface DoclingApiResponse {
 }
 
 /**
- * Parse document with retry logic.
- * Implements AC-4.8.8: Retry logic (2 attempts with exponential backoff)
+ * Parse document with retry logic and fallback options.
+ * Implements:
+ * - AC-4.8.8: Retry logic (2 attempts with exponential backoff)
+ * - AC-5.13.2: Retry with disable_cell_matching on page-dimensions error
+ * - AC-5.13.3: Diagnostic logging for PDF failures
  */
 async function parseDocumentWithRetry(
   docBuffer: Uint8Array,
@@ -474,32 +497,78 @@ async function parseDocumentWithRetry(
   serviceUrl: string
 ): Promise<DoclingResult> {
   let lastError: Error | null = null;
+  const fileSizeBytes = docBuffer.byteLength;
 
-  // Retry once on failure (AC-4.8.8)
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      return await parseDocument(docBuffer, filename, serviceUrl);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      log.warn('Docling parse failed, retrying', { attempt, error: lastError.message });
+  // First attempt: Normal parsing
+  try {
+    return await parseDocument(docBuffer, filename, serviceUrl, false);
+  } catch (error) {
+    lastError = error instanceof Error ? error : new Error(String(error));
 
-      if (attempt < 2) {
-        await sleep(2000 * attempt); // Exponential backoff
+    // Story 5.13 (AC-5.13.3): Log diagnostic info for parse failures
+    const diagnostics = extractDiagnosticInfo(lastError.message, fileSizeBytes, filename);
+    log.warn('Docling parse failed (attempt 1)', {
+      ...diagnostics,
+      willRetry: true,
+    });
+
+    // Story 5.13 (AC-5.13.2): Check if this is a page-dimensions error
+    // If so, retry with disable_cell_matching=true
+    if (isPageDimensionsError(lastError.message)) {
+      log.info('Detected page-dimensions error, retrying with disable_cell_matching', {
+        filename,
+        fileSizeMB: diagnostics.fileSizeMB,
+      });
+
+      try {
+        await sleep(2000); // Brief delay before retry
+        return await parseDocument(docBuffer, filename, serviceUrl, true);
+      } catch (retryError) {
+        const retryErr = retryError instanceof Error ? retryError : new Error(String(retryError));
+
+        // Story 5.13 (AC-5.13.3): Log final failure with diagnostics
+        log.error('Docling parse failed with fallback option', retryErr, {
+          ...diagnostics,
+          fallbackAttempted: true,
+          finalError: retryErr.message,
+        });
+
+        // Return user-friendly error message (AC-5.13.1)
+        throw new Error(getUserFriendlyError(retryErr.message));
       }
     }
-  }
 
-  throw lastError || new Error('Docling parsing failed');
+    // Standard retry for non-page-dimensions errors (AC-4.8.8)
+    await sleep(2000);
+
+    try {
+      return await parseDocument(docBuffer, filename, serviceUrl, false);
+    } catch (retryError) {
+      const retryErr = retryError instanceof Error ? retryError : new Error(String(retryError));
+
+      // Story 5.13 (AC-5.13.3): Log final failure with diagnostics
+      log.error('Docling parse failed after retry', retryErr, {
+        ...diagnostics,
+        retriesAttempted: 2,
+        finalError: retryErr.message,
+      });
+
+      // Return user-friendly error message (AC-5.13.1)
+      throw new Error(getUserFriendlyError(retryErr.message));
+    }
+  }
 }
 
 /**
  * Parse document using Docling service.
  * Implements AC-4.8.4: Edge Function calls Docling service instead of LlamaParse
+ * Story 5.13 (AC-5.13.2): Added disableCellMatching parameter for fallback parsing
  */
 async function parseDocument(
   docBuffer: Uint8Array,
   filename: string,
-  serviceUrl: string
+  serviceUrl: string,
+  disableCellMatching: boolean = false
 ): Promise<DoclingResult> {
   // Determine MIME type from filename
   const ext = filename.toLowerCase().split('.').pop() || 'pdf';
@@ -522,10 +591,16 @@ async function parseDocument(
 
   // Send to Docling service with timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DOCLING_TIMEOUT_MS); // 180s timeout (AC-5.8.1.4)
+  const timeoutId = setTimeout(() => controller.abort(), DOCLING_TIMEOUT_MS); // 300s timeout (AC-5.8.1.4)
+
+  // Story 5.13 (AC-5.13.2): Build URL with optional disable_cell_matching param
+  const parseUrl = new URL(`${serviceUrl}/parse`);
+  if (disableCellMatching) {
+    parseUrl.searchParams.set('disable_cell_matching', 'true');
+  }
 
   try {
-    const response = await fetch(`${serviceUrl}/parse`, {
+    const response = await fetch(parseUrl.toString(), {
       method: 'POST',
       body: formData,
       signal: controller.signal,
@@ -1200,6 +1275,58 @@ async function insertChunks(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ============================================================================
+// Story 5.13: PDF Parsing Robustness Helpers
+// ============================================================================
+
+/**
+ * Check if error is a page-dimensions/libpdfium error.
+ * Story 5.13 (AC-5.13.1): Detect specific PDF format errors
+ */
+function isPageDimensionsError(errorMessage: string): boolean {
+  const lowerMessage = errorMessage.toLowerCase();
+  return PAGE_DIMENSIONS_ERROR_PATTERNS.some((pattern) =>
+    lowerMessage.includes(pattern.toLowerCase())
+  );
+}
+
+/**
+ * Get user-friendly error message for PDF parsing errors.
+ * Story 5.13 (AC-5.13.1): Return helpful messages instead of technical errors
+ */
+function getUserFriendlyError(errorMessage: string): string {
+  if (isPageDimensionsError(errorMessage)) {
+    return USER_FRIENDLY_ERRORS['page-dimensions'];
+  }
+  if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
+    return USER_FRIENDLY_ERRORS['timeout'];
+  }
+  if (errorMessage.includes('unsupported') || errorMessage.includes('not supported')) {
+    return USER_FRIENDLY_ERRORS['unsupported-format'];
+  }
+  // Return original message if no specific handler
+  return errorMessage;
+}
+
+/**
+ * Extract diagnostic info from error for logging.
+ * Story 5.13 (AC-5.13.3): Log PDF metadata for analysis
+ */
+function extractDiagnosticInfo(
+  errorMessage: string,
+  fileSizeBytes: number,
+  filename: string
+): Record<string, unknown> {
+  return {
+    errorType: isPageDimensionsError(errorMessage) ? 'page-dimensions' : 'other',
+    originalError: errorMessage,
+    fileSizeBytes,
+    fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
+    filename,
+    fileExtension: filename.split('.').pop()?.toLowerCase() || 'unknown',
+  };
 }
 
 // ============================================================================

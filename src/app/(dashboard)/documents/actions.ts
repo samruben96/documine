@@ -826,6 +826,65 @@ export async function getDocumentLabels(documentId: string): Promise<{
 }
 
 /**
+ * Get Processing Job Error Message Server Action
+ *
+ * Story 5.13 (AC-5.13.1): Fetch the error message for a failed document.
+ * Uses server-side client to bypass RLS restrictions on processing_jobs table.
+ */
+export async function getProcessingJobError(documentId: string): Promise<{
+  success: boolean;
+  errorMessage?: string | null;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // First verify user has access to this document
+    const { data: doc, error: docError } = await supabase
+      .from('documents')
+      .select('id, agency_id')
+      .eq('id', documentId)
+      .single();
+
+    if (docError || !doc) {
+      return { success: false, error: 'Document not found' };
+    }
+
+    // Get the most recent processing job for this document
+    // Note: Using server-side client which has elevated permissions
+    const { data, error } = await supabase
+      .from('processing_jobs')
+      .select('error_message, status, created_at')
+      .eq('document_id', documentId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Get processing job error failed:', error);
+      return { success: false, error: 'Failed to fetch error details' };
+    }
+
+    const job = data?.[0];
+    if (!job) {
+      return { success: true, errorMessage: null };
+    }
+
+    return { success: true, errorMessage: job.error_message };
+  } catch (error) {
+    console.error('Get processing job error failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch error details',
+    };
+  }
+}
+
+/**
  * Get Documents with Labels Server Action
  *
  * Returns list of documents with their associated labels for the current user's agency.
