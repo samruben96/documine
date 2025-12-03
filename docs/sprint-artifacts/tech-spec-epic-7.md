@@ -43,7 +43,7 @@ This epic builds directly on the document processing infrastructure from Epic 4 
 |-----------|-------|--------|
 | Document Processing | Docling-parsed content as extraction context | Epic 4, ADR-002 |
 | Vector Search | Retrieve relevant chunks for extraction prompts | Epic 5, Architecture RAG Pipeline |
-| GPT-4o Function Calling | Structured data extraction from document chunks | New for Epic 7 |
+| GPT-5.1 Function Calling | Structured data extraction with CFG constraints (400K context) | New for Epic 7, ADR-007 |
 | Claude Sonnet 4.5 via OpenRouter | Alternative extraction model if needed | ADR-005 |
 | PDF Viewer | Source citation navigation | Epic 5, Story 5.5 |
 | Supabase Storage | Quote document storage | Epic 1, Story 1.4 |
@@ -369,12 +369,12 @@ sequenceDiagram
 
 ```
 1. Fetch all document_chunks for document (ordered by page, chunk_index)
-2. Concatenate chunk content into context window (~100K tokens max)
+2. Concatenate chunk content into context window (~400K tokens max with GPT-5.1)
 3. Build extraction prompt:
    - System: "You are an insurance document analyst..."
    - User: Document content + "Extract quote data per schema"
-   - Functions: [extractQuoteDataFunction]
-4. Call GPT-4o with function_call: { name: 'extract_quote_data' }
+   - Tools: [extractQuoteDataFunction with CFG constraints]
+4. Call GPT-5.1 with tool_choice: { type: 'function', function: { name: 'extract_quote_data' } }
 5. Parse function response as QuoteExtraction
 6. Validate required fields present
 7. Cache in quote_extractions table
@@ -497,7 +497,7 @@ Values marked `not_found` are excluded from best/worst comparison.
 
 | Dependency | Purpose | Fallback |
 |------------|---------|----------|
-| **OpenAI GPT-4o** | Structured data extraction via function calling | Claude Sonnet 4.5 via OpenRouter |
+| **OpenAI GPT-5.1** | Structured data extraction via function calling (400K context, CFG) | Claude Sonnet 4.5 via OpenRouter |
 | **Supabase** | Database, storage, auth, RLS | None (core infrastructure) |
 | **react-pdf** | PDF export generation | @react-pdf/renderer |
 
@@ -555,7 +555,7 @@ Must be applied before any other Epic 7 stories.
 
 | ID | Criterion |
 |----|-----------|
-| AC-7.2.1 | Extraction uses GPT-4o function calling with defined schema |
+| AC-7.2.1 | Extraction uses GPT-5.1 function calling with defined schema (CFG constraints) |
 | AC-7.2.2 | carrierName, coverages array extracted from each document |
 | AC-7.2.3 | Each coverage item includes type, limit, deductible, sourceRef |
 | AC-7.2.4 | Exclusions extracted with category classification |
@@ -678,7 +678,7 @@ graph LR
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Extraction model | GPT-4o | Best function calling support; fallback to Claude via OpenRouter |
+| Extraction model | GPT-5.1 | 400K context, CFG support, best structured output; fallback to Claude via OpenRouter (ADR-007) |
 | PDF library | @react-pdf/renderer | Well-maintained, React-native compatible |
 | Gap severity algorithm | Coverage type-based | GL/Property = high, others = medium |
 | Best/worst highlighting | Green ●, Red ○ | Consistent with UX spec color semantics |
@@ -756,6 +756,7 @@ expect(hartfordExtraction.coverages[0].sourceRef.pageNumber).toBe(2);
 | Date | Version | Changes | Author |
 |------|---------|---------|--------|
 | 2025-12-03 | 1.0 | Initial Epic 7 Tech Spec | Sam (via BMAD) |
+| 2025-12-03 | 1.1 | Updated to GPT-5.1 for extraction (ADR-007) | SM (Bob) |
 
 ---
 

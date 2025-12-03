@@ -2388,15 +2388,43 @@ So that **I can share them with clients or save for records**.
 | Epic 7: Quote Comparison | 6 stories | FR20-26 | ⏳ Backlog |
 | **Total** | **54 stories** | **34 FRs (100%)** | |
 
-**Future Epics (Deferred from MVP):**
+**Future Epics (Prioritized Post-MVP Roadmap):**
 
-| Epic | Stories | Reason |
-|------|---------|--------|
-| Epic F1: Email Infrastructure | 4 stories | Resend requires custom domain |
-| Epic F2: Billing Infrastructure | 5 stories | Manual tier assignment for MVP |
-| Epic F3: Document Processing Reliability | 3 stories | ~1-2% PDF failures can wait |
-| Epic F4: Mobile Optimization | 3 stories | Mobile not priority for MVP |
-| Epic F5: Document Viewer Enhancements | 3 stories | Requires PDF.js text layer work |
+| Priority | Epic | Stories | Reason |
+|----------|------|---------|--------|
+| F1 | Tech Debt & Optimizations | 5 stories | Address accumulated debt before adding features |
+| F2 | User Dashboard & Document Intelligence | 5 stories | Document categorization + AI tagging |
+| F3 | Document Viewer Enhancements | 3 stories | Requires PDF.js text layer work |
+| F4 | Email Infrastructure | 4 stories | Resend requires custom domain |
+| F5 | Billing Infrastructure | 5 stories | Manual tier assignment for MVP |
+| F6 | Document Processing Reliability | 3 stories | ~1-2% PDF failures can wait |
+| F7 | Mobile Optimization | 3 stories | Mobile not priority for MVP |
+| F8 | Multi-Agent Workflows | TBD | Complex agentic pipelines using @openai/agents SDK |
+
+**Epic F1: Tech Debt & Optimizations** (Added 2025-12-03)
+- Test coverage gaps
+- Performance profiling and optimization
+- Code cleanup and refactoring
+- Dependency updates and security
+- Monitoring and observability
+
+**Epic F2: User Dashboard & Document Intelligence** (Added 2025-12-03)
+- Dashboard page showing all user documents
+- Document categorization (general vs quote)
+- AI-powered tagging and short blurbs
+- Filter general docs from /compare quotes page
+- Tag management UI
+
+**Epic F8: Multi-Agent Workflows** (Added 2025-12-03)
+- Evaluate [OpenAI Agents SDK](https://openai.github.io/openai-agents-js/) for complex workflows
+- Multi-agent coordination with handoffs between specialized agents
+- Guardrails for input validation and safety
+- Built-in tracing and debugging for agent pipelines
+- Potential use cases:
+  - Quote extraction → comparison → reporting pipeline
+  - Multi-document analysis with specialized agents per coverage type
+  - Interactive quote negotiation workflows
+- **Prerequisite:** Currently using `zodResponseFormat` for single-extraction (Story 7.2)
 
 **Note:** Epic 5 significantly expanded during implementation:
 - Stories 5.1-5.7: Core chat functionality (original scope)

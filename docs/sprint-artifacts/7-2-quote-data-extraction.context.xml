@@ -1,0 +1,483 @@
+<story-context id="bmm/story-context/7.2" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>7.2</storyId>
+    <title>Quote Data Extraction</title>
+    <status>Drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-7.2-quote-data-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>Insurance agency user</asA>
+    <iWant>structured data automatically extracted from my quote documents when I start a comparison</iWant>
+    <soThat>I can see coverage details in a consistent format for comparison without manual data entry</soThat>
+    <tasks>
+      <task id="1">Implement GPT-5.1 function calling with QuoteExtraction schema</task>
+      <task id="2">Create ExtractionService with retry logic and error handling</task>
+      <task id="3">Implement extraction caching with version management</task>
+      <task id="4">Update compare API route to trigger extraction</task>
+      <task id="5">Write unit tests for extraction service</task>
+      <task id="6">Write E2E test for extraction flow</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-7.2.1">
+      <title>GPT Function Calling Schema</title>
+      <description>Define structured output schema for quote extraction using OpenAI function calling</description>
+      <details>
+        - Schema includes: carrierName, policyNumber, effectiveDate, expirationDate, annualPremium, coverages[], exclusions[], deductibles[]
+        - Each coverage item has: name, limit, sublimit (optional), description, sourcePages[]
+        - Each exclusion has: name, description, sourcePages[]
+        - Each deductible has: type, amount, applies_to, sourcePages[]
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.2">
+      <title>Extraction Service Implementation</title>
+      <description>Create ExtractionService class with GPT-5.1 integration</description>
+      <details>
+        - Use OpenAI function calling (NOT OpenRouter - call GPT directly)
+        - Retrieve all document chunks for the document (no vector search needed)
+        - Build context prompt with all chunks organized by page
+        - Parse function call response into QuoteExtraction type
+        - Handle partial extraction gracefully (missing fields = null)
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.3">
+      <title>Extraction Caching</title>
+      <description>Cache extraction results in quote_extractions table</description>
+      <details>
+        - Check if valid extraction exists before calling GPT
+        - extraction_version tracks schema version (start at 1)
+        - Skip extraction if cached and version matches
+        - Compare API returns cached data when available
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.4">
+      <title>Compare API Enhancement</title>
+      <description>Enhance POST /api/compare to trigger extraction</description>
+      <details>
+        - After creating comparison record, trigger extraction for each document
+        - Extract in parallel (Promise.all) for performance
+        - Update comparison_data.documents[].extracted = true when done
+        - Return comparisonId immediately, extraction happens async
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.5">
+      <title>Error Handling</title>
+      <description>Graceful handling of extraction failures</description>
+      <details>
+        - Retry GPT calls up to 3 times with exponential backoff
+        - Log extraction failures with document context
+        - Store partial results if some fields extracted
+        - Update comparison_data.documents[].error on failure
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.6">
+      <title>Source Page Tracking</title>
+      <description>Track which pages data was extracted from</description>
+      <details>
+        - Each extracted item includes sourcePages[] array
+        - Pages referenced in LLM response are captured
+        - Enables linking back to source in comparison view
+      </details>
+    </criterion>
+    <criterion id="AC-7.2.7">
+      <title>Test Coverage</title>
+      <description>Unit and E2E tests for extraction functionality</description>
+      <details>
+        - Unit tests for ExtractionService with mocked OpenAI client
+        - Unit tests for caching logic
+        - E2E test: upload document -> start comparison -> verify extraction stored
+      </details>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <artifact type="tech-spec" path="docs/sprint-artifacts/tech-spec-epic-7.md">
+        <summary>Epic 7 technical specification with TypeScript interfaces, database schema, and module design</summary>
+        <relevant-sections>
+          - QuoteExtraction interface definition (lines 105-145)
+          - CoverageItem, ExclusionItem, DeductibleItem, SourceReference types
+          - quote_extractions table schema with RLS policies
+          - Module 2: Extraction Service design (lines 200-280)
+          - Data flow: Compare API -> ExtractionService -> quote_extractions
+        </relevant-sections>
+      </artifact>
+      <artifact type="prd" path="docs/prd.md">
+        <summary>Product requirements document with AI comparison feature requirements</summary>
+        <relevant-sections>
+          - FR-7: AI-Powered Comparison (lines 180-220)
+          - Extraction requirements: carrier info, coverages, exclusions, deductibles
+          - Source page tracking requirement
+        </relevant-sections>
+      </artifact>
+      <artifact type="architecture" path="docs/architecture.md">
+        <summary>System architecture with LLM configuration and data flow</summary>
+        <relevant-sections>
+          - LLM Provider Configuration (OpenRouter vs direct OpenAI)
+          - Document chunk storage and retrieval patterns
+          - RAG pipeline architecture (reference patterns)
+        </relevant-sections>
+      </artifact>
+      <artifact type="story-7.1" path="docs/sprint-artifacts/story-7.1-quote-selection-interface.md">
+        <summary>Story 7.1 implementation for context on compare API and page structure</summary>
+        <relevant-sections>
+          - Compare API route implementation
+          - ComparisonData interface
+          - Document selection validation
+        </relevant-sections>
+      </artifact>
+    </docs>
+
+    <code>
+      <artifact type="api-route" path="src/app/api/compare/route.ts">
+        <summary>Compare API endpoint - MODIFY to trigger extraction</summary>
+        <current-state>
+          - Creates comparison record with document_ids
+          - Validates documents exist and are ready
+          - Sets status='processing' in comparison_data
+          - Returns comparisonId
+        </current-state>
+        <changes-needed>
+          - After insert, trigger extractQuoteData() for each document
+          - Update comparison_data.documents[].extracted on completion
+          - Handle extraction errors gracefully
+        </changes-needed>
+      </artifact>
+
+      <artifact type="page" path="src/app/(dashboard)/compare/[id]/page.tsx">
+        <summary>Comparison result page - shows loading while extraction runs</summary>
+        <current-state>
+          - Fetches comparison record
+          - Shows "Extracting quote data..." spinner while status='processing'
+          - Placeholder for Story 7.3 comparison table
+        </current-state>
+      </artifact>
+
+      <artifact type="llm-config" path="src/lib/llm/config.ts">
+        <summary>LLM configuration with OpenAI client factory</summary>
+        <usage-pattern>
+          - getLLMClient('openai') - Get direct OpenAI client (for GPT-5.1)
+          - Story 7.2 should use direct OpenAI, NOT OpenRouter
+          - getModelConfig() returns current configuration
+        </usage-pattern>
+        <note>GPT-5.1 via direct OpenAI for function calling reliability</note>
+      </artifact>
+
+      <artifact type="service" path="src/lib/openai/embeddings.ts">
+        <summary>Reference pattern for OpenAI service with retry logic</summary>
+        <patterns>
+          - Retry with exponential backoff (MAX_RETRIES=3, INITIAL_DELAY=1000ms)
+          - Error detection with isRetryableError()
+          - OpenAI client initialization from API key
+          - Logging with structured context
+        </patterns>
+      </artifact>
+
+      <artifact type="service" path="src/lib/chat/rag.ts">
+        <summary>RAG pipeline - reference for context building pattern</summary>
+        <patterns>
+          - System prompt structure
+          - Chunk context formatting: "[Page X]: content"
+          - Supabase query patterns
+          - Logging with timing
+        </patterns>
+      </artifact>
+
+      <artifact type="service" path="src/lib/chat/vector-search.ts">
+        <summary>Vector search - reference for Supabase RPC patterns</summary>
+        <patterns>
+          - Supabase RPC type casting pattern
+          - Error handling with logging
+          - Result mapping to typed interfaces
+        </patterns>
+      </artifact>
+
+      <artifact type="types" path="src/types/database.types.ts">
+        <summary>Database types - quote_extractions table schema</summary>
+        <relevant-types>
+          - quote_extractions.Row (lines 457-466)
+          - quote_extractions.Insert (lines 467-475)
+          - comparisons.Row (lines 92-100)
+          - comparisons.Update (lines 107-116)
+        </relevant-types>
+        <schema>
+          extracted_data: Json (stores QuoteExtraction object)
+          extraction_version: number | null (schema version)
+          document_id: string (FK to documents)
+          agency_id: string (FK to agencies, for RLS)
+        </schema>
+      </artifact>
+
+      <artifact type="errors" path="src/lib/errors.ts">
+        <summary>Custom error classes - may need new ExtractionError</summary>
+        <existing-patterns>
+          - EmbeddingError class structure
+          - ChatError for AI operations
+          - ErrorCode union type
+        </existing-patterns>
+        <add>
+          - 'EXTRACTION_ERROR' to ErrorCode union
+          - ExtractionError class
+        </add>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <artifact type="package" name="openai" version="^6.9.1">
+        <usage>GPT-5.1 function calling via chat.completions.create with tools parameter</usage>
+        <api>
+          openai.chat.completions.create({
+            model: 'gpt-4o', // or 'gpt-4.1' when available
+            messages: [...],
+            tools: [{
+              type: 'function',
+              function: {
+                name: 'extract_quote_data',
+                description: '...',
+                parameters: { ... } // JSON Schema
+              }
+            }],
+            tool_choice: { type: 'function', function: { name: 'extract_quote_data' }}
+          })
+        </api>
+      </artifact>
+      <artifact type="package" name="zod" version="^4.1.13">
+        <usage>Validate extracted data matches QuoteExtraction schema</usage>
+      </artifact>
+      <artifact type="package" name="@supabase/supabase-js" version="^2.84.0">
+        <usage>Database operations for quote_extractions table</usage>
+      </artifact>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="api">
+      <title>Use Direct OpenAI (NOT OpenRouter)</title>
+      <description>GPT function calling requires direct OpenAI API for reliability. OpenRouter adds latency and may have compatibility issues with structured outputs.</description>
+      <implementation>
+        - getLLMClient('openai') from src/lib/llm/config.ts
+        - Requires OPENAI_API_KEY environment variable
+        - Model: 'gpt-4o' (or 'gpt-4.1' when available)
+      </implementation>
+    </constraint>
+    <constraint type="performance">
+      <title>Parallel Document Extraction</title>
+      <description>Extract all documents in parallel using Promise.all for faster comparison start</description>
+    </constraint>
+    <constraint type="schema">
+      <title>Extraction Version Management</title>
+      <description>extraction_version in quote_extractions allows cache invalidation when schema changes</description>
+      <current-version>1</current-version>
+    </constraint>
+    <constraint type="data">
+      <title>All Chunks, No Vector Search</title>
+      <description>Extraction uses ALL document chunks ordered by page, not vector similarity search. Need comprehensive document context for complete extraction.</description>
+    </constraint>
+    <constraint type="rls">
+      <title>Row-Level Security</title>
+      <description>quote_extractions table has RLS policies requiring agency_id match. Service must use authenticated Supabase client.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="typescript" name="QuoteExtraction">
+      <definition>
+export interface QuoteExtraction {
+  carrierName: string | null;
+  policyNumber: string | null;
+  effectiveDate: string | null;  // ISO date string
+  expirationDate: string | null; // ISO date string
+  annualPremium: number | null;
+  coverages: CoverageItem[];
+  exclusions: ExclusionItem[];
+  deductibles: DeductibleItem[];
+  extractedAt: string;           // ISO timestamp
+  modelUsed: string;             // e.g., 'gpt-4o'
+}
+
+export interface CoverageItem {
+  name: string;
+  limit: number | null;
+  sublimit?: number | null;
+  description: string;
+  sourcePages: number[];
+}
+
+export interface ExclusionItem {
+  name: string;
+  description: string;
+  sourcePages: number[];
+}
+
+export interface DeductibleItem {
+  type: string;
+  amount: number;
+  appliesTo: string;
+  sourcePages: number[];
+}
+
+export interface SourceReference {
+  pageNumber: number;
+  text?: string;
+}
+      </definition>
+      <location>src/types/compare.ts (NEW FILE)</location>
+    </interface>
+
+    <interface type="function" name="extractQuoteData">
+      <signature>
+async function extractQuoteData(
+  supabase: SupabaseClient&lt;Database&gt;,
+  documentId: string,
+  agencyId: string,
+  options?: { forceRefresh?: boolean }
+): Promise&lt;QuoteExtraction&gt;
+      </signature>
+      <behavior>
+        1. Check cache: query quote_extractions for documentId with matching version
+        2. If cached and valid, return cached extracted_data
+        3. If not cached or forceRefresh:
+           a. Fetch all document_chunks for documentId ordered by page_number
+           b. Build context prompt with chunks
+           c. Call GPT-5.1 with function calling schema
+           d. Parse response into QuoteExtraction
+           e. Upsert to quote_extractions table
+           f. Return extraction
+      </behavior>
+      <location>src/lib/compare/extraction.ts (NEW FILE)</location>
+    </interface>
+
+    <interface type="openai-function" name="extract_quote_data">
+      <schema>
+{
+  "name": "extract_quote_data",
+  "description": "Extract structured insurance quote data from document content",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "carrierName": { "type": ["string", "null"], "description": "Insurance company name" },
+      "policyNumber": { "type": ["string", "null"], "description": "Policy or quote number" },
+      "effectiveDate": { "type": ["string", "null"], "description": "Coverage start date (YYYY-MM-DD)" },
+      "expirationDate": { "type": ["string", "null"], "description": "Coverage end date (YYYY-MM-DD)" },
+      "annualPremium": { "type": ["number", "null"], "description": "Annual premium amount in dollars" },
+      "coverages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Coverage type name" },
+            "limit": { "type": ["number", "null"], "description": "Coverage limit in dollars" },
+            "sublimit": { "type": ["number", "null"], "description": "Sub-limit if applicable" },
+            "description": { "type": "string", "description": "Brief description of coverage" },
+            "sourcePages": { "type": "array", "items": { "type": "integer" } }
+          },
+          "required": ["name", "description", "sourcePages"]
+        }
+      },
+      "exclusions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "sourcePages": { "type": "array", "items": { "type": "integer" } }
+          },
+          "required": ["name", "description", "sourcePages"]
+        }
+      },
+      "deductibles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "amount": { "type": "number" },
+            "appliesTo": { "type": "string" },
+            "sourcePages": { "type": "array", "items": { "type": "integer" } }
+          },
+          "required": ["type", "amount", "appliesTo", "sourcePages"]
+        }
+      }
+    },
+    "required": ["coverages", "exclusions", "deductibles"]
+  }
+}
+      </schema>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Vitest for unit tests with vi.mock for OpenAI client</standard>
+      <standard>Playwright for E2E tests</standard>
+      <standard>Mock OpenAI responses for deterministic tests</standard>
+      <standard>Test caching by verifying DB queries</standard>
+      <standard>Test error handling with mock failures</standard>
+    </standards>
+
+    <locations>
+      <location>__tests__/lib/compare/extraction.test.ts - Unit tests for ExtractionService</location>
+      <location>__tests__/lib/compare/cache.test.ts - Unit tests for caching logic</location>
+      <location>__tests__/e2e/quote-extraction.spec.ts - E2E extraction flow test</location>
+    </locations>
+
+    <ideas>
+      <idea priority="high">Test GPT function calling with mocked response matching QuoteExtraction schema</idea>
+      <idea priority="high">Test caching: first call extracts, second call returns cached</idea>
+      <idea priority="high">Test cache invalidation when extraction_version changes</idea>
+      <idea priority="high">Test retry logic with transient failures (429, 500)</idea>
+      <idea priority="medium">Test partial extraction when some fields not found in document</idea>
+      <idea priority="medium">Test parallel extraction of multiple documents</idea>
+      <idea priority="medium">Test error propagation to comparison_data.documents[].error</idea>
+      <idea priority="low">Test extraction with empty document chunks</idea>
+      <idea priority="low">Test extraction timeout handling</idea>
+
+      <mock-response>
+        // Sample mock GPT function call response for tests
+        {
+          "carrierName": "State Farm Insurance",
+          "policyNumber": "SF-2024-001234",
+          "effectiveDate": "2024-01-01",
+          "expirationDate": "2025-01-01",
+          "annualPremium": 2450.00,
+          "coverages": [
+            {
+              "name": "General Liability",
+              "limit": 1000000,
+              "description": "Covers third-party bodily injury and property damage",
+              "sourcePages": [3, 4]
+            },
+            {
+              "name": "Professional Liability",
+              "limit": 500000,
+              "sublimit": 100000,
+              "description": "Covers errors and omissions in professional services",
+              "sourcePages": [5]
+            }
+          ],
+          "exclusions": [
+            {
+              "name": "Intentional Acts",
+              "description": "Damage caused intentionally by the insured is not covered",
+              "sourcePages": [12]
+            }
+          ],
+          "deductibles": [
+            {
+              "type": "Per Occurrence",
+              "amount": 1000,
+              "appliesTo": "General Liability",
+              "sourcePages": [4]
+            }
+          ]
+        }
+      </mock-response>
+    </ideas>
+  </tests>
+</story-context>

@@ -217,7 +217,20 @@ development_status:
   # API: POST /api/compare endpoint for creating comparisons
   # CODE REVIEWED 2025-12-03: APPROVED - all 7 ACs verified, security reviewed
   7-1-quote-selection-interface: done
-  7-2-quote-data-extraction: backlog
+  # Story 7.2: Quote Data Extraction
+  # GPT-5.1 structured outputs with zodResponseFormat for data extraction
+  # Priority: P0 - core extraction service, all downstream stories depend on this
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.2-quote-data-extraction.md
+  # CONTEXT 2025-12-03: Context file created at docs/sprint-artifacts/7-2-quote-data-extraction.context.xml
+  # IMPLEMENTED 2025-12-03: ExtractionService with GPT-5.1 + zodResponseFormat
+  # Refactored from function calling to structured outputs for guaranteed schema compliance
+  # Types: src/types/compare.ts, Cache: extraction.ts, API: POST+GET /api/compare
+  # UI: Comparison result page with polling, extraction cards
+  # Tests: 21 unit tests for extraction schema validation
+  # Build passes, all 924 tests pass
+  # Future consideration: @openai/agents SDK for multi-agent workflows (Epic F8)
+  # CODE REVIEWED 2025-12-03: APPROVED - all 8 ACs verified, 21 tests, excellent quality
+  7-2-quote-data-extraction: done
   7-3-comparison-table-view: backlog
   7-4-gap-conflict-identification: backlog
   7-5-source-citations-in-comparison: backlog
@@ -225,48 +238,91 @@ development_status:
   epic-7-retrospective: optional
 
 # ===========================================
-# FUTURE EPICS (Deferred from MVP per Epic 2 Retrospective)
+# FUTURE EPICS (Prioritized Post-MVP Roadmap)
 # ===========================================
+# Priority Order (as of 2025-12-03):
+# F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8
 
-  # Epic F1: Email Infrastructure (Deferred from Epic 2/3)
-  # Source: Epic 2 Retrospective - 2025-11-28
-  # Reason: Resend requires custom domain setup
-  epic-f1-email-infrastructure: future
-  f1-1-custom-domain-setup-verification: future
-  f1-2-resend-smtp-integration-supabase-auth: future
-  f1-3-professional-email-templates: future
-  f1-4-delivery-tracking-analytics: future
+  # Epic F1: Tech Debt & Optimizations (NEW - 2025-12-03)
+  # Source: Post-Epic 7 planning session
+  # Reason: Address accumulated tech debt before adding new features
+  # Scope: Performance optimization, code cleanup, test coverage gaps
+  epic-f1-tech-debt-optimizations: future
+  f1-1-test-coverage-gaps: future
+  f1-2-performance-profiling-optimization: future
+  f1-3-code-cleanup-refactoring: future
+  f1-4-dependency-updates-security: future
+  f1-5-monitoring-observability: future
 
-  # Epic F2: Billing Infrastructure (Deferred from Epic 3)
-  # Source: Epic 2 Retrospective - 2025-11-28
-  # Reason: Simplify MVP, manual tier assignment sufficient
-  epic-f2-billing-infrastructure: future
-  f2-1-stripe-or-lemonsqueezy-integration: future
-  f2-2-subscription-management-ui: future
-  f2-3-payment-processing: future
-  f2-4-usage-based-billing: future
-  f2-5-self-service-plan-changes: future
+  # Epic F2: User Dashboard & Document Intelligence (NEW - 2025-12-03)
+  # Source: Sam's feature request - 2025-12-03
+  # Reason: Better document organization and AI-powered insights
+  # Features:
+  #   - Dashboard view showing all user documents
+  #   - Document categorization (general vs quote document)
+  #   - AI-powered tagging and short blurbs
+  #   - General documents excluded from /compare quotes page
+  epic-f2-dashboard-document-intelligence: future
+  f2-1-dashboard-page-layout: future
+  f2-2-document-categorization-schema: future
+  f2-3-ai-tagging-summarization: future
+  f2-4-filter-general-docs-from-compare: future
+  f2-5-tag-management-ui: future
 
-  # Epic F3: Document Processing Reliability (Deferred from Story 5.13)
-  # Source: Story 5.13 Implementation - 2025-12-02
-  # Reason: ~1-2% of PDFs fail with libpdfium page-dimensions errors
-  epic-f3-document-processing-reliability: future
-  f3-1-pypdfium2-backend-evaluation: future
-  f3-2-multi-backend-fallback-chain: future
-  f3-3-pdf-preprocessing-normalization: future
-
-  # Epic F4: Mobile Optimization (Deferred from Epic 6)
-  # Source: Epic 6 Story 6.4 - 2025-12-02
-  # Reason: Mobile optimization not priority for MVP
-  epic-f4-mobile-optimization: future
-  f4-1-mobile-tab-state-preservation: future
-  f4-2-mobile-responsive-polish: future
-  f4-3-touch-gesture-improvements: future
-
-  # Epic F5: Document Viewer Enhancements (Deferred from Story 6.8)
+  # Epic F3: Document Viewer Enhancements (was F5)
   # Source: Story 6.8 AC-6.8.18 - 2025-12-03
   # Reason: Requires PDF.js text layer work, significant effort
-  epic-f5-document-viewer-enhancements: future
-  f5-1-source-text-highlighting: future
-  f5-2-text-selection-highlighting: future
-  f5-3-search-within-document: future
+  epic-f3-document-viewer-enhancements: future
+  f3-1-source-text-highlighting: future
+  f3-2-text-selection-highlighting: future
+  f3-3-search-within-document: future
+
+  # Epic F4: Email Infrastructure (was F1)
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Resend requires custom domain setup
+  epic-f4-email-infrastructure: future
+  f4-1-custom-domain-setup-verification: future
+  f4-2-resend-smtp-integration-supabase-auth: future
+  f4-3-professional-email-templates: future
+  f4-4-delivery-tracking-analytics: future
+
+  # Epic F5: Billing Infrastructure (was F2)
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Simplify MVP, manual tier assignment sufficient
+  epic-f5-billing-infrastructure: future
+  f5-1-stripe-or-lemonsqueezy-integration: future
+  f5-2-subscription-management-ui: future
+  f5-3-payment-processing: future
+  f5-4-usage-based-billing: future
+  f5-5-self-service-plan-changes: future
+
+  # Epic F6: Document Processing Reliability (was F3)
+  # Source: Story 5.13 Implementation - 2025-12-02
+  # Reason: ~1-2% of PDFs fail with libpdfium page-dimensions errors
+  epic-f6-document-processing-reliability: future
+  f6-1-pypdfium2-backend-evaluation: future
+  f6-2-multi-backend-fallback-chain: future
+  f6-3-pdf-preprocessing-normalization: future
+
+  # Epic F7: Mobile Optimization (was F4)
+  # Source: Epic 6 Story 6.4 - 2025-12-02
+  # Reason: Mobile optimization not priority for MVP
+  epic-f7-mobile-optimization: future
+  f7-1-mobile-tab-state-preservation: future
+  f7-2-mobile-responsive-polish: future
+  f7-3-touch-gesture-improvements: future
+
+  # Epic F8: Multi-Agent Workflows (NEW - 2025-12-03)
+  # Source: Story 7.2 Implementation - 2025-12-03
+  # Reason: Complex agentic pipelines using @openai/agents SDK
+  # Prerequisites: Currently using zodResponseFormat for single-extraction
+  # Potential use cases:
+  #   - Quote extraction → comparison → reporting pipeline
+  #   - Multi-document analysis with specialized agents per coverage type
+  #   - Interactive quote negotiation workflows
+  # Reference: https://openai.github.io/openai-agents-js/
+  epic-f8-multi-agent-workflows: future
+  f8-1-agents-sdk-evaluation: future
+  f8-2-extraction-comparison-pipeline: future
+  f8-3-multi-agent-coordination: future
+  f8-4-guardrails-tracing: future

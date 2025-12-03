@@ -72,7 +72,8 @@ npm run dev
 | Vector Search | Supabase pgvector | Latest | FR13-19 | Unified with database, semantic search for Q&A |
 | File Storage | Supabase Storage | Latest | FR8-12 | S3-compatible, RLS policies, same platform |
 | Authentication | Supabase Auth | Latest | FR1-7 | Email/OAuth, integrates with RLS |
-| AI/LLM | OpenAI GPT-4o | Latest | FR13-19, FR20-26 | Best accuracy for document analysis, function calling |
+| AI/LLM (Chat) | Claude Sonnet 4.5 via OpenRouter | Latest | FR13-19 | Best accuracy for document Q&A, instruction following |
+| AI/LLM (Extraction) | OpenAI GPT-5.1 | 2025-11-13 | FR20-26 | 400K context, CFG support, best structured output |
 | PDF Processing | Docling (self-hosted) | Latest | FR12, FR21 | 97.9% table accuracy, zero API cost, full data privacy |
 | Multi-Tenancy | Row Level Security (RLS) | Native | FR27-30 | Database-level isolation per agency |
 | UI Components | shadcn/ui | Latest | All UI | Per UX spec, accessible, Tailwind-based |
@@ -172,8 +173,8 @@ documine/
 |-------------|-----|------------------------|-------|
 | **User Account & Access** | FR1-FR7 | Supabase Auth + RLS | Email/password, OAuth, session management |
 | **Document Management** | FR8-FR12 | Supabase Storage + PostgreSQL | Upload to Storage, metadata in DB, processing via Edge Functions |
-| **Document Q&A** | FR13-FR19 | OpenAI GPT-4o + pgvector | Embeddings for retrieval, GPT-4o for generation, streaming responses |
-| **Quote Comparison** | FR20-FR26 | Docling + GPT-4o | Structured extraction, function calling for data alignment |
+| **Document Q&A** | FR13-FR19 | Claude Sonnet 4.5 + pgvector | Embeddings for retrieval, Claude for generation, streaming responses |
+| **Quote Comparison** | FR20-FR26 | Docling + GPT-5.1 | Structured extraction via function calling with CFG constraints |
 | **Agency Management** | FR27-FR30 | RLS policies + PostgreSQL | agency_id on all tables, RLS enforces isolation |
 | **Platform & Infrastructure** | FR31-FR34 | Vercel + Supabase | Edge deployment, managed services |
 
@@ -195,9 +196,14 @@ documine/
 - Edge Functions (Deno) for background processing
 
 **OpenAI**
-- GPT-4o for document Q&A and quote extraction
+- GPT-5.1 for quote extraction (400K context, CFG support)
 - text-embedding-3-small for vector embeddings
-- Function calling for structured data extraction
+- Function calling with grammar constraints for structured data extraction
+
+**OpenRouter (Claude)**
+- Claude Sonnet 4.5 for document Q&A (via OpenRouter)
+- Superior instruction following and table comprehension
+- 200K token context for complex documents
 
 **Docling (Self-Hosted)**
 - Primary PDF parser for tables and structured content (IBM TableFormer model)
@@ -226,11 +232,11 @@ documine/
 └─────────────────────────────────────────────────────────────────┘
           │                │                     │
           ▼                ▼                     ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐
-│    OpenAI       │  │    Docling      │  │      Resend         │
-│  GPT-4o         │  │  (Self-Hosted)  │  │   Transactional     │
-│  Embeddings     │  │  PDF Parsing    │  │   Email             │
-└─────────────────┘  └─────────────────┘  └─────────────────────┘
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│    OpenAI       │  │   OpenRouter    │  │    Docling      │  │      Resend     │
+│  GPT-5.1        │  │  Claude 4.5     │  │  (Self-Hosted)  │  │   Transactional │
+│  Embeddings     │  │  (Chat/Q&A)     │  │  PDF Parsing    │  │   Email         │
+└─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
 ## Novel Pattern: Trust-Transparent AI Responses
@@ -1067,6 +1073,68 @@ ALTER TABLE document_chunks ADD COLUMN summary text;
 
 ---
 
+### ADR-007: GPT-5.1 for Structured Extraction (Story 7.2)
+
+**Status:** Decided (2025-12-03)
+
+**Context:** Quote comparison (Epic 7) requires extracting structured data from insurance documents. Need reliable function calling with complex nested schemas (coverages, exclusions, source references). Evaluated GPT-4o, GPT-5, and GPT-5.1.
+
+**Decision:** Use GPT-5.1 directly (not via OpenRouter) for structured quote extraction.
+
+**Model Details:**
+| Attribute | Value |
+|-----------|-------|
+| Model ID | `gpt-5.1` |
+| Version | 2025-11-13 |
+| Context Window | 400K tokens (272K input + 128K output) |
+| Input Cost | $1.25 / 1M tokens |
+| Output Cost | $10.00 / 1M tokens |
+
+**Why GPT-5.1 over alternatives:**
+
+| Feature | GPT-5.1 | GPT-4o | Claude Sonnet 4.5 |
+|---------|---------|--------|-------------------|
+| Context Window | 400K | 128K | 200K |
+| CFG Support | Yes | No | No |
+| Function Calling | Native + Free-form | Native | Tool Use |
+| Schema Adherence | Excellent | Good | Good |
+| Input Cost | $1.25/1M | $2.50/1M | $3.00/1M |
+
+**Key GPT-5.1 Features Used:**
+1. **Context-Free Grammar (CFG)** - Constrain output to match exact extraction schema
+2. **400K Context** - Handle large insurance documents (30+ pages) without truncation
+3. **Improved Structured Output** - Better JSON generation and schema adherence
+4. **Native Function Calling** - More reliable than Claude's tool use for complex schemas
+
+**Consequences:**
+- (+) 50% cheaper than GPT-4o for input tokens
+- (+) 3x larger context window than GPT-4o
+- (+) CFG prevents format drift in extraction
+- (+) Same API key as embeddings (OPENAI_API_KEY)
+- (-) Requires direct OpenAI API (not via OpenRouter)
+- (-) Slightly slower than GPT-4o for simple tasks
+
+**Implementation:**
+```typescript
+// src/lib/compare/extraction.ts
+const EXTRACTION_MODEL = 'gpt-5.1';  // Version 2025-11-13
+
+// Uses function calling with CFG constraints
+const response = await openai.chat.completions.create({
+  model: EXTRACTION_MODEL,
+  messages: [...],
+  tools: [{ type: 'function', function: extractQuoteDataFunction }],
+  tool_choice: { type: 'function', function: { name: 'extract_quote_data' } },
+});
+```
+
+**Research Sources:**
+- [Introducing GPT-5 for Developers | OpenAI](https://openai.com/index/introducing-gpt-5-for-developers/)
+- [GPT-5 New Params and Tools | OpenAI Cookbook](https://cookbook.openai.com/examples/gpt-5/gpt-5_new_params_and_tools)
+- [GPT-5 Function Calling Tutorial | DataCamp](https://www.datacamp.com/tutorial/gpt-5-function-calling-tutorial)
+
+---
+
 ## RAG Pipeline Architecture (Implemented)
 
 ### Original Pipeline (Stories 5.1-5.6)
@@ -1374,4 +1442,5 @@ Key sources:
 _Generated by BMAD Decision Architecture Workflow v1.0_
 _Date: 2025-11-24_
 _Updated: 2025-12-02 (ADR-005, ADR-006 implemented; RAG pipeline production-ready; UI/UX Architecture added)_
+_Updated: 2025-12-03 (ADR-007 added: GPT-5.1 for structured extraction in Epic 7)_
 _For: Sam_

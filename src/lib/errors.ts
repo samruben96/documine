@@ -13,6 +13,7 @@ export type ErrorCode =
   | 'DOCLING_ERROR'
   | 'EMBEDDING_ERROR'
   | 'CHAT_ERROR'
+  | 'EXTRACTION_ERROR'
   | 'RATE_LIMIT_ERROR'
   | 'TIMEOUT_ERROR';
 
@@ -135,5 +136,18 @@ export class TimeoutError extends Error {
   constructor(message = "I'm having trouble processing that. Please try again.") {
     super(message);
     this.name = 'TimeoutError';
+  }
+}
+
+/**
+ * Error thrown when quote extraction fails.
+ * Story 7.2: AI-powered quote data extraction errors.
+ */
+export class ExtractionError extends Error {
+  readonly code = 'EXTRACTION_ERROR' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'ExtractionError';
   }
 }
