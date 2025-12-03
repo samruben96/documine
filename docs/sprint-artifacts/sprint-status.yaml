@@ -143,7 +143,12 @@ development_status:
   # Story 6.2: Fix Confidence Score Calculation
   # Cohere reranker scores replace vector similarity - wrong thresholds
   # Priority: P0 - core trust feature broken
-  6-2-fix-confidence-score-calculation: backlog
+  # DRAFTED 2025-12-02: Story file created at docs/sprint-artifacts/story-6.2-fix-confidence-score-calculation.md
+  # CONTEXT 2025-12-02: Context file created at docs/sprint-artifacts/6-2-fix-confidence-score-calculation.context.xml
+  # Party Mode verified: rerankerScore exists, bug at reranker.ts:114, one-line deletion + confidence update
+  # IMPLEMENTED 2025-12-02: Fixed reranker.ts bug, dual-threshold logic, conversational badge
+  # CODE REVIEWED 2025-12-02: APPROVED - all 6 ACs verified, all 6 tasks verified complete
+  6-2-fix-confidence-score-calculation: done
   # Story 6.3: Fix Source Citation Navigation
   # Clicking citation doesn't scroll PDF to referenced page
   # Priority: P1 - UX broken but not blocking

@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle, AlertTriangle, Circle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Circle, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import from shared module (server-compatible)
@@ -20,6 +20,8 @@ interface ConfidenceBadgeProps {
  * - High: Green background (#d1fae5), checkmark icon, text "High Confidence"
  * - Needs Review: Amber background (#fef3c7), warning icon, text "Needs Review"
  * - Not Found: Gray background (#f1f5f9), circle icon, text "Not Found"
+ * Story 6.2 AC-6.2.5: Added Conversational
+ * - Conversational: Blue background (#dbeafe), message icon, text "Conversational"
  */
 const badgeConfig = {
   high: {
@@ -39,6 +41,12 @@ const badgeConfig = {
     text: 'text-[#475569]',
     icon: Circle,
     label: 'Not Found',
+  },
+  conversational: {
+    background: 'bg-[#dbeafe]',
+    text: 'text-[#1e40af]',
+    icon: MessageCircle,
+    label: 'Conversational',
   },
 } as const;
 

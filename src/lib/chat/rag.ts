@@ -17,6 +17,7 @@ import { generateEmbeddings } from '@/lib/openai/embeddings';
 import { searchSimilarChunks, getTopKChunks } from './vector-search';
 import { rerankChunks, isRerankerEnabled, getCohereApiKey } from './reranker';
 import { calculateConfidence, type ConfidenceLevel } from '@/lib/chat/confidence';
+import { classifyIntent } from './intent';
 import type { RAGContext, RetrievedChunk, ChatMessage, SourceCitation } from './types';
 import { log } from '@/lib/utils/logger';
 
@@ -107,16 +108,23 @@ export async function retrieveContext(
     chunks = getTopKChunks(chunks, 5);
   }
 
-  // Calculate confidence from top score
+  // Story 6.2: Calculate confidence using appropriate scores and query intent
   const firstChunk = chunks[0];
-  const topScore = firstChunk ? firstChunk.similarityScore : null;
-  const confidence = calculateConfidence(topScore);
+  const vectorScore = firstChunk?.similarityScore ?? null;
+  const rerankerScore = firstChunk?.rerankerScore;
+  const queryIntent = classifyIntent(query);
+  const confidence = calculateConfidence(vectorScore, rerankerScore, queryIntent);
 
+  // Story 6.2 AC-6.2.6: Score logging for debugging
+  // Keep topScore for backward compatibility with RAGContext interface
+  const topScore = vectorScore;
   const duration = Date.now() - startTime;
   log.info('RAG context retrieved', {
     documentId,
     chunksRetrieved: chunks.length,
-    topScore,
+    vectorScore,
+    rerankerScore: rerankerScore ?? null,
+    queryIntent,
     confidence,
     rerankerUsed: isRerankerEnabled(),
     duration,

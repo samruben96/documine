@@ -17,8 +17,8 @@ const RERANKER_TIMEOUT_MS = 5000;
 /** Default number of top results after reranking */
 const DEFAULT_TOP_N = 5;
 
-/** Cohere Rerank model (v3.5 for English) */
-const RERANK_MODEL = 'rerank-english-v3.5';
+/** Cohere Rerank model (v3.5 - latest multilingual model) */
+const RERANK_MODEL = 'rerank-v3.5';
 
 /**
  * Reranked document with relevance score
@@ -110,8 +110,8 @@ export async function rerankChunks(
         rerankedChunks.push({
           ...chunk,
           rerankerScore: result.relevanceScore,
-          // Update similarity score to reflect reranker confidence
-          similarityScore: result.relevanceScore,
+          // Story 6.2: Preserve original similarityScore from vector search
+          // The rerankerScore is now stored separately and used by confidence.ts
         });
       }
     }

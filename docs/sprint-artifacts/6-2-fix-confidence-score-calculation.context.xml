@@ -1,0 +1,185 @@
+<story-context id="6-2-fix-confidence-score-calculation" v="1.0">
+  <metadata>
+    <epicId>6</epicId>
+    <storyId>6.2</storyId>
+    <title>Fix Confidence Score Calculation</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-02</generatedAt>
+    <generator>BMAD Story Context Workflow (Party Mode)</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-6.2-fix-confidence-score-calculation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user asking questions about documents</asA>
+    <iWant>confidence badges to accurately reflect answer quality</iWant>
+    <soThat>I can trust the visual indicators and know when to verify answers manually</soThat>
+    <tasks>
+      <task id="1">Add score logging for debugging (AC-6.2.6)</task>
+      <task id="2">Fix reranker score handling - remove line 114 that overwrites similarityScore (AC-6.2.1, 6.2.3)</task>
+      <task id="3">Update confidence calculation for dual-score logic (AC-6.2.2, 6.2.3, 6.2.5)</task>
+      <task id="4">Update UI for conversational confidence level (AC-6.2.5)</task>
+      <task id="5">Write Playwright E2E tests (AC-6.2.4, 6.2.5)</task>
+      <task id="6">Manual verification and documentation</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="6.2.1">Chunk has separate vectorSimilarity and rerankerScore properties - VERIFIED: Already exists in types.ts</ac>
+    <ac id="6.2.2">Confidence calculated correctly for vector-only mode (>= 0.75 High, 0.50-0.74 Review, &lt; 0.50 Not Found)</ac>
+    <ac id="6.2.3">Confidence calculated correctly for reranker mode (>= 0.30 High, 0.10-0.29 Review, &lt; 0.10 Not Found)</ac>
+    <ac id="6.2.4">Query "What is the total annual premium?" shows "High Confidence" or "Needs Review" - NOT "Not Found"</ac>
+    <ac id="6.2.5">Greeting "Hello!" shows "Conversational" or no badge - NOT "Not Found"</ac>
+    <ac id="6.2.6">Server logs include vector similarity, reranker score, query intent, and final confidence</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/architecture.md" section="Trust-Transparent AI Responses">Confidence threshold design patterns</doc>
+      <doc path="docs/prd.md" section="FR16">Every answer includes confidence indicator (High Confidence / Needs Review / Not Found)</doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-6.md" section="BUG-2">Detailed bug analysis and implementation approach</doc>
+      <doc path="docs/sprint-artifacts/story-6.1-fix-conversation-loading-406.md">Previous story learnings - Playwright test patterns</doc>
+    </docs>
+    <code>
+      <!-- PRIMARY FIX TARGET -->
+      <file path="src/lib/chat/reranker.ts" lines="110-116" critical="true">
+        <description>BUG LOCATION: Line 114 overwrites similarityScore with Cohere relevanceScore</description>
+        <fix>DELETE line 114 - rerankerScore is already set correctly at line 112</fix>
+        <snippet><![CDATA[
+rerankedChunks.push({
+  ...chunk,
+  rerankerScore: result.relevanceScore,  // Line 112 - CORRECT
+  similarityScore: result.relevanceScore, // Line 114 - DELETE THIS LINE (BUG)
+});
+        ]]></snippet>
+      </file>
+
+      <!-- CONFIDENCE CALCULATION UPDATE -->
+      <file path="src/lib/chat/confidence.ts" lines="1-61" critical="true">
+        <description>Current confidence calculation - takes single topScore, needs dual-score support</description>
+        <changes>
+          <change>Add 'conversational' to ConfidenceLevel type</change>
+          <change>Update calculateConfidence to accept vectorScore, rerankerScore, queryIntent params</change>
+          <change>Add COHERE_THRESHOLDS (0.30/0.10) separate from VECTOR_THRESHOLDS (0.75/0.50)</change>
+          <change>Return 'conversational' for non-document intents</change>
+        </changes>
+      </file>
+
+      <!-- RAG PIPELINE UPDATE -->
+      <file path="src/lib/chat/rag.ts" lines="110-113" critical="true">
+        <description>Uses topScore for confidence - needs to pass both scores and intent</description>
+        <changes>
+          <change>Import classifyIntent from intent.ts</change>
+          <change>Pass rerankerScore when available to calculateConfidence</change>
+          <change>Add query intent classification before confidence calculation</change>
+        </changes>
+        <snippet><![CDATA[
+// Current (line 111-113):
+const firstChunk = chunks[0];
+const topScore = firstChunk ? firstChunk.similarityScore : null;
+const confidence = calculateConfidence(topScore);
+
+// Updated:
+const firstChunk = chunks[0];
+const vectorScore = firstChunk?.similarityScore ?? null;
+const rerankerScore = firstChunk?.rerankerScore;
+const intent = classifyIntent(query);
+const confidence = calculateConfidence(vectorScore, rerankerScore, intent);
+        ]]></snippet>
+      </file>
+
+      <!-- UI UPDATE -->
+      <file path="src/components/chat/confidence-badge.tsx" lines="24-43" critical="true">
+        <description>Badge config - needs 'conversational' level</description>
+        <changes>
+          <change>Add 'conversational' to badgeConfig with MessageCircle icon, blue styling</change>
+          <change>Optionally hide badge entirely for conversational (based on UX preference)</change>
+        </changes>
+      </file>
+
+      <!-- TYPES - ALREADY CORRECT -->
+      <file path="src/lib/chat/types.ts" lines="65-78" readonly="true">
+        <description>RetrievedChunk interface - ALREADY HAS needed properties</description>
+        <note>similarityScore, vectorScore, rerankerScore all exist - NO CHANGES NEEDED</note>
+      </file>
+
+      <!-- INTENT CLASSIFICATION - ALREADY EXISTS -->
+      <file path="src/lib/chat/intent.ts" lines="1-95" readonly="true">
+        <description>Query intent classification - USE THIS for conversational detection</description>
+        <functions>
+          <fn name="classifyIntent">Returns QueryIntent for a query</fn>
+          <fn name="isConversationalIntent">Returns true for non-document queries</fn>
+        </functions>
+      </file>
+    </code>
+    <dependencies>
+      <dep name="lucide-react">MessageCircle icon for conversational badge</dep>
+      <dep name="@playwright/test">E2E testing (already installed via Story 6.1)</dep>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="backward-compatibility">Existing tests must pass - confidence calculation signature change requires updates to callers</constraint>
+    <constraint type="threshold-calibration">Cohere thresholds (0.30/0.10) are estimates - add logging to validate and iterate</constraint>
+    <constraint type="type-safety">Update ConfidenceLevel type and ensure all consumers handle 'conversational'</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="calculateConfidence" path="src/lib/chat/confidence.ts">
+      <current><![CDATA[
+function calculateConfidence(topScore: number | null | undefined): ConfidenceLevel
+      ]]></current>
+      <updated><![CDATA[
+function calculateConfidence(
+  vectorScore: number | null,
+  rerankerScore: number | null | undefined,
+  queryIntent?: QueryIntent
+): ConfidenceLevel
+      ]]></updated>
+      <callers>
+        <caller path="src/lib/chat/rag.ts" line="113">retrieveContext function</caller>
+      </callers>
+    </interface>
+    <interface name="ConfidenceLevel" path="src/lib/chat/confidence.ts">
+      <current>'high' | 'needs_review' | 'not_found'</current>
+      <updated>'high' | 'needs_review' | 'not_found' | 'conversational'</updated>
+      <consumers>
+        <consumer path="src/components/chat/confidence-badge.tsx">badgeConfig object</consumer>
+        <consumer path="src/lib/chat/types.ts">RAGContext, ChatMessage types</consumer>
+        <consumer path="src/app/api/chat/route.ts">SSE confidence event</consumer>
+      </consumers>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Vitest for unit tests</standard>
+      <standard>Playwright for E2E tests</standard>
+      <standard>Test-Driven Bug Fixing: Write failing test first, then implement fix</standard>
+    </standards>
+    <locations>
+      <location>__tests__/unit/confidence.test.ts - Unit tests for confidence calculation</location>
+      <location>__tests__/e2e/confidence-display.spec.ts - E2E tests for badge display</location>
+      <location>playwright.config.ts - Playwright config (exists from Story 6.1)</location>
+    </locations>
+    <ideas>
+      <test name="confidence-reranker-high">rerankerScore >= 0.30 returns 'high'</test>
+      <test name="confidence-reranker-review">rerankerScore 0.10-0.29 returns 'needs_review'</test>
+      <test name="confidence-reranker-not-found">rerankerScore &lt; 0.10 returns 'not_found'</test>
+      <test name="confidence-vector-fallback">null rerankerScore uses vectorScore thresholds</test>
+      <test name="confidence-greeting">greeting intent returns 'conversational'</test>
+      <test name="e2e-accurate-answer">Ask about premium, verify badge is NOT 'Not Found'</test>
+      <test name="e2e-greeting">Send "Hello!", verify badge is 'Conversational' or hidden</test>
+    </ideas>
+  </tests>
+
+  <implementation-sequence>
+    <step order="1">Add logging to rag.ts to capture current score distribution (Task 1)</step>
+    <step order="2">Remove line 114 in reranker.ts - one-line fix (Task 2)</step>
+    <step order="3">Update confidence.ts: new type, dual-score logic, intent handling (Task 3)</step>
+    <step order="4">Update rag.ts to call new calculateConfidence signature (Task 3)</step>
+    <step order="5">Update confidence-badge.tsx for 'conversational' level (Task 4)</step>
+    <step order="6">Write unit tests for confidence calculation (Task 5)</step>
+    <step order="7">Write E2E tests for badge display (Task 5)</step>
+    <step order="8">Manual test, verify logs, update CLAUDE.md (Task 6)</step>
+  </implementation-sequence>
+</story-context>

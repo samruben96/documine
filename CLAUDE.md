@@ -286,6 +286,70 @@ const { data } = await supabase
   .maybeSingle();
 ```
 
+### Confidence Score Calculation Fix (Story 6.2, 2025-12-02)
+
+**Issue:** Confidence badge showed "Not Found" even when AI provided accurate, sourced answers. Example: "What is the total annual premium?" returned correct answer with "Not Found" badge.
+
+**Root Cause:** Bug at `src/lib/chat/reranker.ts:114` overwrote `similarityScore` with Cohere `relevanceScore`. Cohere reranker scores have a different distribution than vector similarity scores:
+- Vector similarity (cosine): 0.0-1.0, relevant results >= 0.75
+- Cohere relevance scores: different scale, highly relevant might score 0.3-0.5
+
+The thresholds were calibrated for vector similarity (0.75/0.50), but were being applied to Cohere scores.
+
+**Resolution:**
+1. **Removed bug:** Deleted line 114 in `reranker.ts` that overwrote `similarityScore`
+2. **Dual thresholds:** Added separate threshold sets for vector vs Cohere scores
+3. **Intent detection:** Added 'conversational' confidence level for greetings/meta queries
+
+**Confidence Thresholds:**
+
+| Score Type | High Confidence | Needs Review | Not Found |
+|------------|-----------------|--------------|-----------|
+| Vector (cosine) | >= 0.75 | 0.50 - 0.74 | < 0.50 |
+| Cohere (reranker) | >= 0.30 | 0.10 - 0.29 | < 0.10 |
+
+**Confidence Levels:**
+- `high` - Green badge, checkmark icon
+- `needs_review` - Amber badge, warning icon
+- `not_found` - Gray badge, circle icon
+- `conversational` - Blue badge, message icon (for greetings, thanks, etc.)
+
+**Files Changed:**
+- `src/lib/chat/reranker.ts` - Removed line 114 bug
+- `src/lib/chat/confidence.ts` - Dual-threshold logic, 'conversational' level
+- `src/lib/chat/rag.ts` - Updated calculateConfidence call with rerankerScore and queryIntent
+- `src/components/chat/confidence-badge.tsx` - Added 'conversational' badge variant
+- `__tests__/lib/chat/confidence.test.ts` - 43 tests for all confidence paths
+- `__tests__/e2e/confidence-display.spec.ts` - E2E tests for badge display
+
+**Key Configuration:**
+```typescript
+// src/lib/chat/confidence.ts
+const VECTOR_THRESHOLDS = { high: 0.75, needsReview: 0.50 };
+const COHERE_THRESHOLDS = { high: 0.30, needsReview: 0.10 };
+
+// Usage: reranker score takes precedence when available
+calculateConfidence(vectorScore, rerankerScore, queryIntent);
+```
+
+**Cohere Model Name:** The correct model identifier is `rerank-v3.5` (NOT `rerank-english-v3.5`).
+```typescript
+// src/lib/chat/reranker.ts
+const RERANK_MODEL = 'rerank-v3.5';  // ✅ Correct
+// const RERANK_MODEL = 'rerank-english-v3.5';  // ❌ Returns 404
+```
+
+**Server Logging:** RAG pipeline now logs score distribution for debugging:
+```typescript
+log.info('RAG context retrieved', {
+  vectorScore,
+  rerankerScore,
+  queryIntent,
+  confidence,
+  rerankerUsed,
+});
+```
+
 ## Playwright E2E Testing
 
 Playwright was added for E2E testing in Epic 6. Configuration and tests are located at:
