@@ -131,7 +131,7 @@ development_status:
   # Reason: 4 bugs + 5 UI polish items undermining trust transparency UX
   # Tech Spec: docs/sprint-artifacts/tech-spec-epic-6.md
   # Research: docs/research-ui-best-practices-2025-12-02.md
-  epic-6: contexted
+  epic-6: done
   # Story 6.1: Fix Conversation Loading (406 Error)
   # RLS policy allows INSERT but not SELECT - users can't load their conversations
   # Priority: P0 - blocks other testing
@@ -197,7 +197,10 @@ development_status:
   # AC-6.8.18 (Source Text Highlighting) moved to Future Epic F5
   # CODE REVIEWED 2025-12-03: APPROVED - All ACs verified, ready to merge
   6-8-design-system-refresh: done
-  epic-6-retrospective: optional
+  # RETROSPECTIVE 2025-12-03: docs/sprint-artifacts/epic-6-full-retrospective.md
+  # Key learnings: Supabase .maybeSingle(), score semantics, conditional rendering
+  # All Epic 5 bugs fixed, Design System Refresh complete, A- grade
+  epic-6-retrospective: completed
 
   # Epic 7: Quote Comparison (RENUMBERED from Epic 6)
   # Moved to Epic 7 to allow Epic 5 cleanup first
