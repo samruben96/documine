@@ -71,17 +71,17 @@ describe('DocumentListItem', () => {
     });
   });
 
-  describe('AC-4.3.8, AC-6.7.1-5: Selected Document Styling', () => {
+  describe('AC-4.3.8, AC-6.7.1-5, AC-6.8.1: Selected Document Styling', () => {
     it('applies selected styling when isSelected is true', () => {
       const { container } = render(
         <DocumentListItem {...defaultProps} isSelected={true} />
       );
 
       // Styling is on the wrapper div, not the button
-      // Updated in Story 6.7 to use Tailwind semantic classes
+      // Updated in Story 6.8 to use accent color (blue-50, border-l-primary)
       const wrapper = container.querySelector('.group');
-      expect(wrapper).toHaveClass('bg-slate-100');
-      expect(wrapper).toHaveClass('border-l-slate-600');
+      expect(wrapper).toHaveClass('bg-blue-50');
+      expect(wrapper).toHaveClass('border-l-primary');
     });
 
     it('does not apply selected styling when isSelected is false', () => {
@@ -91,7 +91,7 @@ describe('DocumentListItem', () => {
 
       // Styling is on the wrapper div, not the button
       const wrapper = container.querySelector('.group');
-      expect(wrapper).not.toHaveClass('bg-slate-100');
+      expect(wrapper).not.toHaveClass('bg-blue-50');
       expect(wrapper).toHaveClass('border-l-transparent');
     });
 

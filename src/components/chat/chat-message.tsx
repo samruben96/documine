@@ -93,15 +93,15 @@ export function ChatMessage({ message, className, onRetry, onSourceClick }: Chat
       data-testid="chat-message"
       data-role={message.role}
     >
-      {/* Message Bubble */}
+      {/* Message Bubble - AC-6.8.1: User messages use brand accent color */}
       <div
         className={cn(
           'max-w-[85%] rounded-lg px-4 py-2',
           isUser
-            ? 'bg-slate-600 text-white' // Primary Slate #475569 (slate-600 closest match)
+            ? 'bg-primary text-primary-foreground shadow-sm' // Electric Blue brand accent
             : hasError
             ? 'bg-red-50 text-red-800 border border-red-200' // Error state
-            : 'bg-slate-100 text-slate-800' // Surface color for assistant
+            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200' // Surface color for assistant
         )}
       >
         <p className="text-sm whitespace-pre-wrap break-words">

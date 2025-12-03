@@ -88,12 +88,12 @@ export const MobileDocumentChatTabs = forwardRef<
               // Base styles - 44x44px minimum touch target
               'flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px]',
               'text-sm font-medium transition-colors',
-              // Focus indicator - 2px outline
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset',
-              // Active state - bottom border accent per AC-5.1.9
+              // Focus indicator - AC-6.8.5: accent color
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+              // Active state - AC-6.8.1: accent border
               activeTab === 'document'
-                ? 'text-slate-800 border-b-2 border-slate-600'
-                : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-slate-500 hover:text-primary border-b-2 border-transparent'
             )}
           >
             <FileText className="h-5 w-5" aria-hidden="true" />
@@ -112,12 +112,12 @@ export const MobileDocumentChatTabs = forwardRef<
               // Base styles - 44x44px minimum touch target
               'flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px]',
               'text-sm font-medium transition-colors',
-              // Focus indicator - 2px outline
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset',
-              // Active state - bottom border accent per AC-5.1.9
+              // Focus indicator - AC-6.8.5: accent color
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+              // Active state - AC-6.8.1: accent border
               activeTab === 'chat'
-                ? 'text-slate-800 border-b-2 border-slate-600'
-                : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-slate-500 hover:text-primary border-b-2 border-transparent'
             )}
           >
             <MessageSquare className="h-5 w-5" aria-hidden="true" />

@@ -184,7 +184,7 @@ export function DocumentList({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search documents..."
-            className="w-full pl-8 pr-8 py-1.5 text-sm rounded-md border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+            className="w-full pl-8 pr-8 py-1.5 text-sm rounded-lg border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {searchQuery && (
             <button
@@ -279,7 +279,7 @@ export function DocumentList({
             };
             input.click();
           }}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
         >
           <Upload className="h-4 w-4" />
           Upload document

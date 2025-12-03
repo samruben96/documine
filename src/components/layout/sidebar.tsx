@@ -69,7 +69,7 @@ export function Sidebar({ children, className }: SidebarProps) {
         className={cn(
           'fixed top-4 left-4 z-50 p-2 rounded-md bg-white border border-slate-200 shadow-sm',
           'lg:hidden', // Hide on desktop
-          'focus:outline-none focus:ring-2 focus:ring-slate-400'
+          'focus:outline-none focus:ring-2 focus:ring-primary'
         )}
         aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
         aria-expanded={isOpen}

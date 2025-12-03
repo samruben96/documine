@@ -155,11 +155,11 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
                 isOverLimit ? 'border-red-500' : 'border-slate-300',
                 // Placeholder styling - AC-5.1.3: muted text color #64748b (slate-500)
                 'placeholder:text-slate-500',
-                // Focus styling - AC-5.1.6: 2px outline focus indicator
+                // Focus styling - AC-5.1.6: 2px outline focus indicator, AC-6.8.5: accent color
                 'focus:outline-none focus:ring-2 focus:ring-offset-0',
                 isOverLimit
                   ? 'focus:ring-red-400 focus:border-red-500'
-                  : 'focus:ring-slate-400 focus:border-slate-400',
+                  : 'focus:ring-primary focus:border-primary',
                 // Disabled state - AC-5.2.9
                 'disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed',
                 // Smooth height transition - AC-5.2.2
@@ -194,12 +194,12 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
             className={cn(
               // Size for touch target - minimum 44x44px per accessibility
               'h-11 w-11 flex-shrink-0',
-              // Primary Slate color #475569 (using slate-600)
-              'bg-slate-600 hover:bg-slate-700',
+              // AC-6.8.1: Primary accent color (Electric Blue)
+              'bg-primary hover:bg-primary/90',
               // Disabled state - AC-5.2.9: grayed out when loading
               'disabled:bg-slate-300 disabled:cursor-not-allowed',
-              // Focus indicator
-              'focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2'
+              // Focus indicator - AC-6.8.5
+              'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
             )}
             aria-label="Send message"
           >

@@ -168,10 +168,11 @@ export function DocumentListItem({
     <div
       data-testid="document-list-item"
       className={cn(
-        'group relative w-full px-3 py-2.5 transition-colors',
+        // AC-6.8.3: Consistent spacing - py-3 px-4
+        'group relative w-full px-4 py-3 transition-colors',
         'hover:bg-slate-100 dark:hover:bg-slate-800',
-        // AC-4.3.8, AC-6.7.1-5: Selected document styling with dark mode support
-        isSelected && 'bg-slate-100 border-l-2 border-l-slate-600 dark:bg-slate-800 dark:border-l-slate-400',
+        // AC-4.3.8, AC-6.7.1-5, AC-6.8.1: Selected document styling with accent color
+        isSelected && 'bg-blue-50 border-l-2 border-l-primary dark:bg-blue-950/30 dark:border-l-primary',
         !isSelected && 'border-l-2 border-l-transparent',
         // Success highlight animation - AC-4.5.4
         showSuccess && 'bg-green-50'
@@ -200,7 +201,7 @@ export function DocumentListItem({
               disabled={isSaving}
               className={cn(
                 'w-full px-1.5 py-0.5 text-sm font-medium rounded border',
-                'focus:outline-none focus:ring-2 focus:ring-slate-400',
+                'focus:outline-none focus:ring-2 focus:ring-primary',
                 error ? 'border-red-500 text-red-700' : 'border-slate-300 text-slate-700',
                 isSaving && 'opacity-50'
               )}
@@ -232,7 +233,7 @@ export function DocumentListItem({
             }}
             className={cn(
               'flex items-center gap-3 cursor-pointer',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary'
             )}
             aria-selected={isSelected}
           >
@@ -319,7 +320,7 @@ export function DocumentListItem({
                   }}
                   className={cn(
                     'p-1 rounded hover:bg-slate-200 text-amber-600 hover:text-amber-700 transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
                   )}
                   aria-label={`Retry processing ${name}`}
                 >
@@ -335,8 +336,8 @@ export function DocumentListItem({
                   startEditing();
                 }}
                 className={cn(
-                  'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                  'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-primary transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
                 )}
                 aria-label={`Rename ${name}`}
               >
@@ -353,7 +354,7 @@ export function DocumentListItem({
                   }}
                   className={cn(
                     'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-red-600 transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
                   )}
                   aria-label={`Delete ${name}`}
                 >
@@ -368,8 +369,8 @@ export function DocumentListItem({
                     type="button"
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
-                      'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400'
+                      'p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-primary transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
                     )}
                     aria-label={`More options for ${name}`}
                   >

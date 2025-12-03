@@ -58,13 +58,14 @@ describe('ChatMessage', () => {
       expect(container).toHaveClass('items-start');
     });
 
-    it('user messages have primary color background (slate-600)', () => {
+    it('user messages have primary color background (AC-6.8.1)', () => {
       const message = createMessage({ role: 'user' });
       render(<ChatMessage message={message} />);
 
       const bubble = screen.getByText('Test message content').closest('div[class*="rounded-lg"]');
-      expect(bubble).toHaveClass('bg-slate-600');
-      expect(bubble).toHaveClass('text-white');
+      // AC-6.8.1: User messages use brand accent color (Electric Blue via bg-primary)
+      expect(bubble).toHaveClass('bg-primary');
+      expect(bubble).toHaveClass('text-primary-foreground');
     });
 
     it('assistant messages have gray background (slate-100)', () => {

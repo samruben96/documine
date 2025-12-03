@@ -157,7 +157,7 @@ export function LabelInput({
           placeholder="Add label..."
           className={cn(
             'w-full pl-7 pr-2 py-1 text-xs rounded border border-slate-200',
-            'focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400',
+            'focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary',
             'placeholder:text-slate-400',
             disabled && 'opacity-50 cursor-not-allowed'
           )}

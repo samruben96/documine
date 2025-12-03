@@ -66,7 +66,7 @@ export function LabelFilter({
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center gap-1.5 px-2 py-1 text-xs rounded-md border transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-slate-400',
+          'focus:outline-none focus:ring-2 focus:ring-primary',
           hasSelection
             ? 'bg-slate-100 border-slate-300 text-slate-700'
             : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'

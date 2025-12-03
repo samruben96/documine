@@ -48,10 +48,10 @@ export function SuggestedQuestions({
               // Trustworthy Slate theme
               'bg-white text-slate-600',
               'border border-slate-200',
-              // Hover state
-              'hover:border-slate-400 hover:bg-slate-50',
-              // Focus state for accessibility
-              'focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2',
+              // Hover state - AC-6.8.5: accent on hover
+              'hover:border-primary/50 hover:bg-blue-50 hover:text-primary',
+              // Focus state for accessibility - AC-6.8.5: accent focus ring
+              'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
               // Transition
               'transition-all duration-150 ease-in-out',
               // Touch target - minimum 44px height
