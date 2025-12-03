@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { ComparisonData, QuoteExtraction, DocumentSummary } from '@/types/compare';
+import { ComparisonTable } from '@/components/compare/comparison-table';
 
 /**
  * Comparison Result Page
@@ -242,22 +243,31 @@ function ProcessingView({ documents }: { documents?: DocumentSummary[] }) {
 
 function FailedView() {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4">
-      <XCircle className="h-12 w-12 text-red-500" />
-      <div className="text-center">
+    <div className="flex flex-col items-center justify-center h-full gap-6">
+      <div className="rounded-full bg-red-100 dark:bg-red-900/20 p-4">
+        <XCircle className="h-12 w-12 text-red-500" />
+      </div>
+      <div className="text-center max-w-md">
         <p className="text-lg font-medium text-slate-900 dark:text-slate-100">
           Extraction Failed
         </p>
-        <p className="text-sm text-slate-500 mt-1">
-          Unable to extract data from the selected documents. Please try again.
+        <p className="text-sm text-slate-500 mt-2">
+          We couldn&apos;t extract data from the selected documents. This can happen with scanned PDFs or documents with unusual formatting.
         </p>
       </div>
-      <Button variant="outline" asChild>
-        <Link href="/compare">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Try Again
-        </Link>
-      </Button>
+      <div className="flex gap-3">
+        <Button variant="outline" asChild>
+          <Link href="/compare">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Selection
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link href="/compare">
+            Try Different Documents
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -307,7 +317,7 @@ function ExtractionSummaryView({
         ))}
       </div>
 
-      {/* Placeholder for comparison table */}
+      {/* Comparison Table - Story 7.3 */}
       <Card className="mt-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -315,13 +325,11 @@ function ExtractionSummaryView({
             Comparison Table
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-slate-500">
-            <p>Detailed comparison table will be implemented in Story 7.3</p>
-            <p className="text-sm mt-2">
-              Coverage comparison, gap analysis, and difference highlighting coming soon.
-            </p>
-          </div>
+        <CardContent className="p-0">
+          <ComparisonTable
+            extractions={extractions}
+            documents={documents}
+          />
         </CardContent>
       </Card>
     </div>

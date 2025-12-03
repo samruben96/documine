@@ -231,10 +231,25 @@ development_status:
   # Future consideration: @openai/agents SDK for multi-agent workflows (Epic F8)
   # CODE REVIEWED 2025-12-03: APPROVED - all 8 ACs verified, 21 tests, excellent quality
   7-2-quote-data-extraction: done
-  7-3-comparison-table-view: backlog
+  # Story 7.3: Comparison Table View
+  # Side-by-side table with difference highlighting, best/worst indicators
+  # Priority: P0 - core comparison visualization
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.3-comparison-table-view.md
+  # CONTEXT 2025-12-03: Context file created at docs/sprint-artifacts/7-3-comparison-table-view.context.xml
+  # IMPLEMENTED 2025-12-03: DiffEngine + ComparisonTable component
+  # 64 unit tests (42 diff + 22 component) + 13 E2E tests (39 across browsers)
+  # All ACs (7.3.1-7.3.8) implemented with sticky headers, best/worst indicators, difference highlighting
+  # CODE REVIEWED 2025-12-03: APPROVED - all 8 ACs verified, all 7 tasks complete, excellent code quality
+  7-3-comparison-table-view: done
   7-4-gap-conflict-identification: backlog
   7-5-source-citations-in-comparison: backlog
   7-6-export-comparison-results: backlog
+  # Story 7.7: Comparison History (NEW - 2025-12-03)
+  # User can view past comparisons, search, delete from history
+  # Priority: P1 - UX enhancement, M effort
+  # STATUS: UX Designer review required before development
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.7-comparison-history.md
+  7-7-comparison-history: drafted
   epic-7-retrospective: optional
 
 # ===========================================
