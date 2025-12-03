@@ -1,0 +1,264 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>7.1</storyId>
+    <title>Quote Selection Interface</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-7.1-quote-selection-interface.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user wanting to compare insurance quotes</asA>
+    <iWant>to select multiple documents for comparison</iWant>
+    <soThat>I can compare quotes from different carriers side-by-side</soThat>
+    <tasks>
+      <task id="1">Database Migration - Create quote_extractions and comparisons tables with RLS policies</task>
+      <task id="2">Compare Page Route Setup - Create /compare page with heading and navigation</task>
+      <task id="3">Quote Selector Component - Document selection grid with checkboxes</task>
+      <task id="4">Selection State Management - 2-4 document constraint enforcement</task>
+      <task id="5">Upload Integration - Upload new quotes within compare flow</task>
+      <task id="6">Compare Button and Navigation - Navigate to comparison view</task>
+      <task id="7">Unit Tests - Selection logic, document filtering</task>
+      <task id="8">E2E Tests - Playwright tests for selection flow</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-7.1.1">Compare page (/compare) shows document cards with selection checkboxes</criterion>
+    <criterion id="AC-7.1.2">Only documents with status='ready' are selectable</criterion>
+    <criterion id="AC-7.1.3">Selection count displayed: "X of 4 selected"</criterion>
+    <criterion id="AC-7.1.4">Compare button disabled until 2+ documents selected</criterion>
+    <criterion id="AC-7.1.5">Compare button disabled and tooltip shown when 5th document attempted</criterion>
+    <criterion id="AC-7.1.6">"Upload new quotes" opens upload zone; new docs appear after processing</criterion>
+    <criterion id="AC-7.1.7">Clicking Compare navigates to comparison view with loading state</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-7.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>Story 7.1: Quote Selection Interface</section>
+        <snippet>Database schema for quote_extractions and comparisons tables. RLS policies for agency isolation. Component structure with QuoteSelector, QuoteCard, SelectionCounter.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Data Architecture, UI/UX Architecture</section>
+        <snippet>Supabase PostgreSQL with RLS for multi-tenancy. Electric Blue design system (#3b82f6). Split-view layout patterns. Trust-transparent response pattern.</snippet>
+      </doc>
+      <doc>
+        <path>docs/prd.md</path>
+        <title>Product Requirements Document</title>
+        <section>Quote Comparison (FR20-FR26)</section>
+        <snippet>FR20: Users can select 2-4 documents for side-by-side comparison. Zero learning curve UX principle. Clean over clever design philosophy.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 7: Quote Comparison</section>
+        <snippet>Story 7.1 covers FR20 - document selection for comparison. Foundation for stories 7.2-7.6.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-6.8-design-system-refresh.md</path>
+        <title>Design System Refresh</title>
+        <section>Electric Blue Accent, Spacing, Card Depth</section>
+        <snippet>Primary color: #3b82f6 (blue-500). Selected states use blue border + blue-50 background. Card hover effects with shadow transitions. Focus ring: ring-2 ring-primary.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/documents/document-list.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentList</symbol>
+        <lines>1-300</lines>
+        <reason>Reusable patterns for multi-document list with search, filtering, and selection state. Adapt selection highlighting pattern for quote cards.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-list-item.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentListItem</symbol>
+        <lines>1-414</lines>
+        <reason>Document card pattern with hover actions, status indicators, and selection highlighting. Primary reference for QuoteCard component.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/label-filter.tsx</path>
+        <kind>component</kind>
+        <symbol>LabelFilter</symbol>
+        <lines>1-152</lines>
+        <reason>Multi-select checkbox pattern with Check icons, count badge display, and clear selection logic. Adapt for quote selection UI.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/upload-zone.tsx</path>
+        <kind>component</kind>
+        <symbol>UploadZone</symbol>
+        <reason>Existing upload component to integrate for "Upload new quotes" functionality.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-list-empty.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentListEmpty</symbol>
+        <reason>Empty state pattern to adapt for compare page when no documents exist.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardHeader, CardContent</symbol>
+        <lines>1-100</lines>
+        <reason>Semantic card structure with shadow hover effects. Use for quote card styling.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/checkbox.tsx</path>
+        <kind>component</kind>
+        <symbol>Checkbox</symbol>
+        <reason>If exists - shadcn checkbox. Otherwise, use Check icon from Lucide like existing patterns.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-document-status.ts</path>
+        <kind>hook</kind>
+        <symbol>useDocumentStatus</symbol>
+        <lines>1-337</lines>
+        <reason>Realtime document status tracking. Reuse for watching newly uploaded documents become ready.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/documents/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentsPage</symbol>
+        <lines>1-500</lines>
+        <reason>Layout patterns, upload progress overlay, empty states. Reference for compare page structure.</reason>
+      </file>
+      <file>
+        <path>src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database</symbol>
+        <reason>Generated Supabase types. Will need regeneration after adding quote_extractions and comparisons tables.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.x</version>
+        <purpose>Database operations, RLS</purpose>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.x</version>
+        <purpose>Server-side Supabase client</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.x</version>
+        <purpose>Icons: Check, FileText, Upload, BarChart3</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^3.x</version>
+        <purpose>API request validation</purpose>
+      </node>
+      <node>
+        <package>react-resizable-panels</package>
+        <version>^3.0.6</version>
+        <purpose>Already installed - can use for compare layout if needed</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Agency isolation via RLS - all queries must include agency_id filter</constraint>
+    <constraint type="architecture">Only documents with status='ready' can be selected for comparison</constraint>
+    <constraint type="business">Maximum 4 documents per comparison (per PRD FR20)</constraint>
+    <constraint type="business">Minimum 2 documents required to initiate comparison</constraint>
+    <constraint type="ux">Follow Electric Blue design system from Story 6.8</constraint>
+    <constraint type="ux">Selected cards: border-2 border-primary bg-blue-50</constraint>
+    <constraint type="ux">Zero learning curve - selection works like email checkboxes</constraint>
+    <constraint type="performance">Page load under 1.5s, selection response under 100ms</constraint>
+    <constraint type="security">Validate all documentIds belong to user's agency before comparison</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>POST /api/compare</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { documentIds: string[] } Response: { comparisonId: string, status: 'processing' | 'complete' | 'failed' }</signature>
+      <path>src/app/api/compare/route.ts</path>
+    </interface>
+    <interface>
+      <name>QuoteSelectorProps</name>
+      <kind>component interface</kind>
+      <signature>{ onCompare: (documentIds: string[]) => void, maxSelections?: number, minSelections?: number }</signature>
+      <path>src/components/compare/quote-selector.tsx</path>
+    </interface>
+    <interface>
+      <name>quote_extractions table</name>
+      <kind>database table</kind>
+      <signature>id UUID, document_id UUID, agency_id UUID, extracted_data JSONB, extraction_version INT, created_at, updated_at</signature>
+      <path>supabase/migrations/XXXXXX_create_quote_comparison_tables.sql</path>
+    </interface>
+    <interface>
+      <name>comparisons table</name>
+      <kind>database table</kind>
+      <signature>id UUID, agency_id UUID, user_id UUID, document_ids UUID[], comparison_data JSONB, created_at</signature>
+      <path>supabase/migrations/XXXXXX_create_quote_comparison_tables.sql</path>
+    </interface>
+  </interfaces>
+
+  <uxDesignGuidance>
+    <source>UX Designer (Sally) - 2025-12-03</source>
+    <principle>Zero learning curve - selection works like email checkboxes</principle>
+    <principle>Immediate feedback - every click has visual response</principle>
+    <principle>Clear constraints - 2-4 limit is obvious, not frustrating</principle>
+
+    <cardStates>
+      <state name="unselected">border border-slate-200 bg-white hover:border-slate-300 transition-all</state>
+      <state name="selected">border-2 border-primary bg-blue-50 shadow-sm</state>
+      <state name="disabled">opacity-50 cursor-not-allowed (when max reached)</state>
+    </cardStates>
+
+    <selectionCounter>
+      <badge>Blue-100 background when selections > 0, muted when 0</badge>
+      <format>"X of 4 selected"</format>
+    </selectionCounter>
+
+    <compareButton>
+      <enabled>2-4 selections - Electric Blue primary button</enabled>
+      <disabled>0-1 selections - with tooltip "Select at least 2 documents"</disabled>
+    </compareButton>
+
+    <maxSelectionFeedback>
+      <toast>Maximum 4 quotes can be compared at once</toast>
+      <visual>Unselected cards get opacity-50, cursor-not-allowed</visual>
+    </maxSelectionFeedback>
+
+    <gridLayout>grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3</gridLayout>
+
+    <accessibility>
+      <item>Keyboard: Tab through cards, Space/Enter to toggle</item>
+      <item>ARIA: role="checkbox" + aria-checked on cards</item>
+      <item>Focus ring: ring-2 ring-primary ring-offset-2</item>
+      <item>Screen reader: "Hartford GL Quote selected, 2 of 4 documents"</item>
+    </accessibility>
+  </uxDesignGuidance>
+
+  <tests>
+    <standards>Vitest for unit tests, React Testing Library for components, Playwright for E2E. Test files in __tests__/ mirroring src/ structure. Mock Supabase client for unit tests.</standards>
+    <locations>
+      <location>__tests__/components/compare/</location>
+      <location>__tests__/lib/compare/</location>
+      <location>__tests__/e2e/compare-*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-7.1.1">Test QuoteSelector renders document cards with checkboxes</idea>
+      <idea acId="AC-7.1.2">Test only status='ready' documents are selectable (filter logic)</idea>
+      <idea acId="AC-7.1.3">Test selection counter updates correctly on check/uncheck</idea>
+      <idea acId="AC-7.1.4">Test Compare button disabled with 0-1 selections</idea>
+      <idea acId="AC-7.1.5">Test 5th selection blocked with toast notification</idea>
+      <idea acId="AC-7.1.6">Test upload integration - new document appears after processing</idea>
+      <idea acId="AC-7.1.7">E2E: Full flow from /compare → select 2 docs → click Compare → loading state</idea>
+      <idea acId="integration">Test RLS policies prevent cross-agency document selection</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -89,6 +89,48 @@ export type Database = {
           },
         ]
       }
+      comparisons: {
+        Row: {
+          agency_id: string
+          comparison_data: Json
+          created_at: string | null
+          document_ids: string[]
+          id: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          comparison_data?: Json
+          created_at?: string | null
+          document_ids: string[]
+          id?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          comparison_data?: Json
+          created_at?: string | null
+          document_ids?: string[]
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comparisons_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comparisons_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           agency_id: string
@@ -405,6 +447,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "processing_jobs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_extractions: {
+        Row: {
+          agency_id: string
+          created_at: string | null
+          document_id: string
+          extracted_data: Json
+          extraction_version: number | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string | null
+          document_id: string
+          extracted_data?: Json
+          extraction_version?: number | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string | null
+          document_id?: string
+          extracted_data?: Json
+          extraction_version?: number | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_extractions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_extractions_document_id_fkey"
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "documents"
