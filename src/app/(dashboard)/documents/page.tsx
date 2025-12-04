@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react';
 import { Search, X, Upload, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import type { DocumentType } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +48,7 @@ export default function DocumentLibraryPage() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
+  const [updatingTypeId, setUpdatingTypeId] = useState<string | null>(null);
 
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
@@ -214,6 +216,57 @@ export default function DocumentLibraryPage() {
     setSearchQuery('');
   };
 
+  /**
+   * Handle document type change with optimistic update
+   * AC-F2-2.4: Type change persists immediately
+   */
+  const handleTypeChange = useCallback(
+    async (documentId: string, newType: DocumentType) => {
+      // Store previous state for rollback
+      const previousDoc = documents.find((d) => d.id === documentId);
+      if (!previousDoc) return;
+
+      // Optimistic update
+      setUpdatingTypeId(documentId);
+      setDocuments((prev: DocumentWithLabels[]) =>
+        prev.map((doc) =>
+          doc.id === documentId ? { ...doc, document_type: newType } : doc
+        )
+      );
+
+      try {
+        const response = await fetch(`/api/documents/${documentId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ document_type: newType }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+          throw new Error(result.error?.message || 'Failed to update document type');
+        }
+
+        toast.success(`Document marked as ${newType}`);
+      } catch (error) {
+        // Rollback on error
+        setDocuments((prev: DocumentWithLabels[]) =>
+          prev.map((doc) =>
+            doc.id === documentId
+              ? { ...doc, document_type: previousDoc.document_type }
+              : doc
+          )
+        );
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to update document type'
+        );
+      } finally {
+        setUpdatingTypeId(null);
+      }
+    },
+    [documents, setDocuments]
+  );
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-slate-50 dark:bg-slate-950">
       {/* Page header */}
@@ -354,6 +407,9 @@ export default function DocumentLibraryPage() {
                 pageCount={doc.page_count}
                 createdAt={doc.created_at}
                 labels={doc.labels}
+                documentType={doc.document_type as DocumentType | null}
+                onTypeChange={handleTypeChange}
+                isUpdatingType={updatingTypeId === doc.id}
               />
             ))}
           </div>

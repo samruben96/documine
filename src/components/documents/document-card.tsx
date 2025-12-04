@@ -3,7 +3,6 @@
 import { FileText, Clock, FileStack } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -12,8 +11,10 @@ import {
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
+import { DocumentTypeToggle } from './document-type-toggle';
 import { LabelPill } from './label-pill';
 import type { Label } from '@/app/(dashboard)/chat-docs/actions';
+import type { DocumentType } from '@/types';
 
 interface DocumentCardProps {
   id: string;
@@ -23,8 +24,12 @@ interface DocumentCardProps {
   pageCount?: number | null;
   createdAt: string;
   labels?: Label[];
-  /** Document type (quote | general) - will be available after F2-2 */
-  documentType?: string | null;
+  /** Document type (quote | general) */
+  documentType?: DocumentType | null;
+  /** Callback when document type is changed via toggle */
+  onTypeChange?: (id: string, type: DocumentType) => void;
+  /** Shows loading state on type toggle during update */
+  isUpdatingType?: boolean;
   className?: string;
 }
 
@@ -45,10 +50,16 @@ export function DocumentCard({
   createdAt,
   labels = [],
   documentType,
+  onTypeChange,
+  isUpdatingType = false,
   className,
 }: DocumentCardProps) {
   const router = useRouter();
   const name = displayName || filename;
+
+  const handleTypeChange = (newType: DocumentType) => {
+    onTypeChange?.(id, newType);
+  };
 
   const handleClick = () => {
     router.push(`/chat-docs/${id}`);
@@ -78,10 +89,18 @@ export function DocumentCard({
         {/* Status and Type badges */}
         <div className="flex items-center justify-between gap-2">
           <DocumentStatusBadge status={status as DocumentStatusType} />
-          {/* Document type badge - defaults to "quote" until F2-2 adds categorization */}
-          <Badge variant="outline" className="text-xs">
-            {documentType || 'quote'}
-          </Badge>
+          {/* Document type toggle - AC-F2-2.3: UI toggle/dropdown to change document type */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <DocumentTypeToggle
+              type={documentType}
+              onTypeChange={handleTypeChange}
+              isLoading={isUpdatingType}
+              disabled={status !== 'ready'}
+            />
+          </div>
         </div>
 
         {/* Document icon and name */}

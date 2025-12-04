@@ -12,6 +12,8 @@ export type UserRole = 'admin' | 'member';
 
 export type DocumentStatus = 'processing' | 'ready' | 'failed';
 
+export type DocumentType = 'quote' | 'general';
+
 export type Confidence = 'high' | 'needs_review' | 'not_found';
 
 export type SubscriptionTier = 'starter' | 'professional' | 'enterprise';

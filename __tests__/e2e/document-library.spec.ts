@@ -195,6 +195,114 @@ test.describe('Document Library Page', () => {
     });
   });
 
+  test.describe('AC-F2-2: Document Type Categorization', () => {
+    test('document card shows type toggle', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      const documentCard = page.locator('[data-testid="document-card"]').first();
+
+      if (await documentCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        // Should show document type toggle
+        const typeToggle = documentCard.locator('[data-testid="document-type-toggle"]');
+        await expect(typeToggle).toBeVisible();
+      } else {
+        test.skip();
+      }
+    });
+
+    test('document type toggle shows dropdown on click', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      const documentCard = page.locator('[data-testid="document-card"]').first();
+
+      if (await documentCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        // Click the type toggle
+        const typeToggle = documentCard.locator('[data-testid="document-type-toggle"]');
+        await typeToggle.click();
+
+        // Dropdown should appear with options
+        await expect(page.locator('[data-testid="type-option-quote"]')).toBeVisible();
+        await expect(page.locator('[data-testid="type-option-general"]')).toBeVisible();
+      } else {
+        test.skip();
+      }
+    });
+
+    test('clicking type toggle does not navigate away', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      const documentCard = page.locator('[data-testid="document-card"]').first();
+
+      if (await documentCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        // Click the type toggle
+        const typeToggle = documentCard.locator('[data-testid="document-type-toggle"]');
+        await typeToggle.click();
+
+        // Should still be on /documents (not navigated to /chat-docs)
+        expect(page.url()).toContain('/documents');
+
+        // Close dropdown by pressing Escape
+        await page.keyboard.press('Escape');
+      } else {
+        test.skip();
+      }
+    });
+
+    test('can change document type from quote to general', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      const documentCard = page.locator('[data-testid="document-card"]').first();
+
+      if (await documentCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        // Find a card with "Quote" type
+        const quoteBadge = documentCard.locator('[data-testid="document-type-badge"][data-type="quote"]');
+
+        if (await quoteBadge.isVisible({ timeout: 3000 }).catch(() => false)) {
+          // Click the type toggle
+          const typeToggle = documentCard.locator('[data-testid="document-type-toggle"]');
+          await typeToggle.click();
+
+          // Click general option
+          await page.locator('[data-testid="type-option-general"]').click();
+
+          // Wait for optimistic update
+          await page.waitForTimeout(500);
+
+          // Should now show "General"
+          const generalBadge = documentCard.locator('[data-testid="document-type-badge"][data-type="general"]');
+          await expect(generalBadge).toBeVisible();
+
+          // Revert back to quote for cleanup
+          await typeToggle.click();
+          await page.locator('[data-testid="type-option-quote"]').click();
+        }
+      } else {
+        test.skip();
+      }
+    });
+
+    test('type toggle is disabled for processing documents', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      // Look for a processing document
+      const processingCard = page.locator('[data-testid="document-card"]:has-text("Analyzing")').first();
+
+      if (await processingCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // Type toggle should be disabled
+        const typeToggle = processingCard.locator('[data-testid="document-type-toggle"]');
+        await expect(typeToggle).toBeDisabled();
+      } else {
+        // No processing documents - skip this test
+        test.skip();
+      }
+    });
+  });
+
   test.describe('Backward Compatibility - Redirects', () => {
     test('old /documents/[id] redirects to /chat-docs/[id]', async ({ page }) => {
       // First, get a valid document ID

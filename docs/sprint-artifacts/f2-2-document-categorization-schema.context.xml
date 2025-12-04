@@ -1,0 +1,115 @@
+<story-context id="f2-2-document-categorization-schema" v="1.0">
+  <metadata>
+    <epicId>F2</epicId>
+    <storyId>2</storyId>
+    <title>Document Categorization Schema</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-f2.2-document-categorization-schema.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>categorize documents as either "quote" or "general"</iWant>
+    <soThat>I can keep my comparison page focused on actual quote documents while still organizing all my uploads</soThat>
+    <tasks>
+      <task id="1" ac="2.1,2.2">Database migration for document_type column</task>
+      <task id="2" ac="2.1">Update TypeScript types</task>
+      <task id="3" ac="2.4">Create PATCH API endpoint for type update</task>
+      <task id="4" ac="2.5">Create DocumentTypeBadge component</task>
+      <task id="5" ac="2.3">Create DocumentTypeToggle component</task>
+      <task id="6" ac="2.3,2.4,2.5">Integrate type toggle in DocumentCard</task>
+      <task id="7" ac="2.4">Update useDocuments hook for optimistic updates</task>
+      <task id="8">Write unit tests</task>
+      <task id="9">Write E2E test</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-F2-2.1">document_type column added to documents table with constraint (quote | general)</criterion>
+    <criterion id="AC-F2-2.2">Default type is 'quote' (backward compatible with existing documents)</criterion>
+    <criterion id="AC-F2-2.3">UI toggle/dropdown to change document type on document card</criterion>
+    <criterion id="AC-F2-2.4">Type change persists immediately (optimistic update pattern)</criterion>
+    <criterion id="AC-F2-2.5">Type displayed as badge on document card/row (visual distinction)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-f2.md" title="Epic F2 Tech Spec" section="Story F2-2: Document Categorization Schema" snippet="Defines AC-F2-2.1 through AC-F2-2.5, schema migration SQL, API contracts for PATCH endpoint, and TypeScript types."/>
+      <doc path="docs/architecture.md" title="Architecture" section="Data Architecture" snippet="Documents table schema, RLS policies pattern, API response format standard."/>
+      <doc path="docs/sprint-artifacts/story-f2.1-document-library-page.md" title="Story F2-1" section="Dev Agent Record" snippet="Route restructure complete. DocumentCard component already has documentType prop placeholder. Test patterns established."/>
+    </docs>
+
+    <code>
+      <file path="src/components/documents/document-card.tsx" kind="component" symbol="DocumentCard" lines="1-145" reason="Grid view card component - already has documentType prop prepared at line 26, renders badge at line 82-84 with fallback to 'quote'"/>
+      <file path="src/components/documents/document-list-item.tsx" kind="component" symbol="DocumentListItem" lines="1-414" reason="Sidebar list item - may need documentType display"/>
+      <file path="src/components/ui/badge.tsx" kind="component" symbol="Badge, badgeVariants" lines="1-47" reason="Badge styling reference - variants: default, secondary, destructive, outline"/>
+      <file path="src/components/documents/document-status.tsx" kind="component" symbol="DocumentStatusBadge" lines="121-188" reason="Pattern reference for status badge styling"/>
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" symbol="DocumentLibraryPage" lines="347-358" reason="Renders DocumentCard components - needs to pass documentType prop"/>
+      <file path="src/app/(dashboard)/chat-docs/actions.ts" kind="server-actions" symbol="renameDocument" lines="478-530" reason="Pattern for PATCH-style updates - new updateDocumentType action needed"/>
+      <file path="src/lib/documents/service.ts" kind="service" symbol="createDocumentRecord, updateDocumentStatus" lines="1-100" reason="Document CRUD service layer"/>
+      <file path="src/types/database.types.ts" kind="types" symbol="Tables['documents']" lines="297-352" reason="Auto-generated Supabase types - will update after migration"/>
+      <file path="src/types/index.ts" kind="types" symbol="DocumentStatus" lines="1-29" reason="Add DocumentType enum here"/>
+      <file path="supabase/migrations/00001_initial_schema.sql" kind="migration" symbol="documents table" lines="50-72" reason="Base schema - need new migration to add document_type column"/>
+      <file path="__tests__/components/documents/document-card.test.tsx" kind="test" reason="Existing card tests - extend for documentType"/>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Database operations"/>
+        <package name="@supabase/ssr" version="^0.7.0" reason="Server-side Supabase client"/>
+        <package name="zod" version="^4.1.13" reason="Request validation for PATCH endpoint"/>
+        <package name="class-variance-authority" version="^0.7.1" reason="Badge variants"/>
+        <package name="lucide-react" version="^0.554.0" reason="Icons for badge/toggle"/>
+        <package name="sonner" version="^2.0.7" reason="Toast notifications for updates"/>
+      </node>
+      <devNode>
+        <package name="vitest" version="^4.0.14" reason="Unit testing"/>
+        <package name="@testing-library/react" version="^16.3.0" reason="Component testing"/>
+        <package name="@playwright/test" version="^1.57.0" reason="E2E testing"/>
+      </devNode>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="database">RLS policies already protect documents by agency_id - no additional policy needed</constraint>
+    <constraint type="backward-compat">Default type must be 'quote' so existing documents work without update</constraint>
+    <constraint type="api">Follow existing API response format: { data: T | null, error: { code, message } | null }</constraint>
+    <constraint type="ui">Use shadcn/ui Badge component with existing variant patterns</constraint>
+    <constraint type="state">Implement optimistic updates with SWR mutate and rollback on error</constraint>
+    <constraint type="testing">Follow 80% unit test coverage target, include E2E for type change flow</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="PATCH /api/documents/:id" kind="REST endpoint">
+      <signature>PATCH /api/documents/:id { document_type: 'quote' | 'general' } => { data: { id, document_type }, error: null }</signature>
+      <path>src/app/api/documents/[id]/route.ts</path>
+    </interface>
+    <interface name="updateDocumentType" kind="server action">
+      <signature>updateDocumentType(documentId: string, documentType: DocumentType): Promise&lt;void&gt;</signature>
+      <path>src/app/(dashboard)/chat-docs/actions.ts</path>
+    </interface>
+    <interface name="DocumentType" kind="type">
+      <signature>type DocumentType = 'quote' | 'general'</signature>
+      <path>src/types/index.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest + React Testing Library for unit/component tests. Playwright for E2E. Follow existing patterns in __tests__/components/documents/. Mock Supabase client in tests. Use data-testid attributes for E2E selectors.</standards>
+    <locations>
+      <location>__tests__/components/documents/</location>
+      <location>__tests__/e2e/</location>
+      <location>__tests__/hooks/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-F2-2.1">Verify migration adds column with correct constraint and default</idea>
+      <idea ac="AC-F2-2.2">Test that new documents default to 'quote' type</idea>
+      <idea ac="AC-F2-2.3">Test DocumentTypeToggle renders with both options, emits onChange</idea>
+      <idea ac="AC-F2-2.4">Test optimistic update: UI updates immediately, rollback on API error</idea>
+      <idea ac="AC-F2-2.5">Test DocumentTypeBadge renders 'quote' (blue) and 'general' (gray) variants</idea>
+      <idea ac="E2E">Test full flow: click badge → select type → verify persistence after refresh</idea>
+    </ideas>
+  </tests>
+</story-context>

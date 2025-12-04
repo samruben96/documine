@@ -80,16 +80,22 @@ describe('DocumentCard', () => {
       expect(screen.queryByText(/page/)).not.toBeInTheDocument();
     });
 
-    it('shows document type badge', () => {
+    it('shows document type via toggle', () => {
       render(<DocumentCard {...defaultProps} documentType="general" />);
 
-      expect(screen.getByText('general')).toBeInTheDocument();
+      expect(screen.getByText('General')).toBeInTheDocument();
     });
 
-    it('defaults to "quote" type when not provided', () => {
+    it('defaults to "Quote" type when not provided', () => {
       render(<DocumentCard {...defaultProps} />);
 
-      expect(screen.getByText('quote')).toBeInTheDocument();
+      expect(screen.getByText('Quote')).toBeInTheDocument();
+    });
+
+    it('renders document type toggle', () => {
+      render(<DocumentCard {...defaultProps} />);
+
+      expect(screen.getByTestId('document-type-toggle')).toBeInTheDocument();
     });
 
     it('shows labels when provided', () => {
@@ -149,10 +155,86 @@ describe('DocumentCard', () => {
     it('has correct aria-label for accessibility', () => {
       render(<DocumentCard {...defaultProps} displayName="My Document" />);
 
-      expect(screen.getByRole('button')).toHaveAttribute(
-        'aria-label',
-        'Open document: My Document'
+      const card = screen.getByTestId('document-card');
+      expect(card).toHaveAttribute('aria-label', 'Open document: My Document');
+    });
+  });
+
+  describe('document type toggle (AC-F2-2.3)', () => {
+    it('calls onTypeChange when type is changed', async () => {
+      const handleTypeChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <DocumentCard
+          {...defaultProps}
+          documentType="quote"
+          onTypeChange={handleTypeChange}
+        />
       );
+
+      // Click the toggle to open dropdown
+      await user.click(screen.getByTestId('document-type-toggle'));
+
+      // Wait for dropdown and click general option
+      const generalOption = await screen.findByTestId('type-option-general');
+      await user.click(generalOption);
+
+      expect(handleTypeChange).toHaveBeenCalledWith('doc-123', 'general');
+    });
+
+    it('shows loading state when isUpdatingType is true', () => {
+      render(
+        <DocumentCard
+          {...defaultProps}
+          documentType="quote"
+          isUpdatingType
+        />
+      );
+
+      const badge = screen.getByTestId('document-type-badge');
+      expect(badge).toHaveClass('opacity-50');
+    });
+
+    it('disables toggle when document is not ready', () => {
+      render(
+        <DocumentCard
+          {...defaultProps}
+          status="processing"
+          documentType="quote"
+        />
+      );
+
+      const toggle = screen.getByTestId('document-type-toggle');
+      expect(toggle).toBeDisabled();
+    });
+
+    it('enables toggle when document is ready', () => {
+      render(
+        <DocumentCard
+          {...defaultProps}
+          status="ready"
+          documentType="quote"
+        />
+      );
+
+      const toggle = screen.getByTestId('document-type-toggle');
+      expect(toggle).not.toBeDisabled();
+    });
+
+    it('does not navigate when clicking type toggle', async () => {
+      const user = userEvent.setup();
+      render(
+        <DocumentCard
+          {...defaultProps}
+          onTypeChange={vi.fn()}
+        />
+      );
+
+      // Click the toggle
+      await user.click(screen.getByTestId('document-type-toggle'));
+
+      // Should not navigate
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 

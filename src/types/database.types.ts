@@ -299,6 +299,7 @@ export type Database = {
           agency_id: string
           created_at: string
           display_name: string | null
+          document_type: string | null
           filename: string
           id: string
           metadata: Json | null
@@ -312,6 +313,7 @@ export type Database = {
           agency_id: string
           created_at?: string
           display_name?: string | null
+          document_type?: string | null
           filename: string
           id?: string
           metadata?: Json | null
@@ -325,6 +327,7 @@ export type Database = {
           agency_id?: string
           created_at?: string
           display_name?: string | null
+          document_type?: string | null
           filename?: string
           id?: string
           metadata?: Json | null

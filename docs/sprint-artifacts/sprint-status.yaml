@@ -454,7 +454,17 @@ development_status:
   # READY-FOR-DEV 2025-12-04: Context at docs/sprint-artifacts/f2-1-document-library-page.context.xml
   # Route restructure: /documents → library, /chat-docs/[id] → viewer
   f2-1-document-library-page: done
-  f2-2-document-categorization-schema: backlog
+  # Story F2-2: Document Categorization Schema
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-f2.2-document-categorization-schema.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/f2-2-document-categorization-schema.context.xml
+  # IMPLEMENTED 2025-12-04: All 5 ACs complete
+  # - Database migration: document_type column with CHECK constraint
+  # - TypeScript types: DocumentType = 'quote' | 'general'
+  # - PATCH API endpoint for type updates
+  # - DocumentTypeBadge + DocumentTypeToggle components
+  # - DocumentCard integration with optimistic updates
+  # - 50 unit tests + 5 E2E tests
+  f2-2-document-categorization-schema: done
   f2-3-ai-tagging-summarization: backlog
   f2-4-filter-general-docs-from-compare: backlog
   f2-5-tag-management-ui: backlog
