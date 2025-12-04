@@ -79,7 +79,7 @@ LIMIT TYPE MAPPINGS:
 /**
  * Extract structured quote data from a document.
  *
- * AC-7.2.1: Uses GPT-4o function calling with defined schema
+ * AC-7.2.1: Uses GPT-5.1 structured outputs with defined schema
  * AC-7.2.4: Source reference tracking via page numbers
  * AC-7.2.7: Completes within 60 seconds per document
  * AC-7.2.8: Returns partial results on failure

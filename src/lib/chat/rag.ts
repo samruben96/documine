@@ -138,7 +138,7 @@ export async function retrieveContext(
 }
 
 /**
- * Build the full prompt for GPT-4o
+ * Build the full prompt for the LLM
  *
  * @param query - The user's question
  * @param chunks - Retrieved document chunks

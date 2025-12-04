@@ -286,7 +286,7 @@ development_status:
   # Supabase Issues Found:
   #   - 8 security advisories (7 function search_path + leaked password protection)
   #   - 37 performance advisories (28 RLS initplan + 8 unindexed FKs + more)
-  epic-8: contexted
+  epic-8: done
   # Story 8.1: Database Security Hardening
   # Fix function search_path, enable leaked password protection
   # Priority: P0 - security first
@@ -331,7 +331,8 @@ development_status:
   # Story 8.7: Code Quality Cleanup
   # Update comments, regenerate types
   # Priority: P3 - housekeeping
-  8-7-code-quality-cleanup: backlog
+  # REVIEWED 2025-12-03: Approved - GPT-4o refs fixed, CLAUDE.md updated, types verified
+  8-7-code-quality-cleanup: done
   epic-8-retrospective: optional
 
 # ===========================================

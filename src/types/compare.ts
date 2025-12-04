@@ -159,7 +159,7 @@ export interface DeductibleItem {
 
 /**
  * Complete extraction result from a quote document.
- * AC-7.2.1: GPT-4o function calling schema output.
+ * AC-7.2.1: GPT-5.1 structured output schema.
  */
 export interface QuoteExtraction {
   /** Insurance carrier/company name */
@@ -182,7 +182,7 @@ export interface QuoteExtraction {
   deductibles: DeductibleItem[];
   /** When extraction was performed (ISO timestamp) */
   extractedAt: string;
-  /** Model used for extraction (e.g., 'gpt-4o') */
+  /** Model used for extraction (e.g., 'gpt-5.1') */
   modelUsed: string;
 }
 
@@ -288,7 +288,7 @@ export const quoteExtractionSchema = z.object({
 });
 
 /**
- * GPT-4o function calling schema for quote extraction.
+ * GPT-5.1 structured output schema for quote extraction.
  * AC-7.2.1: Used with OpenAI chat completions API.
  */
 export const EXTRACT_QUOTE_DATA_FUNCTION = {
