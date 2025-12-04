@@ -434,7 +434,7 @@ Ensure backward compatibility and create migration path.
 ## Dependencies
 
 - Epic 9 complete (one-pager foundation)
-- GPT-4 context window for full policy analysis
+- GPT-5.1 context window (400K tokens) for full policy analysis
 - Sample policies for testing new extraction
 
 ---
