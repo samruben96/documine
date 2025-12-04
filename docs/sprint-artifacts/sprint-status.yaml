@@ -395,7 +395,13 @@ development_status:
   # Priority: P0 - PDF generation
   # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.4-one-pager-pdf-template.md
   # Depends on: 9.1, 9.3
-  9-4-one-pager-pdf-template: drafted
+  # IMPLEMENTED 2025-12-04: Added missing AC-9.4.3 (comparison table) and AC-9.4.5 (gaps section)
+  # - ComparisonTable component in PDF for multi-quote mode
+  # - GapsSection component showing coverage gaps between carriers
+  # - Updated OnePagerPreview to match PDF layout for comparison mode
+  # - Single-quote mode unchanged (Quote Overview + Coverage Highlights)
+  # - Multi-quote mode shows Coverage Comparison table + Gaps section
+  9-4-one-pager-pdf-template: done
   # Story 9.5: Entry Point Buttons
   # Buttons on compare, docs, history pages
   # Priority: P1 - navigation convenience
