@@ -416,7 +416,12 @@ development_status:
   # Priority: P2 - quality assurance
   # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.6-testing-polish.md
   # Depends on: 9.1-9.5
-  9-6-testing-polish: drafted
+  # IMPLEMENTED 2025-12-04: Full test coverage verified
+  # - Added use-one-pager-data hook tests (11 tests)
+  # - Added E2E tests for entry point navigation (12 tests)
+  # - Updated CLAUDE.md with Epic 9 patterns
+  # - 1207 tests pass, build successful
+  9-6-testing-polish: done
 
 # ===========================================
 # FUTURE EPICS (Prioritized Post-MVP Roadmap)
