@@ -11,10 +11,186 @@ import type { Json } from '@/types/database.types';
  *
  * Story 7.1: AC-7.1.7 - Create comparison and navigate
  * Story 7.2: AC-7.2.1, AC-7.2.7, AC-7.2.8 - Trigger extraction and handle results
+ * Story 7.7: AC-7.7.1, AC-7.7.4, AC-7.7.6, AC-7.7.7 - List and bulk delete comparisons
  *
- * Creates a new comparison record, triggers parallel extraction for all documents,
- * and returns the comparison ID. Extraction happens asynchronously after response.
+ * GET: List comparisons with pagination, search, and date filtering
+ * POST: Create a new comparison record with async extraction
+ * DELETE: Bulk delete comparisons by IDs
  */
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/** Summary of a comparison for history listing */
+export interface ComparisonSummary {
+  id: string;
+  createdAt: string;
+  status: 'processing' | 'complete' | 'partial' | 'failed';
+  documentCount: number;
+  documentNames: string[];
+}
+
+/** Response for listing comparisons */
+export interface ListComparisonResponse {
+  comparisons: ComparisonSummary[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+
+// ============================================================================
+// GET - List Comparisons (Story 7.7)
+// ============================================================================
+
+/**
+ * List comparisons with pagination, search, and date filtering.
+ *
+ * Query params:
+ * - page: Page number (default: 1)
+ * - limit: Items per page (default: 20, max: 100)
+ * - search: Search document filenames
+ * - from: Date range start (ISO date)
+ * - to: Date range end (ISO date)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    // Get user's agency
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return NextResponse.json(
+        { error: { code: 'NO_AGENCY', message: 'User not associated with an agency' } },
+        { status: 403 }
+      );
+    }
+
+    const agencyId = userData.agency_id;
+
+    // Parse query params
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+    const search = searchParams.get('search')?.trim().toLowerCase() || '';
+    const fromDate = searchParams.get('from') || '';
+    const toDate = searchParams.get('to') || '';
+
+    // Build query - fetch all comparisons for this agency
+    let query = supabase
+      .from('comparisons')
+      .select('id, document_ids, comparison_data, created_at', { count: 'exact' })
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false });
+
+    // Date range filter
+    if (fromDate) {
+      query = query.gte('created_at', `${fromDate}T00:00:00.000Z`);
+    }
+    if (toDate) {
+      query = query.lte('created_at', `${toDate}T23:59:59.999Z`);
+    }
+
+    const { data: comparisons, error: fetchError, count } = await query;
+
+    if (fetchError) {
+      log.warn('Failed to fetch comparisons', { error: fetchError.message });
+      return NextResponse.json(
+        { error: { code: 'DATABASE_ERROR', message: 'Failed to fetch comparisons' } },
+        { status: 500 }
+      );
+    }
+
+    if (!comparisons || comparisons.length === 0) {
+      return NextResponse.json({
+        comparisons: [],
+        totalCount: 0,
+        page: 1,
+        totalPages: 0,
+      } satisfies ListComparisonResponse);
+    }
+
+    // Get all unique document IDs to fetch filenames
+    const allDocIds = new Set<string>();
+    for (const comp of comparisons) {
+      for (const docId of comp.document_ids || []) {
+        allDocIds.add(docId);
+      }
+    }
+
+    // Fetch document filenames
+    const { data: documents } = await supabase
+      .from('documents')
+      .select('id, filename, display_name')
+      .in('id', Array.from(allDocIds));
+
+    const docNameMap = new Map<string, string>();
+    for (const doc of documents || []) {
+      docNameMap.set(doc.id, doc.display_name || doc.filename);
+    }
+
+    // Build summaries
+    let summaries: ComparisonSummary[] = comparisons.map((comp) => {
+      const data = comp.comparison_data as unknown as ComparisonData;
+      const docNames = (comp.document_ids || []).map(
+        (id: string) => docNameMap.get(id) || 'Unknown'
+      );
+
+      return {
+        id: comp.id,
+        createdAt: comp.created_at || new Date().toISOString(),
+        status: data?.status || 'processing',
+        documentCount: (comp.document_ids || []).length,
+        documentNames: docNames,
+      };
+    });
+
+    // Client-side search filter (search in document names)
+    if (search) {
+      summaries = summaries.filter((s) =>
+        s.documentNames.some((name) => name.toLowerCase().includes(search))
+      );
+    }
+
+    // Pagination
+    const totalCount = summaries.length;
+    const totalPages = Math.ceil(totalCount / limit);
+    const offset = (page - 1) * limit;
+    const paginatedSummaries = summaries.slice(offset, offset + limit);
+
+    return NextResponse.json({
+      comparisons: paginatedSummaries,
+      totalCount,
+      page,
+      totalPages,
+    } satisfies ListComparisonResponse);
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    log.error('Compare list API error', err);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+      { status: 500 }
+    );
+  }
+}
 
 // Request validation schema
 const compareRequestSchema = z.object({
@@ -291,5 +467,109 @@ async function runExtractionAsync(
       totalCount: documentIds.length,
       duration,
     });
+  }
+}
+
+// ============================================================================
+// DELETE - Bulk Delete Comparisons (Story 7.7)
+// ============================================================================
+
+// Request validation schema for bulk delete
+const bulkDeleteSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1, 'At least one ID required').max(100, 'Maximum 100 IDs'),
+});
+
+/**
+ * Bulk delete comparisons by IDs.
+ *
+ * AC-7.7.7: Delete multiple comparisons at once
+ *
+ * Request body: { ids: string[] }
+ * Response: { success: true, deletedCount: number }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    // Get user's agency
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return NextResponse.json(
+        { error: { code: 'NO_AGENCY', message: 'User not associated with an agency' } },
+        { status: 403 }
+      );
+    }
+
+    const agencyId = userData.agency_id;
+
+    // Parse and validate request body
+    const body = await request.json();
+    const parseResult = bulkDeleteSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: parseResult.error.issues[0]?.message || 'Invalid request',
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    const { ids } = parseResult.data;
+
+    // Delete comparisons - RLS ensures user can only delete their own
+    const { error: deleteError, count } = await supabase
+      .from('comparisons')
+      .delete({ count: 'exact' })
+      .in('id', ids)
+      .eq('agency_id', agencyId)
+      .eq('user_id', user.id);
+
+    if (deleteError) {
+      log.warn('Failed to delete comparisons', { error: deleteError.message, ids });
+      return NextResponse.json(
+        { error: { code: 'DATABASE_ERROR', message: 'Failed to delete comparisons' } },
+        { status: 500 }
+      );
+    }
+
+    log.info('Bulk delete comparisons', {
+      requestedCount: ids.length,
+      deletedCount: count || 0,
+      userId: user.id,
+    });
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: count || 0,
+    });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    log.error('Compare bulk delete API error', err);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+      { status: 500 }
+    );
   }
 }

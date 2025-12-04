@@ -4,10 +4,13 @@ import { log } from '@/lib/utils/logger';
 import type { ComparisonData } from '@/types/compare';
 
 /**
- * Comparison GET API Endpoint
+ * Comparison API Endpoint (by ID)
  *
  * Story 7.2: Fetch comparison by ID for polling status during extraction.
- * Returns comparison data including extraction status and results.
+ * Story 7.7: Delete individual comparison (AC-7.7.3)
+ *
+ * GET: Returns comparison data including extraction status and results.
+ * DELETE: Removes comparison by ID.
  */
 
 interface RouteParams {
@@ -87,6 +90,84 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error('Comparison GET error', err);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Delete a single comparison by ID.
+ *
+ * AC-7.7.3: Delete individual comparison with confirmation
+ */
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { id: comparisonId } = await params;
+    const supabase = await createClient();
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    // Get user's agency
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !userData?.agency_id) {
+      return NextResponse.json(
+        { error: { code: 'NO_AGENCY', message: 'User not associated with an agency' } },
+        { status: 403 }
+      );
+    }
+
+    const agencyId = userData.agency_id;
+
+    // Delete comparison - RLS ensures user can only delete their own
+    const { error: deleteError, count } = await supabase
+      .from('comparisons')
+      .delete({ count: 'exact' })
+      .eq('id', comparisonId)
+      .eq('agency_id', agencyId)
+      .eq('user_id', user.id);
+
+    if (deleteError) {
+      log.warn('Failed to delete comparison', {
+        comparisonId,
+        error: deleteError.message,
+      });
+      return NextResponse.json(
+        { error: { code: 'DATABASE_ERROR', message: 'Failed to delete comparison' } },
+        { status: 500 }
+      );
+    }
+
+    if (count === 0) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Comparison not found or not authorized' } },
+        { status: 404 }
+      );
+    }
+
+    log.info('Comparison deleted', { comparisonId, userId: user.id });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    log.error('Comparison DELETE error', err);
     return NextResponse.json(
       { error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } },
       { status: 500 }

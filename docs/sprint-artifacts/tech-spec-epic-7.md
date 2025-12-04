@@ -25,6 +25,7 @@ This epic builds directly on the document processing infrastructure from Epic 4 
 - **Gap & Conflict Detection** (Story 7.4) - Automatic identification of missing coverage, exclusion differences, significant limit/deductible variances
 - **Source Citations** (Story 7.5) - Click-to-verify for any extracted value, reusing document viewer highlight pattern
 - **Export Functionality** (Story 7.6) - PDF and CSV export of comparison results
+- **Comparison History** (Story 7.7) - History table of past comparisons with search, date range filtering, pagination, and bulk delete
 
 ### Out of Scope
 
@@ -69,6 +70,8 @@ This epic builds directly on the document processing infrastructure from Epic 4 
 | **CompareAPI** | REST endpoints for compare operations | `src/app/api/compare/route.ts` | CompareService, auth middleware |
 | **QuoteSelectionUI** | Document selection interface with upload integration | `src/components/compare/quote-selector.tsx` | DocumentList, UploadZone |
 | **ComparisonTableUI** | Renders comparison table with highlighting | `src/components/compare/comparison-table.tsx` | DiffEngine output |
+| **ComparisonHistoryUI** | History table with search, filtering, bulk actions | `src/components/compare/comparison-history.tsx` | CompareAPI list endpoint |
+| **HistoryFiltersUI** | Search input, date range, presets | `src/components/compare/comparison-history-filters.tsx` | Client-side filtering |
 | **ExportService** | PDF and CSV generation | `src/lib/compare/export.ts` | react-pdf, Blob API |
 
 **Module Interaction Flow:**
@@ -237,6 +240,35 @@ interface CompareResponse {
 // GET /api/compare/:id/export?format=pdf|csv
 // Generates and returns export file
 // Response: Blob (application/pdf or text/csv)
+
+// GET /api/compare - List comparisons (Story 7.7)
+// Query params:
+//   ?page=1&limit=20          - Pagination (default: page=1, limit=20)
+//   ?search=filename          - Search document filenames
+//   ?from=2024-01-01          - Date range start (ISO date)
+//   ?to=2024-12-31            - Date range end (ISO date)
+interface ListComparisonResponse {
+  comparisons: ComparisonSummary[];
+  totalCount: number;
+  page: number;
+  totalPages: number;
+}
+
+interface ComparisonSummary {
+  id: string;
+  createdAt: string;
+  status: 'processing' | 'complete' | 'partial' | 'failed';
+  documentCount: number;
+  documentNames: string[];  // Filenames from joined documents table
+}
+
+// DELETE /api/compare/[id] - Single delete (Story 7.7)
+// Deletes a single comparison by ID
+// Response: { success: true }
+
+// DELETE /api/compare - Bulk delete (Story 7.7)
+// Request body: { ids: string[] }
+// Response: { success: true, deletedCount: number }
 
 // GET /api/documents/:id/extraction
 // Get cached extraction for single document (or trigger if not cached)
@@ -609,6 +641,19 @@ Must be applied before any other Epic 7 stories.
 | AC-7.6.5 | File downloads automatically with timestamp filename |
 | AC-7.6.6 | Export button shows loading state during generation |
 
+### Story 7.7: Comparison History
+
+| ID | Criterion |
+|----|-----------|
+| AC-7.7.1 | History table displays: checkbox, date, document filenames, status badge; sorted most-recent-first |
+| AC-7.7.2 | Clicking row navigates to `/compare/[id]}` loading stored comparison (no re-extraction) |
+| AC-7.7.3 | Delete icon triggers confirmation dialog; row fades out with optimistic UI |
+| AC-7.7.4 | Search filters by document filenames; date range filter with From/To inputs and presets |
+| AC-7.7.5 | Empty state shows "No comparisons yet" with CTA to create first comparison |
+| AC-7.7.6 | Pagination (20 per page) with controls at bottom |
+| AC-7.7.7 | Bulk delete: checkbox column, "Delete Selected (N)" action, confirmation dialog |
+| AC-7.7.8 | Header checkbox selects/deselects all visible rows |
+
 ## Traceability Mapping
 
 ### FR → Story → AC Mapping
@@ -622,6 +667,7 @@ Must be applied before any other Epic 7 stories.
 | FR24 | Flag gaps/conflicts | 7.4 | AC-7.4.1, AC-7.4.2, AC-7.4.3, AC-7.4.4, AC-7.4.6 |
 | FR25 | Source citations for comparison | 7.5 | AC-7.5.1, AC-7.5.2, AC-7.5.3, AC-7.5.4 |
 | FR26 | Export comparison results | 7.6 | AC-7.6.1, AC-7.6.2, AC-7.6.3, AC-7.6.4, AC-7.6.5 |
+| FR27 | Comparison history & management | 7.7 | AC-7.7.1, AC-7.7.2, AC-7.7.3, AC-7.7.4, AC-7.7.5, AC-7.7.6, AC-7.7.7, AC-7.7.8 |
 
 ### Story Dependencies
 
@@ -633,6 +679,7 @@ graph LR
     7.3 --> 7.5[7.5 Source Citations]
     7.3 --> 7.6[7.6 Export]
     7.4 --> 7.3
+    7.1 --> 7.7[7.7 History]
 ```
 
 ### Implementation Order
@@ -643,6 +690,7 @@ graph LR
 4. **Story 7.4** - Gap detection (enhances table)
 5. **Story 7.5** - Source citations (builds on table)
 6. **Story 7.6** - Export (builds on table)
+7. **Story 7.7** - Comparison history (depends on comparisons table from 7.1)
 
 ## Risks, Assumptions, Open Questions
 
@@ -672,7 +720,7 @@ graph LR
 | Maximum documents per comparison: 4 or 6? | Story 7.1 start | 4 (per PRD) |
 | Export format: PDF only or also XLSX? | Story 7.6 start | PDF + CSV (XLSX post-MVP) |
 | Cache invalidation strategy when document re-processed? | Story 7.2 | extraction_version increment |
-| Should comparison history be saved? | Epic 7 complete | Save for 30 days |
+| ~~Should comparison history be saved?~~ | ~~Epic 7 complete~~ | ~~Save for 30 days~~ | **RESOLVED: Story 7.7 added** |
 
 ### Resolved Decisions
 
@@ -713,6 +761,10 @@ graph LR
 | `compare-source-citation.spec.ts` | Click cell source → Verify document viewer opens at page |
 | `compare-export.spec.ts` | Click Export PDF → Verify download triggers |
 | `compare-gaps.spec.ts` | Compare docs with gap → Verify warning banner appears |
+| `compare-history.spec.ts` | View history → Click row → Verify comparison loads |
+| `compare-history-search.spec.ts` | Enter search term → Verify table filters |
+| `compare-history-delete.spec.ts` | Click delete → Confirm → Verify row removed |
+| `compare-history-bulk-delete.spec.ts` | Select multiple → Bulk delete → Confirm → Verify all removed |
 
 ### Test Data
 
@@ -757,6 +809,7 @@ expect(hartfordExtraction.coverages[0].sourceRef.pageNumber).toBe(2);
 |------|---------|---------|--------|
 | 2025-12-03 | 1.0 | Initial Epic 7 Tech Spec | Sam (via BMAD) |
 | 2025-12-03 | 1.1 | Updated to GPT-5.1 for extraction (ADR-007) | SM (Bob) |
+| 2025-12-03 | 1.2 | Added Story 7.7 (Comparison History): scope, APIs, components, ACs, tests | UX (Sally) |
 
 ---
 
