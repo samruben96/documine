@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 9.3 One-Pager Page
+  Generated: 2025-12-04
+  Purpose: Developer-ready context for implementing Story 9.3
+-->
+<story-context story-id="9.3" title="One-Pager Page">
+
+  <!-- ============================================================================
+       STORY OVERVIEW
+       ============================================================================ -->
+  <story>
+    <epic>9 - One-Pager Generation</epic>
+    <title>One-Pager Page</title>
+    <status>drafted</status>
+
+    <user-story>
+      <as>insurance agent</as>
+      <i-want>a dedicated page to generate one-pagers with a live preview</i-want>
+      <so-that>I can customize and review the output before download</so-that>
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC-9.3.1" name="Page Route">
+        /one-pager accessible from dashboard and comparison page
+      </criterion>
+      <criterion id="AC-9.3.2" name="Comparison Entry Point">
+        ?comparison={id} searchParam loads comparison data and pre-fills form
+      </criterion>
+      <criterion id="AC-9.3.3" name="Document Entry Point">
+        ?document={id} searchParam loads single document for one-pager
+      </criterion>
+      <criterion id="AC-9.3.4" name="Direct Access (Select Mode)">
+        No searchParams shows DocumentSelector to choose quotes manually
+      </criterion>
+      <criterion id="AC-9.3.5" name="Client Name Input">
+        Editable text field for client name, pre-filled from namedInsured if available
+      </criterion>
+      <criterion id="AC-9.3.6" name="Agent Notes Field">
+        Optional textarea for agent notes/recommendations (max 500 chars)
+      </criterion>
+      <criterion id="AC-9.3.7" name="Live Preview">
+        Preview updates in real-time as form fields change (debounced 300ms)
+      </criterion>
+      <criterion id="AC-9.3.8" name="Download Button">
+        Downloads branded PDF using agency branding from Story 9.1
+      </criterion>
+    </acceptance-criteria>
+
+    <tasks>
+      <task id="1">Create /one-pager page route with searchParams handling</task>
+      <task id="2">Create useOnePagerData hook (fetches comparison/document data)</task>
+      <task id="3">Create DocumentSelector component (for direct access mode)</task>
+      <task id="4">Create OnePagerForm component (client name, agent notes)</task>
+      <task id="5">Create OnePagerPreview component (live PDF-like preview)</task>
+      <task id="6">Implement live preview updates with debouncing</task>
+      <task id="7">Add download button with PDF generation</task>
+      <task id="8">Style split layout (form left, preview right)</task>
+      <task id="9">Handle loading and error states</task>
+      <task id="10">Write component tests</task>
+      <task id="11">Write E2E tests</task>
+    </tasks>
+  </story>
+
+  <!-- ============================================================================
+       TECHNICAL SPECIFICATIONS
+       ============================================================================ -->
+  <technical-spec>
+    <architecture-decisions>
+      <decision id="AD-1" title="Page Structure">
+        Use split-view layout similar to document viewer: form on left, preview on right.
+        On mobile, stack vertically with form first, preview below (collapsible).
+      </decision>
+
+      <decision id="AD-2" title="Data Fetching">
+        Use client-side data fetching with custom hook useOnePagerData.
+        Entry modes:
+        - comparison: GET /api/compare/{id} (existing endpoint)
+        - document: GET /api/documents/{id} with extraction (may need new endpoint)
+        - select: Show DocumentSelector, user picks 1-4 quotes
+      </decision>
+
+      <decision id="AD-3" title="Preview Rendering">
+        Use HTML/CSS preview (not @react-pdf) for live updates.
+        PDF generation only on download using existing @react-pdf/renderer patterns.
+        Debounce preview updates by 300ms to avoid excessive re-renders.
+      </decision>
+
+      <decision id="AD-4" title="State Management">
+        Use react-hook-form for form state (clientName, agentNotes).
+        Lift preview data to page component for coordination.
+        Pass branding from useAgencyBranding hook.
+      </decision>
+    </architecture-decisions>
+
+    <data-flow>
+      <step n="1">Page loads with searchParams (comparison, document, or none)</step>
+      <step n="2">useOnePagerData fetches relevant data based on entry mode</step>
+      <step n="3">Form fields populated with defaults (namedInsured → clientName)</step>
+      <step n="4">User edits form → debounced preview updates</step>
+      <step n="5">Download button generates PDF with @react-pdf/renderer</step>
+    </data-flow>
+
+    <file-structure>
+      <file path="src/app/(dashboard)/one-pager/page.tsx" purpose="Main page component" />
+      <file path="src/hooks/use-one-pager-data.ts" purpose="Data fetching hook" />
+      <file path="src/components/one-pager/document-selector.tsx" purpose="Quote selection UI" />
+      <file path="src/components/one-pager/one-pager-form.tsx" purpose="Client name + notes form" />
+      <file path="src/components/one-pager/one-pager-preview.tsx" purpose="Live HTML preview" />
+      <file path="src/lib/one-pager/pdf-template.tsx" purpose="@react-pdf document template" />
+      <file path="__tests__/components/one-pager/*.test.tsx" purpose="Component tests" />
+      <file path="__tests__/e2e/one-pager.spec.ts" purpose="E2E tests" />
+    </file-structure>
+  </technical-spec>
+
+  <!-- ============================================================================
+       EXISTING CODE REFERENCES
+       ============================================================================ -->
+  <existing-code>
+    <reference file="src/lib/compare/pdf-export.tsx" purpose="PDF generation patterns">
+      <key-exports>
+        - downloadPdf(tableData: ComparisonTableData) - generates and downloads PDF
+        - ComparisonPDFDocument component - @react-pdf document structure
+        - StyleSheet.create patterns for PDF styling
+        - pdf().toBlob() + saveAs() pattern for download
+      </key-exports>
+      <usage-note>
+        Adapt for one-pager PDF template. Key patterns:
+        - Document/Page/View/Text from @react-pdf/renderer
+        - StyleSheet.create for consistent styling
+        - pdf(doc).toBlob() then saveAs(blob, filename)
+      </usage-note>
+    </reference>
+
+    <reference file="src/hooks/use-agency-branding.ts" purpose="Agency branding data">
+      <key-exports>
+        - useAgencyBranding(agencyId) hook
+        - AgencyBranding interface: { name, logoUrl, primaryColor, secondaryColor, phone, email, address, website }
+      </key-exports>
+      <usage-note>
+        Use branding in PDF template for:
+        - Agency logo in header
+        - Primary/secondary colors for styling
+        - Contact info in footer
+      </usage-note>
+    </reference>
+
+    <reference file="src/app/(dashboard)/compare/[id]/page.tsx" purpose="Comparison page patterns">
+      <key-patterns>
+        - fetchComparison() with polling for processing status
+        - StatusBadge component for status display
+        - ProcessingView, FailedView, ExtractionSummaryView patterns
+        - buildComparisonRows(extractions, documents) for table data
+      </key-patterns>
+    </reference>
+
+    <reference file="src/lib/compare/diff.ts" purpose="Comparison data types">
+      <key-types>
+        - ComparisonTableData: { headers, rows, documentCount, gaps, conflicts }
+        - ComparisonRow: { id, field, category, fieldType, values, hasDifference, bestIndex, worstIndex }
+        - CellValue: { displayValue, rawValue, status, sourcePages }
+        - formatCurrency(), formatDate() utility functions
+      </key-types>
+    </reference>
+
+    <reference file="src/types/compare.ts" purpose="Quote extraction types">
+      <key-types>
+        - QuoteExtraction: carrier, policy, dates, premium, coverages[], exclusions[]
+        - CoverageItem: type, name, limit, deductible, description
+        - DocumentSummary: id, filename, carrierName, extracted
+        - ComparisonData: status, documents[], extractions[]
+      </key-types>
+    </reference>
+
+    <reference file="src/app/(dashboard)/dashboard/page.tsx" purpose="Dashboard linking">
+      <key-info>
+        Dashboard already includes "Generate One-Pager" card with href="/one-pager"
+        Confirms expected route path
+      </key-info>
+    </reference>
+
+    <reference file="src/components/dashboard/tool-card.tsx" purpose="Card component pattern">
+      <usage-note>
+        Similar visual patterns can be used for DocumentSelector cards
+      </usage-note>
+    </reference>
+  </existing-code>
+
+  <!-- ============================================================================
+       DEPENDENCIES
+       ============================================================================ -->
+  <dependencies>
+    <npm-packages>
+      <package name="@react-pdf/renderer" version="^4.3.1" purpose="PDF generation" installed="true" />
+      <package name="file-saver" version="^2.0.5" purpose="Download trigger" installed="true" />
+      <package name="react-hook-form" version="^7.68.0" purpose="Form state" installed="true" />
+      <package name="zod" version="^4.1.13" purpose="Validation" installed="true" />
+      <package name="sonner" version="^2.0.7" purpose="Toast notifications" installed="true" />
+    </npm-packages>
+
+    <supabase-tables>
+      <table name="comparisons" operations="SELECT">
+        Fetch comparison data by ID for ?comparison= entry point
+      </table>
+      <table name="documents" operations="SELECT">
+        Fetch document data for ?document= entry point
+        List documents for DocumentSelector
+      </table>
+      <table name="agencies" operations="SELECT">
+        Fetch branding via useAgencyBranding
+      </table>
+    </supabase-tables>
+
+    <api-endpoints>
+      <endpoint method="GET" path="/api/compare/[id]" exists="true">
+        Returns ComparisonResponse with extractions
+      </endpoint>
+      <endpoint method="GET" path="/api/documents" exists="true">
+        List documents for selection
+      </endpoint>
+    </api-endpoints>
+  </dependencies>
+
+  <!-- ============================================================================
+       UI/UX SPECIFICATIONS
+       ============================================================================ -->
+  <ui-specifications>
+    <layout>
+      <desktop>
+        Split view: Form panel (40%) | Preview panel (60%)
+        Fixed header with page title and Download button
+      </desktop>
+      <mobile>
+        Stacked: Form section → Preview section (collapsible accordion)
+        Sticky download button at bottom
+      </mobile>
+    </layout>
+
+    <components>
+      <component name="OnePagerForm">
+        <fields>
+          <field name="clientName" type="text" required="true" maxLength="100" />
+          <field name="agentNotes" type="textarea" required="false" maxLength="500" placeholder="Optional notes for client..." />
+        </fields>
+      </component>
+
+      <component name="OnePagerPreview">
+        <sections>
+          <section name="Header">Agency logo, agency name, date</section>
+          <section name="Client Info">Client name, policy period</section>
+          <section name="Quote Summary">Key coverage highlights from extraction</section>
+          <section name="Coverage Comparison">If multiple quotes, side-by-side comparison</section>
+          <section name="Recommendations">Agent notes section</section>
+          <section name="Footer">Agency contact info</section>
+        </sections>
+        <styling>
+          Uses agency primaryColor for headings
+          Uses agency secondaryColor for accents
+          Professional, clean typography
+        </styling>
+      </component>
+
+      <component name="DocumentSelector">
+        <behavior>
+          Shows list of ready documents with checkboxes
+          Max 4 selections
+          "Generate" button disabled until at least 1 selected
+        </behavior>
+      </component>
+    </components>
+
+    <interactions>
+      <interaction name="Form Input">
+        Debounce 300ms before updating preview
+        Show subtle loading indicator on preview during update
+      </interaction>
+      <interaction name="Download">
+        Show loading spinner on button
+        Toast success: "One-pager downloaded"
+        Toast error: "Failed to generate PDF"
+      </interaction>
+    </interactions>
+  </ui-specifications>
+
+  <!-- ============================================================================
+       TESTING REQUIREMENTS
+       ============================================================================ -->
+  <testing>
+    <unit-tests>
+      <test file="__tests__/components/one-pager/one-pager-form.test.tsx">
+        - Renders client name and agent notes fields
+        - Validates max lengths
+        - Calls onChange with debounced values
+      </test>
+      <test file="__tests__/components/one-pager/one-pager-preview.test.tsx">
+        - Renders preview with provided data
+        - Shows agency branding
+        - Displays coverage summary
+      </test>
+      <test file="__tests__/components/one-pager/document-selector.test.tsx">
+        - Renders document list
+        - Handles checkbox selection
+        - Enforces max 4 selection limit
+        - Enables/disables generate button
+      </test>
+      <test file="__tests__/hooks/use-one-pager-data.test.ts">
+        - Handles comparison entry point
+        - Handles document entry point
+        - Handles select mode (no params)
+        - Returns loading/error states
+      </test>
+    </unit-tests>
+
+    <e2e-tests>
+      <test file="__tests__/e2e/one-pager.spec.ts">
+        - Navigate from dashboard to /one-pager
+        - Select documents and generate preview
+        - Edit form fields and verify preview updates
+        - Download PDF successfully
+        - Handle error states gracefully
+      </test>
+    </e2e-tests>
+
+    <test-patterns>
+      <pattern name="Component Testing">
+        Follow existing patterns in __tests__/components/compare/*.test.tsx
+        Use @testing-library/react with vitest
+        Mock Supabase client for data fetching
+      </pattern>
+      <pattern name="E2E Testing">
+        Follow patterns in __tests__/e2e/*.spec.ts
+        Use Playwright with data-testid attributes
+      </pattern>
+    </test-patterns>
+  </testing>
+
+  <!-- ============================================================================
+       IMPLEMENTATION NOTES
+       ============================================================================ -->
+  <implementation-notes>
+    <note priority="high">
+      The Dashboard already has a "Generate One-Pager" card pointing to /one-pager.
+      This route MUST exist and function for the dashboard to work correctly.
+    </note>
+
+    <note priority="high">
+      PDF generation is expensive. Only generate on download, not on preview.
+      Preview should use HTML/CSS that visually matches the final PDF.
+    </note>
+
+    <note priority="medium">
+      For single-document entry (?document=), may need extraction data.
+      Check if document already has cached extraction or trigger new one.
+    </note>
+
+    <note priority="medium">
+      Agency branding requires agencyId. Get from user context like dashboard.
+      Handle case where agency has no logo gracefully.
+    </note>
+
+    <note priority="low">
+      Consider adding "Save as Draft" functionality in future story.
+      Current scope is generate-and-download only.
+    </note>
+  </implementation-notes>
+
+  <!-- ============================================================================
+       RELATED STORIES
+       ============================================================================ -->
+  <related-stories>
+    <story id="9.1" title="Agency Branding" relationship="dependency">
+      Provides branding data (logo, colors, contact info) used in PDF
+    </story>
+    <story id="9.2" title="Dashboard Page" relationship="dependency">
+      Provides navigation entry point to /one-pager
+    </story>
+    <story id="9.4" title="One-Pager PDF Template" relationship="builds-upon">
+      Will enhance the PDF template created in this story
+    </story>
+    <story id="9.5" title="Entry Point Buttons" relationship="related">
+      Will add buttons on compare and document pages to navigate here
+    </story>
+  </related-stories>
+
+</story-context>

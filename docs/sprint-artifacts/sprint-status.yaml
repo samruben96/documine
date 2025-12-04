@@ -377,8 +377,19 @@ development_status:
   # Dedicated page with 3 entry points and live preview
   # Priority: P0 - core feature page
   # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.3-one-pager-page.md
-  # Depends on: 9.1
-  9-3-one-pager-page: drafted
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/9-3-one-pager-page.context.xml
+  # IMPLEMENTED 2025-12-04: All 9 ACs complete
+  # - /one-pager page with 3 entry modes (comparison, document, select)
+  # - useOnePagerData hook for fetching comparison/document data
+  # - DocumentSelector component (max 4 selections, counter, generate button)
+  # - OnePagerForm component (client name max 100, agent notes max 500, debounced)
+  # - OnePagerPreview component (live preview matching PDF output)
+  # - PDF template with agency branding (downloadOnePagerPdf)
+  # - Split layout: form 40%, preview 60% (hidden on mobile)
+  # - Download button with filename format: docuMINE-one-pager-YYYY-MM-DD.pdf
+  # - 44 unit tests, E2E test suite created
+  # CODE REVIEWED 2025-12-04: Ready for merge
+  9-3-one-pager-page: done
   # Story 9.4: One-Pager PDF Template
   # @react-pdf/renderer document with agency branding
   # Priority: P0 - PDF generation
