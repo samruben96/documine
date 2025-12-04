@@ -252,12 +252,13 @@ function ComparisonPDFDocument({ tableData, generatedAt }: ComparisonPDFProps) {
 function TableRow({ row }: { row: ComparisonRow }) {
   const rowStyles = [
     styles.tableRow,
-    row.isGap && styles.tableRowGap,
-    row.hasDifference && !row.isGap && styles.tableRowDiff,
+    row.isGap ? styles.tableRowGap : null,
+    row.hasDifference && !row.isGap ? styles.tableRowDiff : null,
   ].filter(Boolean);
 
   return (
-    <View style={rowStyles as any}>
+    // @ts-expect-error - react-pdf style arrays work at runtime, TS types don't match
+    <View style={rowStyles}>
       {/* Field name with gap indicator */}
       <Text style={[styles.tableCell, styles.fieldCell]}>
         {row.isGap && (
@@ -271,13 +272,14 @@ function TableRow({ row }: { row: ComparisonRow }) {
         const cellStyles = [
           styles.tableCell,
           styles.valueCell,
-          row.bestIndex === valIndex && styles.bestValue,
-          row.worstIndex === valIndex && styles.worstValue,
-          value.status === 'not_found' && styles.notFound,
+          row.bestIndex === valIndex ? styles.bestValue : null,
+          row.worstIndex === valIndex ? styles.worstValue : null,
+          value.status === 'not_found' ? styles.notFound : null,
         ].filter(Boolean);
 
         return (
-          <Text key={valIndex} style={cellStyles as any}>
+          // @ts-expect-error - react-pdf style arrays work at runtime, TS types don't match
+          <Text key={valIndex} style={cellStyles}>
             {row.bestIndex === valIndex && (
               <Text style={styles.bestIndicator}>● </Text>
             )}

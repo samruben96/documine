@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Label } from '@/app/(dashboard)/documents/actions';
@@ -76,10 +76,12 @@ export function LabelInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset highlighted index when options change
-  useEffect(() => {
-    setHighlightedIndex(0);
-  }, [inputValue, isOpen]);
+  // Compute clamped highlighted index based on options count
+  // This avoids setState in useEffect which causes cascading renders
+  const clampedHighlightedIndex = useMemo(() => {
+    if (optionsCount === 0) return 0;
+    return Math.min(highlightedIndex, optionsCount - 1);
+  }, [highlightedIndex, optionsCount]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen && (e.key === 'ArrowDown' || e.key === 'Enter')) {
@@ -103,8 +105,8 @@ export function LabelInput({
         if (optionsCount === 0) return;
 
         // If highlighting a label, select it
-        if (highlightedIndex < filteredLabels.length) {
-          const label = filteredLabels[highlightedIndex];
+        if (clampedHighlightedIndex < filteredLabels.length) {
+          const label = filteredLabels[clampedHighlightedIndex];
           if (label) {
             onSelectLabel(label.id);
             setInputValue('');
@@ -188,10 +190,10 @@ export function LabelInput({
               className={cn(
                 'w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs',
                 'hover:bg-slate-100',
-                highlightedIndex === index && 'bg-slate-100'
+                clampedHighlightedIndex === index && 'bg-slate-100'
               )}
               role="option"
-              aria-selected={highlightedIndex === index}
+              aria-selected={clampedHighlightedIndex === index}
             >
               <span
                 className="w-2 h-2 rounded-full flex-shrink-0"
@@ -210,13 +212,13 @@ export function LabelInput({
               className={cn(
                 'w-full flex items-center gap-2 px-2 py-1.5 text-left text-xs',
                 'hover:bg-slate-100 text-slate-600',
-                highlightedIndex === filteredLabels.length && 'bg-slate-100'
+                clampedHighlightedIndex === filteredLabels.length && 'bg-slate-100'
               )}
               role="option"
-              aria-selected={highlightedIndex === filteredLabels.length}
+              aria-selected={clampedHighlightedIndex === filteredLabels.length}
             >
               <Plus className="h-3.5 w-3.5 flex-shrink-0" />
-              <span>Create "{inputValue.trim()}"</span>
+              <span>Create &quot;{inputValue.trim()}&quot;</span>
             </button>
           )}
         </div>

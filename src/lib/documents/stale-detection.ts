@@ -10,6 +10,7 @@
  */
 
 import { createServiceClient } from '@/lib/supabase/server';
+import { log } from '@/lib/utils/logger';
 
 /** Stale threshold in minutes */
 const STALE_THRESHOLD_MINUTES = 10;
@@ -47,7 +48,7 @@ export async function markStaleJobsAsFailed(): Promise<StaleJobResult> {
   const count = (data as number) ?? 0;
 
   if (count > 0) {
-    console.log(`Marked ${count} stale job(s) as failed`);
+    log.info('Marked stale jobs as failed', { count });
   }
 
   return {

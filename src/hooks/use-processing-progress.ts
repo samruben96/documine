@@ -242,7 +242,9 @@ export function useProcessingProgress(
   );
 
   // Keep ref updated with latest handler (avoids effect re-runs)
-  handleRealtimeChangeRef.current = handleRealtimeChange;
+  useEffect(() => {
+    handleRealtimeChangeRef.current = handleRealtimeChange;
+  });
 
   // Fetch progress data from database
   // Used for initial load AND as polling fallback for missed realtime updates
@@ -290,6 +292,7 @@ export function useProcessingProgress(
   // Fetch initial progress data on mount
   useEffect(() => {
     if (documentIds.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: clear state when tracking no documents
       setProgressMap(new Map());
       jobMetadataRef.current.clear();
       return;
@@ -390,11 +393,12 @@ export function useProcessingProgress(
     // Don't subscribe if no documents to track
     // Story 6.6: When inactive, set state to 'connected' since there's nothing to connect to
     if (documentIds.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: no connection needed when not tracking
       setConnectionState('connected');
       return;
     }
 
-    // Reset to connecting while setting up new channel
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: reset to connecting when setting up channel
     setConnectionState('connecting');
 
     const supabase = createClient();
@@ -449,6 +453,7 @@ export function useProcessingProgress(
 
   // Clean up progress for documents no longer being tracked
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: filter map when documentIds changes
     setProgressMap((prev) => {
       const next = new Map<string, ProgressData>();
       for (const [docId, progress] of prev) {

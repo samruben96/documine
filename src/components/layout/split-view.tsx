@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState, useEffect, createContext, useContext } from 'react';
+import { useRef, useCallback, useState, useEffect, createContext, useContext, useSyncExternalStore } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, ImperativePanelHandle } from 'react-resizable-panels';
 import { PanelRightClose, PanelRightOpen, PanelBottomClose, PanelBottomOpen, Columns2, Rows2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,28 +52,31 @@ export function useChatDock() {
 const DOCK_STORAGE_KEY = 'documine-chat-dock-position';
 const COLLAPSED_STORAGE_KEY = 'documine-chat-collapsed';
 
+// SSR-safe check for client-side
+const subscribeToNothing = () => () => {};
+const getIsClient = () => true;
+const getIsServer = () => false;
+
 /**
  * ChatDockProvider - Provides dock position state and persistence
  * AC-6.8.17: Persist position preference in localStorage
  */
 export function ChatDockProvider({ children }: { children: React.ReactNode }) {
-  const [position, setPositionState] = useState<DockPosition>('right');
-  const [isCollapsed, setCollapsedState] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  // Use useSyncExternalStore for SSR-safe client detection (no setState in useEffect)
+  const isClient = useSyncExternalStore(subscribeToNothing, getIsClient, getIsServer);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    setIsClient(true);
-    const savedPosition = localStorage.getItem(DOCK_STORAGE_KEY) as DockPosition | null;
-    const savedCollapsed = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+  const [position, setPositionState] = useState<DockPosition>(() => {
+    // Initial state with SSR-safe localStorage read
+    if (typeof window === 'undefined') return 'right';
+    const saved = localStorage.getItem(DOCK_STORAGE_KEY) as DockPosition | null;
+    return saved === 'right' || saved === 'bottom' ? saved : 'right';
+  });
 
-    if (savedPosition && (savedPosition === 'right' || savedPosition === 'bottom')) {
-      setPositionState(savedPosition);
-    }
-    if (savedCollapsed !== null) {
-      setCollapsedState(savedCollapsed === 'true');
-    }
-  }, []);
+  const [isCollapsed, setCollapsedState] = useState(() => {
+    // Initial state with SSR-safe localStorage read
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true';
+  });
 
   const setPosition = useCallback((newPosition: DockPosition) => {
     setPositionState(newPosition);
@@ -218,11 +221,8 @@ const MAX_SIDEBAR_SIZE = 28;     // ~400px at 1440px
 export function SplitView({ sidebar, main, className }: SplitViewProps) {
   const isMobile = useIsMobile();
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Use useSyncExternalStore for SSR-safe client detection (no setState in useEffect)
+  const isClient = useSyncExternalStore(subscribeToNothing, getIsClient, getIsServer);
 
   const handleDoubleClick = useCallback(() => {
     if (sidebarPanelRef.current) {
@@ -376,6 +376,47 @@ const DEFAULT_CHAT_SIZE_V = 40;
  * - Dockable to right (default) or bottom
  * - Collapsible chat panel
  */
+
+/**
+ * Floating restore button when chat panel is collapsed
+ * Extracted to module level to prevent recreation on render.
+ */
+function CollapsedChatButton({
+  position,
+  onRestore,
+}: {
+  position: DockPosition;
+  onRestore: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="default"
+          size="icon"
+          onClick={onRestore}
+          className={cn(
+            'fixed z-50 shadow-lg',
+            position === 'bottom'
+              ? 'bottom-4 right-4'
+              : 'right-4 top-1/2 -translate-y-1/2'
+          )}
+          aria-label="Open chat panel"
+        >
+          {position === 'right' ? (
+            <PanelRightOpen className="h-5 w-5" />
+          ) : (
+            <PanelBottomOpen className="h-5 w-5" />
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side={position === 'right' ? 'left' : 'top'}>
+        Open chat panel
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function DocumentChatSplitView({
   documentViewer,
   chatPanel,
@@ -384,12 +425,8 @@ export function DocumentChatSplitView({
   const isMobile = useIsMobile();
   const { position, isCollapsed, setCollapsed } = useChatDock();
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
-  const [isClient, setIsClient] = useState(false);
-
-  // Ensure we only render resizable panels on client
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // Use useSyncExternalStore for SSR-safe client detection (no setState in useEffect)
+  const isClient = useSyncExternalStore(subscribeToNothing, getIsClient, getIsServer);
 
   // Double-click handler to reset to default sizes
   const handleDoubleClickH = useCallback(() => {
@@ -425,35 +462,6 @@ export function DocumentChatSplitView({
       </div>
     );
   }
-
-  // Floating restore button when collapsed
-  const CollapsedChatButton = () => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="default"
-          size="icon"
-          onClick={() => setCollapsed(false)}
-          className={cn(
-            'fixed z-50 shadow-lg',
-            position === 'bottom'
-              ? 'bottom-4 right-4'
-              : 'right-4 top-1/2 -translate-y-1/2'
-          )}
-          aria-label="Open chat panel"
-        >
-          {position === 'right' ? (
-            <PanelRightOpen className="h-5 w-5" />
-          ) : (
-            <PanelBottomOpen className="h-5 w-5" />
-          )}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side={position === 'right' ? 'left' : 'top'}>
-        Open chat panel
-      </TooltipContent>
-    </Tooltip>
-  );
 
   // AC-6.8.17: Bottom dock layout
   if (position === 'bottom') {
@@ -492,7 +500,7 @@ export function DocumentChatSplitView({
           )}
         </PanelGroup>
         {/* Floating restore button when collapsed */}
-        {isCollapsed && <CollapsedChatButton />}
+        {isCollapsed && <CollapsedChatButton position={position} onRestore={() => setCollapsed(false)} />}
       </>
     );
   }
@@ -533,7 +541,7 @@ export function DocumentChatSplitView({
         )}
       </PanelGroup>
       {/* Floating restore button when collapsed */}
-      {isCollapsed && <CollapsedChatButton />}
+      {isCollapsed && <CollapsedChatButton position={position} onRestore={() => setCollapsed(false)} />}
     </>
   );
 }

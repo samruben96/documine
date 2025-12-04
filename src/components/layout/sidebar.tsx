@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
+import Link from 'next/link';
 import { Menu, X, PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -156,7 +157,7 @@ export function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white sm:hidden">
       <div className="flex items-center justify-around h-14">
-        <a
+        <Link
           href="/documents"
           className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800"
         >
@@ -174,8 +175,8 @@ export function MobileBottomNav() {
             />
           </svg>
           <span className="text-xs mt-0.5">Documents</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/compare"
           className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800"
         >
@@ -193,8 +194,8 @@ export function MobileBottomNav() {
             />
           </svg>
           <span className="text-xs mt-0.5">Compare</span>
-        </a>
-        <a
+        </Link>
+        <Link
           href="/settings"
           className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800"
         >
@@ -218,7 +219,7 @@ export function MobileBottomNav() {
             />
           </svg>
           <span className="text-xs mt-0.5">Settings</span>
-        </a>
+        </Link>
       </div>
     </nav>
   );

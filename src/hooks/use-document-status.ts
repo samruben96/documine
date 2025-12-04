@@ -207,7 +207,9 @@ export function useDocumentStatus({
   );
 
   // Keep ref updated with latest handler (avoids effect re-runs when callbacks change)
-  handleRealtimeChangeRef.current = handleRealtimeChange;
+  useEffect(() => {
+    handleRealtimeChangeRef.current = handleRealtimeChange;
+  });
 
   // Set up realtime subscription
   useEffect(() => {

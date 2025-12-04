@@ -25,6 +25,48 @@ const navItems = [
 ];
 
 /**
+ * Navigation Links Component
+ * Extracted to module level to prevent recreation on every render.
+ */
+function NavLinks({
+  mobile = false,
+  pathname,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const isActive = (href: string) => {
+    if (href === '/documents') {
+      return pathname === '/documents' || pathname.startsWith('/documents/');
+    }
+    return pathname.startsWith(href);
+  };
+
+  return (
+    <>
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={onNavigate}
+          className={cn(
+            'text-sm transition-colors',
+            mobile ? 'block py-2' : '',
+            isActive(item.href)
+              ? 'text-primary font-medium border-b-2 border-primary pb-0.5'
+              : 'text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary'
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+/**
  * Dashboard Header Component
  * AC-6.8.7: Mobile hamburger menu - logo displays fully without truncation
  * AC-6.8.9: Navigation active state with Electric Blue accent
@@ -44,33 +86,7 @@ export function Header() {
     }
   };
 
-  const isActive = (href: string) => {
-    if (href === '/documents') {
-      return pathname === '/documents' || pathname.startsWith('/documents/');
-    }
-    return pathname.startsWith(href);
-  };
-
-  const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
-    <>
-      {navItems.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={() => mobile && setMobileMenuOpen(false)}
-          className={cn(
-            'text-sm transition-colors',
-            mobile ? 'block py-2' : '',
-            isActive(item.href)
-              ? 'text-primary font-medium border-b-2 border-primary pb-0.5'
-              : 'text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary'
-          )}
-        >
-          {item.label}
-        </Link>
-      ))}
-    </>
-  );
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header className="border-b bg-white dark:bg-slate-900 dark:border-slate-800">
@@ -91,7 +107,7 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <NavLinks />
+          <NavLinks pathname={pathname} />
           <Button
             variant="ghost"
             size="sm"
@@ -122,7 +138,7 @@ export function Header() {
                 <SheetTitle className="text-primary">Menu</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-4 mt-6">
-                <NavLinks mobile />
+                <NavLinks mobile pathname={pathname} onNavigate={closeMobileMenu} />
                 <div className="border-t pt-4 mt-2">
                   <Button
                     variant="ghost"

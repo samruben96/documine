@@ -200,7 +200,7 @@ export function useChat(documentId: string, options?: UseChatOptions): UseChatRe
       const decoder = new TextDecoder();
       let buffer = '';
       let collectedContent = '';
-      let collectedSources: SourceCitation[] = [];
+      const collectedSources: SourceCitation[] = [];
       let collectedConfidence: ConfidenceLevel | undefined;
 
       while (true) {

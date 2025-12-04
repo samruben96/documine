@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { passwordSchema } from '@/lib/validations/auth';
+import { log } from '@/lib/utils/logger';
 
 /**
  * Request password reset - sends email with reset link
@@ -26,10 +27,8 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
     redirectTo,
   });
 
-  // Log reset request (hashed email for privacy)
-  console.log('[Auth] Password reset requested', {
-    timestamp: new Date().toISOString(),
-  });
+  // Log reset request (no PII)
+  log.info('Password reset requested');
 
   return { success: true };
 }
@@ -76,9 +75,7 @@ export async function updatePassword(newPassword: string): Promise<{
   }
 
   // Log success
-  console.log('[Auth] Password updated successfully', {
-    timestamp: new Date().toISOString(),
-  });
+  log.info('Password updated successfully');
 
   redirect('/login?reset=success');
 }

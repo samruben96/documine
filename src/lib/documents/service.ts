@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Tables, TablesInsert } from '@/types/database.types';
 import { DocumentNotFoundError, ProcessingError } from '@/lib/errors';
 import { createServiceClient } from '@/lib/supabase/server';
+import { log } from '@/lib/utils/logger';
 
 /**
  * Document Database Service
@@ -161,7 +162,7 @@ async function triggerEdgeFunction(
   }
 
   const result = await response.json();
-  console.log('Edge Function triggered successfully:', {
+  log.info('Edge Function triggered successfully', {
     documentId,
     result,
   });
