@@ -310,7 +310,9 @@ development_status:
   # Story 8.3: Database Index Optimization
   # Add missing FK indexes, evaluate unused indexes
   # Priority: P1 - performance improvement
-  8-3-database-index-optimization: backlog
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/8-3-database-index-optimization.context.xml
+  # REVIEWED 2025-12-03: Approved - 8 FK indexes added, 7 unused indexes kept with rationale
+  8-3-database-index-optimization: done
   # Story 8.4: Consolidate Processing Jobs RLS
   # Fix multiple permissive policies issue
   # Priority: P1 - performance improvement

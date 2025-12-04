@@ -1,0 +1,87 @@
+<story-context id="8-3-database-index-optimization" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>8.3</storyId>
+    <title>Database Index Optimization</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-8.3-database-index-optimization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform user</asA>
+    <iWant>database queries to use efficient index scans for foreign key lookups</iWant>
+    <soThat>my document browsing, chat, and comparison workflows remain fast as data grows</soThat>
+    <tasks>
+      <task id="1" ac="8.3.1-8.3.7">Analyze Current Indexes
+        <subtask>Query pg_indexes to verify which indexes already exist</subtask>
+        <subtask>Document current index state</subtask>
+      </task>
+      <task id="2" ac="8.3.1-8.3.7">Create FK Index Migration
+        <subtask>Apply migration via Supabase MCP</subtask>
+        <subtask>Use CREATE INDEX CONCURRENTLY for zero-downtime</subtask>
+        <subtask>Include all 8 missing FK indexes</subtask>
+      </task>
+      <task id="3" ac="8.3.8">Evaluate Unused Indexes
+        <subtask>Query pg_stat_user_indexes for usage statistics</subtask>
+        <subtask>Document decision for each unused index</subtask>
+        <subtask>Remove or keep with rationale</subtask>
+      </task>
+      <task id="4" ac="8.3.9">Verify Performance Advisors
+        <subtask>Run mcp__supabase__get_advisors(project_id, type: 'performance')</subtask>
+        <subtask>Verify zero "unindexed foreign key" warnings</subtask>
+        <subtask>Record results in story file</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-8.3.1">Index exists on chat_messages(agency_id)</criterion>
+    <criterion id="AC-8.3.2">Indexes exist on conversations(agency_id) and conversations(user_id)</criterion>
+    <criterion id="AC-8.3.3">Index exists on document_chunks(agency_id)</criterion>
+    <criterion id="AC-8.3.4">Index exists on documents(uploaded_by)</criterion>
+    <criterion id="AC-8.3.5">Index exists on invitations(invited_by)</criterion>
+    <criterion id="AC-8.3.6">Index exists on processing_jobs(document_id)</criterion>
+    <criterion id="AC-8.3.7">Index exists on users(agency_id)</criterion>
+    <criterion id="AC-8.3.8">Each unused index has documented decision (keep/remove with rationale)</criterion>
+    <criterion id="AC-8.3.9">mcp__supabase__get_advisors(type: 'performance') returns zero unindexed FK warnings</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-8.md" title="Epic 8 Tech Spec" section="Story 8.3">
+        Index creation pattern with CONCURRENTLY. 8 FK indexes needed across 7 tables.
+      </doc>
+      <doc path="docs/sprint-artifacts/story-8.2-rls-policy-performance.md" title="Story 8.2" section="Dev Agent Record">
+        Previous story completed. Remaining advisors: 8 unindexed_foreign_keys, 6 unused_index.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="supabase/migrations/" kind="migrations" reason="FK indexes added via migration"/>
+    </code>
+    <dependencies>
+      <supabase-mcp>
+        <tool>mcp__supabase__execute_sql - Query existing indexes</tool>
+        <tool>mcp__supabase__apply_migration - Apply FK index migration</tool>
+        <tool>mcp__supabase__get_advisors - Verify zero FK warnings</tool>
+      </supabase-mcp>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use CREATE INDEX CONCURRENTLY for zero-downtime</constraint>
+    <constraint type="pattern">Cannot use CONCURRENTLY inside transaction - separate statements</constraint>
+    <constraint type="migration">Apply via Supabase MCP mcp__supabase__apply_migration</constraint>
+    <constraint type="verification">Must verify via mcp__supabase__get_advisors after migration</constraint>
+  </constraints>
+
+  <implementationGuide>
+    <step n="1">Query pg_indexes to check which FK indexes already exist</step>
+    <step n="2">Apply migration with CREATE INDEX CONCURRENTLY for missing FK indexes</step>
+    <step n="3">Query pg_stat_user_indexes for unused index analysis</step>
+    <step n="4">Document keep/remove decision for each unused index</step>
+    <step n="5">Verify via mcp__supabase__get_advisors(type: 'performance')</step>
+    <step n="6">Document results in story file</step>
+  </implementationGuide>
+</story-context>
