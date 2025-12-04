@@ -28,6 +28,7 @@ interface Document {
   display_name: string | null;
   status: string;
   created_at: string;
+  document_type?: 'quote' | 'general' | null;
 }
 
 interface QuoteSelectorProps {
@@ -147,9 +148,14 @@ export function QuoteSelector({
       {/* Ready Documents Grid - AC-7.1.1, AC-7.1.2 */}
       {readyDocuments.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Ready for Comparison ({readyDocuments.length})
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Ready for Comparison ({readyDocuments.length})
+            </h3>
+            <p className="text-xs text-slate-500">
+              Only quote documents shown
+            </p>
+          </div>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {readyDocuments.map((doc) => (
               <QuoteCard

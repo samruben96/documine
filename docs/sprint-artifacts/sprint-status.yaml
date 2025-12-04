@@ -478,7 +478,12 @@ development_status:
   # - Search: Filters by document name OR AI tags
   # - 16 unit tests for AI tagging service + 7 component tests + 5 E2E tests
   f2-3-ai-tagging-summarization: done
-  f2-4-filter-general-docs-from-compare: backlog
+  # Story F2-4: Filter General Docs from Compare
+  # IMPLEMENTED 2025-12-04: All 3 ACs complete
+  # - Query filter: document_type.eq.quote,document_type.is.null
+  # - TypeScript type updates for document_type
+  # - UI note: "Only quote documents shown"
+  f2-4-filter-general-docs-from-compare: done
   f2-5-tag-management-ui: backlog
 
   # Epic F3: Document Viewer Enhancements (was F5)

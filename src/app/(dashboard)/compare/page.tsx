@@ -46,13 +46,20 @@ function ComparePageContent() {
     setIsLoading(true);
     try {
       const supabase = createClient();
+      // Story F2-4: Only show quote-type documents for comparison
+      // Include documents with null document_type for backward compatibility
       const { data, error } = await supabase
         .from('documents')
-        .select('id, filename, display_name, status, created_at')
+        .select('id, filename, display_name, status, created_at, document_type')
+        .or('document_type.eq.quote,document_type.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDocuments(data || []);
+      // Cast document_type from Supabase (string) to our typed union
+      setDocuments((data || []).map(doc => ({
+        ...doc,
+        document_type: doc.document_type as 'quote' | 'general' | null
+      })));
     } catch (error) {
       console.error('Failed to fetch documents:', error);
       toast.error('Failed to load documents');
@@ -197,6 +204,7 @@ interface Document {
   display_name: string | null;
   status: string;
   created_at: string;
+  document_type: 'quote' | 'general' | null;
 }
 
 // Wrap in Suspense for useSearchParams
