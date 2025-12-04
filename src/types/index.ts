@@ -28,3 +28,13 @@ export interface UsageMetrics {
   activeUsers: number;
   storageUsedBytes: number;
 }
+
+/**
+ * AI tagging result
+ * Story F2-3: AC-F2-3.1, AC-F2-3.2, AC-F2-3.3
+ */
+export interface AITagResult {
+  tags: string[];
+  summary: string;
+  documentType: DocumentType;
+}

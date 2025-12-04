@@ -297,6 +297,8 @@ export type Database = {
       documents: {
         Row: {
           agency_id: string
+          ai_summary: string | null
+          ai_tags: string[] | null
           created_at: string
           display_name: string | null
           document_type: string | null
@@ -311,6 +313,8 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          ai_summary?: string | null
+          ai_tags?: string[] | null
           created_at?: string
           display_name?: string | null
           document_type?: string | null
@@ -325,6 +329,8 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          ai_summary?: string | null
+          ai_tags?: string[] | null
           created_at?: string
           display_name?: string | null
           document_type?: string | null

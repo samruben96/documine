@@ -30,6 +30,10 @@ interface DocumentCardProps {
   onTypeChange?: (id: string, type: DocumentType) => void;
   /** Shows loading state on type toggle during update */
   isUpdatingType?: boolean;
+  /** AI-generated tags (Story F2-3: AC-F2-3.1) */
+  aiTags?: string[] | null;
+  /** AI-generated summary (Story F2-3: AC-F2-3.2) */
+  aiSummary?: string | null;
   className?: string;
 }
 
@@ -52,6 +56,8 @@ export function DocumentCard({
   documentType,
   onTypeChange,
   isUpdatingType = false,
+  aiTags,
+  aiSummary,
   className,
 }: DocumentCardProps) {
   const router = useRouter();
@@ -156,6 +162,37 @@ export function DocumentCard({
               </span>
             )}
           </div>
+        )}
+
+        {/* AI Tags (Story F2-3: AC-F2-3.6) */}
+        {aiTags && aiTags.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div
+                className="flex items-center gap-1 flex-wrap"
+                data-testid="ai-tags"
+              >
+                {aiTags.slice(0, 3).map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {aiTags.length > 3 && (
+                  <span className="text-[10px] text-slate-400">
+                    +{aiTags.length - 3}
+                  </span>
+                )}
+              </div>
+            </TooltipTrigger>
+            {aiSummary && (
+              <TooltipContent side="top" className="max-w-[300px]">
+                <p className="text-xs">{aiSummary}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
         )}
       </CardContent>
     </Card>

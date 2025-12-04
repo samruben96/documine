@@ -1,0 +1,190 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>F2</epicId>
+    <storyId>F2.3</storyId>
+    <title>AI Tagging & Summarization</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-f2.3-ai-tagging-summarization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>documents to automatically receive AI-generated tags and summaries during processing</iWant>
+    <soThat>I can quickly understand document contents and find documents by topic without manual organization</soThat>
+    <tasks>
+      <task id="1" ac="3.2">Database migration for AI metadata columns (ai_summary, ai_tags)</task>
+      <task id="2" ac="3.1,3.2,3.3,3.4">Create AI tagging service with GPT-5.1 + zodResponseFormat</task>
+      <task id="3" ac="3.1,3.4,3.5">Integrate tagging into Edge Function after chunking</task>
+      <task id="4" ac="3.1,3.2">Update TypeScript types for new fields</task>
+      <task id="5" ac="3.6">Display tags in Document Library (DocumentCard)</task>
+      <task id="6" ac="3.6">Display tags in Document Viewer</task>
+      <task id="7" ac="3.6">Update documents page data fetching</task>
+      <task id="8">Write unit tests (AI service, tag display)</task>
+      <task id="9">Write E2E test (upload → tags visible)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-F2-3.1">New documents automatically receive AI-generated tags (3-5 tags)</criterion>
+    <criterion id="AC-F2-3.2">New documents receive AI-generated 1-2 sentence summary</criterion>
+    <criterion id="AC-F2-3.3">AI infers document type (quote vs general) with ability to override</criterion>
+    <criterion id="AC-F2-3.4">Tagging completes within 5 seconds of processing start</criterion>
+    <criterion id="AC-F2-3.5">Tagging failure does not prevent document from becoming 'ready'</criterion>
+    <criterion id="AC-F2-3.6">Tags and summary visible in document library and detail view</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-f2.md</path>
+        <title>Epic F2 Technical Specification</title>
+        <section>Story F2-3: AI Tagging & Summarization</section>
+        <snippet>AI tagging service calls GPT-5.1 with first 5 chunks, extracts tags (3-5), summary (1-2 sentences), and inferred document type. 5-second timeout, graceful degradation on failure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>ADR-007: GPT-5.1 for Structured Extraction</section>
+        <snippet>Use GPT-5.1 directly with zodResponseFormat for reliable structured output extraction. 400K context window, temperature 0.1 for consistent extraction.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-f2.2-document-categorization-schema.md</path>
+        <title>Story F2-2: Document Categorization Schema</title>
+        <section>Dev Agent Record</section>
+        <snippet>DocumentTypeBadge and DocumentTypeToggle patterns established. PATCH endpoint at /api/documents/[id] for updates. Optimistic update pattern in documents page.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-7.2-quote-data-extraction.md</path>
+        <title>Story 7.2: Quote Data Extraction</title>
+        <section>Implementation Pattern</section>
+        <snippet>GPT-5.1 with zodResponseFormat pattern: define Zod schema, use openai.chat.completions.parse() with response_format: zodResponseFormat(schema, name), access .parsed for typed result.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>Deno.serve, parseDocumentWithRetry, insertChunks</symbol>
+        <lines>1-1426</lines>
+        <reason>Main integration point - add AI tagging after chunking (Step 6) and before embeddings (Step 7). Use chunks array for context.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-card.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentCard, DocumentCardProps</symbol>
+        <lines>1-164</lines>
+        <reason>Add ai_tags display as tag pills after labels section. Show ai_summary in tooltip or subtitle.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-type-toggle.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentTypeToggle</symbol>
+        <lines>1-80</lines>
+        <reason>Reference for badge/pill styling patterns.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/documents/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentsPage</symbol>
+        <reason>Ensure ai_tags and ai_summary are fetched and passed to DocumentCard.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/chat-docs/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentViewerPage</symbol>
+        <reason>Display ai_tags and ai_summary in document header/detail view.</reason>
+      </file>
+      <file>
+        <path>src/types/index.ts</path>
+        <kind>types</kind>
+        <symbol>DocumentType, DocumentStatus</symbol>
+        <lines>1-31</lines>
+        <reason>Add AITagResult interface and extend Document type.</reason>
+      </file>
+      <file>
+        <path>src/lib/compare/extraction.ts</path>
+        <kind>service</kind>
+        <symbol>extractQuoteData</symbol>
+        <reason>Reference pattern for GPT-5.1 with zodResponseFormat.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>openai</package>
+        <version>^6.9.1</version>
+        <purpose>GPT-5.1 API for tag generation</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Schema validation for structured outputs</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">AI tagging uses first 5 chunks (~5 pages) as context for efficiency</constraint>
+    <constraint source="tech-spec">5-second timeout with AbortController to prevent slow processing</constraint>
+    <constraint source="tech-spec">Graceful degradation - tagging failure doesn't block document status becoming 'ready'</constraint>
+    <constraint source="architecture">Use GPT-5.1 model with temperature 0.1 for consistent extraction</constraint>
+    <constraint source="architecture">Tags should NOT include PII (names, addresses, policy numbers)</constraint>
+    <constraint source="story-f2.2">Document type inferred by AI can be overridden via existing DocumentTypeToggle</constraint>
+    <constraint source="edge-function">AI tagging runs inside Edge Function (Deno runtime) - use fetch for OpenAI API</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>generateDocumentTags</name>
+      <kind>function</kind>
+      <signature>async function generateDocumentTags(chunks: string[], timeoutMs?: number): Promise&lt;TagResult | null&gt;</signature>
+      <path>src/lib/documents/ai-tagging.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>TagResult schema</name>
+      <kind>zod-schema</kind>
+      <signature>z.object({ tags: z.array(z.string()).min(3).max(5), summary: z.string().max(200), documentType: z.enum(['quote', 'general']) })</signature>
+      <path>src/lib/documents/ai-tagging.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>documents table</name>
+      <kind>database</kind>
+      <signature>ai_summary: text | null, ai_tags: text[] DEFAULT '{}'</signature>
+      <path>Database migration</path>
+    </interface>
+    <interface>
+      <name>PATCH /api/documents/:id</name>
+      <kind>REST endpoint</kind>
+      <signature>Existing endpoint - may extend for tag updates if needed</signature>
+      <path>src/app/api/documents/[id]/route.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library for unit tests.
+      Playwright for E2E tests.
+      Mock OpenAI responses in unit tests.
+      Test graceful degradation (timeout, API error).
+      E2E test: upload document → verify tags appear after processing.
+    </standards>
+    <locations>
+      <location>__tests__/lib/documents/ai-tagging.test.ts (NEW)</location>
+      <location>__tests__/components/documents/document-card.test.tsx (UPDATE)</location>
+      <location>__tests__/e2e/document-library.spec.ts (UPDATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-F2-3.1">Test AI service returns 3-5 tags from mock response</idea>
+      <idea ac="AC-F2-3.2">Test AI service returns summary under 200 chars</idea>
+      <idea ac="AC-F2-3.3">Test AI service infers document type correctly</idea>
+      <idea ac="AC-F2-3.4">Test 5-second timeout triggers and returns null gracefully</idea>
+      <idea ac="AC-F2-3.5">Test Edge Function continues to 'ready' status even if tagging fails</idea>
+      <idea ac="AC-F2-3.6">Test DocumentCard renders tag pills when ai_tags present</idea>
+      <idea ac="AC-F2-3.6">Test DocumentCard renders ai_summary in tooltip</idea>
+      <idea ac="AC-F2-3.6">E2E: Upload document, wait for processing, verify tags visible</idea>
+    </ideas>
+  </tests>
+</story-context>

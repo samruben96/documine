@@ -465,7 +465,19 @@ development_status:
   # - DocumentCard integration with optimistic updates
   # - 50 unit tests + 5 E2E tests
   f2-2-document-categorization-schema: done
-  f2-3-ai-tagging-summarization: backlog
+  # Story F2-3: AI Tagging & Summarization
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-f2.3-ai-tagging-summarization.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/f2-3-ai-tagging-summarization.context.xml
+  # IMPLEMENTED 2025-12-04: All 6 ACs complete
+  # - Database migration: ai_summary (text) + ai_tags (text[]) columns with GIN index
+  # - AI tagging service: GPT-5.1 structured outputs with json_schema response_format
+  # - Edge Function integration: Step 6.5 after chunking, 5-second timeout with AbortController
+  # - Graceful degradation: Errors logged but not thrown, processing continues
+  # - Document card: AI tags displayed (3 max + "+N" indicator), summary in tooltip
+  # - Document viewer: Full tags + summary in header
+  # - Search: Filters by document name OR AI tags
+  # - 16 unit tests for AI tagging service + 7 component tests + 5 E2E tests
+  f2-3-ai-tagging-summarization: done
   f2-4-filter-general-docs-from-compare: backlog
   f2-5-tag-management-ui: backlog
 

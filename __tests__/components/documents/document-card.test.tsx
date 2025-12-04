@@ -258,4 +258,62 @@ describe('DocumentCard', () => {
       expect(screen.getByTestId('document-card')).toBeInTheDocument();
     });
   });
+
+  describe('AI tags display (AC-F2-3.6)', () => {
+    it('displays AI tags when provided', () => {
+      const aiTags = ['Commercial Auto', 'Liability', 'Progressive'];
+      render(<DocumentCard {...defaultProps} aiTags={aiTags} />);
+
+      expect(screen.getByTestId('ai-tags')).toBeInTheDocument();
+      expect(screen.getByText('Commercial Auto')).toBeInTheDocument();
+      expect(screen.getByText('Liability')).toBeInTheDocument();
+      expect(screen.getByText('Progressive')).toBeInTheDocument();
+    });
+
+    it('truncates to 3 tags with +N indicator', () => {
+      const aiTags = ['Tag1', 'Tag2', 'Tag3', 'Tag4', 'Tag5'];
+      render(<DocumentCard {...defaultProps} aiTags={aiTags} />);
+
+      expect(screen.getByText('Tag1')).toBeInTheDocument();
+      expect(screen.getByText('Tag2')).toBeInTheDocument();
+      expect(screen.getByText('Tag3')).toBeInTheDocument();
+      expect(screen.queryByText('Tag4')).not.toBeInTheDocument();
+      expect(screen.queryByText('Tag5')).not.toBeInTheDocument();
+      expect(screen.getByText('+2')).toBeInTheDocument();
+    });
+
+    it('does not display tags section when aiTags is null', () => {
+      render(<DocumentCard {...defaultProps} aiTags={null} />);
+
+      expect(screen.queryByTestId('ai-tags')).not.toBeInTheDocument();
+    });
+
+    it('does not display tags section when aiTags is empty', () => {
+      render(<DocumentCard {...defaultProps} aiTags={[]} />);
+
+      expect(screen.queryByTestId('ai-tags')).not.toBeInTheDocument();
+    });
+
+    it('shows summary in tooltip when hovering over tags', () => {
+      const aiTags = ['Coverage A'];
+      const aiSummary = 'Commercial auto policy for fleet coverage.';
+      render(<DocumentCard {...defaultProps} aiTags={aiTags} aiSummary={aiSummary} />);
+
+      // Tooltip content should be rendered (our mock renders it directly)
+      // Multiple tooltips exist (filename, tags) - check that summary text exists
+      const tooltips = screen.getAllByTestId('tooltip');
+      const summaryTooltip = tooltips.find(t => t.textContent?.includes(aiSummary));
+      expect(summaryTooltip).toBeDefined();
+    });
+
+    it('does not show tooltip when no summary provided', () => {
+      const aiTags = ['Coverage A'];
+      render(<DocumentCard {...defaultProps} aiTags={aiTags} aiSummary={null} />);
+
+      // Tooltip content should not have summary text
+      const tooltips = screen.queryAllByTestId('tooltip');
+      const hasCommercialText = tooltips.some(t => t.textContent?.includes('Commercial auto policy'));
+      expect(hasCommercialText).toBe(false);
+    });
+  });
 });

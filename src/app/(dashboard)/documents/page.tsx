@@ -86,14 +86,15 @@ export default function DocumentLibraryPage() {
     }
   }
 
-  // Filter documents by search query
+  // Filter documents by search query (searches name and AI tags)
   const filteredDocuments = useMemo(() => {
     if (!debouncedQuery.trim()) return documents;
 
     const query = debouncedQuery.toLowerCase();
     return documents.filter((doc: DocumentWithLabels) => {
       const name = (doc.display_name || doc.filename).toLowerCase();
-      return name.includes(query);
+      const tagsMatch = doc.ai_tags?.some(tag => tag.toLowerCase().includes(query)) ?? false;
+      return name.includes(query) || tagsMatch;
     });
   }, [documents, debouncedQuery]);
 
@@ -410,6 +411,8 @@ export default function DocumentLibraryPage() {
                 documentType={doc.document_type as DocumentType | null}
                 onTypeChange={handleTypeChange}
                 isUpdatingType={updatingTypeId === doc.id}
+                aiTags={doc.ai_tags}
+                aiSummary={doc.ai_summary}
               />
             ))}
           </div>

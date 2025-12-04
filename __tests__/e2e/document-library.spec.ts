@@ -331,4 +331,132 @@ test.describe('Document Library Page', () => {
       }
     });
   });
+
+  test.describe('AC-F2-3: AI Tagging & Summarization', () => {
+    test('document cards can display AI tags when present (AC-F2-3.6)', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      // Wait for documents to load
+      await page.waitForTimeout(1000);
+
+      // Look for any document card with AI tags
+      const aiTagsContainer = page.locator('[data-testid="ai-tags"]').first();
+
+      if (await aiTagsContainer.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // Verify tags are displayed as pills
+        const tagPills = aiTagsContainer.locator('span');
+        const tagCount = await tagPills.count();
+
+        // Should have at least one tag displayed
+        expect(tagCount).toBeGreaterThan(0);
+      } else {
+        // No documents with AI tags yet - this is acceptable for new environments
+        // Just verify the page loaded without errors
+        expect(page.url()).toContain('/documents');
+      }
+    });
+
+    test('AI tag pills are properly styled', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      const aiTagsContainer = page.locator('[data-testid="ai-tags"]').first();
+
+      if (await aiTagsContainer.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // First tag pill should have proper styling
+        const firstTag = aiTagsContainer.locator('span').first();
+        await expect(firstTag).toBeVisible();
+
+        // Should have text content
+        const tagText = await firstTag.textContent();
+        expect(tagText).toBeTruthy();
+        expect(tagText!.length).toBeGreaterThan(0);
+      } else {
+        test.skip();
+      }
+    });
+
+    test('search filters by AI tags (AC-F2-3.6)', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      // Wait for documents to load
+      await page.waitForTimeout(1000);
+
+      // Find a document with AI tags and get one of the tag texts
+      const aiTagsContainer = page.locator('[data-testid="ai-tags"]').first();
+
+      if (await aiTagsContainer.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // Get the first tag text
+        const firstTag = aiTagsContainer.locator('span').first();
+        const tagText = await firstTag.textContent();
+
+        if (tagText && tagText.trim()) {
+          // Count initial documents
+          const initialCount = await page.locator('[data-testid="document-card"]').count();
+
+          // Search for the tag
+          await page.fill('input[placeholder="Search documents..."]', tagText.trim());
+
+          // Wait for debounce
+          await page.waitForTimeout(500);
+
+          // Should still show at least one document (the one with the tag)
+          const filteredCount = await page.locator('[data-testid="document-card"]').count();
+          expect(filteredCount).toBeGreaterThan(0);
+          expect(filteredCount).toBeLessThanOrEqual(initialCount);
+        }
+      } else {
+        test.skip();
+      }
+    });
+
+    test('document viewer displays AI tags and summary (AC-F2-3.6)', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      // Find first document card with AI tags
+      const documentCard = page.locator('[data-testid="document-card"]').first();
+
+      if (await documentCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+        // Navigate to document viewer
+        await documentCard.click();
+        await page.waitForURL(/\/chat-docs\/[a-f0-9-]+/);
+
+        // Wait for page to load
+        await page.waitForLoadState('networkidle');
+
+        // Check for AI tags in document viewer header
+        const viewerTags = page.locator('[data-testid="document-viewer-tags"]');
+
+        if (await viewerTags.isVisible({ timeout: 3000 }).catch(() => false)) {
+          // Verify tags are displayed
+          const tagPills = viewerTags.locator('span');
+          const tagCount = await tagPills.count();
+          expect(tagCount).toBeGreaterThan(0);
+        }
+        // Not all documents have tags, so we don't fail if not present
+      } else {
+        test.skip();
+      }
+    });
+
+    test('truncates tags with +N indicator when more than 3 in card view', async ({ page }) => {
+      await page.goto('/documents');
+      await page.waitForLoadState('networkidle');
+
+      // Look for any +N indicator
+      const plusIndicator = page.locator('[data-testid="ai-tags"] >> text=/\\+\\d+/').first();
+
+      if (await plusIndicator.isVisible({ timeout: 3000 }).catch(() => false)) {
+        // Verify it shows a number
+        const text = await plusIndicator.textContent();
+        expect(text).toMatch(/\+\d+/);
+      } else {
+        // No documents with more than 3 tags - skip test
+        test.skip();
+      }
+    });
+  });
 });

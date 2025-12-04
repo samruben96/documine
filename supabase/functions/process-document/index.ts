@@ -330,6 +330,11 @@ Deno.serve(async (req: Request) => {
     log.info('Chunking completed', { documentId: processingDocumentId, chunkCount: chunks.length });
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
+    // Step 6.5: AI Tagging (Story F2-3)
+    // AC-F2-3.1: Generate tags, AC-F2-3.2: Generate summary, AC-F2-3.3: Infer document type
+    // AC-F2-3.4: 5-second timeout, AC-F2-3.5: Graceful degradation
+    await performAITagging(supabase, processingDocumentId, chunks, openaiKey);
+
     // Step 7: Generate embeddings
     // Story 5.12: Report embedding progress with batch-level updates
     await updateJobProgress(
@@ -1266,6 +1271,204 @@ async function insertChunks(
     if (error) {
       throw new Error(`Failed to insert chunks: ${error.message}`);
     }
+  }
+}
+
+// ============================================================================
+// Story F2-3: AI Tagging
+// ============================================================================
+
+/**
+ * AI tagging timeout in milliseconds.
+ * AC-F2-3.4: Tagging completes within 5 seconds
+ */
+const AI_TAGGING_TIMEOUT_MS = 5000;
+
+/**
+ * System prompt for document tagging.
+ */
+const TAGGING_SYSTEM_PROMPT = `You are analyzing an insurance document. Based on the content provided, extract:
+
+1. Tags (3-5): Short, relevant keywords describing the document content.
+   - Focus on insurance terms (e.g., "liability", "commercial auto", "workers comp")
+   - Include carrier name if identifiable
+   - Include policy type (e.g., "BOP", "GL", "umbrella")
+
+2. Summary (1-2 sentences): Brief description of what this document is about.
+   - Be specific: mention carrier, policy type, coverage highlights
+   - Keep under 200 characters
+
+3. Document Type: Is this a "quote" document (insurance proposal/quote) or "general" document (certificate, endorsement, general info)?
+
+Do NOT include:
+- PII (names, addresses, policy numbers)
+- Generic tags like "insurance" or "document"`;
+
+/**
+ * Perform AI tagging on document chunks.
+ * Story F2-3: Generates tags, summary, and infers document type.
+ *
+ * AC-F2-3.1: Returns 3-5 tags
+ * AC-F2-3.2: Returns summary under 200 chars
+ * AC-F2-3.3: Infers document type
+ * AC-F2-3.4: 5-second timeout
+ * AC-F2-3.5: Graceful degradation - failures don't block processing
+ */
+async function performAITagging(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string,
+  chunks: DocumentChunk[],
+  openaiApiKey: string
+): Promise<void> {
+  const startTime = Date.now();
+
+  // Use first 5 chunks (~5 pages) as context for efficiency
+  const context = chunks
+    .slice(0, 5)
+    .map((c) => c.content)
+    .join('\n\n---\n\n');
+
+  if (!context.trim()) {
+    log.warn('AI tagging skipped: no content', { documentId });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TAGGING_TIMEOUT_MS);
+
+  try {
+    // Build request for OpenAI structured outputs
+    const requestBody = {
+      model: 'gpt-5.1',
+      messages: [
+        { role: 'system', content: TAGGING_SYSTEM_PROMPT },
+        { role: 'user', content: context },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'document_tags',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+                minItems: 3,
+                maxItems: 5,
+                description: 'Short, relevant keywords describing the document content',
+              },
+              summary: {
+                type: 'string',
+                maxLength: 200,
+                description: 'Brief 1-2 sentence description of the document',
+              },
+              documentType: {
+                type: 'string',
+                enum: ['quote', 'general'],
+                description: 'Whether this is a quote document or general document',
+              },
+            },
+            required: ['tags', 'summary', 'documentType'],
+            additionalProperties: false,
+          },
+        },
+      },
+      temperature: 0.1, // Low for consistent extraction
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.warn('AI tagging API error', { documentId, status: response.status, error: errorText });
+      return;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      log.warn('AI tagging: no content in response', { documentId });
+      return;
+    }
+
+    // Parse the response
+    const parsed = JSON.parse(content) as {
+      tags: string[];
+      summary: string;
+      documentType: 'quote' | 'general';
+    };
+
+    // Validate basic structure
+    if (!Array.isArray(parsed.tags) || !parsed.summary || !parsed.documentType) {
+      log.warn('AI tagging: invalid response structure', { documentId, parsed });
+      return;
+    }
+
+    // Get current document to check if document_type is already set
+    const { data: docData } = await supabase
+      .from('documents')
+      .select('document_type')
+      .eq('id', documentId)
+      .single();
+
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      ai_tags: parsed.tags,
+      ai_summary: parsed.summary,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Only update document_type if not already set (AC-F2-3.3: ability to override)
+    if (!docData?.document_type) {
+      updateData.document_type = parsed.documentType;
+    }
+
+    // Update document with tags and summary
+    const { error: updateError } = await supabase
+      .from('documents')
+      .update(updateData)
+      .eq('id', documentId);
+
+    if (updateError) {
+      log.warn('AI tagging: failed to update document', { documentId, error: updateError.message });
+      return;
+    }
+
+    const duration = Date.now() - startTime;
+    log.info('AI tagging completed', {
+      documentId,
+      duration,
+      tagCount: parsed.tags.length,
+      summaryLength: parsed.summary.length,
+      documentType: parsed.documentType,
+      documentTypeUpdated: !docData?.document_type,
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+
+    const err = error instanceof Error ? error : new Error(String(error));
+    const duration = Date.now() - startTime;
+
+    if (err.name === 'AbortError') {
+      log.warn('AI tagging timeout', { documentId, duration, timeoutMs: AI_TAGGING_TIMEOUT_MS });
+    } else {
+      log.warn('AI tagging failed', { documentId, duration, error: err.message });
+    }
+
+    // AC-F2-3.5: Graceful degradation - don't throw, just log and continue
   }
 }
 
