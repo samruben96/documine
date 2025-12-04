@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { deleteDocumentAction } from '@/app/(dashboard)/documents/actions';
+import { deleteDocumentAction } from '@/app/(dashboard)/chat-docs/actions';
 
 interface DeleteDocumentModalProps {
   open: boolean;

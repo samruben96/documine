@@ -10,7 +10,7 @@ import {
   addLabelToDocument,
   removeLabelFromDocument,
   type Label,
-} from '@/app/(dashboard)/documents/actions';
+} from '@/app/(dashboard)/chat-docs/actions';
 import { toast } from 'sonner';
 
 interface DocumentLabelsProps {

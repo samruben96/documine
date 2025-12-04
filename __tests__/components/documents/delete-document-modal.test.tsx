@@ -15,7 +15,7 @@ vi.mock('sonner', () => ({
 
 // Mock the server action
 const mockDeleteDocumentAction = vi.fn();
-vi.mock('@/app/(dashboard)/documents/actions', () => ({
+vi.mock('@/app/(dashboard)/chat-docs/actions', () => ({
   deleteDocumentAction: (id: string) => mockDeleteDocumentAction(id),
 }));
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Filter, X, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Label } from '@/app/(dashboard)/documents/actions';
+import type { Label } from '@/app/(dashboard)/chat-docs/actions';
 
 interface LabelFilterProps {
   /** All available labels */

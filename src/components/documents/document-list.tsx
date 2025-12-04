@@ -10,7 +10,7 @@ import { DocumentListEmpty } from './document-list-empty';
 import { DeleteDocumentModal } from './delete-document-modal';
 import { LabelFilter } from './label-filter';
 import type { Tables } from '@/types/database.types';
-import { getLabels, type Label } from '@/app/(dashboard)/documents/actions';
+import { getLabels, type Label } from '@/app/(dashboard)/chat-docs/actions';
 import type { ProgressData } from '@/hooks/use-processing-progress';
 
 type Document = Tables<'documents'>;
@@ -115,9 +115,9 @@ export function DocumentList({
     return filtered;
   }, [documents, debouncedQuery, selectedLabelIds]);
 
-  // Handle document click - AC-4.3.7
+  // Handle document click - AC-4.3.7, F2-1 Route restructure: viewer is now at /chat-docs
   const handleDocumentClick = (documentId: string) => {
-    router.push(`/documents/${documentId}`);
+    router.push(`/chat-docs/${documentId}`);
   };
 
   // Clear search

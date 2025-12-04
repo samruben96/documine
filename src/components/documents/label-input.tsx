@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Label } from '@/app/(dashboard)/documents/actions';
+import type { Label } from '@/app/(dashboard)/chat-docs/actions';
 
 interface LabelInputProps {
   /** All available labels for autocomplete */

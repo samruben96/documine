@@ -19,7 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { renameDocument, type Label } from '@/app/(dashboard)/documents/actions';
+import { renameDocument, type Label } from '@/app/(dashboard)/chat-docs/actions';
 import { toast } from 'sonner';
 import { LabelPill } from './label-pill';
 

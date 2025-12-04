@@ -1,0 +1,179 @@
+<story-context id="f2-1-document-library-page" v="1.0">
+  <metadata>
+    <epicId>F2</epicId>
+    <storyId>1</storyId>
+    <title>Document Library Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-f2.1-document-library-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>a dedicated document library page at `/documents`</iWant>
+    <soThat>I can view, manage, and organize all my agency's uploaded documents in one place</soThat>
+    <tasks>
+      <task id="1" ac="1.1">Create `/documents` page route</task>
+      <task id="2" ac="1.2">Implement document grid/list view</task>
+      <task id="3" ac="1.3">Display document metadata (filename, date, status, type, tags)</task>
+      <task id="4" ac="1.4">Implement document navigation to viewer</task>
+      <task id="5" ac="1.5">Integrate upload functionality</task>
+      <task id="6" ac="1.6">Implement empty state</task>
+      <task id="7">Write tests</task>
+    </tasks>
+  </story>
+
+  <clarification critical="true">
+    <note>USER DECISION: Route restructure confirmed</note>
+    <routes>
+      <route path="/documents" purpose="NEW - Document Library (grid/list view)" action="CREATE"/>
+      <route path="/chat-docs/[id]" purpose="Document viewer + chat" action="MOVE from /documents/[id]"/>
+    </routes>
+    <migration>
+      1. Create new /documents page as library (this story)
+      2. Move current /documents to /chat-docs (separate task or this story)
+      3. Move current /documents/[id] to /chat-docs/[id]
+      4. Update header nav: Documents → /documents
+      5. Library cards click → navigate to /chat-docs/[id]
+    </migration>
+    <impact>
+      - Header "Documents" link stays at /documents (now library)
+      - Dashboard may need update if it links to /documents
+      - Existing bookmarks to /documents/[id] will break (redirect needed)
+    </impact>
+  </clarification>
+
+  <acceptanceCriteria>
+    <ac id="F2-1.1">Dedicated `/documents` route exists and is accessible from header navigation</ac>
+    <ac id="F2-1.2">Page displays all agency documents in a grid or list view</ac>
+    <ac id="F2-1.3">Each document shows: filename, upload date, page count, status, type badge, tags</ac>
+    <ac id="F2-1.4">Click on document navigates to `/chat-docs/[id]` viewer</ac>
+    <ac id="F2-1.5">Upload button opens upload modal/zone</ac>
+    <ac id="F2-1.6">Empty state shows when no documents exist</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-f2.md" title="Epic F2 Tech Spec" section="Story F2-1">
+        Full acceptance criteria and implementation notes for document library feature.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="UI/UX Architecture">
+        Component hierarchy, layout patterns, responsive breakpoints, design philosophy.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Project Structure">
+        File organization conventions: components in src/components/, pages in src/app/.
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing components to study/reuse -->
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" reason="CURRENT chat/viewer page - this is what needs to be transformed or moved">
+        Contains split-view layout with sidebar, upload handling, realtime subscriptions.
+      </file>
+      <file path="src/app/(dashboard)/documents/[id]/page.tsx" kind="page" reason="Document viewer page - should remain as-is for individual document viewing">
+        Individual document viewer with chat panel.
+      </file>
+      <file path="src/components/layout/header.tsx" kind="component" lines="21-25" reason="Navigation items array - 'Documents' link already exists">
+        navItems array defines header navigation - update if route changes.
+      </file>
+      <file path="src/components/documents/document-list.tsx" kind="component" reason="Existing sidebar list - reuse search, filter, delete logic">
+        Contains search, label filtering, delete modal integration. May adapt for library grid.
+      </file>
+      <file path="src/components/documents/document-list-item.tsx" kind="component" reason="Document row display - reference for metadata display pattern">
+        Shows filename, status badge, date, labels, action buttons. Adapt for grid card.
+      </file>
+      <file path="src/components/documents/document-list-empty.tsx" kind="component" reason="Empty state pattern - reuse for library empty state">
+        Empty state with upload CTA - consistent styling.
+      </file>
+      <file path="src/components/documents/upload-zone.tsx" kind="component" reason="Upload component - reuse in library upload dialog">
+        Drag-and-drop upload with progress, validation, rate limit display.
+      </file>
+      <file path="src/components/documents/document-status.tsx" kind="component" reason="Status badge component - reuse for library cards">
+        DocumentStatusBadge component for processing/ready/failed states.
+      </file>
+      <file path="src/components/documents/label-pill.tsx" kind="component" reason="Label display - reuse for document cards">
+        Colored label pills for document categorization.
+      </file>
+      <file path="src/hooks/use-document-status.ts" kind="hook" reason="Realtime document updates - use for live status in library">
+        useDocumentStatus hook with Supabase realtime subscription.
+      </file>
+      <file path="src/hooks/use-processing-progress.ts" kind="hook" reason="Processing progress tracking - show in library cards">
+        useProcessingProgress hook for detailed processing status.
+      </file>
+      <file path="src/app/(dashboard)/documents/actions.ts" kind="server-actions" reason="Data fetching - getDocuments, createDocumentFromUpload, etc.">
+        Server actions for document CRUD operations.
+      </file>
+
+      <!-- UI primitives available -->
+      <file path="src/components/ui/card.tsx" kind="ui-component" reason="Card component for grid items">
+        shadcn/ui Card component.
+      </file>
+      <file path="src/components/ui/badge.tsx" kind="ui-component" reason="Badge for status/type indicators">
+        shadcn/ui Badge component - may need to add if not present.
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <runtime>Next.js 16.0.4 (App Router)</runtime>
+        <react>React 19.2.0</react>
+        <ui>lucide-react, @radix-ui/*, tailwindcss</ui>
+        <state>date-fns, use-debounce</state>
+        <forms>react-dropzone, sonner (toast)</forms>
+        <backend>@supabase/supabase-js, @supabase/ssr</backend>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="Document" kind="type" path="src/types/database.types.ts">
+      Tables&lt;'documents'&gt; - id, agency_id, filename, display_name, status, page_count, created_at, etc.
+    </interface>
+    <interface name="Label" kind="type" path="src/app/(dashboard)/documents/actions.ts">
+      { id: string; name: string; color: string } - document labels for filtering/display.
+    </interface>
+    <interface name="getDocuments" kind="server-action" path="src/app/(dashboard)/documents/actions.ts">
+      () => Promise&lt;{ success: boolean; documents?: Document[]; error?: string }&gt;
+    </interface>
+    <interface name="useDocumentStatus" kind="hook" path="src/hooks/use-document-status.ts">
+      ({ agencyId, onDocumentReady, onDocumentFailed }) => { documents, setDocuments, isConnected, connectionState }
+    </interface>
+    <interface name="UploadZone" kind="component" path="src/components/documents/upload-zone.tsx">
+      onFilesAccepted, uploadingFiles, onCancelUpload, rateLimitInfo, disabled, className
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="architecture">Follow existing dashboard route group pattern: src/app/(dashboard)/</constraint>
+    <constraint type="architecture">Components in src/components/documents/ following kebab-case naming</constraint>
+    <constraint type="ui">Use shadcn/ui components (Card, Badge, Button, Dialog) per design system</constraint>
+    <constraint type="data">Use server actions for data fetching - no direct Supabase calls in components</constraint>
+    <constraint type="responsive">Mobile: stack layout. Tablet+: grid with 2-3 columns. Desktop: 3-4 columns</constraint>
+    <constraint type="state">Use Supabase realtime for live document status updates</constraint>
+    <constraint type="navigation">Documents link in header already exists - may need to update if route changes</constraint>
+    <constraint type="dependency">Document type/tags columns don't exist yet - show placeholder until F2-2/F2-3</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library for unit/integration tests.
+      Playwright for E2E tests.
+      Test files in __tests__/ mirroring src/ structure.
+      Use data-testid attributes for E2E selectors.
+    </standards>
+    <locations>
+      __tests__/components/documents/
+      __tests__/e2e/
+    </locations>
+    <ideas>
+      <test ac="F2-1.1">E2E: Navigate to /documents, verify page loads with header nav active</test>
+      <test ac="F2-1.2">Unit: DocumentLibraryPage renders grid view with documents</test>
+      <test ac="F2-1.2">Unit: DocumentCard displays correct metadata</test>
+      <test ac="F2-1.3">Unit: DocumentCard shows filename, date, status, type badge</test>
+      <test ac="F2-1.4">E2E: Click document card navigates to /documents/[id]</test>
+      <test ac="F2-1.5">Unit: Upload button opens dialog with UploadZone</test>
+      <test ac="F2-1.6">Unit: Empty state renders when documents array is empty</test>
+    </ideas>
+  </tests>
+</story-context>

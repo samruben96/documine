@@ -440,20 +440,24 @@ development_status:
   # Remaining items (accessibility, observability) deferred to future work
   epic-f1-tech-debt-optimizations: done
 
-  # Epic F2: User Dashboard & Document Intelligence (NEW - 2025-12-03)
-  # Source: Sam's feature request - 2025-12-03
+  # Epic F2: Document Library & Intelligence (RENAMED - 2025-12-04)
+  # Source: Sam's feature request - 2025-12-03, expanded 2025-12-04
   # Reason: Better document organization and AI-powered insights
   # Features:
-  #   - Dashboard view showing all user documents
+  #   - Dedicated /documents page (full document library)
   #   - Document categorization (general vs quote document)
   #   - AI-powered tagging and short blurbs
   #   - General documents excluded from /compare quotes page
-  epic-f2-dashboard-document-intelligence: future
-  f2-1-dashboard-page-layout: future
-  f2-2-document-categorization-schema: future
-  f2-3-ai-tagging-summarization: future
-  f2-4-filter-general-docs-from-compare: future
-  f2-5-tag-management-ui: future
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-f2.md
+  epic-f2-document-library-intelligence: contexted
+  # Story F2-1: Document Library Page
+  # READY-FOR-DEV 2025-12-04: Context at docs/sprint-artifacts/f2-1-document-library-page.context.xml
+  # Route restructure: /documents → library, /chat-docs/[id] → viewer
+  f2-1-document-library-page: done
+  f2-2-document-categorization-schema: backlog
+  f2-3-ai-tagging-summarization: backlog
+  f2-4-filter-general-docs-from-compare: backlog
+  f2-5-tag-management-ui: backlog
 
   # Epic F3: Document Viewer Enhancements (was F5)
   # Source: Story 6.8 AC-6.8.18 - 2025-12-03
@@ -514,57 +518,46 @@ development_status:
   f8-4-guardrails-tracing: future
 
 # ===========================================
-# EPIC 10: ENHANCED QUOTE EXTRACTION (NEW)
+# EPIC 10: ENHANCED QUOTE EXTRACTION & ANALYSIS
 # ===========================================
 # Source: User request - 2025-12-04
 # Reason: Agents need comprehensive policy data for thorough quote analysis
 # Research: Based on industry checklists from IIAT, IRMI, AmTrust
 # Doc: docs/epics/epic-10-enhanced-quote-extraction.md
+# Total Points: 26 (11 stories)
 
-epic-10-enhanced-quote-extraction:
-  status: drafted
-  priority: P1
-  stories:
-    # Story 10.1: Extended Coverage Types Schema (3 pts)
-    # Add: Cyber, E&O, Workers Comp, Umbrella, EPLI, Pollution, BI, Auto, D&O, Crime
-    10-1-extended-coverage-types: todo
-
-    # Story 10.2: Policy Form & Structure Metadata (2 pts)
-    # Extract: ISO form numbers, occurrence vs claims-made, audit provisions, admitted status
-    10-2-policy-form-metadata: todo
-
-    # Story 10.3: Enhanced Limits & Deductibles (2 pts)
-    # Add: Aggregate limits, sublimits, SIR, coinsurance, waiting periods
-    10-3-enhanced-limits-deductibles: todo
-
-    # Story 10.4: Endorsements Extraction (3 pts)
-    # Extract: CG 20 10, CG 20 37, waiver of subrogation, primary & non-contributory
-    10-4-endorsements-extraction: todo
-
-    # Story 10.5: Carrier Information & Ratings (2 pts)
-    # Extract: AM Best rating, admitted status, claims contact, underwriter
-    10-5-carrier-information: todo
-
-    # Story 10.6: Premium Breakdown (2 pts)
-    # Extract: Per-coverage premiums, taxes, fees, broker fees, payment terms
-    10-6-premium-breakdown: todo
-
-    # Story 10.7: Automated Gap Analysis (3 pts)
-    # Identify: Missing coverages, inadequate limits, unusual exclusions, missing endorsements
-    10-7-automated-gap-analysis: todo
-
-    # Story 10.8: Enhanced Comparison Table (2 pts)
-    # UI: Endorsement matrix, premium breakdown, carrier ratings, collapsible sections
-    10-8-enhanced-comparison-table: todo
-
-    # Story 10.9: Enhanced One-Pager Template (2 pts)
-    # PDF: Policy metadata, endorsements summary, premium breakdown, gap highlights
-    10-9-enhanced-one-pager: todo
-
-    # Story 10.10: Extraction Prompt Engineering (3 pts)
-    # GPT: Updated prompts, examples, testing, accuracy metrics
-    10-10-extraction-prompts: todo
-
-    # Story 10.11: Testing & Migration (2 pts)
-    # QA: Backward compatibility, schema migration, validation, performance
-    10-11-testing-migration: todo
+  # Epic 10: Enhanced Quote Extraction & Analysis
+  epic-10: backlog
+  # Story 10.1: Extended Coverage Types Schema (3 pts)
+  # Add: Cyber, E&O, Workers Comp, Umbrella, EPLI, Pollution, BI, Auto, D&O, Crime
+  10-1-extended-coverage-types: backlog
+  # Story 10.2: Policy Form & Structure Metadata (2 pts)
+  # Extract: ISO form numbers, occurrence vs claims-made, audit provisions, admitted status
+  10-2-policy-form-metadata: backlog
+  # Story 10.3: Enhanced Limits & Deductibles (2 pts)
+  # Add: Aggregate limits, sublimits, SIR, coinsurance, waiting periods
+  10-3-enhanced-limits-deductibles: backlog
+  # Story 10.4: Endorsements Extraction (3 pts)
+  # Extract: CG 20 10, CG 20 37, waiver of subrogation, primary & non-contributory
+  10-4-endorsements-extraction: backlog
+  # Story 10.5: Carrier Information & Ratings (2 pts)
+  # Extract: AM Best rating, admitted status, claims contact, underwriter
+  10-5-carrier-information: backlog
+  # Story 10.6: Premium Breakdown (2 pts)
+  # Extract: Per-coverage premiums, taxes, fees, broker fees, payment terms
+  10-6-premium-breakdown: backlog
+  # Story 10.7: Automated Gap Analysis (3 pts)
+  # Identify: Missing coverages, inadequate limits, unusual exclusions, missing endorsements
+  10-7-automated-gap-analysis: backlog
+  # Story 10.8: Enhanced Comparison Table (2 pts)
+  # UI: Endorsement matrix, premium breakdown, carrier ratings, collapsible sections
+  10-8-enhanced-comparison-table: backlog
+  # Story 10.9: Enhanced One-Pager Template (2 pts)
+  # PDF: Policy metadata, endorsements summary, premium breakdown, gap highlights
+  10-9-enhanced-one-pager: backlog
+  # Story 10.10: Extraction Prompt Engineering (3 pts)
+  # GPT: Updated prompts, examples, testing, accuracy metrics
+  10-10-extraction-prompts: backlog
+  # Story 10.11: Testing & Migration (2 pts)
+  # QA: Backward compatibility, schema migration, validation, performance
+  10-11-testing-migration: backlog

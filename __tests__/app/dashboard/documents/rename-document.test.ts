@@ -10,7 +10,7 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-import { renameDocument } from '@/app/(dashboard)/documents/actions';
+import { renameDocument } from '@/app/(dashboard)/chat-docs/actions';
 import { createClient } from '@/lib/supabase/server';
 
 describe('renameDocument server action', () => {
