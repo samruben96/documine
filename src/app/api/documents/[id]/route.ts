@@ -8,8 +8,9 @@ import type { DocumentType } from '@/types';
  * Document API Endpoint (by ID)
  *
  * Story F2-2: Update document type (quote | general)
+ * Story F2-5: Update ai_tags
  *
- * PATCH: Update document_type field
+ * PATCH: Update document_type or ai_tags fields
  */
 
 interface RouteParams {
@@ -17,14 +18,20 @@ interface RouteParams {
 }
 
 // Zod schema for PATCH request body
-const updateDocumentTypeSchema = z.object({
-  document_type: z.enum(['quote', 'general']),
-});
+// At least one field must be provided
+const updateDocumentSchema = z.object({
+  document_type: z.enum(['quote', 'general']).optional(),
+  ai_tags: z.array(z.string().max(30)).max(10).optional(),
+}).refine(
+  (data) => data.document_type !== undefined || data.ai_tags !== undefined,
+  { message: 'At least one field (document_type or ai_tags) must be provided' }
+);
 
 /**
- * Update document type
+ * Update document (type and/or tags)
  *
  * AC-F2-2.4: Type change persists immediately
+ * AC-F2-5.4: Tags save automatically on change
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
@@ -71,7 +78,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const parseResult = updateDocumentTypeSchema.safeParse(body);
+    const parseResult = updateDocumentSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -86,15 +93,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const { document_type } = parseResult.data;
+    const { document_type, ai_tags } = parseResult.data;
 
-    // Update document type - RLS ensures agency scope
+    // Build update object with only provided fields
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (document_type !== undefined) {
+      updateData.document_type = document_type;
+    }
+    if (ai_tags !== undefined) {
+      updateData.ai_tags = ai_tags;
+    }
+
+    // Update document - RLS ensures agency scope
     const { data: updatedDoc, error: updateError } = await supabase
       .from('documents')
-      .update({ document_type, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', documentId)
       .eq('agency_id', agencyId)
-      .select('id, document_type')
+      .select('id, document_type, ai_tags')
       .single();
 
     if (updateError) {
@@ -109,7 +127,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      log.warn('Failed to update document type', {
+      log.warn('Failed to update document', {
         documentId,
         error: updateError.message,
       });
@@ -126,16 +144,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    log.info('Document type updated', {
+    log.info('Document updated', {
       documentId,
-      documentType: document_type,
+      updatedFields: Object.keys(updateData).filter(k => k !== 'updated_at'),
       userId: user.id,
     });
 
     return NextResponse.json({
       data: {
         id: updatedDoc.id,
-        document_type: updatedDoc.document_type as DocumentType,
+        document_type: updatedDoc.document_type as DocumentType | null,
+        ai_tags: updatedDoc.ai_tags as string[] | null,
       },
       error: null,
     });

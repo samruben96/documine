@@ -12,6 +12,7 @@ import {
 import { OnePagerButton } from '@/components/one-pager/one-pager-button';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
+import { TagEditor } from '@/components/documents/tag-editor';
 import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view';
 import { DocumentList } from '@/components/documents/document-list';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
@@ -83,6 +84,7 @@ export default function DocumentDetailPage() {
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [isUpdatingTags, setIsUpdatingTags] = useState(false);
 
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
   userAgencyInfoRef.current = userAgencyInfo;
@@ -193,6 +195,41 @@ export default function DocumentDetailPage() {
       setIsLoading(false);
     }
   }
+
+  // Story F2-5: Handle tag updates via API
+  const handleTagsChange = useCallback(async (newTags: string[]) => {
+    if (!selectedDocument) return;
+
+    setIsUpdatingTags(true);
+    try {
+      const response = await fetch(`/api/documents/${selectedDocument.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ai_tags: newTags }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update tags');
+      }
+
+      const { data } = await response.json();
+
+      // Update local state
+      setSelectedDocument((prev) =>
+        prev ? { ...prev, ai_tags: data.ai_tags } : null
+      );
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === selectedDocument.id ? { ...doc, ai_tags: data.ai_tags } : doc
+        )
+      );
+    } catch (error) {
+      toast.error('Failed to update tags');
+      console.error('Tag update error:', error);
+    } finally {
+      setIsUpdatingTags(false);
+    }
+  }, [selectedDocument, setDocuments]);
 
   const handleFilesAccepted = useCallback((files: File[]) => {
     const newUploadingFiles: UploadingFile[] = files.map((file) => ({
@@ -344,18 +381,15 @@ export default function DocumentDetailPage() {
               {selectedDocument.ai_summary}
             </p>
           )}
-          {selectedDocument.ai_tags && selectedDocument.ai_tags.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap ml-8 sm:ml-0" data-testid="document-viewer-tags">
-              {selectedDocument.ai_tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+          {/* Story F2-5: Editable tags in document viewer */}
+          <div className="ml-8 sm:ml-0" data-testid="document-viewer-tags">
+            <TagEditor
+              tags={selectedDocument.ai_tags || []}
+              onTagsChange={handleTagsChange}
+              disabled={selectedDocument.status !== 'ready'}
+              isLoading={isUpdatingTags}
+            />
+          </div>
         </div>
       )}
       {/* Loading/Not found header when no document selected */}

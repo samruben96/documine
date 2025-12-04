@@ -484,7 +484,15 @@ development_status:
   # - TypeScript type updates for document_type
   # - UI note: "Only quote documents shown"
   f2-4-filter-general-docs-from-compare: done
-  f2-5-tag-management-ui: backlog
+  # Story F2-5: Tag Management UI
+  # IMPLEMENTED 2025-12-04: All 6 ACs complete
+  # - TagEditor component with add/remove/keyboard shortcuts
+  # - API extended to handle ai_tags updates
+  # - Document viewer integrated with live editing
+  # - Max 10 tags, 30 chars per tag
+  f2-5-tag-management-ui: done
+  # EPIC F2 COMPLETE - All 5 stories delivered
+  epic-f2-retrospective: optional
 
   # Epic F3: Document Viewer Enhancements (was F5)
   # Source: Story 6.8 AC-6.8.18 - 2025-12-03
