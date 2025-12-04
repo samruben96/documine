@@ -259,8 +259,15 @@ development_status:
   # Page navigation works, page-level pulse highlight, inferred value indicators with tooltips
   # Note: Full text highlighting requires bounding box data (deferred to Future Epic F3)
   # 39 unit tests pass, E2E spec created at __tests__/e2e/source-citations.spec.ts
-  7-5-source-citations-in-comparison: ready-for-review
-  7-6-export-comparison-results: backlog
+  # CODE REVIEWED 2025-12-03: APPROVED - pushed to git
+  7-5-source-citations-in-comparison: done
+  # Story 7.6: Export Comparison Results
+  # PDF and CSV export for comparison results
+  # Priority: P1 - nice to have for MVP, essential for production
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.6-export-comparison-results.md
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/7-6-export-comparison-results.context.xml
+  # CODE REVIEWED 2025-12-03: APPROVED - 6/6 ACs verified, 7/7 tasks verified, 29 tests
+  7-6-export-comparison-results: done
   # Story 7.7: Comparison History (NEW - 2025-12-03)
   # User can view past comparisons, search, delete from history
   # Priority: P1 - UX enhancement, M effort

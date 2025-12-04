@@ -24,7 +24,11 @@ import type { ComparisonData, QuoteExtraction, DocumentSummary } from '@/types/c
 import { ComparisonTable, type SourceClickHandler } from '@/components/compare/comparison-table';
 import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
 import { SourceViewerModal } from '@/components/compare/source-viewer-modal';
-import { buildComparisonRows } from '@/lib/compare/diff';
+import { ExportButton } from '@/components/compare/export-button';
+import { buildComparisonRows, type ComparisonTableData } from '@/lib/compare/diff';
+import { downloadCsv } from '@/lib/compare/export';
+import { downloadPdf } from '@/lib/compare/pdf-export';
+import { toast } from 'sonner';
 
 /**
  * Comparison Result Page
@@ -307,6 +311,10 @@ function ExtractionSummaryView({
     carrierName: '',
   });
 
+  // AC-7.6.6: Export loading state
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportType, setExportType] = useState<'pdf' | 'csv' | null>(null);
+
   // AC-7.4.5: Scroll to row when gap/conflict item clicked
   const handleBannerItemClick = useCallback((field: string, coverageType?: string) => {
     // Find the row with matching coverage type or field
@@ -350,6 +358,41 @@ function ExtractionSummaryView({
     }
   }, []);
 
+  // AC-7.6.5, AC-7.6.6: Export handlers with loading state
+  const handleExportPdf = useCallback(async () => {
+    if (!extractions || extractions.length === 0) return;
+    setIsExporting(true);
+    setExportType('pdf');
+    try {
+      const tableData = buildComparisonRows(extractions, documents);
+      await downloadPdf(tableData);
+      toast.success('PDF exported successfully');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setIsExporting(false);
+      setExportType(null);
+    }
+  }, [extractions, documents]);
+
+  const handleExportCsv = useCallback(() => {
+    if (!extractions || extractions.length === 0) return;
+    setIsExporting(true);
+    setExportType('csv');
+    try {
+      const tableData = buildComparisonRows(extractions, documents);
+      downloadCsv(tableData);
+      toast.success('CSV exported successfully');
+    } catch (error) {
+      console.error('CSV export error:', error);
+      toast.error('Failed to generate CSV');
+    } finally {
+      setIsExporting(false);
+      setExportType(null);
+    }
+  }, [extractions, documents]);
+
   if (!extractions || extractions.length === 0) {
     return (
       <div className="text-center py-12">
@@ -392,13 +435,20 @@ function ExtractionSummaryView({
         ))}
       </div>
 
-      {/* Comparison Table - Story 7.3, Story 7.5 */}
+      {/* Comparison Table - Story 7.3, Story 7.5, Story 7.6 */}
       <Card className="mt-8">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             Comparison Table
           </CardTitle>
+          {/* AC-7.6.1: Export button with PDF and CSV options */}
+          <ExportButton
+            onExportPdf={handleExportPdf}
+            onExportCsv={handleExportCsv}
+            isExporting={isExporting}
+            exportType={exportType}
+          />
         </CardHeader>
         <CardContent className="p-0">
           <ComparisonTable
