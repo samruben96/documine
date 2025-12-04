@@ -249,7 +249,17 @@ development_status:
   # IMPLEMENTED 2025-12-03: All 7 tasks complete, 37 unit tests + E2E spec
   # CODE REVIEWED 2025-12-03: APPROVED - all 6 ACs verified, 59 tests pass, excellent quality
   7-4-gap-conflict-identification: done
-  7-5-source-citations-in-comparison: backlog
+  # Story 7.5: Source Citations in Comparison
+  # Click-to-verify for any extracted value, reusing document viewer highlight pattern
+  # Priority: P0 - trust transparency for comparison data
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.5-source-citations-in-comparison.md
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/7-5-source-citations-in-comparison.context.xml
+  # IMPLEMENTED 2025-12-03: Source links in table cells, SourceViewerModal with DocumentViewer integration
+  # Components: source-viewer-modal.tsx, updated comparison-table.tsx with onSourceClick callback
+  # Page navigation works, page-level pulse highlight, inferred value indicators with tooltips
+  # Note: Full text highlighting requires bounding box data (deferred to Future Epic F3)
+  # 39 unit tests pass, E2E spec created at __tests__/e2e/source-citations.spec.ts
+  7-5-source-citations-in-comparison: ready-for-review
   7-6-export-comparison-results: backlog
   # Story 7.7: Comparison History (NEW - 2025-12-03)
   # User can view past comparisons, search, delete from history

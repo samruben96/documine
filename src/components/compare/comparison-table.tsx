@@ -4,17 +4,21 @@
  * ComparisonTable - Side-by-side Quote Comparison
  *
  * Story 7.3: AC-7.3.1 through AC-7.3.8
+ * Story 7.5: AC-7.5.1, AC-7.5.5 - Source citations and inferred values
+ *
  * Displays extracted quote data in a comparison table with:
  * - Sticky header row and first column
  * - Best/worst value indicators
  * - Difference highlighting
  * - Not found handling
+ * - View source links (AC-7.5.1)
+ * - Inferred value indicators (AC-7.5.5)
  *
  * @module @/components/compare/comparison-table
  */
 
 import { useMemo } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   buildComparisonRows,
@@ -34,6 +38,14 @@ import {
 // Props
 // ============================================================================
 
+/**
+ * Callback for when a source link is clicked.
+ * AC-7.5.1: Opens document viewer modal to the source page.
+ */
+export interface SourceClickHandler {
+  (documentId: string, pageNumber: number, documentIndex: number): void;
+}
+
 export interface ComparisonTableProps {
   /** Extracted quote data */
   extractions: QuoteExtraction[];
@@ -41,6 +53,8 @@ export interface ComparisonTableProps {
   documents?: DocumentSummary[];
   /** Optional className for container */
   className?: string;
+  /** AC-7.5.1: Callback when "View source" is clicked */
+  onSourceClick?: SourceClickHandler;
 }
 
 // ============================================================================
@@ -101,10 +115,36 @@ interface TableCellProps {
   isBest: boolean;
   isWorst: boolean;
   isFirstColumn?: boolean;
+  /** AC-7.5.1: Document ID for source navigation */
+  documentId?: string;
+  /** AC-7.5.1: Document index in the comparison */
+  documentIndex?: number;
+  /** AC-7.5.1: Callback when "View source" is clicked */
+  onSourceClick?: SourceClickHandler;
 }
 
-function TableCell({ value, isBest, isWorst, isFirstColumn }: TableCellProps) {
+function TableCell({
+  value,
+  isBest,
+  isWorst,
+  isFirstColumn,
+  documentId,
+  documentIndex,
+  onSourceClick,
+}: TableCellProps) {
   const isNotFound = value.status === 'not_found';
+  // AC-7.5.1: Show source link if we have source pages
+  const hasSource = value.sourcePages && value.sourcePages.length > 0;
+  // AC-7.5.5: Inferred value has data but no source
+  const isInferred = value.status === 'found' && !hasSource;
+
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const firstPage = value.sourcePages?.[0];
+    if (hasSource && documentId && documentIndex !== undefined && onSourceClick && firstPage !== undefined) {
+      onSourceClick(documentId, firstPage, documentIndex);
+    }
+  };
 
   return (
     <td
@@ -116,7 +156,7 @@ function TableCell({ value, isBest, isWorst, isFirstColumn }: TableCellProps) {
         isNotFound && 'text-slate-400 dark:text-slate-500 italic'
       )}
     >
-      <span className="flex items-center justify-end">
+      <span className="flex items-center justify-end gap-1">
         {isFirstColumn ? (
           <span className="text-left w-full">{value.displayValue}</span>
         ) : (
@@ -124,6 +164,34 @@ function TableCell({ value, isBest, isWorst, isFirstColumn }: TableCellProps) {
             <span>{value.displayValue}</span>
             {isBest && <ValueIndicator type="best" />}
             {isWorst && <ValueIndicator type="worst" />}
+
+            {/* AC-7.5.1: View source link */}
+            {hasSource && onSourceClick && (
+              <button
+                onClick={handleSourceClick}
+                className="ml-1 opacity-40 hover:opacity-100 transition-opacity"
+                aria-label="View source in document"
+                title={`View on page ${value.sourcePages?.[0] ?? 1}`}
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-primary" />
+              </button>
+            )}
+
+            {/* AC-7.5.5: Inferred value indicator */}
+            {isInferred && !isNotFound && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="ml-1 opacity-40">
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Value inferred from document context</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </>
         )}
       </span>
@@ -139,9 +207,18 @@ interface TableRowProps {
   row: ComparisonRow;
   /** Whether this is the first row in a category */
   isFirstInCategory?: boolean;
+  /** AC-7.5.1: Document IDs for source navigation */
+  documentIds?: string[];
+  /** AC-7.5.1: Callback when "View source" is clicked */
+  onSourceClick?: SourceClickHandler;
 }
 
-function TableRow({ row, isFirstInCategory }: TableRowProps) {
+function TableRow({
+  row,
+  isFirstInCategory,
+  documentIds,
+  onSourceClick,
+}: TableRowProps) {
   // AC-7.4.2: Gap/conflict styling
   const isGap = row.isGap;
   const isConflict = row.isConflict;
@@ -203,13 +280,16 @@ function TableRow({ row, isFirstInCategory }: TableRowProps) {
         </span>
       </td>
 
-      {/* Value cells */}
+      {/* Value cells - AC-7.5.1: Pass document info for source links */}
       {row.values.map((value, index) => (
         <TableCell
           key={`${row.id}-${index}`}
           value={value}
           isBest={row.bestIndex === index}
           isWorst={row.worstIndex === index}
+          documentId={documentIds?.[index]}
+          documentIndex={index}
+          onSourceClick={onSourceClick}
         />
       ))}
     </tr>
@@ -253,11 +333,18 @@ export function ComparisonTable({
   extractions,
   documents,
   className,
+  onSourceClick,
 }: ComparisonTableProps) {
   // Build comparison data
   const tableData: ComparisonTableData = useMemo(
     () => buildComparisonRows(extractions, documents),
     [extractions, documents]
+  );
+
+  // AC-7.5.1: Extract document IDs for source navigation
+  const documentIds = useMemo(
+    () => documents?.map((d) => d.id) ?? [],
+    [documents]
   );
 
   // Group rows by category for section headers
@@ -338,6 +425,8 @@ export function ComparisonTable({
               key={row.id}
               row={row}
               isFirstInCategory={isFirstInCategory}
+              documentIds={documentIds}
+              onSourceClick={onSourceClick}
             />
           ))}
         </tbody>

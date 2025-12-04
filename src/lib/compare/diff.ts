@@ -107,6 +107,7 @@ export interface ConflictWarning {
 /**
  * Individual cell value in the comparison table.
  * AC-7.3.5: Tracks "not found" status.
+ * AC-7.5.1: Includes sourcePages for view source functionality.
  */
 export interface CellValue {
   /** Formatted value for display */
@@ -115,6 +116,8 @@ export interface CellValue {
   rawValue: number | string | null;
   /** Value status */
   status: 'found' | 'not_found';
+  /** AC-7.5.1: Page numbers where this value appears (for view source) */
+  sourcePages?: number[];
 }
 
 /**
@@ -356,16 +359,19 @@ export function detectDifference(values: CellValue[]): boolean {
 
 /**
  * Build a cell value from a value.
+ * AC-7.5.1: Optionally includes sourcePages for view source functionality.
  */
 function buildCell(
   value: number | string | null | undefined,
-  fieldType: FieldType
+  fieldType: FieldType,
+  sourcePages?: number[]
 ): CellValue {
   const isFound = value !== null && value !== undefined;
   return {
     displayValue: isFound ? formatValue(value, fieldType) : '—',
     rawValue: isFound ? value : null,
     status: isFound ? 'found' : 'not_found',
+    sourcePages: isFound && sourcePages && sourcePages.length > 0 ? sourcePages : undefined,
   };
 }
 
@@ -499,6 +505,7 @@ function findCoverage(
 
 /**
  * Build a coverage limit row.
+ * AC-7.5.1: Includes sourcePages from coverage items.
  */
 function buildCoverageLimitRow(
   coverageType: CoverageType,
@@ -507,7 +514,7 @@ function buildCoverageLimitRow(
   const label = COVERAGE_TYPE_LABELS[coverageType];
   const values = extractions.map((e) => {
     const coverage = findCoverage(e, coverageType);
-    return buildCell(coverage?.limit ?? null, 'coverage_limit');
+    return buildCell(coverage?.limit ?? null, 'coverage_limit', coverage?.sourcePages);
   });
   const rawValues = values.map((v) => v.rawValue as number | null);
   const { bestIndex, worstIndex } = calculateBestWorst(rawValues, true); // Higher is better
@@ -527,6 +534,7 @@ function buildCoverageLimitRow(
 
 /**
  * Build a coverage deductible row.
+ * AC-7.5.1: Includes sourcePages from coverage items.
  */
 function buildCoverageDeductibleRow(
   coverageType: CoverageType,
@@ -535,7 +543,7 @@ function buildCoverageDeductibleRow(
   const label = COVERAGE_TYPE_LABELS[coverageType];
   const values = extractions.map((e) => {
     const coverage = findCoverage(e, coverageType);
-    return buildCell(coverage?.deductible ?? null, 'deductible');
+    return buildCell(coverage?.deductible ?? null, 'deductible', coverage?.sourcePages);
   });
   const rawValues = values.map((v) => v.rawValue as number | null);
   const { bestIndex, worstIndex } = calculateBestWorst(rawValues, false); // Lower is better

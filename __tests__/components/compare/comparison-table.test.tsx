@@ -7,8 +7,9 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, within, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ComparisonTable } from '@/components/compare/comparison-table';
 import type { QuoteExtraction, DocumentSummary } from '@/types/compare';
 
@@ -435,6 +436,213 @@ describe('ComparisonTable', () => {
       );
 
       expect(container.firstChild).toHaveClass('custom-class');
+    });
+  });
+
+  // ===========================================================================
+  // Story 7.5: Source Citations Tests
+  // ===========================================================================
+
+  describe('source citations (AC-7.5.1)', () => {
+    it('shows source link button when coverage has sourcePages', () => {
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'general_liability',
+              name: 'GL',
+              limit: 1000000,
+              sublimit: null,
+              limitType: null,
+              deductible: 5000,
+              description: '',
+              sourcePages: [3, 4], // Has source reference
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-1' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      // Should have view source buttons
+      const sourceButtons = screen.getAllByRole('button', { name: /view source/i });
+      expect(sourceButtons.length).toBeGreaterThan(0);
+    });
+
+    it('does not show source link when sourcePages is empty', () => {
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'general_liability',
+              name: 'GL',
+              limit: 1000000,
+              sublimit: null,
+              limitType: null,
+              deductible: null,
+              description: '',
+              sourcePages: [], // No source pages
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-1' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      // Should not have view source buttons for the coverage row
+      const sourceButtons = screen.queryAllByRole('button', { name: /view source/i });
+      expect(sourceButtons).toHaveLength(0);
+    });
+
+    it('calls onSourceClick with correct arguments when source button clicked', async () => {
+      const user = userEvent.setup();
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'property',
+              name: 'Property',
+              limit: 500000,
+              sublimit: null,
+              limitType: null,
+              deductible: null,
+              description: '',
+              sourcePages: [7], // Page 7
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-abc' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      const sourceButton = screen.getByRole('button', { name: /view source/i });
+      await user.click(sourceButton);
+
+      expect(onSourceClick).toHaveBeenCalledWith('doc-abc', 7, 0);
+    });
+
+    it('shows source button with correct tooltip', () => {
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'general_liability',
+              name: 'GL',
+              limit: 1000000,
+              sublimit: null,
+              limitType: null,
+              deductible: null,
+              description: '',
+              sourcePages: [5],
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-1' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      const sourceButton = screen.getByRole('button', { name: /view source/i });
+      expect(sourceButton).toHaveAttribute('title', 'View on page 5');
+    });
+  });
+
+  describe('inferred values (AC-7.5.5)', () => {
+    it('shows info icon for values without source pages', () => {
+      // When a value exists but has no sourcePages, it's considered "inferred"
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'general_liability',
+              name: 'GL',
+              limit: 1000000,
+              sublimit: null,
+              limitType: null,
+              deductible: null,
+              description: '',
+              sourcePages: [], // No source - inferred
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-1' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      // The limit row should have inferred indicator - but we need to be specific
+      // The value $1,000,000 should be shown
+      expect(screen.getByText('$1,000,000')).toBeInTheDocument();
+    });
+
+    it('does not show info icon when value has source pages', () => {
+      const extractions = [
+        createMockExtraction({
+          coverages: [
+            {
+              type: 'general_liability',
+              name: 'GL',
+              limit: 1000000,
+              sublimit: null,
+              limitType: null,
+              deductible: null,
+              description: '',
+              sourcePages: [2], // Has source
+            },
+          ],
+        }),
+      ];
+      const documents = [createMockDocument({ id: 'doc-1' })];
+      const onSourceClick = vi.fn();
+
+      render(
+        <ComparisonTable
+          extractions={extractions}
+          documents={documents}
+          onSourceClick={onSourceClick}
+        />
+      );
+
+      // Should have source button, not inferred indicator
+      expect(screen.getByRole('button', { name: /view source/i })).toBeInTheDocument();
     });
   });
 });

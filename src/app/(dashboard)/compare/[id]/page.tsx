@@ -21,8 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { ComparisonData, QuoteExtraction, DocumentSummary } from '@/types/compare';
-import { ComparisonTable } from '@/components/compare/comparison-table';
+import { ComparisonTable, type SourceClickHandler } from '@/components/compare/comparison-table';
 import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
+import { SourceViewerModal } from '@/components/compare/source-viewer-modal';
 import { buildComparisonRows } from '@/lib/compare/diff';
 
 /**
@@ -278,6 +279,17 @@ function FailedView() {
 // Extraction Summary View
 // ============================================================================
 
+/**
+ * State for source viewer modal.
+ * AC-7.5.1, AC-7.5.2: Opens when "View source" is clicked in table.
+ */
+interface SourceViewerState {
+  open: boolean;
+  documentId: string | null;
+  pageNumber: number;
+  carrierName: string;
+}
+
 function ExtractionSummaryView({
   documents,
   extractions,
@@ -287,6 +299,14 @@ function ExtractionSummaryView({
   extractions?: QuoteExtraction[];
   isPartial: boolean;
 }) {
+  // AC-7.5.1, AC-7.5.2: Source viewer modal state
+  const [sourceViewer, setSourceViewer] = useState<SourceViewerState>({
+    open: false,
+    documentId: null,
+    pageNumber: 1,
+    carrierName: '',
+  });
+
   // AC-7.4.5: Scroll to row when gap/conflict item clicked
   const handleBannerItemClick = useCallback((field: string, coverageType?: string) => {
     // Find the row with matching coverage type or field
@@ -301,6 +321,32 @@ function ExtractionSummaryView({
       setTimeout(() => {
         row.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
       }, 2000);
+    }
+  }, []);
+
+  // AC-7.5.1: Handle source click from comparison table
+  const handleSourceClick: SourceClickHandler = useCallback(
+    (documentId, pageNumber, documentIndex) => {
+      // Get carrier name from extraction or document
+      const carrierName =
+        extractions?.[documentIndex]?.carrierName ||
+        documents?.[documentIndex]?.carrierName ||
+        `Quote ${documentIndex + 1}`;
+
+      setSourceViewer({
+        open: true,
+        documentId,
+        pageNumber,
+        carrierName,
+      });
+    },
+    [extractions, documents]
+  );
+
+  // Close source viewer
+  const handleCloseSourceViewer = useCallback((open: boolean) => {
+    if (!open) {
+      setSourceViewer((prev) => ({ ...prev, open: false }));
     }
   }, []);
 
@@ -346,7 +392,7 @@ function ExtractionSummaryView({
         ))}
       </div>
 
-      {/* Comparison Table - Story 7.3 */}
+      {/* Comparison Table - Story 7.3, Story 7.5 */}
       <Card className="mt-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -358,9 +404,19 @@ function ExtractionSummaryView({
           <ComparisonTable
             extractions={extractions}
             documents={documents}
+            onSourceClick={handleSourceClick}
           />
         </CardContent>
       </Card>
+
+      {/* AC-7.5.2: Source Viewer Modal */}
+      <SourceViewerModal
+        open={sourceViewer.open}
+        onOpenChange={handleCloseSourceViewer}
+        documentId={sourceViewer.documentId}
+        pageNumber={sourceViewer.pageNumber}
+        carrierName={sourceViewer.carrierName}
+      />
     </div>
   );
 }

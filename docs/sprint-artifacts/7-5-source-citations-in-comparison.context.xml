@@ -1,0 +1,892 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: Source Citations in Comparison
+  Epic 7 | Story 5 | Generated: 2025-12-03
+
+  This context file provides all relevant documentation and code patterns
+  for implementing Story 7.5: Source Citations in Comparison.
+-->
+<story-context>
+  <metadata>
+    <epic-id>7</epic-id>
+    <story-id>5</story-id>
+    <story-key>7-5-source-citations-in-comparison</story-key>
+    <story-title>Source Citations in Comparison</story-title>
+    <generated-date>2025-12-03</generated-date>
+    <status>drafted</status>
+  </metadata>
+
+  <!-- ================================================================== -->
+  <!-- STORY DEFINITION                                                   -->
+  <!-- ================================================================== -->
+  <story-definition>
+    <user-story>
+      <as-a>user comparing insurance quotes</as-a>
+      <i-want>to verify any extracted value by viewing its source in the document</i-want>
+      <so-that>I can trust the comparison data and catch any extraction errors</so-that>
+    </user-story>
+
+    <acceptance-criteria>
+      <criterion id="AC-7.5.1" title="View Source Link">
+        <description>Comparison table cells with sourced values display a "View source" link or icon</description>
+        <implementation-notes>
+          - Add ExternalLink icon to TableCell component in comparison-table.tsx
+          - Only show for cells where value.status === 'found' and sourcePages.length > 0
+          - Use subtle opacity (opacity-50 hover:opacity-100) so it doesn't distract from values
+        </implementation-notes>
+      </criterion>
+
+      <criterion id="AC-7.5.2" title="Document Viewer Modal">
+        <description>Clicking "View source" opens a modal with the source document</description>
+        <implementation-notes>
+          - Create SourceViewerModal component using Dialog from @/components/ui/dialog
+          - Modal should be full-screen or near full-screen (max-w-7xl, h-[90vh])
+          - Embed DocumentViewer component inside the modal
+          - Fetch PDF URL from Supabase storage based on document ID
+        </implementation-notes>
+      </criterion>
+
+      <criterion id="AC-7.5.3" title="Page Navigation">
+        <description>Document viewer auto-navigates to the source page number</description>
+        <implementation-notes>
+          - Use DocumentViewer's scrollToPage imperative method via ref
+          - Pass sourcePages[0] from the clicked cell's source reference
+          - Call scrollToPage after modal animation completes (~200ms delay)
+        </implementation-notes>
+      </criterion>
+
+      <criterion id="AC-7.5.4" title="Source Text Highlighting">
+        <description>If textExcerpt is available, highlight the relevant text on the page</description>
+        <implementation-notes>
+          - Use DocumentViewer's highlightSource method with SourceCitation object
+          - Construct SourceCitation from CoverageItem/DeductibleItem sourcePages and text
+          - If no bounding box available, show page pulse fallback animation
+        </implementation-notes>
+      </criterion>
+
+      <criterion id="AC-7.5.5" title="Inferred Values Handling">
+        <description>For inferred/calculated values (no source), show "Inferred" tooltip instead of view source link</description>
+        <implementation-notes>
+          - Check if sourcePages array is empty or undefined
+          - Show tooltip with text "This value was inferred from other data"
+          - Use Tooltip component from @/components/ui/tooltip
+          - Display with info icon instead of view source icon
+        </implementation-notes>
+      </criterion>
+    </acceptance-criteria>
+
+    <tasks>
+      <task id="1" title="Add Source Link to Table Cells">
+        <description>Modify TableCell component to show view source icon for sourced values</description>
+        <file>src/components/compare/comparison-table.tsx</file>
+        <changes>
+          - Add optional sourcePages prop to TableCellProps
+          - Add ExternalLink icon button when sourcePages.length > 0
+          - Add onClick handler prop for source click
+        </changes>
+      </task>
+
+      <task id="2" title="Create SourceViewerModal Component">
+        <description>New modal component that wraps DocumentViewer</description>
+        <file>src/components/compare/source-viewer-modal.tsx</file>
+        <changes>
+          - Create new component with Dialog, DialogContent, DialogHeader
+          - Accept documentId, pageNumber, open, onOpenChange props
+          - Fetch signed PDF URL from Supabase storage
+          - Render DocumentViewer inside modal body
+        </changes>
+      </task>
+
+      <task id="3" title="Integrate DocumentViewer in Modal">
+        <description>Wire up DocumentViewer with auto-navigation</description>
+        <file>src/components/compare/source-viewer-modal.tsx</file>
+        <changes>
+          - Use useRef to get DocumentViewerRef
+          - Call scrollToPage after modal open animation
+          - Handle loading and error states
+        </changes>
+      </task>
+
+      <task id="4" title="Implement Text Highlighting">
+        <description>Add text highlighting support for source text</description>
+        <file>src/components/compare/source-viewer-modal.tsx</file>
+        <changes>
+          - Accept optional textExcerpt prop
+          - Construct SourceCitation object
+          - Call highlightSource if textExcerpt available
+        </changes>
+      </task>
+
+      <task id="5" title="Handle Inferred Values">
+        <description>Show "Inferred" tooltip for values without source</description>
+        <file>src/components/compare/comparison-table.tsx</file>
+        <changes>
+          - Check if sourcePages is empty
+          - Show Info icon with Tooltip instead of view source link
+          - Tooltip text: "This value was inferred from other data"
+        </changes>
+      </task>
+
+      <task id="6" title="Wire Up Click Handler">
+        <description>Connect table cell clicks to modal open</description>
+        <file>src/components/compare/comparison-table.tsx</file>
+        <file>src/app/(dashboard)/compare/[id]/page.tsx</file>
+        <changes>
+          - Add state for selected source in ComparisonTable
+          - Pass onSourceClick callback to TableCell
+          - Render SourceViewerModal with selected source
+        </changes>
+      </task>
+
+      <task id="7" title="Unit Tests">
+        <description>Write unit tests for new functionality</description>
+        <file>__tests__/components/compare/source-viewer-modal.test.tsx</file>
+        <file>__tests__/components/compare/comparison-table.test.tsx</file>
+        <changes>
+          - Test modal opens on click
+          - Test page navigation is called
+          - Test inferred value tooltip
+        </changes>
+      </task>
+
+      <task id="8" title="E2E Tests">
+        <description>Write Playwright E2E tests</description>
+        <file>__tests__/e2e/source-citation.spec.ts</file>
+        <changes>
+          - Test clicking view source opens modal
+          - Test document viewer is rendered
+          - Test modal can be closed
+        </changes>
+      </task>
+    </tasks>
+
+    <out-of-scope>
+      <item>Bounding box calculation (relies on existing chunk metadata)</item>
+      <item>Search within document viewer</item>
+      <item>Print or download from modal</item>
+    </out-of-scope>
+  </story-definition>
+
+  <!-- ================================================================== -->
+  <!-- TECHNICAL SPECIFICATION (Epic 7)                                   -->
+  <!-- ================================================================== -->
+  <tech-spec>
+    <source-file>docs/sprint-artifacts/tech-spec-epic-7.md</source-file>
+
+    <relevant-sections>
+      <section title="Story 7.5: Source Citations in Comparison">
+        <content><![CDATA[
+### Story 7.5: Source Citations in Comparison
+
+**Objective:** Allow users to verify extracted values by viewing source documents
+
+**Technical Approach:**
+1. **Source Link in Table Cells**
+   - Add clickable "view source" indicator to table cells
+   - Icon appears on hover to avoid visual clutter
+   - Only for cells with sourcePages data
+
+2. **Document Viewer Modal**
+   - Reuse existing DocumentViewer component
+   - Modal overlay with max-w-7xl for comfortable viewing
+   - Close button and ESC key dismiss
+
+3. **Page Navigation**
+   - Use DocumentViewerRef.scrollToPage(pageNumber)
+   - Navigate after modal animation completes
+   - Page number from extraction sourcePages array
+
+4. **Text Highlighting (Optional)**
+   - If textExcerpt stored, use highlightSource method
+   - Falls back to page-level indicator
+   - Yellow highlight with fade animation
+
+5. **Data Flow:**
+   ```
+   TableCell click
+     → Get documentId, pageNumber from row data
+     → Open SourceViewerModal
+     → Fetch signed URL for document
+     → Load DocumentViewer
+     → scrollToPage(pageNumber)
+     → highlightSource(citation) if available
+   ```
+
+**Dependencies:**
+- DocumentViewer component (exists from Story 5.5)
+- Dialog component (shadcn/ui)
+- Supabase storage signed URLs
+        ]]></content>
+      </section>
+    </relevant-sections>
+  </tech-spec>
+
+  <!-- ================================================================== -->
+  <!-- ARCHITECTURE CONTEXT                                               -->
+  <!-- ================================================================== -->
+  <architecture-context>
+    <source-file>docs/architecture.md</source-file>
+
+    <relevant-patterns>
+      <pattern name="Component Structure">
+        <description>All components use 'use client' directive, exported as named exports</description>
+        <example>
+          export function ComponentName({ props }: ComponentProps) { ... }
+          export default ComponentName;
+        </example>
+      </pattern>
+
+      <pattern name="Imperative Ref Pattern">
+        <description>DocumentViewer exposes methods via forwardRef + useImperativeHandle</description>
+        <code><![CDATA[
+export interface DocumentViewerRef {
+  scrollToPage: (pageNumber: number) => void;
+  highlightSource: (source: SourceCitation) => void;
+}
+
+// Usage:
+const viewerRef = useRef<DocumentViewerRef>(null);
+viewerRef.current?.scrollToPage(5);
+        ]]></code>
+      </pattern>
+
+      <pattern name="Modal Pattern">
+        <description>Modals use Dialog from shadcn/ui with controlled state</description>
+        <code><![CDATA[
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent className="max-w-7xl h-[90vh]">
+    <DialogHeader>
+      <DialogTitle>View Source</DialogTitle>
+    </DialogHeader>
+    {/* Content */}
+  </DialogContent>
+</Dialog>
+        ]]></code>
+      </pattern>
+
+      <pattern name="Supabase Storage URLs">
+        <description>Get signed URLs for document files</description>
+        <code><![CDATA[
+const { data } = await supabase.storage
+  .from('documents')
+  .createSignedUrl(filePath, 3600); // 1 hour expiry
+        ]]></code>
+      </pattern>
+    </relevant-patterns>
+  </architecture-context>
+
+  <!-- ================================================================== -->
+  <!-- EXISTING CODE PATTERNS                                             -->
+  <!-- ================================================================== -->
+  <code-patterns>
+    <file path="src/types/compare.ts" relevance="high">
+      <description>Type definitions for source references - key types needed</description>
+      <key-types><![CDATA[
+/**
+ * Source reference for extracted data.
+ * AC-7.2.4: Every extracted value includes source reference.
+ */
+export interface SourceReference {
+  /** Page number where the value appears (1-indexed) */
+  pageNumber: number;
+  /** Text excerpt from the source (100-200 chars) */
+  textExcerpt?: string;
+  /** Reference to document_chunks.id for navigation */
+  chunkId?: string;
+}
+
+/**
+ * Coverage item extracted from a quote document.
+ */
+export interface CoverageItem {
+  // ... other fields ...
+  /** Pages where this coverage is referenced */
+  sourcePages: number[];
+}
+      ]]></key-types>
+    </file>
+
+    <file path="src/components/compare/comparison-table.tsx" relevance="high">
+      <description>Current table implementation - will need modifications</description>
+      <key-sections><![CDATA[
+interface TableCellProps {
+  value: CellValue;
+  isBest: boolean;
+  isWorst: boolean;
+  isFirstColumn?: boolean;
+  // TODO: Add for Story 7.5:
+  // sourcePages?: number[];
+  // onSourceClick?: (pageNumber: number) => void;
+  // documentId?: string;
+}
+
+function TableCell({ value, isBest, isWorst, isFirstColumn }: TableCellProps) {
+  const isNotFound = value.status === 'not_found';
+
+  return (
+    <td className={cn(...)}>
+      <span className="flex items-center justify-end">
+        {isFirstColumn ? (
+          <span className="text-left w-full">{value.displayValue}</span>
+        ) : (
+          <>
+            <span>{value.displayValue}</span>
+            {isBest && <ValueIndicator type="best" />}
+            {isWorst && <ValueIndicator type="worst" />}
+            {/* TODO: Add view source link here */}
+          </>
+        )}
+      </span>
+    </td>
+  );
+}
+      ]]></key-sections>
+    </file>
+
+    <file path="src/components/documents/document-viewer.tsx" relevance="high">
+      <description>Existing document viewer with ref methods - will be reused in modal</description>
+      <key-sections><![CDATA[
+/**
+ * Ref methods exposed by DocumentViewer
+ */
+export interface DocumentViewerRef {
+  scrollToPage: (pageNumber: number) => void;
+  highlightSource: (source: SourceCitation) => void;
+}
+
+// Usage pattern for the modal:
+const viewerRef = useRef<DocumentViewerRef>(null);
+
+// After modal opens:
+useEffect(() => {
+  if (isOpen && pageNumber && viewerRef.current) {
+    // Wait for modal animation
+    const timer = setTimeout(() => {
+      viewerRef.current?.scrollToPage(pageNumber);
+    }, 200);
+    return () => clearTimeout(timer);
+  }
+}, [isOpen, pageNumber]);
+      ]]></key-sections>
+    </file>
+
+    <file path="src/components/ui/dialog.tsx" relevance="medium">
+      <description>Dialog component from shadcn/ui - use for modal</description>
+      <exports>
+        Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+        DialogClose, DialogFooter, DialogTrigger, DialogPortal, DialogOverlay
+      </exports>
+      <usage-note>
+        DialogContent accepts showCloseButton prop (default true)
+        Use className to override default max-w-lg sizing
+      </usage-note>
+    </file>
+
+    <file path="src/components/ui/tooltip.tsx" relevance="medium">
+      <description>Tooltip component for inferred values</description>
+      <exports>Tooltip, TooltipContent, TooltipProvider, TooltipTrigger</exports>
+    </file>
+
+    <file path="src/lib/compare/diff.ts" relevance="medium">
+      <description>Diff engine that builds comparison rows - reference for data structure</description>
+      <key-sections><![CDATA[
+export interface CellValue {
+  displayValue: string;
+  rawValue: number | string | null;
+  status: 'found' | 'not_found';
+}
+
+export interface ComparisonRow {
+  id: string;
+  field: string;
+  category: 'basic' | 'coverage' | 'exclusion' | 'summary';
+  fieldType: FieldType;
+  values: CellValue[];
+  hasDifference: boolean;
+  bestIndex: number | null;
+  worstIndex: number | null;
+  coverageType?: CoverageType;
+  isSubRow?: boolean;
+  // Note: sourcePages not currently in CellValue
+  // Will need to extend for Story 7.5
+}
+      ]]></key-sections>
+    </file>
+
+    <file path="src/app/(dashboard)/compare/[id]/page.tsx" relevance="high">
+      <description>Compare page that hosts ComparisonTable - will add modal state</description>
+      <key-sections><![CDATA[
+function ExtractionSummaryView({
+  documents,
+  extractions,
+  isPartial,
+}: {
+  documents?: DocumentSummary[];
+  extractions?: QuoteExtraction[];
+  isPartial: boolean;
+}) {
+  // TODO for Story 7.5: Add modal state
+  // const [selectedSource, setSelectedSource] = useState<{
+  //   documentId: string;
+  //   pageNumber: number;
+  //   textExcerpt?: string;
+  // } | null>(null);
+
+  return (
+    <div className="space-y-6">
+      {/* ... existing content ... */}
+      <ComparisonTable
+        extractions={extractions}
+        documents={documents}
+        // TODO: Add onSourceClick handler
+      />
+      {/* TODO: Add SourceViewerModal */}
+    </div>
+  );
+}
+      ]]></key-sections>
+    </file>
+  </code-patterns>
+
+  <!-- ================================================================== -->
+  <!-- IMPLEMENTATION GUIDE                                               -->
+  <!-- ================================================================== -->
+  <implementation-guide>
+    <step order="1" title="Extend CellValue and ComparisonRow Types">
+      <file>src/lib/compare/diff.ts</file>
+      <description>Add source reference data to cell values</description>
+      <code><![CDATA[
+// Extend CellValue to include source info
+export interface CellValue {
+  displayValue: string;
+  rawValue: number | string | null;
+  status: 'found' | 'not_found';
+  // Add for Story 7.5:
+  sourcePages?: number[];
+  documentIndex?: number; // Which quote this value is from
+}
+      ]]></code>
+    </step>
+
+    <step order="2" title="Create SourceViewerModal Component">
+      <file>src/components/compare/source-viewer-modal.tsx</file>
+      <description>New modal component wrapping DocumentViewer</description>
+      <code><![CDATA[
+'use client';
+
+import { useRef, useEffect, useState } from 'react';
+import { FileText, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { DocumentViewer, type DocumentViewerRef } from '@/components/documents/document-viewer';
+import { createClient } from '@/lib/supabase/client';
+
+export interface SourceViewerModalProps {
+  /** Whether modal is open */
+  open: boolean;
+  /** Handler for open state changes */
+  onOpenChange: (open: boolean) => void;
+  /** Document ID to load */
+  documentId: string | null;
+  /** Page number to navigate to */
+  pageNumber?: number;
+  /** Carrier name for title */
+  carrierName?: string;
+  /** Optional text excerpt for highlighting */
+  textExcerpt?: string;
+}
+
+export function SourceViewerModal({
+  open,
+  onOpenChange,
+  documentId,
+  pageNumber,
+  carrierName,
+  textExcerpt,
+}: SourceViewerModalProps) {
+  const viewerRef = useRef<DocumentViewerRef>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch signed URL when documentId changes
+  useEffect(() => {
+    if (!documentId || !open) {
+      setPdfUrl(null);
+      return;
+    }
+
+    const fetchPdfUrl = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const supabase = createClient();
+
+        // Get document record
+        const { data: doc, error: docError } = await supabase
+          .from('documents')
+          .select('storage_path')
+          .eq('id', documentId)
+          .single();
+
+        if (docError || !doc?.storage_path) {
+          throw new Error('Document not found');
+        }
+
+        // Get signed URL
+        const { data: urlData, error: urlError } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(doc.storage_path, 3600);
+
+        if (urlError || !urlData?.signedUrl) {
+          throw new Error('Failed to get document URL');
+        }
+
+        setPdfUrl(urlData.signedUrl);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load document');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPdfUrl();
+  }, [documentId, open]);
+
+  // Navigate to page after PDF loads
+  useEffect(() => {
+    if (open && pdfUrl && pageNumber && viewerRef.current) {
+      // Wait for modal animation and PDF to render
+      const timer = setTimeout(() => {
+        viewerRef.current?.scrollToPage(pageNumber);
+
+        // If we have text excerpt, try to highlight
+        if (textExcerpt) {
+          viewerRef.current?.highlightSource({
+            pageNumber,
+            text: textExcerpt,
+          });
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open, pdfUrl, pageNumber, textExcerpt]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-w-7xl h-[90vh] flex flex-col p-0"
+        showCloseButton={true}
+      >
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Source Document
+            {carrierName && (
+              <span className="text-muted-foreground font-normal">
+                — {carrierName}
+              </span>
+            )}
+            {pageNumber && (
+              <span className="text-sm text-muted-foreground font-normal">
+                (Page {pageNumber})
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-hidden">
+          {isLoading && (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center justify-center h-full text-destructive">
+              {error}
+            </div>
+          )}
+
+          {pdfUrl && !isLoading && !error && (
+            <DocumentViewer
+              ref={viewerRef}
+              pdfUrl={pdfUrl}
+              className="h-full"
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default SourceViewerModal;
+      ]]></code>
+    </step>
+
+    <step order="3" title="Add Source Link to TableCell">
+      <file>src/components/compare/comparison-table.tsx</file>
+      <description>Modify TableCell to show view source icon</description>
+      <code><![CDATA[
+import { ExternalLink, Info } from 'lucide-react';
+
+interface TableCellProps {
+  value: CellValue;
+  isBest: boolean;
+  isWorst: boolean;
+  isFirstColumn?: boolean;
+  // New props for Story 7.5
+  sourcePages?: number[];
+  documentId?: string;
+  documentIndex?: number;
+  onSourceClick?: (documentId: string, pageNumber: number, docIndex: number) => void;
+}
+
+function TableCell({
+  value,
+  isBest,
+  isWorst,
+  isFirstColumn,
+  sourcePages,
+  documentId,
+  documentIndex,
+  onSourceClick,
+}: TableCellProps) {
+  const isNotFound = value.status === 'not_found';
+  const hasSource = sourcePages && sourcePages.length > 0 && documentId;
+  const isInferred = value.status === 'found' && (!sourcePages || sourcePages.length === 0);
+
+  const handleSourceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasSource && onSourceClick && documentIndex !== undefined) {
+      onSourceClick(documentId, sourcePages[0], documentIndex);
+    }
+  };
+
+  return (
+    <td className={cn(...)}>
+      <span className="flex items-center justify-end gap-1">
+        {isFirstColumn ? (
+          <span className="text-left w-full">{value.displayValue}</span>
+        ) : (
+          <>
+            <span>{value.displayValue}</span>
+            {isBest && <ValueIndicator type="best" />}
+            {isWorst && <ValueIndicator type="worst" />}
+
+            {/* AC-7.5.1: View source link */}
+            {hasSource && (
+              <button
+                onClick={handleSourceClick}
+                className="opacity-50 hover:opacity-100 transition-opacity ml-1"
+                aria-label="View source in document"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+              </button>
+            )}
+
+            {/* AC-7.5.5: Inferred value indicator */}
+            {isInferred && !isNotFound && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="opacity-50 ml-1">
+                      <Info className="h-3.5 w-3.5" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>This value was inferred from other data</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </>
+        )}
+      </span>
+    </td>
+  );
+}
+      ]]></code>
+    </step>
+
+    <step order="4" title="Wire Up Modal in Compare Page">
+      <file>src/app/(dashboard)/compare/[id]/page.tsx</file>
+      <description>Add modal state and handler</description>
+      <code><![CDATA[
+import { SourceViewerModal } from '@/components/compare/source-viewer-modal';
+
+// In ExtractionSummaryView:
+interface SelectedSource {
+  documentId: string;
+  pageNumber: number;
+  documentIndex: number;
+  carrierName?: string;
+}
+
+function ExtractionSummaryView({ documents, extractions, isPartial }) {
+  const [selectedSource, setSelectedSource] = useState<SelectedSource | null>(null);
+
+  const handleSourceClick = useCallback((
+    documentId: string,
+    pageNumber: number,
+    documentIndex: number
+  ) => {
+    setSelectedSource({
+      documentId,
+      pageNumber,
+      documentIndex,
+      carrierName: extractions?.[documentIndex]?.carrierName || undefined,
+    });
+  }, [extractions]);
+
+  return (
+    <div className="space-y-6">
+      {/* ... existing content ... */}
+
+      <ComparisonTable
+        extractions={extractions}
+        documents={documents}
+        onSourceClick={handleSourceClick}
+      />
+
+      {/* Story 7.5: Source Viewer Modal */}
+      <SourceViewerModal
+        open={selectedSource !== null}
+        onOpenChange={(open) => !open && setSelectedSource(null)}
+        documentId={selectedSource?.documentId ?? null}
+        pageNumber={selectedSource?.pageNumber}
+        carrierName={selectedSource?.carrierName}
+      />
+    </div>
+  );
+}
+      ]]></code>
+    </step>
+  </implementation-guide>
+
+  <!-- ================================================================== -->
+  <!-- TESTING REQUIREMENTS                                               -->
+  <!-- ================================================================== -->
+  <testing-requirements>
+    <unit-tests>
+      <test-file>__tests__/components/compare/source-viewer-modal.test.tsx</test-file>
+      <test-cases>
+        <case>renders loading state when fetching PDF URL</case>
+        <case>renders error state when document fetch fails</case>
+        <case>renders DocumentViewer when PDF URL is available</case>
+        <case>calls scrollToPage with correct page number</case>
+        <case>displays carrier name and page number in title</case>
+        <case>closes when onOpenChange is called with false</case>
+      </test-cases>
+    </unit-tests>
+
+    <unit-tests>
+      <test-file>__tests__/components/compare/comparison-table.test.tsx</test-file>
+      <test-cases>
+        <case>renders view source icon for cells with sourcePages</case>
+        <case>does not render view source icon for cells without sourcePages</case>
+        <case>calls onSourceClick with correct params when icon clicked</case>
+        <case>renders inferred tooltip for values without source</case>
+        <case>tooltip shows correct message</case>
+      </test-cases>
+    </unit-tests>
+
+    <e2e-tests>
+      <test-file>__tests__/e2e/source-citation.spec.ts</test-file>
+      <test-cases>
+        <case>clicking view source icon opens modal</case>
+        <case>modal displays document viewer</case>
+        <case>modal shows correct carrier name in title</case>
+        <case>pressing ESC closes modal</case>
+        <case>clicking outside modal closes it</case>
+        <case>inferred values show tooltip on hover</case>
+      </test-cases>
+    </e2e-tests>
+  </testing-requirements>
+
+  <!-- ================================================================== -->
+  <!-- DEPENDENCIES                                                       -->
+  <!-- ================================================================== -->
+  <dependencies>
+    <internal>
+      <dependency>
+        <name>DocumentViewer component</name>
+        <path>src/components/documents/document-viewer.tsx</path>
+        <usage>Embed in modal for PDF viewing</usage>
+      </dependency>
+      <dependency>
+        <name>Dialog component</name>
+        <path>src/components/ui/dialog.tsx</path>
+        <usage>Modal wrapper</usage>
+      </dependency>
+      <dependency>
+        <name>Tooltip component</name>
+        <path>src/components/ui/tooltip.tsx</path>
+        <usage>Inferred value indicator</usage>
+      </dependency>
+      <dependency>
+        <name>Supabase client</name>
+        <path>src/lib/supabase/client.ts</path>
+        <usage>Fetch signed URLs for documents</usage>
+      </dependency>
+    </internal>
+
+    <external>
+      <dependency>
+        <name>lucide-react</name>
+        <version>existing</version>
+        <usage>ExternalLink, Info icons</usage>
+      </dependency>
+    </external>
+  </dependencies>
+
+  <!-- ================================================================== -->
+  <!-- DATA FLOW                                                          -->
+  <!-- ================================================================== -->
+  <data-flow>
+    <flow name="View Source Click">
+      <step>1. User clicks ExternalLink icon in TableCell</step>
+      <step>2. onSourceClick(documentId, pageNumber, docIndex) called</step>
+      <step>3. setSelectedSource({ documentId, pageNumber, ... })</step>
+      <step>4. SourceViewerModal opens (open=true)</step>
+      <step>5. Modal fetches document.storage_path from Supabase</step>
+      <step>6. Modal fetches signed URL from Supabase storage</step>
+      <step>7. DocumentViewer renders with pdfUrl</step>
+      <step>8. After 300ms delay, viewerRef.scrollToPage(pageNumber)</step>
+      <step>9. If textExcerpt, viewerRef.highlightSource(citation)</step>
+    </flow>
+  </data-flow>
+
+  <!-- ================================================================== -->
+  <!-- NOTES AND CONSIDERATIONS                                           -->
+  <!-- ================================================================== -->
+  <notes>
+    <note type="performance">
+      The signed URL is fetched each time the modal opens. Consider caching
+      signed URLs in state or React Query to avoid redundant requests.
+    </note>
+
+    <note type="ux">
+      The 300ms delay before scrollToPage accounts for modal animation
+      (200ms) plus PDF initial render time. May need tuning.
+    </note>
+
+    <note type="data">
+      Currently CoverageItem has sourcePages but not textExcerpt. The
+      extraction service (Story 7.2) would need enhancement to capture
+      text excerpts for full highlighting support. Page-level fallback
+      (pulse animation) will work without textExcerpt.
+    </note>
+
+    <note type="accessibility">
+      Ensure the view source button has proper aria-label and keyboard
+      navigation support. Modal should trap focus and support ESC to close.
+    </note>
+  </notes>
+</story-context>
