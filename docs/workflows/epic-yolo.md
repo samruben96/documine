@@ -1,6 +1,10 @@
-# Epic YOLO Workflow
+# Epic YOLO Workflow v2.0
 
-**Purpose:** Rapid epic execution - run all stories continuously without review pauses.
+**Purpose:** Rapid epic execution with smart status handling - run all stories continuously through their full lifecycle.
+
+**Commands:**
+- Slash: `/bmad:bmm:workflows:epic-yolo [epic-id]`
+- Asterisk: `*epic-yolo [epic-id]`
 
 **Use when:**
 - Epic has a complete tech-spec with all stories defined
@@ -9,24 +13,49 @@
 
 ---
 
-## How It Works
+## How It Works (v2.0 - Smart Status Handling)
 
-1. **Load Epic** - Read sprint-status.yaml, identify all stories for the epic
-2. **Execute Stories** - For each story in sequence:
-   - Mark in-progress
-   - Implement all tasks
-   - Run tests (unit + build)
-   - Commit on completion
-   - Mark done
-3. **Epic Complete** - Summary of all commits and changes
+The workflow automatically determines what action to take based on each story's current status:
+
+```
+backlog ──create-story──▶ drafted ──story-context──▶ ready-for-dev
+                                                          │
+                                                     dev-story
+                                                          │
+                                                          ▼
+done ◀──code-review── review ◀─────────────────── in-progress
+  │
+  └──▶ /compact ──▶ (next story)
+```
+
+| Current Status | Action | Next Status |
+|----------------|--------|-------------|
+| `backlog` | `/bmad:bmm:workflows:create-story` | `drafted` |
+| `drafted` | `/bmad:bmm:workflows:story-context` | `ready-for-dev` |
+| `ready-for-dev` | `/bmad:bmm:workflows:dev-story` | `review` |
+| `in-progress` | `/bmad:bmm:workflows:dev-story` | `review` |
+| `review` | `/bmad:bmm:workflows:code-review` | `done` |
+| `done` | `/compact` → next story | - |
 
 ---
 
 ## Invocation
 
-Tell the agent:
+### Slash Command (Claude Code)
 ```
-"Run Epic 8 in YOLO mode"
+/bmad:bmm:workflows:epic-yolo F2
+/bmad:bmm:workflows:epic-yolo 10
+```
+
+### Asterisk Command (BMad Master)
+```
+*epic-yolo F2
+*epic-yolo 10
+```
+
+### Natural Language
+```
+"Run Epic F2 in YOLO mode"
 "Execute all remaining stories for Epic 8"
 "Continue with YOLO pipeline"
 ```
@@ -35,13 +64,16 @@ Tell the agent:
 
 ## Key Behaviors
 
-| Aspect | Standard dev-story | Epic YOLO |
-|--------|-------------------|-----------|
+| Aspect | Standard Workflow | Epic YOLO v2.0 |
+|--------|-------------------|----------------|
 | Scope | Single story | All stories in epic |
-| Pauses | After each story for review | None unless HALT |
-| Commits | After code review approval | After each story completion |
-| Status updates | Manual transitions | Automatic TODO → done |
-| Review | Full code review workflow | Self-review at story level |
+| Status Handling | Manual transitions | Smart auto-detection |
+| Story Drafting | Separate step | Automatic if backlog |
+| Context Generation | Separate step | Automatic if drafted |
+| Commits | After code review | After each story completion |
+| Pushes | Manual | Automatic after each story |
+| Review | Full code review workflow | Integrated in pipeline |
+| Context Cleanup | Manual | `/compact` after each story push |
 
 ---
 
@@ -53,6 +85,7 @@ The workflow stops automatically when:
 - Build fails with unfixable error
 - User explicitly requests stop
 - Dependency missing that requires user approval
+- Database migration fails
 
 ---
 
@@ -66,57 +99,60 @@ The workflow stops automatically when:
 
 ---
 
-## Example Session (Epic 8)
+## Example Session (Epic F2)
 
 ```
-User: Let's complete Epic 8 - run all remaining stories YOLO style
+User: *epic-yolo F2
 
-Agent: 📋 **Epic YOLO Pipeline Loaded**
-       Epic: 8 - Tech Debt & Production Hardening
-       Stories: 7 total (2 done, 5 remaining)
+Agent: 📋 **Epic YOLO Pipeline v2.0 Loaded**
 
-       Execution Plan:
-       - 8.3: Database Index Optimization [TODO]
-       - 8.4: Processing Jobs RLS Consolidation [TODO]
-       - 8.5: API Rate Limiting [TODO]
-       - 8.6: Test Fixes [TODO]
-       - 8.7: Code Quality Cleanup [TODO]
+       Epic: F2 - Document Library & Intelligence
+       Stories: 5 total
 
-       Mode: Continuous execution until complete or HALT
+       | # | Story | Current Status | Next Action |
+       |---|-------|----------------|-------------|
+       | 1 | F2-1 | backlog | create-story |
+       | 2 | F2-2 | backlog | create-story |
+       | 3 | F2-3 | backlog | create-story |
+       | 4 | F2-4 | backlog | create-story |
+       | 5 | F2-5 | backlog | create-story |
 
-       🚀 Starting Story 8.3: Database Index Optimization...
-       ...
-       ✅ Story 8.3 Complete (commit: 916ae3e)
+       Mode: Smart status handling - each story advances through full lifecycle
 
-       🚀 Starting Story 8.4: Processing Jobs RLS...
-       ...
-       ✅ Story 8.4 Complete (commit: 4ee3362)
+       🚀 Starting Story F2-1: Document Library Page...
+       Status: backlog → Running create-story workflow...
+       ✓ Story file created
 
+       📝 Status: drafted → Running story-context workflow...
+       ✓ Context XML generated
+
+       ⚙️ Status: ready-for-dev → Running dev-story workflow...
+       [Implementation...]
+       ✓ All ACs implemented, tests passing
+
+       🔍 Status: review → Running code-review workflow...
+       ✓ Code review passed
+
+       ✅ Story F2-1 Complete (commit: abc1234, pushed)
+
+       🧹 Running /compact to free context...
+       ✓ Conversation compacted
+
+       📋 Continuing to F2-2...
        [continues through all stories]
 
-       🎉 **Epic 8 Complete!**
+       🎉 **Epic F2 Complete!**
        - Stories: 5 completed
        - Commits: 5 made
-       - All tests passing
-```
-
----
-
-## Commit Message Format
-
-Each story commit follows:
-```
-feat(story-X.Y): [story title] - reviewed & approved
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
+       - All pushed to remote
 ```
 
 ---
 
 ## Change Log
 
-| Date | Change |
-|------|--------|
-| 2025-12-04 | Initial documentation based on Epic 8 execution |
+| Date | Version | Change |
+|------|---------|--------|
+| 2025-12-04 | v2.1 | Added `/compact` after each story push to free context |
+| 2025-12-04 | v2.0 | Added smart status handling, auto-push, slash/asterisk commands |
+| 2025-12-03 | v1.0 | Initial documentation based on Epic 8 execution |
