@@ -32,7 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+// Note: Using native button for dropdown trigger to avoid shadcn Button/Radix conflict
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
 import { DocumentTypeBadge } from './document-type-badge';
 import type { DocumentType } from '@/types';
@@ -208,18 +208,17 @@ export function DocumentTable({ documents, onRename, onDelete }: DocumentTablePr
                 'flex items-center justify-end gap-1 transition-opacity',
                 isHovered ? 'opacity-100' : 'opacity-0'
               )}
+              onClick={(e) => e.stopPropagation()}
             >
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Actions</span>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
