@@ -346,7 +346,8 @@ development_status:
   # UX Research: docs/research-one-pager-ux-2025-12-03.md
   # Total Points: 13 (6 stories)
   # TECH SPEC 2025-12-03: docs/sprint-artifacts/tech-spec-epic-9.md (enhanced with NFRs + traceability)
-  epic-9: contexted
+  epic-9: done
+  epic-9-retrospective: completed
   # Story 9.1: Agency Branding
   # Admin-configurable branding (logo, colors, contact info)
   # Priority: P0 - foundation for all one-pager generation
