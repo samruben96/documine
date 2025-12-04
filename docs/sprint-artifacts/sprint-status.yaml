@@ -494,7 +494,14 @@ development_status:
   # Story F2-6: Document Library Table View
   # DRAFTED 2025-12-04: Party Mode decision - table for scanability
   # Team consensus: Sally (UX), Winston (Arch), Amelia (Dev), John (PM)
-  f2-6-document-library-table-view: in-progress
+  # IMPLEMENTED 2025-12-04: All 8 ACs complete
+  # - DocumentTable component with @tanstack/react-table
+  # - Sortable columns: Name, Type, Status, Tags, Date, Pages
+  # - Tags overflow with "+N" indicator, tooltips for all
+  # - Row hover reveals actions dropdown (Open, Rename, Delete)
+  # - Row click navigates to /chat-docs/[id]
+  # - Sticky header, keyboard navigation, search preserved
+  f2-6-document-library-table-view: done
   epic-f2-retrospective: optional
 
   # Epic F3: Document Viewer Enhancements (was F5)
