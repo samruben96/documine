@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { extractQuoteData } from '@/lib/compare/extraction';
 import { log } from '@/lib/utils/logger';
+import {
+  checkRateLimit,
+  rateLimitHeaders,
+  rateLimitExceededResponse,
+  RATE_LIMITS,
+} from '@/lib/rate-limit';
 import type { ComparisonData, DocumentSummary } from '@/types/compare';
 import type { Json } from '@/types/database.types';
 
@@ -232,6 +238,27 @@ export async function POST(request: NextRequest) {
     }
 
     const agencyId = userData.agency_id;
+
+    // Check rate limit - AC-8.5.1: 10 comparisons per hour per agency
+    const rateLimit = await checkRateLimit({
+      entityType: RATE_LIMITS.compare.entityType,
+      entityId: agencyId,
+      endpoint: '/api/compare',
+      limit: RATE_LIMITS.compare.limit,
+      windowMs: RATE_LIMITS.compare.windowMs,
+    });
+
+    if (!rateLimit.allowed) {
+      log.warn('Compare rate limit exceeded', {
+        agencyId,
+        limit: rateLimit.limit,
+        resetAt: rateLimit.resetAt.toISOString(),
+      });
+      return rateLimitExceededResponse(
+        rateLimit,
+        `Your agency has reached the comparison limit (${RATE_LIMITS.compare.limit} per hour). Please try again later.`
+      );
+    }
 
     // Parse and validate request body
     const body = await request.json();

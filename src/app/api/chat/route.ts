@@ -17,6 +17,11 @@ import { errorResponse } from '@/lib/utils/api-response';
 import { log } from '@/lib/utils/logger';
 import { DocumentNotFoundError, UnauthorizedError } from '@/lib/errors';
 import {
+  checkRateLimit,
+  rateLimitExceededResponse,
+  RATE_LIMITS,
+} from '@/lib/rate-limit';
+import {
   getOrCreateConversation,
   saveUserMessage,
   saveAssistantMessage,
@@ -77,6 +82,27 @@ export async function POST(request: Request): Promise<Response> {
     if (authError || !user) {
       log.warn('Chat unauthorized - no user session');
       return errorResponse('UNAUTHORIZED', 'Authentication required', 401);
+    }
+
+    // Check rate limit - AC-8.5.2: 100 messages per hour per user
+    const rateLimit = await checkRateLimit({
+      entityType: RATE_LIMITS.chat.entityType,
+      entityId: user.id,
+      endpoint: '/api/chat',
+      limit: RATE_LIMITS.chat.limit,
+      windowMs: RATE_LIMITS.chat.windowMs,
+    });
+
+    if (!rateLimit.allowed) {
+      log.warn('Chat rate limit exceeded', {
+        userId: user.id,
+        limit: rateLimit.limit,
+        resetAt: rateLimit.resetAt.toISOString(),
+      });
+      return rateLimitExceededResponse(
+        rateLimit,
+        `You've reached the message limit (${RATE_LIMITS.chat.limit} per hour). Please try again later.`
+      );
     }
 
     // Get user's agency

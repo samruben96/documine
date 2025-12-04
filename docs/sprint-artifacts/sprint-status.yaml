@@ -321,7 +321,8 @@ development_status:
   # Story 8.5: API Rate Limiting
   # 10 comparisons/hr/agency, 100 messages/hr/user
   # Priority: P0 - cost control and abuse prevention
-  8-5-api-rate-limiting: backlog
+  # REVIEWED 2025-12-03: Approved - rate_limits table, rate-limit.ts, API integration
+  8-5-api-rate-limiting: done
   # Story 8.6: Fix Pre-existing Test Failure
   # useAgencyId test failing since Epic 5
   # Priority: P2 - test reliability

@@ -499,6 +499,36 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          entity_id: string
+          entity_type: string
+          id: string
+          request_count: number | null
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          request_count?: number | null
+          window_start: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          request_count?: number | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           agency_id: string
@@ -566,6 +596,18 @@ export type Database = {
       has_active_processing_job: {
         Args: { p_agency_id: string }
         Returns: boolean
+      }
+      increment_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_entity_id: string
+          p_entity_type: string
+          p_window_start: string
+        }
+        Returns: {
+          is_new: boolean
+          request_count: number
+        }[]
       }
       mark_stale_jobs_failed: { Args: never; Returns: number }
       match_document_chunks: {
