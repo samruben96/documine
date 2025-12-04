@@ -60,7 +60,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If user is authenticated and trying to access auth pages, redirect to documents
+  // If user is authenticated and on root, redirect to dashboard
+  // Per AC-9.2.5: Authenticated users redirected from / to /dashboard
+  if (user && pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // If user is authenticated and trying to access auth pages, redirect to dashboard
   // Per AC-2.4.5: Authenticated users redirected from auth pages (/login, /signup)
   // Note: /reset-password/update must remain accessible for password recovery flow
   if (
@@ -69,7 +75,7 @@ export async function middleware(request: NextRequest) {
       pathname === '/signup' ||
       pathname === '/reset-password')
   ) {
-    return NextResponse.redirect(new URL('/documents', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   return response;

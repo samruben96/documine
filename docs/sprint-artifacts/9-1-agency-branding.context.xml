@@ -1,0 +1,136 @@
+<story-context id="9-1-agency-branding" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>1</storyId>
+    <title>Agency Branding</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-9.1-agency-branding.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>configure my agency's branding (logo, colors, contact info)</iWant>
+    <soThat>all generated one-pagers automatically include our professional identity</soThat>
+    <tasks>
+      <task id="1" ac="4,6">Create Supabase migration adding branding columns to agencies table (logo_url, primary_color, secondary_color, phone, branding_email, address, website)</task>
+      <task id="2" ac="6">Regenerate TypeScript types after migration</task>
+      <task id="3" ac="2">Create branding storage bucket with RLS policies</task>
+      <task id="4" ac="6">Create useAgencyBranding hook to fetch branding data</task>
+      <task id="5" ac="2">Create LogoUpload component with react-dropzone</task>
+      <task id="6" ac="3">Create ColorPicker component for color selection</task>
+      <task id="7" ac="1,3,4">Create BrandingForm component with all fields</task>
+      <task id="8" ac="1">Create /settings/branding page</task>
+      <task id="9" ac="5">Add admin role check to protect branding settings</task>
+      <task id="10" ac="6">Write unit tests for branding hook</task>
+      <task id="11" ac="1,3,4">Write component tests for form</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-9.1.1">Admin can access branding settings at /settings/branding</criterion>
+    <criterion id="AC-9.1.2">Admin can upload logo image (PNG/JPG, max 2MB)</criterion>
+    <criterion id="AC-9.1.3">Admin can set primary and secondary brand colors</criterion>
+    <criterion id="AC-9.1.4">Admin can enter contact info (phone, email, address, website)</criterion>
+    <criterion id="AC-9.1.5">Non-admin users cannot access branding settings</criterion>
+    <criterion id="AC-9.1.6">Branding persists and is used in one-pager generation</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-9.md" title="Epic 9 Tech Spec" section="Data Models and Contracts">
+        Defines AgencyBranding interface and SQL migration for agencies table columns. Includes RLS policies for admin-only updates and storage bucket configuration.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-9.md" title="Epic 9 Tech Spec" section="APIs and Interfaces">
+        Shows client-side update pattern via Supabase client. No API route needed - RLS policies handle authorization.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-9.md" title="Epic 9 Tech Spec" section="Workflows - Logo Upload Flow">
+        Describes upload flow: validate (PNG/JPG, max 2MB, max 800x200px), upload to branding/{agencyId}/logo.{ext}, update agencies.logo_url.
+      </doc>
+      <doc path="docs/research-one-pager-ux-2025-12-03.md" title="UX Research" section="Branding Best Practices">
+        Professional one-pager template guidelines including logo placement, color usage, and contact info layout.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/components/documents/upload-zone.tsx" kind="component" reason="Pattern for react-dropzone file upload with validation, drag-and-drop, and progress tracking. Reuse for LogoUpload component." />
+      <file path="src/app/(dashboard)/settings/page.tsx" kind="page" reason="Existing settings page structure with tabs. Add 'Branding' tab trigger and content following this pattern." />
+      <file path="src/hooks/use-document-status.ts" kind="hook" reason="Pattern for agency-scoped data fetching hooks using Supabase client." />
+      <file path="src/components/settings/profile-tab.tsx" kind="component" reason="Form component pattern with react-hook-form and Supabase updates." />
+      <file path="src/components/settings/agency-tab.tsx" kind="component" reason="Admin-only settings pattern with role checks." />
+    </code>
+
+    <dependencies>
+      <package name="@supabase/supabase-js" version="^2.84.0">Database client for branding data storage</package>
+      <package name="react-dropzone" version="^14.3.8">File upload for logo</package>
+      <package name="react-hook-form" version="^7.66.1">Form handling for branding form</package>
+      <package name="zod" version="^4.1.13">Validation for branding schema</package>
+      <package name="sonner" version="^2.0.7">Toast notifications for save feedback</package>
+      <package name="lucide-react" version="^0.554.0">Icons for UI (Upload, Settings, etc.)</package>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="AgencyBranding" kind="TypeScript interface" path="src/lib/one-pager/types.ts">
+      interface AgencyBranding {
+        name: string;
+        logoUrl: string | null;
+        primaryColor: string;    // Hex code (default: #2563eb)
+        secondaryColor: string;  // Hex code (default: #1e40af)
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        website: string | null;
+      }
+    </interface>
+    <interface name="Supabase Storage" kind="Storage bucket" path="supabase/config.toml">
+      Bucket: branding/
+      Path pattern: branding/{agencyId}/logo.{ext}
+      RLS: Admin-only upload, agency members can read
+    </interface>
+    <interface name="agencies table" kind="Database schema" path="supabase/migrations/">
+      ALTER TABLE agencies ADD COLUMN logo_url text;
+      ALTER TABLE agencies ADD COLUMN primary_color varchar(7) DEFAULT '#2563eb';
+      ALTER TABLE agencies ADD COLUMN secondary_color varchar(7) DEFAULT '#1e40af';
+      ALTER TABLE agencies ADD COLUMN phone varchar(20);
+      ALTER TABLE agencies ADD COLUMN branding_email varchar(255);
+      ALTER TABLE agencies ADD COLUMN address text;
+      ALTER TABLE agencies ADD COLUMN website varchar(255);
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="security">RLS policy must verify admin role before allowing branding updates</constraint>
+    <constraint type="security">Storage bucket must scope uploads to agency folder (branding/{agencyId}/)</constraint>
+    <constraint type="validation">Logo files: PNG or JPG only, max 2MB, recommended max 800x200px</constraint>
+    <constraint type="validation">Colors must be valid hex codes (7 chars including #)</constraint>
+    <constraint type="architecture">Use existing Tabs pattern in settings page - add new 'Branding' tab</constraint>
+    <constraint type="architecture">Hook should follow use-document-status.ts pattern for agency-scoped data</constraint>
+    <constraint type="testing">Unit tests required for useAgencyBranding hook</constraint>
+    <constraint type="testing">Component tests required for BrandingForm</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, React Testing Library for component tests, Playwright for E2E.
+      Follow existing patterns in __tests__/ directory. Mock Supabase client for unit tests.
+      Use data-testid attributes for E2E selectors.
+    </standards>
+    <locations>
+      <location>__tests__/hooks/use-agency-branding.test.ts</location>
+      <location>__tests__/components/settings/branding-form.test.tsx</location>
+      <location>__tests__/components/settings/logo-upload.test.tsx</location>
+      <location>__tests__/components/settings/color-picker.test.tsx</location>
+      <location>__tests__/e2e/branding-admin.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-9.1.1">Navigate to /settings/branding as admin, verify form renders with all fields</idea>
+      <idea ac="AC-9.1.2">Upload valid PNG, verify preview shows and storage path correct; Upload 3MB file, verify rejection</idea>
+      <idea ac="AC-9.1.3">Select colors via picker, verify hex values stored; Test default colors applied</idea>
+      <idea ac="AC-9.1.4">Enter contact info, save, reload page, verify data persists</idea>
+      <idea ac="AC-9.1.5">Login as non-admin, navigate to /settings, verify Branding tab not visible or redirects</idea>
+      <idea ac="AC-9.1.6">Configure branding, generate one-pager, verify logo and colors appear in PDF</idea>
+    </ideas>
+  </tests>
+</story-context>

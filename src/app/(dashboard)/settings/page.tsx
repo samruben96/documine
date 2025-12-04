@@ -6,6 +6,7 @@ import { TeamTab } from '@/components/settings/team-tab';
 import { TeamTabSkeleton } from '@/components/settings/team-tab-skeleton';
 import { BillingTab } from '@/components/settings/billing-tab';
 import { UsageTab } from '@/components/settings/usage-tab';
+import { BrandingTab } from '@/components/settings/branding-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { type PlanTier } from '@/lib/constants/plans';
@@ -103,13 +104,14 @@ export default async function SettingsPage() {
   const usageMetrics = isAdmin ? await getUsageMetrics() : null;
 
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your account settings and preferences
-        </p>
-      </div>
+    <div className="h-full overflow-auto">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage your account settings and preferences
+          </p>
+        </div>
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList>
@@ -117,6 +119,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="agency">Agency</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          {isAdmin && <TabsTrigger value="branding">Branding</TabsTrigger>}
           {isAdmin && <TabsTrigger value="usage">Usage</TabsTrigger>}
         </TabsList>
 
@@ -149,12 +152,21 @@ export default async function SettingsPage() {
           />
         </TabsContent>
 
+        {/* AC-9.1.1: Branding settings tab (admin only) */}
+        {/* AC-9.1.5: Non-admin users cannot access branding settings */}
+        {isAdmin && userData.agency_id && (
+          <TabsContent value="branding">
+            <BrandingTab agencyId={userData.agency_id} />
+          </TabsContent>
+        )}
+
         {isAdmin && usageMetrics && (
           <TabsContent value="usage">
             <UsageTab metrics={usageMetrics} />
           </TabsContent>
         )}
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -97,8 +97,9 @@ export function Header() {
           <SidebarToggle />
 
           {/* AC-6.8.7: Logo with proper spacing on mobile */}
+          {/* Logo navigates to dashboard (central hub) */}
           <Link
-            href="/documents"
+            href="/dashboard"
             className="font-semibold text-primary hover:text-primary/80 transition-colors shrink-0"
           >
             docuMINE

@@ -119,31 +119,31 @@ describe('middleware route protection', () => {
       });
     });
 
-    it('redirects authenticated user from /login to /documents', async () => {
+    it('redirects authenticated user from /login to /dashboard', async () => {
       const request = createMockRequest('/login');
       const response = await middleware(request);
 
       expect(response.status).toBe(307);
       const location = response.headers.get('location');
-      expect(location).toContain('/documents');
+      expect(location).toContain('/dashboard');
     });
 
-    it('redirects authenticated user from /signup to /documents', async () => {
+    it('redirects authenticated user from /signup to /dashboard', async () => {
       const request = createMockRequest('/signup');
       const response = await middleware(request);
 
       expect(response.status).toBe(307);
       const location = response.headers.get('location');
-      expect(location).toContain('/documents');
+      expect(location).toContain('/dashboard');
     });
 
-    it('redirects authenticated user from /reset-password to /documents', async () => {
+    it('redirects authenticated user from /reset-password to /dashboard', async () => {
       const request = createMockRequest('/reset-password');
       const response = await middleware(request);
 
       expect(response.status).toBe(307);
       const location = response.headers.get('location');
-      expect(location).toContain('/documents');
+      expect(location).toContain('/dashboard');
     });
   });
 

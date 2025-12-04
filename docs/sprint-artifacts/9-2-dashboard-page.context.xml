@@ -1,0 +1,118 @@
+<story-context id="9-2-dashboard-page" v="1.0">
+  <metadata>
+    <epicId>9</epicId>
+    <storyId>2</storyId>
+    <title>Dashboard Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-9.2-dashboard-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency member</asA>
+    <iWant>see a dashboard with all available tools when I log in</iWant>
+    <soThat>I can quickly navigate to the feature I need</soThat>
+    <tasks>
+      <task id="1" ac="1">Create /dashboard page route</task>
+      <task id="2" ac="2">Create WelcomeHeader component with agency name</task>
+      <task id="3" ac="3">Create ToolCard component with icon, title, description</task>
+      <task id="4" ac="4">Configure tool card data with correct hrefs</task>
+      <task id="5" ac="5">Add redirect from / to /dashboard for authenticated users</task>
+      <task id="6" ac="6">Style responsive grid layout (1 col mobile, 3 col desktop)</task>
+      <task id="7" ac="3">Add hover effects and transitions to cards</task>
+      <task id="8" ac="1,2,3">Write component tests for dashboard</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-9.2.1">/dashboard displays welcome header with agency name</criterion>
+    <criterion id="AC-9.2.2">Three tool cards displayed: Chat with Docs, Quote Comparison, Generate One-Pager</criterion>
+    <criterion id="AC-9.2.3">Tool cards navigate to correct pages (documents, compare, one-pager)</criterion>
+    <criterion id="AC-9.2.4">Logged-in users redirected from / to /dashboard</criterion>
+    <criterion id="AC-9.2.5">Responsive layout: 1 col mobile, 3 col desktop</criterion>
+    <criterion id="AC-9.2.6">Cards have hover effects and transitions</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-9.md" title="Epic 9 Tech Spec" section="Acceptance Criteria - Story 9.2">
+        Defines dashboard route, welcome header with agency name, three tool cards (Chat, Compare, One-Pager), and responsive layout requirements.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-9.md" title="Epic 9 Tech Spec" section="Key Implementation Files">
+        Lists src/app/(dashboard)/dashboard/page.tsx and src/components/dashboard/tool-card.tsx as key files.
+      </doc>
+      <doc path="docs/research-one-pager-ux-2025-12-03.md" title="UX Research" section="Dashboard Best Practices">
+        Professional dashboard patterns with tool cards for insurance workflows.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/app/(dashboard)/layout.tsx" kind="layout" reason="Dashboard layout wrapper with Header and flex container. Dashboard page will render within this layout." />
+      <file path="src/components/ui/card.tsx" kind="component" reason="shadcn/ui Card component with hover shadow effects (AC-6.8.12). Use as base for ToolCard." />
+      <file path="src/app/(dashboard)/settings/page.tsx" kind="page" reason="Pattern for async server component fetching user and agency data." />
+      <file path="src/middleware.ts" kind="middleware" reason="Auth middleware - may need to add redirect from / to /dashboard for authenticated users." />
+      <file path="src/components/layout/header.tsx" kind="component" reason="Header component for navigation context. May need to update active state for dashboard." />
+    </code>
+
+    <dependencies>
+      <package name="lucide-react" version="^0.554.0">Icons for tool cards (MessageSquare, FileCompare, FileText)</package>
+      <package name="@supabase/ssr" version="^0.7.0">Server-side auth for fetching agency data</package>
+      <package name="next" version="16.0.4">App Router for page routing and redirects</package>
+      <package name="tailwindcss" version="^4">Responsive grid styling</package>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="ToolCard Props" kind="TypeScript interface" path="src/components/dashboard/tool-card.tsx">
+      interface ToolCardProps {
+        icon: LucideIcon;
+        title: string;
+        description: string;
+        href: string;
+        color?: 'blue' | 'green' | 'purple';  // For accent color variety
+      }
+    </interface>
+    <interface name="Tool Cards Data" kind="Configuration" path="src/app/(dashboard)/dashboard/page.tsx">
+      const TOOLS = [
+        { icon: MessageSquare, title: 'Chat with Docs', description: 'Ask questions about your documents', href: '/documents' },
+        { icon: GitCompare, title: 'Quote Comparison', description: 'Compare insurance quotes side by side', href: '/compare' },
+        { icon: FileText, title: 'Generate One-Pager', description: 'Create professional client summaries', href: '/one-pager' }
+      ];
+    </interface>
+    <interface name="Agency Data" kind="Supabase query" path="src/app/(dashboard)/dashboard/page.tsx">
+      Fetch from users + agencies tables:
+      SELECT agencies.name FROM users JOIN agencies ON users.agency_id = agencies.id WHERE users.id = auth.uid()
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="architecture">Page must be async server component to fetch agency data without client-side loading</constraint>
+    <constraint type="architecture">Follow existing page patterns in src/app/(dashboard)/</constraint>
+    <constraint type="ux">Cards should have consistent sizing and spacing</constraint>
+    <constraint type="ux">Hover effects should use shadow-md transition per card.tsx pattern</constraint>
+    <constraint type="responsive">Grid: grid-cols-1 on mobile, grid-cols-3 on lg breakpoint</constraint>
+    <constraint type="redirect">Redirect from / to /dashboard should only apply to authenticated users</constraint>
+    <constraint type="testing">Component tests required for WelcomeHeader and ToolCard</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, React Testing Library for component tests, Playwright for E2E.
+      Follow existing patterns in __tests__/ directory. Use data-testid for selectors.
+    </standards>
+    <locations>
+      <location>__tests__/components/dashboard/tool-card.test.tsx</location>
+      <location>__tests__/components/dashboard/welcome-header.test.tsx</location>
+      <location>__tests__/e2e/dashboard-navigation.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-9.2.1">Render dashboard page, verify "Welcome to [Agency Name] space" heading present</idea>
+      <idea ac="AC-9.2.2">Render dashboard, verify 3 cards: Chat with Docs, Quote Comparison, Generate One-Pager</idea>
+      <idea ac="AC-9.2.3">Click each card, verify navigation to /documents, /compare, /one-pager respectively</idea>
+      <idea ac="AC-9.2.4">Visit / as authenticated user, verify redirect to /dashboard</idea>
+      <idea ac="AC-9.2.5">Set viewport to mobile width, verify cards stack in single column; desktop width, verify 3 columns</idea>
+      <idea ac="AC-9.2.6">Hover over card, verify shadow-md transition applied</idea>
+    </ideas>
+  </tests>
+</story-context>

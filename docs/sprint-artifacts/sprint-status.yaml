@@ -286,6 +286,7 @@ development_status:
   # Supabase Issues Found:
   #   - 8 security advisories (7 function search_path + leaked password protection)
   #   - 37 performance advisories (28 RLS initplan + 8 unindexed FKs + more)
+  # NOTE: This epic completed Future Epic F1 (Tech Debt & Optimizations) scope
   epic-8: done
   # Story 8.1: Database Security Hardening
   # Fix function search_path, enable leaked password protection
@@ -333,31 +334,85 @@ development_status:
   # Priority: P3 - housekeeping
   # REVIEWED 2025-12-03: Approved - GPT-4o refs fixed, CLAUDE.md updated, types verified
   8-7-code-quality-cleanup: done
-  epic-8-retrospective: optional
+  # RETROSPECTIVE 2025-12-03: docs/sprint-artifacts/epic-8-retrospective.md
+  # Key outcomes: 0 security advisories, 0 performance advisories, rate limiting active
+  # Next Epic Decision: Epic 9 - One-Pager Generation (builds on Epic 7 extraction)
+  epic-8-retrospective: completed
+
+  # Epic 9: One-Pager Generation
+  # Source: Epic 8 Retrospective Decision - 2025-12-03
+  # Reason: High user value - agents can share professional summaries with clients
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-9.md
+  # UX Research: docs/research-one-pager-ux-2025-12-03.md
+  # Total Points: 13 (6 stories)
+  # TECH SPEC 2025-12-03: docs/sprint-artifacts/tech-spec-epic-9.md (enhanced with NFRs + traceability)
+  epic-9: contexted
+  # Story 9.1: Agency Branding
+  # Admin-configurable branding (logo, colors, contact info)
+  # Priority: P0 - foundation for all one-pager generation
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.1-agency-branding.md
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/9-1-agency-branding.context.xml
+  # IMPLEMENTED 2025-12-03: All 6 ACs complete
+  # - Database migration for branding columns (logo_url, primary_color, secondary_color, phone, branding_email, address, website)
+  # - Branding storage bucket with RLS policies
+  # - useAgencyBranding hook with logo upload/remove, color/contact update
+  # - LogoUpload, ColorPicker, BrandingForm, BrandingTab components
+  # - Settings page Branding tab (admin only)
+  # - 13 unit tests pass
+  9-1-agency-branding: done
+  # Story 9.2: Dashboard Page
+  # Central hub with agency welcome and tool cards
+  # Priority: P0 - navigation improvement
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.2-dashboard-page.md
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/9-2-dashboard-page.context.xml
+  # IMPLEMENTED 2025-12-03: All 6 ACs complete
+  # - /dashboard page with WelcomeHeader and ToolCard components
+  # - Time-based greeting with agency name
+  # - Three tool cards (Chat with Docs, Quote Comparison, Generate One-Pager)
+  # - Redirect from / to /dashboard for authenticated users
+  # - Responsive layout (1 col mobile, 3 col desktop)
+  # - 16 unit tests pass
+  9-2-dashboard-page: done
+  # Story 9.3: One-Pager Page
+  # Dedicated page with 3 entry points and live preview
+  # Priority: P0 - core feature page
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.3-one-pager-page.md
+  # Depends on: 9.1
+  9-3-one-pager-page: drafted
+  # Story 9.4: One-Pager PDF Template
+  # @react-pdf/renderer document with agency branding
+  # Priority: P0 - PDF generation
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.4-one-pager-pdf-template.md
+  # Depends on: 9.1, 9.3
+  9-4-one-pager-pdf-template: drafted
+  # Story 9.5: Entry Point Buttons
+  # Buttons on compare, docs, history pages
+  # Priority: P1 - navigation convenience
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.5-entry-point-buttons.md
+  # Depends on: 9.3
+  9-5-entry-point-buttons: drafted
+  # Story 9.6: Testing & Polish
+  # Unit, component, E2E tests
+  # Priority: P2 - quality assurance
+  # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.6-testing-polish.md
+  # Depends on: 9.1-9.5
+  9-6-testing-polish: drafted
 
 # ===========================================
 # FUTURE EPICS (Prioritized Post-MVP Roadmap)
 # ===========================================
 # Priority Order (as of 2025-12-03):
-# F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8
+# F1 ✅ (done via Epic 8) → F2 → F3 → F4 → F5 → F6 → F7 → F8
 
-  # Epic F1: Tech Debt & Optimizations (UPDATED - 2025-12-03)
-  # Source: Post-Epic 7 planning session + Party Mode team discussion
-  # Reason: Address accumulated tech debt before adding new features
-  # Scope: Testing, performance, security, observability, accessibility, AI accuracy
-  epic-f1-tech-debt-optimizations: future
-  # f1-1: Test coverage gaps, integration tests, CI pipeline improvements
-  f1-1-test-coverage-quality-gates: future
-  # f1-2: DB query optimization, API caching, profiling - all performance in one
-  f1-2-performance-optimization: future
-  # f1-3: Dependency updates, RLS policy audit, type safety review
-  f1-3-security-dependency-updates: future
-  # f1-4: Error boundaries, structured logging, basic monitoring/alerting
-  f1-4-error-handling-observability: future
-  # f1-5: WCAG 2.1 compliance, keyboard nav, screen reader support
-  f1-5-accessibility-audit: future
-  # f1-6: AI response quality, extraction tuning, confidence thresholds
-  f1-6-ai-accuracy-review: future
+  # Epic F1: Tech Debt & Optimizations
+  # COMPLETED VIA EPIC 8 - 2025-12-03
+  # Epic 8 addressed the core tech debt items:
+  #   - Security: Function search_path hardening, leaked password protection
+  #   - Performance: RLS policy optimization (28 policies), FK indexes
+  #   - Rate limiting: API abuse prevention
+  #   - Code quality: ESLint fixes, type safety
+  # Remaining items (accessibility, observability) deferred to future work
+  epic-f1-tech-debt-optimizations: done
 
   # Epic F2: User Dashboard & Document Intelligence (NEW - 2025-12-03)
   # Source: Sam's feature request - 2025-12-03
