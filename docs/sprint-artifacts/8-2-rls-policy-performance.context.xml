@@ -1,0 +1,132 @@
+<story-context id="8-2-rls-policy-performance" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>8.2</storyId>
+    <title>RLS Policy Performance Optimization</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-8.2-rls-policy-performance.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform user</asA>
+    <iWant>database queries to perform efficiently regardless of result set size</iWant>
+    <soThat>my document chat and comparison workflows respond quickly even as my document library grows</soThat>
+    <tasks>
+      <task id="1" ac="8.2.1-8.2.6">Analyze Current RLS Policies
+        <subtask>Query all existing RLS policies to identify exact policy names and definitions</subtask>
+        <subtask>Document current policy count per table</subtask>
+        <subtask>Identify any policies that already use optimized pattern (skip these)</subtask>
+      </task>
+      <task id="2" ac="8.2.1-8.2.6">Create RLS Optimization Migration
+        <subtask>Apply migration via Supabase MCP</subtask>
+        <subtask>For each policy: DROP old, CREATE new with (SELECT auth.uid()) pattern</subtask>
+        <subtask>Preserve policy semantics (FOR SELECT/INSERT/UPDATE/DELETE)</subtask>
+        <subtask>Maintain agency isolation via get_user_agency_id() where used</subtask>
+      </task>
+      <task id="3" ac="8.2.1-8.2.6">Smoke Test Core Functionality
+        <subtask>Test user profile view/edit (users table)</subtask>
+        <subtask>Test document upload and processing status (documents, processing_jobs)</subtask>
+        <subtask>Test chat functionality (conversations, chat_messages)</subtask>
+        <subtask>Test comparison flow (comparisons, quote_extractions)</subtask>
+      </task>
+      <task id="4" ac="8.2.7">Verify Performance Advisors
+        <subtask>Run mcp__supabase__get_advisors(project_id, type: 'performance')</subtask>
+        <subtask>Verify zero "auth.uid() in RLS" warnings</subtask>
+        <subtask>Document remaining performance advisors (for Stories 8.3, 8.4)</subtask>
+        <subtask>Record results in story file</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-8.2.1">All RLS policies on users table use (SELECT auth.uid()) pattern</criterion>
+    <criterion id="AC-8.2.2">All RLS policies on invitations table use optimized pattern</criterion>
+    <criterion id="AC-8.2.3">All RLS policies on processing_jobs table use optimized pattern</criterion>
+    <criterion id="AC-8.2.4">All RLS policies on quote_extractions table use optimized pattern</criterion>
+    <criterion id="AC-8.2.5">All RLS policies on comparisons table use optimized pattern</criterion>
+    <criterion id="AC-8.2.6">All RLS policies on chat_messages and conversations tables use optimized pattern</criterion>
+    <criterion id="AC-8.2.7">mcp__supabase__get_advisors(type: 'performance') returns zero "auth.uid() in RLS" warnings</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-8.md" title="Epic 8 Tech Spec" section="Story 8.2">
+        RLS optimization pattern: Change `auth.uid()` to `(SELECT auth.uid())` for single evaluation per query instead of per-row. 28 policies across 7 tables need updating.
+      </doc>
+      <doc path="docs/sprint-artifacts/story-8.1-database-security-hardening.md" title="Story 8.1" section="Dev Agent Record">
+        Previous story completed successfully. Migration applied via Supabase MCP. Pattern established for database-only stories.
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="Security Architecture">
+        Multi-tenant isolation via RLS policies with agency_id checks. All policies must maintain strict data isolation.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="supabase/migrations/" kind="migrations" reason="RLS policies defined in migration files. New migration will be applied via Supabase MCP."/>
+    </code>
+    <dependencies>
+      <supabase-mcp>
+        <tool>mcp__supabase__execute_sql - Query existing policies</tool>
+        <tool>mcp__supabase__apply_migration - Apply RLS optimization migration</tool>
+        <tool>mcp__supabase__get_advisors - Verify zero performance warnings</tool>
+      </supabase-mcp>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use (SELECT auth.uid()) instead of auth.uid() in all RLS policies</constraint>
+    <constraint type="pattern">Use (SELECT get_user_agency_id()) for agency isolation policies</constraint>
+    <constraint type="security">Maintain strict agency_id isolation - no cross-tenant data access</constraint>
+    <constraint type="migration">Apply via Supabase MCP mcp__supabase__apply_migration</constraint>
+    <constraint type="verification">Must verify via mcp__supabase__get_advisors after migration</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="mcp__supabase__execute_sql" kind="MCP Tool">
+      Execute raw SQL to query existing RLS policies from pg_policies system view
+    </interface>
+    <interface name="mcp__supabase__apply_migration" kind="MCP Tool">
+      Apply DDL migration with policy DROP/CREATE statements
+    </interface>
+    <interface name="mcp__supabase__get_advisors" kind="MCP Tool">
+      Verify performance advisors show zero RLS warnings after migration
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      This is a database-only story. No TypeScript code changes required. Testing consists of:
+      1. SQL verification that policies have correct pattern
+      2. Smoke tests via browser to verify CRUD operations still work
+      3. Supabase advisor verification for zero warnings
+    </standards>
+    <locations>
+      No unit test changes required. Existing E2E tests in __tests__/e2e/ will validate RLS still works.
+    </locations>
+    <ideas>
+      <idea ac="8.2.1-8.2.6">Query pg_policies to verify all policies use (SELECT auth.uid()) pattern</idea>
+      <idea ac="8.2.7">Run get_advisors and assert zero "auth.uid()" warnings in output</idea>
+      <idea ac="8.2.1-8.2.6">Smoke test: Upload document, chat, create comparison - all should work</idea>
+    </ideas>
+  </tests>
+
+  <implementationGuide>
+    <step n="1">Query existing RLS policies using pg_policies system view to get current definitions</step>
+    <step n="2">For each policy using auth.uid() or get_user_agency_id(), create DROP + CREATE statements with (SELECT ...) wrapper</step>
+    <step n="3">Apply migration via mcp__supabase__apply_migration</step>
+    <step n="4">Verify via mcp__supabase__get_advisors(type: 'performance') - expect zero RLS warnings</step>
+    <step n="5">Smoke test core flows in browser</step>
+    <step n="6">Document results in story file</step>
+  </implementationGuide>
+
+  <referenceFromPreviousStory>
+    <source>docs/sprint-artifacts/story-8.1-database-security-hardening.md</source>
+    <learnings>
+      - Migration applied successfully via Supabase MCP
+      - No code changes required for database-only stories
+      - Smoke tests: chat and comparison verify RLS working
+      - Security advisors cleared to zero warnings
+    </learnings>
+  </referenceFromPreviousStory>
+</story-context>

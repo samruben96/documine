@@ -302,7 +302,11 @@ development_status:
   # Story 8.2: RLS Policy Performance Optimization
   # Fix 28 RLS policies re-evaluating auth.uid() per row
   # Priority: P0 - performance at scale
-  8-2-rls-policy-performance: backlog
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-8.2-rls-policy-performance.md
+  # CONTEXT 2025-12-03: Context file at docs/sprint-artifacts/8-2-rls-policy-performance.context.xml
+  # IMPLEMENTED 2025-12-03: 28 RLS policies optimized, 0 auth_rls_initplan warnings
+  # CODE REVIEWED 2025-12-03: APPROVED - 7/7 ACs verified, 11/11 tasks verified
+  8-2-rls-policy-performance: done
   # Story 8.3: Database Index Optimization
   # Add missing FK indexes, evaluate unused indexes
   # Priority: P1 - performance improvement
