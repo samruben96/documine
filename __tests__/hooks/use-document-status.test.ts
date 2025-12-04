@@ -180,11 +180,17 @@ describe('useAgencyId', () => {
     vi.clearAllMocks();
   });
 
-  it('starts with loading state', () => {
+  it('starts with loading state', async () => {
     const { result } = renderHook(() => useAgencyId());
 
+    // Initial state is loading
     expect(result.current.isLoading).toBe(true);
     expect(result.current.agencyId).toBe(null);
+
+    // Wait for async updates to complete to avoid act() warning
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
   });
 
   it('returns agencyId after loading', async () => {

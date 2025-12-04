@@ -324,9 +324,10 @@ development_status:
   # REVIEWED 2025-12-03: Approved - rate_limits table, rate-limit.ts, API integration
   8-5-api-rate-limiting: done
   # Story 8.6: Fix Pre-existing Test Failure
-  # useAgencyId test failing since Epic 5
+  # useAgencyId test - was already fixed, fixed act() warnings
   # Priority: P2 - test reliability
-  8-6-fix-test-failure: backlog
+  # REVIEWED 2025-12-03: Approved - test already passing, fixed act() warnings
+  8-6-fix-test-failure: done
   # Story 8.7: Code Quality Cleanup
   # Update comments, regenerate types
   # Priority: P3 - housekeeping
