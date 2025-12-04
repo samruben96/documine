@@ -69,7 +69,15 @@ Epic 7 introduced GPT-5.1 for quote extraction, but some code comments still ref
   - [x] Types already current from Story 8.5 (rate_limits table)
   - [x] Regenerated to confirm - no changes needed
 
-- [x] Task 5: Final Verification (AC: all) ✅
+- [x] Task 5: ESLint & React Best Practices Cleanup (AC: 8.7.5) ✅
+  - [x] Fixed components defined inside render (causes state reset on re-render)
+  - [x] Fixed setState in useEffect anti-pattern
+  - [x] Replaced useState+useEffect with useSyncExternalStore for SSR-safe detection
+  - [x] Replaced console.log with proper logger
+  - [x] Fixed TypeScript type issues
+
+- [x] Task 6: Final Verification (AC: all) ✅
+  - [x] ESLint passes clean (0 errors)
   - [x] Build passes
   - [x] 1097 tests pass
 
@@ -95,6 +103,61 @@ The `src/lib/llm/config.ts` file contains valid `gpt-4o` references for the fall
 - Pricing: `'gpt-4o': { input: 2.5, output: 10.0 }`
 
 These are correct - gpt-4o is the designated fallback when other models are unavailable.
+
+### ESLint & React Best Practices - What Was Fixed
+
+#### Components Defined Inside Render (Causes State Reset)
+
+| File | Component | Fix |
+|------|-----------|-----|
+| `src/components/layout/header.tsx` | NavLinks | Extracted to module level, pass pathname/onNavigate as props |
+| `src/components/layout/split-view.tsx` | CollapsedChatButton | Extracted to module level, pass position/onRestore as props |
+
+**Why this matters:** Components defined inside render are recreated on every parent render, causing their state to reset and breaking React's reconciliation.
+
+#### setState in useEffect Anti-pattern
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `src/components/documents/label-input.tsx` | setHighlightedIndex in useEffect | Replaced with useMemo for computed clampedHighlightedIndex |
+| `src/components/layout/split-view.tsx` | setIsClient in useEffect (3 places) | Replaced with useSyncExternalStore |
+| `src/hooks/use-mobile.ts` | setIsMobile in useEffect | Replaced with useSyncExternalStore |
+| `src/hooks/use-document-status.ts` | Ref update during render | Wrapped in useEffect |
+| `src/hooks/use-processing-progress.ts` | Ref update during render | Wrapped in useEffect |
+
+**useSyncExternalStore Pattern:**
+```typescript
+// Before (causes ESLint warning)
+const [isClient, setIsClient] = useState(false);
+useEffect(() => { setIsClient(true); }, []);
+
+// After (SSR-safe, no warnings)
+const subscribeToNothing = () => () => {};
+const getIsClient = () => true;
+const getIsServer = () => false;
+const isClient = useSyncExternalStore(subscribeToNothing, getIsClient, getIsServer);
+```
+
+#### Other Fixes
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `src/components/documents/label-input.tsx` | Unescaped quotes in JSX | Changed to `&quot;` entities |
+| `src/hooks/use-chat.ts` | `let` for non-reassigned array | Changed to `const` |
+| `src/lib/documents/service.ts` | console.log | Replaced with `log.info()` |
+| `src/lib/documents/stale-detection.ts` | console.log | Replaced with `log.info()` |
+| `src/app/(auth)/reset-password/actions.ts` | console.log | Replaced with `log.info()` |
+| `src/lib/compare/pdf-export.tsx` | `as any` for style arrays | Added `@ts-expect-error` with explanation |
+
+#### Legitimate ESLint Disable Comments
+
+Some setState-in-effect patterns are legitimate synchronization with external state. Added disable comments with explanations:
+
+```typescript
+// src/hooks/use-processing-progress.ts
+// eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: clear state when tracking no documents
+setProgressMap(new Map());
+```
 
 ---
 
@@ -123,12 +186,33 @@ Claude Opus 4.5 (claude-opus-4-5-20251101) as Amelia (Dev Agent)
 4. **Type Verification (2025-12-03)**
    - Types already current from Story 8.5
 
+5. **ESLint & React Best Practices Cleanup (2025-12-04)**
+   - Fixed 12 files with actual code issues
+   - Ran ESLint to identify issues: `npx eslint src/ --quiet`
+   - Fixed React anti-patterns (components in render, setState in useEffect)
+   - Replaced console.log with proper logger
+   - All fixes verified with build + 1097 tests passing
+
 ### File List
 
+**Comment Fixes (Commit a3f677d):**
 - `src/lib/compare/extraction.ts` (modified - comment fix)
 - `src/lib/chat/rag.ts` (modified - comment fix)
 - `src/types/compare.ts` (modified - comment fixes)
 - `CLAUDE.md` (modified - Epic 8 patterns)
+
+**Code Cleanup (Commit b885233):**
+- `src/components/layout/header.tsx` (modified - NavLinks extraction)
+- `src/components/layout/split-view.tsx` (modified - useSyncExternalStore, CollapsedChatButton extraction)
+- `src/components/documents/label-input.tsx` (modified - useMemo, quote escaping)
+- `src/hooks/use-mobile.ts` (modified - useSyncExternalStore)
+- `src/hooks/use-chat.ts` (modified - const fix)
+- `src/hooks/use-document-status.ts` (modified - ref in useEffect)
+- `src/hooks/use-processing-progress.ts` (modified - ref in useEffect, eslint-disable)
+- `src/lib/documents/service.ts` (modified - logger)
+- `src/lib/documents/stale-detection.ts` (modified - logger)
+- `src/app/(auth)/reset-password/actions.ts` (modified - logger)
+- `src/lib/compare/pdf-export.tsx` (modified - ts-expect-error)
 
 ---
 
@@ -161,5 +245,6 @@ Sam (Senior Developer)
 | Date | Author | Change |
 |------|--------|--------|
 | 2025-12-03 | SM (BMad Master) | Story drafted from tech spec |
-| 2025-12-03 | Dev (Amelia) | All tasks complete |
+| 2025-12-03 | Dev (Amelia) | Comment fixes + CLAUDE.md update complete |
 | 2025-12-03 | Reviewer (Senior Dev) | Senior Developer Review: APPROVED |
+| 2025-12-04 | Dev (Amelia) | ESLint & React best practices cleanup (12 files) |
