@@ -316,7 +316,8 @@ development_status:
   # Story 8.4: Consolidate Processing Jobs RLS
   # Fix multiple permissive policies issue
   # Priority: P1 - performance improvement
-  8-4-consolidate-processing-jobs-rls: backlog
+  # REVIEWED 2025-12-03: Approved - 2 SELECT policies consolidated into 1
+  8-4-consolidate-processing-jobs-rls: done
   # Story 8.5: API Rate Limiting
   # 10 comparisons/hr/agency, 100 messages/hr/user
   # Priority: P0 - cost control and abuse prevention
