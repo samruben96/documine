@@ -491,7 +491,10 @@ development_status:
   # - Document viewer integrated with live editing
   # - Max 10 tags, 30 chars per tag
   f2-5-tag-management-ui: done
-  # EPIC F2 COMPLETE - All 5 stories delivered
+  # Story F2-6: Document Library Table View
+  # DRAFTED 2025-12-04: Party Mode decision - table for scanability
+  # Team consensus: Sally (UX), Winston (Arch), Amelia (Dev), John (PM)
+  f2-6-document-library-table-view: in-progress
   epic-f2-retrospective: optional
 
   # Epic F3: Document Viewer Enhancements (was F5)

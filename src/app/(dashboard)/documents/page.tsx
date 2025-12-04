@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef, useMemo, useTransition } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Search, X, Upload, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DocumentType } from '@/types';
@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { DocumentCard } from '@/components/documents/document-card';
+import { DocumentTable, type DocumentTableRow } from '@/components/documents/document-table';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
 import { useDebouncedValue } from '@/hooks/use-debounce';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
@@ -33,14 +33,18 @@ type DocumentWithLabels = Document & { labels?: Label[] };
 /**
  * Document Library Page
  *
- * Story F2-1: Dedicated document library with grid/list view
+ * Story F2-1: Dedicated document library
+ * Story F2-6: Document Library Table View
  * Implements:
  * - AC-F2-1.1: Dedicated /documents route accessible from header
- * - AC-F2-1.2: Grid view of all agency documents
- * - AC-F2-1.3: Each doc shows filename, date, page count, status, type, tags
- * - AC-F2-1.4: Click navigates to /chat-docs/[id]
- * - AC-F2-1.5: Upload button opens upload modal
- * - AC-F2-1.6: Empty state when no documents
+ * - AC-F2-6.1: Table with columns: Name, Type, Status, Tags, Date, Pages
+ * - AC-F2-6.2: All columns are sortable (click header to sort asc/desc)
+ * - AC-F2-6.3: Tags column shows inline tag pills (max 3 visible, "+N" overflow)
+ * - AC-F2-6.4: Row hover reveals action buttons (Open, Rename, Delete)
+ * - AC-F2-6.5: Row click navigates to /chat-docs/[id] document viewer
+ * - AC-F2-6.6: Table has sticky header for scrolling long lists
+ * - AC-F2-6.7: Search filters table rows by name OR tags
+ * - AC-F2-6.8: Empty state shows friendly message with upload prompt
  */
 export default function DocumentLibraryPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +52,6 @@ export default function DocumentLibraryPage() {
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
-  const [updatingTypeId, setUpdatingTypeId] = useState<string | null>(null);
 
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
@@ -217,57 +220,6 @@ export default function DocumentLibraryPage() {
     setSearchQuery('');
   };
 
-  /**
-   * Handle document type change with optimistic update
-   * AC-F2-2.4: Type change persists immediately
-   */
-  const handleTypeChange = useCallback(
-    async (documentId: string, newType: DocumentType) => {
-      // Store previous state for rollback
-      const previousDoc = documents.find((d) => d.id === documentId);
-      if (!previousDoc) return;
-
-      // Optimistic update
-      setUpdatingTypeId(documentId);
-      setDocuments((prev: DocumentWithLabels[]) =>
-        prev.map((doc) =>
-          doc.id === documentId ? { ...doc, document_type: newType } : doc
-        )
-      );
-
-      try {
-        const response = await fetch(`/api/documents/${documentId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ document_type: newType }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || result.error) {
-          throw new Error(result.error?.message || 'Failed to update document type');
-        }
-
-        toast.success(`Document marked as ${newType}`);
-      } catch (error) {
-        // Rollback on error
-        setDocuments((prev: DocumentWithLabels[]) =>
-          prev.map((doc) =>
-            doc.id === documentId
-              ? { ...doc, document_type: previousDoc.document_type }
-              : doc
-          )
-        );
-        toast.error(
-          error instanceof Error ? error.message : 'Failed to update document type'
-        );
-      } finally {
-        setUpdatingTypeId(null);
-      }
-    },
-    [documents, setDocuments]
-  );
-
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-slate-50 dark:bg-slate-950">
       {/* Page header */}
@@ -329,33 +281,33 @@ export default function DocumentLibraryPage() {
         </div>
       </div>
 
-      {/* Document grid */}
+      {/* Document table (AC-F2-6.1) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {isLoading ? (
-          // Loading skeleton (AC-F2-1.2)
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div
-                key={i}
-                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 animate-pulse"
-              >
-                <div className="flex justify-between">
+          // Loading skeleton for table
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex gap-8">
+                {['Name', 'Type', 'Status', 'Tags', 'Date', 'Pages'].map((col) => (
+                  <div key={col} className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                ))}
+              </div>
+            </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="px-4 py-3 flex gap-8 animate-pulse">
+                  <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
                   <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
                   <div className="h-5 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
                 </div>
-                <div className="flex gap-3">
-                  <div className="h-10 w-10 bg-slate-200 dark:bg-slate-700 rounded-lg" />
-                  <div className="flex-1 h-5 bg-slate-200 dark:bg-slate-700 rounded" />
-                </div>
-                <div className="flex gap-4">
-                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
-                  <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : filteredDocuments.length === 0 && documents.length === 0 ? (
-          // Empty state (AC-F2-1.6)
+          // Empty state (AC-F2-6.8)
           <div
             data-testid="empty-state"
             className="flex flex-col items-center justify-center py-16 text-center"
@@ -393,28 +345,21 @@ export default function DocumentLibraryPage() {
             </button>
           </div>
         ) : (
-          // Document grid (AC-F2-1.2)
-          <div
-            data-testid="document-grid"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-          >
-            {filteredDocuments.map((doc: DocumentWithLabels) => (
-              <DocumentCard
-                key={doc.id}
-                id={doc.id}
-                filename={doc.filename}
-                displayName={doc.display_name}
-                status={doc.status}
-                pageCount={doc.page_count}
-                createdAt={doc.created_at}
-                labels={doc.labels}
-                documentType={doc.document_type as DocumentType | null}
-                onTypeChange={handleTypeChange}
-                isUpdatingType={updatingTypeId === doc.id}
-                aiTags={doc.ai_tags}
-                aiSummary={doc.ai_summary}
-              />
-            ))}
+          // Document table (AC-F2-6.1, 6.2, 6.3, 6.4, 6.5, 6.6)
+          <div data-testid="document-table">
+            <DocumentTable
+              documents={filteredDocuments.map((doc: DocumentWithLabels): DocumentTableRow => ({
+                id: doc.id,
+                filename: doc.filename,
+                display_name: doc.display_name,
+                status: doc.status,
+                page_count: doc.page_count,
+                created_at: doc.created_at,
+                document_type: doc.document_type as DocumentType | null,
+                ai_tags: doc.ai_tags,
+                ai_summary: doc.ai_summary,
+              }))}
+            />
           </div>
         )}
       </div>

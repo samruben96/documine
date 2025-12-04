@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="F2-6" title="Document Library Table View">
+  <generated>2025-12-04</generated>
+
+  <summary>
+    Replace document card grid with sortable table view for better scanability.
+    Insurance agents need productivity-focused view, not browsing experience.
+  </summary>
+
+  <key-files>
+    <file path="src/app/(dashboard)/documents/page.tsx" role="Main page to update - replace card grid with table"/>
+    <file path="src/components/documents/document-card.tsx" role="Reference for data structure and styling"/>
+    <file path="src/components/documents/document-status.tsx" role="Reuse DocumentStatusBadge"/>
+    <file path="src/components/documents/document-type-toggle.tsx" role="Reuse or simplify for table"/>
+    <file path="src/lib/utils/date.ts" role="formatRelativeDate utility"/>
+  </key-files>
+
+  <new-files>
+    <file path="src/components/documents/document-table.tsx" role="New table component"/>
+  </new-files>
+
+  <columns>
+    <column name="Name" sortable="true" default-sort="false">
+      File icon + filename/display_name, truncate with tooltip
+    </column>
+    <column name="Type" sortable="true" default-sort="false">
+      Quote/General badge (simplified from toggle)
+    </column>
+    <column name="Status" sortable="true" default-sort="false">
+      DocumentStatusBadge component
+    </column>
+    <column name="Tags" sortable="false">
+      Inline tag pills, max 3 visible, "+N" overflow, tooltip for all
+    </column>
+    <column name="Date" sortable="true" default-sort="desc">
+      Relative date (e.g., "2 hours ago")
+    </column>
+    <column name="Pages" sortable="true" default-sort="false">
+      Page count number
+    </column>
+  </columns>
+
+  <interactions>
+    <interaction trigger="row-click">Navigate to /chat-docs/[id]</interaction>
+    <interaction trigger="row-hover">Reveal action buttons (Open, Rename, Delete)</interaction>
+    <interaction trigger="header-click">Toggle sort direction for that column</interaction>
+    <interaction trigger="keyboard-enter">Open selected row</interaction>
+  </interactions>
+
+  <tech-stack>
+    <dependency name="@tanstack/react-table" purpose="Table state management, sorting"/>
+    <dependency name="shadcn/ui Table" purpose="Styled table primitives"/>
+  </tech-stack>
+
+  <existing-patterns>
+    <pattern name="Tag pills">
+      From DocumentCard: bg-slate-100 dark:bg-slate-800 text-slate-600 text-[10px] px-1.5 py-0.5 rounded
+    </pattern>
+    <pattern name="Row actions">
+      Similar to DocumentListItem hover actions pattern
+    </pattern>
+  </existing-patterns>
+</story-context>
