@@ -205,7 +205,7 @@ development_status:
   # Epic 7: Quote Comparison (RENUMBERED from Epic 6)
   # Moved to Epic 7 to allow Epic 5 cleanup first
   # Tech Spec: docs/sprint-artifacts/tech-spec-epic-7.md
-  epic-7: contexted
+  epic-7: done
   # Story 7.1: Quote Selection Interface
   # Foundation for comparison feature: selection UI + database migrations
   # Priority: P0 - foundation for all other Epic 7 stories
@@ -274,7 +274,56 @@ development_status:
   # STATUS: UX Designer review required before development
   # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-7.7-comparison-history.md
   7-7-comparison-history: done
-  epic-7-retrospective: optional
+  # RETROSPECTIVE 2025-12-03: docs/sprint-artifacts/epic-7-retrospective.md
+  # Key learnings: zodResponseFormat, story context files, single-day delivery
+  # MVP COMPLETE - All 7 epics delivered
+  epic-7-retrospective: completed
+
+  # Epic 8: Tech Debt & Production Hardening
+  # Source: Epic 7 Retrospective + Supabase Advisors - 2025-12-03
+  # Reason: Clean foundation before Phase 2 feature explosion
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-8.md
+  # Supabase Issues Found:
+  #   - 8 security advisories (7 function search_path + leaked password protection)
+  #   - 37 performance advisories (28 RLS initplan + 8 unindexed FKs + more)
+  epic-8: contexted
+  # Story 8.1: Database Security Hardening
+  # Fix function search_path, enable leaked password protection
+  # Priority: P0 - security first
+  # DRAFTED 2025-12-03: Story file created at docs/sprint-artifacts/story-8.1-database-security-hardening.md
+  # CONTEXT 2025-12-03: Context file created at docs/sprint-artifacts/8-1-database-security-hardening.context.xml
+  # IMPLEMENTED 2025-12-03: ALL 4 TASKS COMPLETE
+  # - Task 1: Migration applied - 7 functions now have SET search_path = public, extensions
+  # - Task 2: Leaked password protection enabled via Supabase Dashboard (manual)
+  # - Task 3: Verified 0 WARN-level security issues via get_advisors
+  # - Task 4: Smoke tests passed - chat and comparison working
+  # CODE REVIEWED 2025-12-03: APPROVED - all 3 ACs verified, all 8 tasks verified, 0 security warnings
+  8-1-database-security-hardening: done
+  # Story 8.2: RLS Policy Performance Optimization
+  # Fix 28 RLS policies re-evaluating auth.uid() per row
+  # Priority: P0 - performance at scale
+  8-2-rls-policy-performance: backlog
+  # Story 8.3: Database Index Optimization
+  # Add missing FK indexes, evaluate unused indexes
+  # Priority: P1 - performance improvement
+  8-3-database-index-optimization: backlog
+  # Story 8.4: Consolidate Processing Jobs RLS
+  # Fix multiple permissive policies issue
+  # Priority: P1 - performance improvement
+  8-4-consolidate-processing-jobs-rls: backlog
+  # Story 8.5: API Rate Limiting
+  # 10 comparisons/hr/agency, 100 messages/hr/user
+  # Priority: P0 - cost control and abuse prevention
+  8-5-api-rate-limiting: backlog
+  # Story 8.6: Fix Pre-existing Test Failure
+  # useAgencyId test failing since Epic 5
+  # Priority: P2 - test reliability
+  8-6-fix-test-failure: backlog
+  # Story 8.7: Code Quality Cleanup
+  # Update comments, regenerate types
+  # Priority: P3 - housekeeping
+  8-7-code-quality-cleanup: backlog
+  epic-8-retrospective: optional
 
 # ===========================================
 # FUTURE EPICS (Prioritized Post-MVP Roadmap)
@@ -282,16 +331,23 @@ development_status:
 # Priority Order (as of 2025-12-03):
 # F1 → F2 → F3 → F4 → F5 → F6 → F7 → F8
 
-  # Epic F1: Tech Debt & Optimizations (NEW - 2025-12-03)
-  # Source: Post-Epic 7 planning session
+  # Epic F1: Tech Debt & Optimizations (UPDATED - 2025-12-03)
+  # Source: Post-Epic 7 planning session + Party Mode team discussion
   # Reason: Address accumulated tech debt before adding new features
-  # Scope: Performance optimization, code cleanup, test coverage gaps
+  # Scope: Testing, performance, security, observability, accessibility, AI accuracy
   epic-f1-tech-debt-optimizations: future
-  f1-1-test-coverage-gaps: future
-  f1-2-performance-profiling-optimization: future
-  f1-3-code-cleanup-refactoring: future
-  f1-4-dependency-updates-security: future
-  f1-5-monitoring-observability: future
+  # f1-1: Test coverage gaps, integration tests, CI pipeline improvements
+  f1-1-test-coverage-quality-gates: future
+  # f1-2: DB query optimization, API caching, profiling - all performance in one
+  f1-2-performance-optimization: future
+  # f1-3: Dependency updates, RLS policy audit, type safety review
+  f1-3-security-dependency-updates: future
+  # f1-4: Error boundaries, structured logging, basic monitoring/alerting
+  f1-4-error-handling-observability: future
+  # f1-5: WCAG 2.1 compliance, keyboard nav, screen reader support
+  f1-5-accessibility-audit: future
+  # f1-6: AI response quality, extraction tuning, confidence thresholds
+  f1-6-ai-accuracy-review: future
 
   # Epic F2: User Dashboard & Document Intelligence (NEW - 2025-12-03)
   # Source: Sam's feature request - 2025-12-03

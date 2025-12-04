@@ -1,0 +1,187 @@
+<story-context id="8-1-database-security-hardening" v="1.0">
+  <metadata>
+    <epicId>8</epicId>
+    <storyId>1</storyId>
+    <title>Database Security Hardening</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-8.1-database-security-hardening.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>platform administrator</asA>
+    <iWant>all database functions to have explicit search paths and leaked password protection enabled</iWant>
+    <soThat>our platform is protected against SQL injection vectors and compromised credential reuse</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <title>Create Security Hardening Migration (AC: 8.1.1)</title>
+        <subtasks>
+          <subtask>Apply migration via Supabase MCP with function search_path updates</subtask>
+          <subtask>Include all 7 functions with ALTER FUNCTION ... SET search_path = public, extensions</subtask>
+          <subtask>Verify migration applies successfully</subtask>
+          <subtask>Confirm functions still work (quick smoke test on document processing)</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <title>Enable Leaked Password Protection (AC: 8.1.2)</title>
+        <subtasks>
+          <subtask>Navigate to Supabase Dashboard > Authentication > Settings</subtask>
+          <subtask>Enable "Leaked password protection" toggle</subtask>
+          <subtask>Document the configuration change in this story</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <title>Verify Security Advisors (AC: 8.1.3)</title>
+        <subtasks>
+          <subtask>Run mcp__supabase__get_advisors(project_id, type: 'security')</subtask>
+          <subtask>Verify 0 WARN-level issues returned</subtask>
+          <subtask>Document results in story file</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <title>Smoke Test (AC: 8.1.1, 8.1.3)</title>
+        <subtasks>
+          <subtask>Upload a test document and verify processing works</subtask>
+          <subtask>Verify chat functionality works (uses get_user_agency_id)</subtask>
+          <subtask>Verify comparison functionality works (uses update_quote_extractions_updated_at)</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-8.1.1" title="Function Search Path Hardening">
+      <given>the database has 7 functions with mutable search paths</given>
+      <when>the migration is applied</when>
+      <then>
+        <item>all 7 functions have SET search_path = public, extensions:
+          - mark_stale_jobs_failed()
+          - has_active_processing_job(uuid)
+          - update_updated_at_column()
+          - get_next_pending_job()
+          - get_queue_position(uuid)
+          - get_user_agency_id()
+          - update_quote_extractions_updated_at()</item>
+        <item>all functions continue to work correctly with pgvector operations</item>
+      </then>
+    </criterion>
+    <criterion id="AC-8.1.2" title="Leaked Password Protection">
+      <given>Supabase Auth has leaked password protection available</given>
+      <when>the setting is enabled in Supabase Dashboard</when>
+      <then>
+        <item>users cannot sign up with passwords found in known data breaches</item>
+        <item>users cannot reset password to a compromised password</item>
+        <item>existing users are not affected until their next password change</item>
+      </then>
+    </criterion>
+    <criterion id="AC-8.1.3" title="Security Advisor Verification">
+      <given>the migration has been applied and leaked password protection enabled</given>
+      <when>running mcp__supabase__get_advisors(type: 'security')</when>
+      <then>
+        <item>zero WARN-level security advisories are returned</item>
+        <item>the verification is documented in the story</item>
+      </then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-8.md" title="Epic 8 Tech Spec" section="Story 8.1: Database Security Hardening" snippet="Fix 7 functions with mutable search_path vulnerability. Enable leaked password protection. Zero WARN-level advisories target." />
+      <doc path="docs/architecture.md" title="Architecture" section="Security Architecture" snippet="RLS policies isolate tenant data. Functions use SECURITY DEFINER with explicit search_path for safety." />
+      <doc path="docs/prd.md" title="PRD" section="Non-Functional Requirements - Security" snippet="NFR6-12: Data encryption, session security, strict tenant isolation, document storage access controlled." />
+    </docs>
+    <code>
+      <file path="supabase/migrations/00001_initial_schema.sql" kind="migration" symbol="update_updated_at_column" lines="6-12" reason="Trigger function for updated_at timestamps - needs search_path hardening" />
+      <file path="supabase/migrations/00003_rls_policies.sql" kind="migration" symbol="get_user_agency_id" lines="19-22" reason="RLS helper function for agency isolation - needs search_path hardening" />
+      <file path="supabase/migrations/00007_queue_management.sql" kind="migration" symbol="get_next_pending_job,has_active_processing_job,get_queue_position,mark_stale_jobs_failed" lines="7-137" reason="Queue management functions - all need search_path hardening" />
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="process-document" reason="Edge function that uses get_next_pending_job - verify still works after migration" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Supabase client for database operations" />
+        <package name="@supabase/ssr" version="^0.7.0" reason="Server-side rendering support for Supabase auth" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="security">All functions must include SET search_path = public, extensions to prevent schema injection attacks</constraint>
+    <constraint type="compatibility">Search path must include 'extensions' schema for pgvector operators (<=>)</constraint>
+    <constraint type="no-breaking-changes">All existing functionality must continue to work after migration</constraint>
+    <constraint type="manual-step">Leaked password protection requires manual dashboard configuration, not SQL migration</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="mcp__supabase__apply_migration" kind="MCP tool" signature="apply_migration(project_id, name, query)" path="Supabase MCP" reason="Apply the security hardening migration to production database" />
+    <interface name="mcp__supabase__get_advisors" kind="MCP tool" signature="get_advisors(project_id, type: 'security')" path="Supabase MCP" reason="Verify security issues are resolved after migration" />
+    <interface name="get_user_agency_id" kind="SQL function" signature="get_user_agency_id() RETURNS UUID" path="supabase/migrations/00003_rls_policies.sql" reason="RLS helper used by all agency-scoped queries" />
+    <interface name="get_next_pending_job" kind="SQL function" signature="get_next_pending_job(p_agency_id UUID) RETURNS SETOF processing_jobs" path="supabase/migrations/00007_queue_management.sql" reason="Used by Edge Function for job processing" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      This is a database migration story with no new TypeScript code. Testing is primarily via:
+      1. Supabase MCP get_advisors to verify zero security warnings
+      2. Manual smoke testing of document upload/chat/comparison features
+      3. Verifying Edge Function still works (uses get_next_pending_job)
+    </standards>
+    <locations>
+      <location>__tests__/**/*.test.ts - Unit tests (Vitest)</location>
+      <location>__tests__/e2e/**/*.spec.ts - E2E tests (Playwright)</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-8.1.1">Run mcp__supabase__get_advisors after migration - expect 7 function warnings cleared</idea>
+      <idea acId="AC-8.1.2">Manual: Enable leaked password protection in Supabase Dashboard</idea>
+      <idea acId="AC-8.1.3">Run mcp__supabase__get_advisors - expect 0 WARN-level security issues</idea>
+      <idea acId="smoke">Upload document via /documents, verify processing completes</idea>
+      <idea acId="smoke">Open document chat, verify conversation works</idea>
+      <idea acId="smoke">Run comparison, verify extraction and table display work</idea>
+    </ideas>
+  </tests>
+
+  <currentSecurityIssues>
+    <note>Confirmed via mcp__supabase__get_advisors on 2025-12-03:</note>
+    <issue type="function_search_path_mutable">public.mark_stale_jobs_failed</issue>
+    <issue type="function_search_path_mutable">public.has_active_processing_job</issue>
+    <issue type="function_search_path_mutable">public.update_updated_at_column</issue>
+    <issue type="function_search_path_mutable">public.get_next_pending_job</issue>
+    <issue type="function_search_path_mutable">public.get_queue_position</issue>
+    <issue type="function_search_path_mutable">public.get_user_agency_id</issue>
+    <issue type="function_search_path_mutable">public.update_quote_extractions_updated_at</issue>
+    <issue type="auth_leaked_password_protection">Leaked Password Protection Disabled</issue>
+  </currentSecurityIssues>
+
+  <migrationSql>
+    <note>Apply via mcp__supabase__apply_migration</note>
+    <sql><![CDATA[
+-- Migration: security_hardening
+-- Purpose: Fix mutable search_path security vulnerability on all functions
+-- Reference: Supabase Security Advisors - 7 WARN-level issues
+
+-- Processing job functions
+ALTER FUNCTION mark_stale_jobs_failed()
+  SET search_path = public, extensions;
+
+ALTER FUNCTION has_active_processing_job(uuid)
+  SET search_path = public, extensions;
+
+ALTER FUNCTION get_next_pending_job(uuid)
+  SET search_path = public, extensions;
+
+ALTER FUNCTION get_queue_position(uuid)
+  SET search_path = public, extensions;
+
+-- General utility functions
+ALTER FUNCTION update_updated_at_column()
+  SET search_path = public, extensions;
+
+ALTER FUNCTION get_user_agency_id()
+  SET search_path = public, extensions;
+
+-- Quote extraction function
+ALTER FUNCTION update_quote_extractions_updated_at()
+  SET search_path = public, extensions;
+    ]]></sql>
+  </migrationSql>
+</story-context>
