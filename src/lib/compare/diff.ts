@@ -12,6 +12,7 @@ import type {
   CoverageItem,
   CoverageType,
   DocumentSummary,
+  ExclusionCategory,
 } from '@/types/compare';
 
 // ============================================================================
@@ -31,6 +32,79 @@ export type FieldType =
   | 'count'; // Higher is better
 
 /**
+ * Severity levels for gap/conflict warnings.
+ * AC-7.4.6: High for core coverages, Medium for others.
+ */
+export type Severity = 'high' | 'medium' | 'low';
+
+/**
+ * Coverage severity mapping.
+ * AC-7.4.6: High severity for GL, Property, Workers' Comp.
+ */
+export const COVERAGE_SEVERITY: Record<CoverageType, Severity> = {
+  general_liability: 'high',
+  property: 'high',
+  workers_comp: 'high',
+  auto_liability: 'medium',
+  professional_liability: 'medium',
+  umbrella: 'medium',
+  auto_physical_damage: 'low',
+  cyber: 'low',
+  other: 'low',
+};
+
+/**
+ * Numeric order for severity (lower = more severe).
+ */
+const SEVERITY_ORDER: Record<Severity, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+/**
+ * Gap warning for coverage present in some quotes but missing in others.
+ * AC-7.4.1: Identifies coverage gaps between quotes.
+ */
+export interface GapWarning {
+  /** Display name for the gap (e.g., "General Liability") */
+  field: string;
+  /** Coverage type for styling and row lookup */
+  coverageType: CoverageType;
+  /** Indices of documents missing this coverage */
+  documentsMissing: number[];
+  /** Indices of documents with this coverage */
+  documentsPresent: number[];
+  /** Severity based on coverage type */
+  severity: Severity;
+}
+
+/**
+ * Conflict type categories.
+ * AC-7.4.3: Limit variance, deductible variance, exclusion mismatch.
+ */
+export type ConflictType = 'limit_variance' | 'deductible_variance' | 'exclusion_mismatch';
+
+/**
+ * Conflict warning for significant term differences.
+ * AC-7.4.3: Identifies conflicts in limits, deductibles, exclusions.
+ */
+export interface ConflictWarning {
+  /** Display name for the conflict field */
+  field: string;
+  /** Type of conflict detected */
+  conflictType: ConflictType;
+  /** Human-readable description of the conflict */
+  description: string;
+  /** Indices of documents involved in the conflict */
+  affectedDocuments: number[];
+  /** Severity based on coverage type or conflict type */
+  severity: Severity;
+  /** Coverage type if applicable */
+  coverageType?: CoverageType;
+}
+
+/**
  * Individual cell value in the comparison table.
  * AC-7.3.5: Tracks "not found" status.
  */
@@ -46,6 +120,7 @@ export interface CellValue {
 /**
  * A single row in the comparison table.
  * AC-7.3.3, AC-7.3.4: Includes best/worst indices and difference flag.
+ * AC-7.4.2: Includes gap detection fields.
  */
 export interface ComparisonRow {
   /** Row identifier for React keys */
@@ -68,6 +143,14 @@ export interface ComparisonRow {
   coverageType?: CoverageType;
   /** Whether this is a sub-row (indented) */
   isSubRow?: boolean;
+  /** AC-7.4.2: Whether this row represents a coverage gap */
+  isGap?: boolean;
+  /** AC-7.4.2: Gap severity for styling */
+  gapSeverity?: Severity;
+  /** AC-7.4.2: Whether this row represents a conflict */
+  isConflict?: boolean;
+  /** AC-7.4.2: Conflict severity for styling */
+  conflictSeverity?: Severity;
 }
 
 /**
@@ -80,6 +163,10 @@ export interface ComparisonTableData {
   rows: ComparisonRow[];
   /** Document count */
   documentCount: number;
+  /** AC-7.4.1: Detected coverage gaps */
+  gaps: GapWarning[];
+  /** AC-7.4.3: Detected conflicts */
+  conflicts: ConflictWarning[];
 }
 
 // ============================================================================
@@ -520,10 +607,11 @@ function buildCoverageCountRow(extractions: QuoteExtraction[]): ComparisonRow {
 /**
  * Build comparison table data from extractions.
  * AC-7.3.1, AC-7.3.2: Transforms QuoteExtraction[] into table structure.
+ * AC-7.4.1, AC-7.4.2: Includes gap/conflict detection and row annotation.
  *
  * @param extractions - Array of quote extractions
  * @param documents - Optional document summaries for headers
- * @returns ComparisonTableData with headers and rows
+ * @returns ComparisonTableData with headers, rows, gaps, and conflicts
  */
 export function buildComparisonRows(
   extractions: QuoteExtraction[],
@@ -534,6 +622,8 @@ export function buildComparisonRows(
       headers: [],
       rows: [],
       documentCount: 0,
+      gaps: [],
+      conflicts: [],
     };
   }
 
@@ -565,9 +655,306 @@ export function buildComparisonRows(
   rows.push(buildCoverageCountRow(extractions));
   rows.push(buildExclusionCountRow(extractions));
 
+  // AC-7.4.1, AC-7.4.3: Detect gaps and conflicts
+  const gaps = detectGaps(extractions);
+  const conflicts = detectConflicts(extractions);
+
+  // AC-7.4.2: Annotate rows with gap/conflict info
+  annotateRowsWithIssues(rows, gaps, conflicts);
+
   return {
     headers,
     rows,
     documentCount: extractions.length,
+    gaps,
+    conflicts,
   };
+}
+
+/**
+ * Annotate rows with gap and conflict information for styling.
+ * AC-7.4.2: Adds isGap/isConflict flags to affected rows.
+ */
+function annotateRowsWithIssues(
+  rows: ComparisonRow[],
+  gaps: GapWarning[],
+  conflicts: ConflictWarning[]
+): void {
+  // Create a map of coverage types to gaps
+  const gapsByCoverage = new Map<CoverageType, GapWarning>();
+  for (const gap of gaps) {
+    gapsByCoverage.set(gap.coverageType, gap);
+  }
+
+  // Create a map of coverage types to conflicts
+  const conflictsByCoverage = new Map<CoverageType, ConflictWarning[]>();
+  for (const conflict of conflicts) {
+    if (conflict.coverageType) {
+      const existing = conflictsByCoverage.get(conflict.coverageType) || [];
+      existing.push(conflict);
+      conflictsByCoverage.set(conflict.coverageType, existing);
+    }
+  }
+
+  // Annotate each row
+  for (const row of rows) {
+    if (row.coverageType) {
+      // Check for gaps
+      const gap = gapsByCoverage.get(row.coverageType);
+      if (gap) {
+        row.isGap = true;
+        row.gapSeverity = gap.severity;
+      }
+
+      // Check for conflicts (only for limit rows, not deductible sub-rows)
+      const coverageConflicts = conflictsByCoverage.get(row.coverageType);
+      if (coverageConflicts && coverageConflicts.length > 0 && !row.isSubRow) {
+        row.isConflict = true;
+        // Use highest severity from conflicts
+        row.conflictSeverity = coverageConflicts.reduce(
+          (highest, c) =>
+            SEVERITY_ORDER[c.severity] < SEVERITY_ORDER[highest]
+              ? c.severity
+              : highest,
+          coverageConflicts[0]!.severity
+        );
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Gap Detection
+// ============================================================================
+
+/**
+ * Detect coverage gaps across quotes.
+ * AC-7.4.1: Identifies coverage present in some quotes but missing in others.
+ * AC-7.4.6: Sorts by severity (high → medium → low).
+ *
+ * @param extractions - Array of quote extractions
+ * @returns Array of gap warnings sorted by severity
+ */
+export function detectGaps(extractions: QuoteExtraction[]): GapWarning[] {
+  if (extractions.length < 2) {
+    return [];
+  }
+
+  const gaps: GapWarning[] = [];
+  const allCoverageTypes = new Set<CoverageType>();
+
+  // Collect all coverage types across all quotes
+  for (const extraction of extractions) {
+    for (const coverage of extraction.coverages) {
+      allCoverageTypes.add(coverage.type);
+    }
+  }
+
+  // Check each type for gaps
+  for (const coverageType of allCoverageTypes) {
+    const present: number[] = [];
+    const missing: number[] = [];
+
+    extractions.forEach((extraction, index) => {
+      const hasCoverage = extraction.coverages.some((c) => c.type === coverageType);
+      if (hasCoverage) {
+        present.push(index);
+      } else {
+        missing.push(index);
+      }
+    });
+
+    // Gap exists if some have it and some don't
+    if (missing.length > 0 && present.length > 0) {
+      gaps.push({
+        field: COVERAGE_TYPE_LABELS[coverageType],
+        coverageType,
+        documentsMissing: missing,
+        documentsPresent: present,
+        severity: COVERAGE_SEVERITY[coverageType],
+      });
+    }
+  }
+
+  // Sort by severity: high → medium → low
+  return gaps.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+}
+
+// ============================================================================
+// Conflict Detection
+// ============================================================================
+
+/**
+ * Conflict detection thresholds.
+ * AC-7.4.3: Limit variance >50%, deductible variance >100%.
+ */
+const CONFLICT_THRESHOLDS = {
+  /** Limit variance threshold (50% difference from highest) */
+  limitVariance: 0.5,
+  /** Deductible variance threshold (100% difference from lowest) */
+  deductibleVariance: 1.0,
+};
+
+/**
+ * Detect conflicts across quotes.
+ * AC-7.4.3: Identifies limit variance, deductible variance, exclusion mismatches.
+ *
+ * @param extractions - Array of quote extractions
+ * @returns Array of conflict warnings sorted by severity
+ */
+export function detectConflicts(extractions: QuoteExtraction[]): ConflictWarning[] {
+  if (extractions.length < 2) {
+    return [];
+  }
+
+  const conflicts: ConflictWarning[] = [];
+
+  // Collect all coverage types across all quotes
+  const allCoverageTypes = new Set<CoverageType>();
+  for (const extraction of extractions) {
+    for (const coverage of extraction.coverages) {
+      allCoverageTypes.add(coverage.type);
+    }
+  }
+
+  // Check each coverage type for limit and deductible variances
+  for (const coverageType of allCoverageTypes) {
+    const coverageData = extractions.map((e, i) => ({
+      index: i,
+      coverage: e.coverages.find((c) => c.type === coverageType),
+    }));
+
+    // Only check if at least 2 quotes have this coverage
+    const withCoverage = coverageData.filter((d) => d.coverage !== undefined);
+    if (withCoverage.length < 2) {
+      continue;
+    }
+
+    // Check limit variance
+    const limits = withCoverage
+      .filter((d) => d.coverage!.limit !== null)
+      .map((d) => ({ index: d.index, value: d.coverage!.limit! }));
+
+    if (limits.length >= 2) {
+      const maxLimit = Math.max(...limits.map((l) => l.value));
+      const minLimit = Math.min(...limits.map((l) => l.value));
+
+      // Conflict if lowest limit is <50% of highest limit
+      if (minLimit < maxLimit * (1 - CONFLICT_THRESHOLDS.limitVariance)) {
+        const variance = Math.round((1 - minLimit / maxLimit) * 100);
+        conflicts.push({
+          field: COVERAGE_TYPE_LABELS[coverageType],
+          conflictType: 'limit_variance',
+          description: `${COVERAGE_TYPE_LABELS[coverageType]} limit varies ${variance}% (${formatCurrency(minLimit)} to ${formatCurrency(maxLimit)})`,
+          affectedDocuments: limits.map((l) => l.index),
+          severity: COVERAGE_SEVERITY[coverageType],
+          coverageType,
+        });
+      }
+    }
+
+    // Check deductible variance
+    const deductibles = withCoverage
+      .filter((d) => d.coverage!.deductible !== null)
+      .map((d) => ({ index: d.index, value: d.coverage!.deductible! }));
+
+    if (deductibles.length >= 2) {
+      const maxDeductible = Math.max(...deductibles.map((d) => d.value));
+      const minDeductible = Math.min(...deductibles.map((d) => d.value));
+
+      // Conflict if highest deductible is >2x lowest deductible
+      if (maxDeductible > minDeductible * (1 + CONFLICT_THRESHOLDS.deductibleVariance)) {
+        const variance = Math.round((maxDeductible / minDeductible - 1) * 100);
+        conflicts.push({
+          field: COVERAGE_TYPE_LABELS[coverageType],
+          conflictType: 'deductible_variance',
+          description: `${COVERAGE_TYPE_LABELS[coverageType]} deductible varies ${variance}% (${formatCurrency(minDeductible)} to ${formatCurrency(maxDeductible)})`,
+          affectedDocuments: deductibles.map((d) => d.index),
+          severity: COVERAGE_SEVERITY[coverageType],
+          coverageType,
+        });
+      }
+    }
+  }
+
+  // Check for exclusion mismatches
+  const exclusionConflicts = detectExclusionMismatches(extractions);
+  conflicts.push(...exclusionConflicts);
+
+  // Sort by severity: high → medium → low
+  return conflicts.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+}
+
+/**
+ * Exclusion category labels for display.
+ */
+const EXCLUSION_CATEGORY_LABELS: Record<ExclusionCategory, string> = {
+  flood: 'Flood',
+  earthquake: 'Earthquake',
+  pollution: 'Pollution',
+  mold: 'Mold',
+  cyber: 'Cyber',
+  employment: 'Employment Practices',
+  other: 'Other',
+};
+
+/**
+ * Exclusion category severity mapping.
+ * High: flood, earthquake (critical coverage gaps)
+ * Medium: pollution, mold, cyber
+ * Low: employment, other
+ */
+const EXCLUSION_SEVERITY: Record<ExclusionCategory, Severity> = {
+  flood: 'high',
+  earthquake: 'high',
+  pollution: 'medium',
+  mold: 'medium',
+  cyber: 'medium',
+  employment: 'low',
+  other: 'low',
+};
+
+/**
+ * Detect exclusion mismatches across quotes.
+ * AC-7.4.3: Identifies when an exclusion is present in some quotes but not others.
+ */
+function detectExclusionMismatches(extractions: QuoteExtraction[]): ConflictWarning[] {
+  const conflicts: ConflictWarning[] = [];
+  const allExclusionCategories = new Set<ExclusionCategory>();
+
+  // Collect all exclusion categories across all quotes
+  for (const extraction of extractions) {
+    for (const exclusion of extraction.exclusions) {
+      allExclusionCategories.add(exclusion.category);
+    }
+  }
+
+  // Check each category for mismatches
+  for (const category of allExclusionCategories) {
+    const hasExclusion: number[] = [];
+    const noExclusion: number[] = [];
+
+    extractions.forEach((extraction, index) => {
+      const has = extraction.exclusions.some((e) => e.category === category);
+      if (has) {
+        hasExclusion.push(index);
+      } else {
+        noExclusion.push(index);
+      }
+    });
+
+    // Mismatch if some have the exclusion and some don't
+    if (hasExclusion.length > 0 && noExclusion.length > 0) {
+      const categoryLabel = EXCLUSION_CATEGORY_LABELS[category];
+      conflicts.push({
+        field: `${categoryLabel} Exclusion`,
+        conflictType: 'exclusion_mismatch',
+        description: `${categoryLabel} excluded in ${hasExclusion.length} quote(s) but not in ${noExclusion.length}`,
+        affectedDocuments: [...hasExclusion, ...noExclusion],
+        severity: EXCLUSION_SEVERITY[category],
+      });
+    }
+  }
+
+  return conflicts;
 }

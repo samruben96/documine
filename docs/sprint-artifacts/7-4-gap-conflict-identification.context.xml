@@ -1,0 +1,290 @@
+<story-context id="7-4-gap-conflict-identification" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>4</storyId>
+    <title>Gap &amp; Conflict Identification</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-7.4-gap-conflict-identification.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user comparing insurance quotes</asA>
+    <iWant>to see coverage gaps and conflicts highlighted automatically</iWant>
+    <soThat>I can identify potential issues before recommending a quote to my client</soThat>
+    <tasks>
+      <task id="1" ac="7.4.1,7.4.6">Extend DiffEngine with Gap Detection
+        <subtask>Add detectGaps() function to src/lib/compare/diff.ts</subtask>
+        <subtask>Identify coverage types present in some quotes but missing in others</subtask>
+        <subtask>Calculate severity based on coverage type mapping</subtask>
+        <subtask>Return GapWarning[] with documentsMissing, documentsPresent, severity</subtask>
+        <subtask>Add COVERAGE_SEVERITY constant mapping</subtask>
+      </task>
+      <task id="2" ac="7.4.3,7.4.6">Extend DiffEngine with Conflict Detection
+        <subtask>Add detectConflicts() function to src/lib/compare/diff.ts</subtask>
+        <subtask>Detect limit variance conflicts (>50% from highest)</subtask>
+        <subtask>Detect deductible variance conflicts (>100% from lowest)</subtask>
+        <subtask>Detect exclusion mismatches (present in some, absent in others)</subtask>
+        <subtask>Return ConflictWarning[] with description and affected documents</subtask>
+      </task>
+      <task id="3" ac="7.4.4,7.4.5,7.4.6">Create GapConflictBanner Component
+        <subtask>Create src/components/compare/gap-conflict-banner.tsx</subtask>
+        <subtask>Display summary count: "X gaps, Y conflicts"</subtask>
+        <subtask>Collapsible list of issues with severity icons</subtask>
+        <subtask>Sort by severity (high → medium → low)</subtask>
+        <subtask>Implement click handler for scroll-to-row</subtask>
+      </task>
+      <task id="4" ac="7.4.2">Add Gap/Conflict Row Styling
+        <subtask>Update ComparisonRow interface with isGap and gapSeverity fields</subtask>
+        <subtask>Add warning icon (⚠) component for gap rows</subtask>
+        <subtask>Implement stronger amber background for gaps vs differences</subtask>
+        <subtask>Add row ID/ref for scroll targeting</subtask>
+      </task>
+      <task id="5" ac="7.4.4,7.4.5">Integrate with Comparison Page
+        <subtask>Update src/app/(dashboard)/compare/[id]/page.tsx</subtask>
+        <subtask>Call detectGaps() and detectConflicts() with extraction data</subtask>
+        <subtask>Render GapConflictBanner above ComparisonTable</subtask>
+        <subtask>Wire scroll-to-row functionality with smooth scroll</subtask>
+        <subtask>Add pulse animation on scroll target</subtask>
+      </task>
+      <task id="6" ac="all">Unit Tests
+        <subtask>Test gap detection with various coverage combinations</subtask>
+        <subtask>Test conflict detection thresholds (50% limit, 100% deductible)</subtask>
+        <subtask>Test severity classification for all coverage types</subtask>
+        <subtask>Test exclusion mismatch detection</subtask>
+        <subtask>Extend existing diff.test.ts</subtask>
+      </task>
+      <task id="7" ac="all">E2E Tests
+        <subtask>Test banner appears when gaps/conflicts exist</subtask>
+        <subtask>Test click-to-scroll navigation works</subtask>
+        <subtask>Test no banner when all coverages match</subtask>
+        <subtask>Test severity ordering in banner</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="7.4.1" title="Gap Identification">
+      Given quotes with different coverage types
+      When one or more quotes are missing a coverage present in others
+      Then the missing coverage row is flagged as a gap
+      And the gap includes which documents have vs. don't have the coverage
+    </criterion>
+    <criterion id="7.4.2" title="Gap Visual Indicators">
+      Given a row identified as a coverage gap
+      When viewing the comparison table
+      Then the row displays:
+      - Warning icon (⚠) in the field name column
+      - Amber background highlighting (stronger than difference highlight)
+      - "Not included" or "—" in cells for missing coverage
+      And the gap is visually distinct from simple differences
+    </criterion>
+    <criterion id="7.4.3" title="Conflict Detection">
+      Given quotes with the same coverage type
+      When there are significant term differences
+      Then conflicts are identified for:
+      - Exclusion mismatches (e.g., flood excluded in one quote but included in another)
+      - Limit variance >50% difference from the highest limit
+      - Deductible variance >100% difference from the lowest deductible
+    </criterion>
+    <criterion id="7.4.4" title="Summary Banner">
+      Given gaps and/or conflicts are detected
+      When viewing the comparison page
+      Then a summary banner appears above the table showing:
+      - "X potential gaps, Y conflicts identified" message
+      - Collapsible list of specific issues
+      - Each issue is clickable to scroll to the relevant row
+    </criterion>
+    <criterion id="7.4.5" title="Click-to-Scroll Navigation">
+      Given the summary banner with gap/conflict items
+      When I click on a specific gap or conflict
+      Then the comparison table scrolls to that row
+      And the row is temporarily highlighted (pulse animation)
+    </criterion>
+    <criterion id="7.4.6" title="Severity Classification">
+      Given gaps or conflicts are detected
+      When calculating severity
+      Then severity is assigned based on coverage type:
+      - High: General Liability, Property, Workers' Comp (core coverages)
+      - Medium: Auto Liability, Professional Liability, Umbrella
+      - Low: Cyber, other specialized coverages
+      And high severity items appear first in the summary banner
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-7.md</path>
+        <title>Epic 7 Technical Specification</title>
+        <section>Story 7.4: Gap &amp; Conflict Identification</section>
+        <snippet>AC-7.4.1 through AC-7.4.6 define gap detection, conflict detection, summary banner, click-to-scroll, and severity classification requirements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Definitions</title>
+        <section>Epic 7 - Quote Comparison / Story 7.4</section>
+        <snippet>Gap detection surfaces missing coverages; conflict detection identifies significant term differences; both display in collapsible warning banner.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-7.3-comparison-table-view.md</path>
+        <title>Story 7.3: Comparison Table View</title>
+        <section>Dev Agent Record</section>
+        <snippet>DiffEngine created with buildComparisonRows(), calculateBestWorst(), detectDifference(). ComparisonRow interface has hasDifference, bestIndex, worstIndex properties.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Frontend Architecture</section>
+        <snippet>React components use shadcn/ui, Tailwind CSS for styling. Client components marked with 'use client' directive.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/compare/diff.ts</path>
+        <kind>service</kind>
+        <symbol>buildComparisonRows, calculateBestWorst, detectDifference, COVERAGE_TYPE_LABELS</symbol>
+        <lines>1-574</lines>
+        <reason>Core DiffEngine to extend with detectGaps() and detectConflicts() functions. Has COVERAGE_TYPE_LABELS mapping and CellValue interface with 'not_found' status for gap detection.</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/compare.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteExtraction, CoverageItem, CoverageType, ExclusionItem, ExclusionCategory</symbol>
+        <lines>1-463</lines>
+        <reason>Type definitions for quote data structures. CoverageType enum for severity mapping. ExclusionItem has category for exclusion mismatch detection.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/compare/comparison-table.tsx</path>
+        <kind>component</kind>
+        <symbol>ComparisonTable, ValueIndicator, TableRow, CategoryHeader</symbol>
+        <lines>1-311</lines>
+        <reason>Table component to extend with gap row styling. ValueIndicator pattern to reuse for warning icons. hasDifference triggers bg-amber-50/50 highlighting.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/compare/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>ComparisonPage, ExtractionSummaryView</symbol>
+        <lines>1-450</lines>
+        <reason>Comparison page to integrate GapConflictBanner above ComparisonTable. Already imports AlertTriangle icon. ExtractionSummaryView renders table.</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/lib/compare/diff.test.ts</path>
+        <kind>test</kind>
+        <symbol>describe blocks for calculateBestWorst, detectDifference, buildComparisonRows</symbol>
+        <lines>1-561</lines>
+        <reason>Existing test patterns to extend for gap/conflict detection. createMockExtraction factory for test data. 42 existing tests establish testing standards.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>react@19.2.0</package>
+        <package>next@16.0.4</package>
+        <package>lucide-react@0.554.0</package>
+        <package>tailwind-merge@3.4.0</package>
+        <package>class-variance-authority@0.7.1</package>
+        <package>@radix-ui/react-tooltip@1.2.8</package>
+        <package>vitest@4.0.14</package>
+        <package>@testing-library/react@16.3.0</package>
+        <package>@playwright/test@1.57.0</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Extend DiffEngine with new exported functions - do not modify existing buildComparisonRows signature</constraint>
+    <constraint type="pattern">Use existing COVERAGE_TYPE_LABELS mapping for consistent naming across gap/conflict displays</constraint>
+    <constraint type="pattern">Leverage CellValue.status === 'not_found' for identifying gaps rather than re-implementing detection</constraint>
+    <constraint type="pattern">Follow ValueIndicator component pattern for warning icon implementation</constraint>
+    <constraint type="styling">Gap highlighting must be visually distinct from difference highlighting (bg-amber-50/50). Use stronger amber or border treatment.</constraint>
+    <constraint type="accessibility">Warning icons must have aria-labels and tooltips explaining the gap/conflict</constraint>
+    <constraint type="performance">Gap/conflict detection should run once on mount, not on every render - memoize results</constraint>
+    <constraint type="testing">All new functions require unit tests following existing diff.test.ts patterns</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GapWarning</name>
+      <kind>type</kind>
+      <signature>
+interface GapWarning {
+  field: string;           // Display name from COVERAGE_TYPE_LABELS
+  coverageType: CoverageType;
+  documentsMissing: number[];   // Indices of quotes missing this coverage
+  documentsPresent: number[];   // Indices of quotes with this coverage
+  severity: 'high' | 'medium' | 'low';
+}
+      </signature>
+      <path>src/lib/compare/diff.ts (new)</path>
+    </interface>
+    <interface>
+      <name>ConflictWarning</name>
+      <kind>type</kind>
+      <signature>
+interface ConflictWarning {
+  field: string;           // Coverage type or field name
+  conflictType: 'limit_variance' | 'deductible_variance' | 'exclusion_mismatch';
+  description: string;     // Human-readable explanation
+  affectedDocuments: number[];
+  severity: 'high' | 'medium' | 'low';
+}
+      </signature>
+      <path>src/lib/compare/diff.ts (new)</path>
+    </interface>
+    <interface>
+      <name>detectGaps</name>
+      <kind>function</kind>
+      <signature>function detectGaps(extractions: QuoteExtraction[]): GapWarning[]</signature>
+      <path>src/lib/compare/diff.ts (new)</path>
+    </interface>
+    <interface>
+      <name>detectConflicts</name>
+      <kind>function</kind>
+      <signature>function detectConflicts(extractions: QuoteExtraction[]): ConflictWarning[]</signature>
+      <path>src/lib/compare/diff.ts (new)</path>
+    </interface>
+    <interface>
+      <name>GapConflictBannerProps</name>
+      <kind>component props</kind>
+      <signature>
+interface GapConflictBannerProps {
+  gaps: GapWarning[];
+  conflicts: ConflictWarning[];
+  onItemClick: (field: string) => void;
+}
+      </signature>
+      <path>src/components/compare/gap-conflict-banner.tsx (new)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Vitest with React Testing Library for unit tests, Playwright for E2E tests.
+      Tests follow describe/it pattern with explicit assertions.
+      Mock data uses factory functions (createMockExtraction pattern).
+      Component tests render with necessary providers and assert on DOM output.
+      E2E tests use data-testid attributes and page object patterns.
+    </standards>
+    <locations>
+      <location>__tests__/lib/compare/diff.test.ts (extend)</location>
+      <location>__tests__/components/compare/gap-conflict-banner.test.tsx (new)</location>
+      <location>__tests__/e2e/gap-conflict-detection.spec.ts (new)</location>
+    </locations>
+    <ideas>
+      <idea ac="7.4.1">Test detectGaps with 2 quotes where one has GL coverage and the other doesn't - should return gap for GL</idea>
+      <idea ac="7.4.1">Test detectGaps with 3 quotes all having same coverages - should return empty array</idea>
+      <idea ac="7.4.1">Test detectGaps correctly identifies documentsMissing and documentsPresent indices</idea>
+      <idea ac="7.4.3">Test detectConflicts with limits: $1M, $400K - should flag limit variance (60% diff)</idea>
+      <idea ac="7.4.3">Test detectConflicts with deductibles: $5K, $12K - should flag deductible variance (140% diff)</idea>
+      <idea ac="7.4.3">Test detectConflicts with exclusion mismatch: flood excluded in quote 1, not in quote 2</idea>
+      <idea ac="7.4.4">Test GapConflictBanner renders "1 potential gap, 2 conflicts identified" with correct counts</idea>
+      <idea ac="7.4.4">Test GapConflictBanner is collapsible - clicking toggles issue list visibility</idea>
+      <idea ac="7.4.5">Test onItemClick callback is called with correct field when issue clicked</idea>
+      <idea ac="7.4.6">Test high severity items (GL, Property, WC) appear before medium and low in banner</idea>
+      <idea ac="7.4.6">Test COVERAGE_SEVERITY mapping returns correct severity for all coverage types</idea>
+      <idea>E2E: Navigate to comparison with gap data, verify banner visible and scrolls to row on click</idea>
+      <idea>E2E: Navigate to comparison with matching data, verify no banner displayed</idea>
+    </ideas>
+  </tests>
+</story-context>

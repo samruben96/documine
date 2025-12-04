@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import type { ComparisonData, QuoteExtraction, DocumentSummary } from '@/types/compare';
 import { ComparisonTable } from '@/components/compare/comparison-table';
+import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
+import { buildComparisonRows } from '@/lib/compare/diff';
 
 /**
  * Comparison Result Page
@@ -285,6 +287,23 @@ function ExtractionSummaryView({
   extractions?: QuoteExtraction[];
   isPartial: boolean;
 }) {
+  // AC-7.4.5: Scroll to row when gap/conflict item clicked
+  const handleBannerItemClick = useCallback((field: string, coverageType?: string) => {
+    // Find the row with matching coverage type or field
+    const selector = coverageType
+      ? `tr[data-field="${coverageType}"]`
+      : `tr[data-field="${field}"]`;
+    const row = document.querySelector(selector);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash highlight
+      row.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+      setTimeout(() => {
+        row.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+      }, 2000);
+    }
+  }, []);
+
   if (!extractions || extractions.length === 0) {
     return (
       <div className="text-center py-12">
@@ -292,6 +311,9 @@ function ExtractionSummaryView({
       </div>
     );
   }
+
+  // AC-7.4.1, AC-7.4.3: Build comparison data with gaps/conflicts
+  const tableData = buildComparisonRows(extractions, documents);
 
   return (
     <div className="space-y-6">
@@ -304,6 +326,13 @@ function ExtractionSummaryView({
           </p>
         </div>
       )}
+
+      {/* AC-7.4.4: Gap/Conflict Summary Banner */}
+      <GapConflictBanner
+        gaps={tableData.gaps}
+        conflicts={tableData.conflicts}
+        onItemClick={handleBannerItemClick}
+      />
 
       {/* Extraction summary cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

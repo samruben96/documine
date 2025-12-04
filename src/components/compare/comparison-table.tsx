@@ -14,6 +14,7 @@
  */
 
 import { useMemo } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   buildComparisonRows,
@@ -141,16 +142,27 @@ interface TableRowProps {
 }
 
 function TableRow({ row, isFirstInCategory }: TableRowProps) {
+  // AC-7.4.2: Gap/conflict styling
+  const isGap = row.isGap;
+  const isConflict = row.isConflict;
+  const hasIssue = isGap || isConflict;
+
   return (
     <tr
       className={cn(
         // Difference highlighting
         row.hasDifference && 'bg-amber-50/50 dark:bg-amber-900/10',
+        // AC-7.4.2: Gap row styling - amber background
+        isGap && 'bg-amber-100/70 dark:bg-amber-900/30',
+        // AC-7.4.2: Conflict row styling - red tint
+        isConflict && 'bg-red-50/50 dark:bg-red-900/20',
         // Category spacing
         isFirstInCategory && 'border-t-2 border-t-slate-300 dark:border-t-slate-600',
         // Sub-row indentation
         row.isSubRow && 'text-slate-600 dark:text-slate-400'
       )}
+      // AC-7.4.5: Data attribute for scroll targeting
+      data-field={row.coverageType || row.id}
     >
       {/* Field name (sticky first column) */}
       <td
@@ -159,10 +171,36 @@ function TableRow({ row, isFirstInCategory }: TableRowProps) {
           'sticky left-0 z-10 bg-white dark:bg-slate-900',
           'font-medium text-slate-700 dark:text-slate-300 min-w-[200px]',
           row.hasDifference && 'bg-amber-50/50 dark:bg-amber-900/10',
+          // AC-7.4.2: Gap row first column styling
+          isGap && 'bg-amber-100/70 dark:bg-amber-900/30',
+          // AC-7.4.2: Conflict row first column styling
+          isConflict && 'bg-red-50/50 dark:bg-red-900/20',
           row.isSubRow && 'pl-8'
         )}
       >
-        {row.field}
+        <span className="flex items-center gap-2">
+          {/* AC-7.4.2: Gap/conflict warning icon */}
+          {hasIssue && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertTriangle
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0',
+                      isGap && 'text-amber-600',
+                      isConflict && 'text-red-500'
+                    )}
+                    aria-label={isGap ? 'Coverage gap' : 'Coverage conflict'}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isGap ? 'Coverage gap detected' : 'Conflict detected'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {row.field}
+        </span>
       </td>
 
       {/* Value cells */}
