@@ -25,6 +25,7 @@ import { ComparisonTable, type SourceClickHandler } from '@/components/compare/c
 import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
 import { SourceViewerModal } from '@/components/compare/source-viewer-modal';
 import { ExportButton } from '@/components/compare/export-button';
+import { OnePagerButton } from '@/components/one-pager/one-pager-button';
 import { buildComparisonRows, type ComparisonTableData } from '@/lib/compare/diff';
 import { downloadCsv } from '@/lib/compare/export';
 import { downloadPdf } from '@/lib/compare/pdf-export';
@@ -137,6 +138,10 @@ export default function ComparisonPage() {
               Comparing {comparison.documents?.length || 0} documents
             </p>
           </div>
+          {/* AC-9.5.1: Generate One-Pager button (only show when complete/partial) */}
+          {(isComplete || isPartial) && (
+            <OnePagerButton comparisonId={comparisonId} />
+          )}
           <StatusBadge status={comparison.status} />
         </div>
       </div>

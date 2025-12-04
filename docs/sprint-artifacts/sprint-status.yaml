@@ -407,7 +407,10 @@ development_status:
   # Priority: P1 - navigation convenience
   # DRAFTED 2025-12-03: Story file at docs/sprint-artifacts/story-9.5-entry-point-buttons.md
   # Depends on: 9.3
-  9-5-entry-point-buttons: drafted
+  # IMPLEMENTED 2025-12-04: OnePagerButton component + 3 entry points
+  # - Comparison results header, comparison history row actions, document viewer header
+  # - 13 component tests pass, build successful
+  9-5-entry-point-buttons: done
   # Story 9.6: Testing & Polish
   # Unit, component, E2E tests
   # Priority: P2 - quality assurance

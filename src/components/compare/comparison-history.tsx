@@ -12,6 +12,7 @@ import {
   Clock,
   ArrowUpDown,
   BarChart3,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ComparisonHistoryFilters, type HistoryFilters } from './comparison-history-filters';
 import { ComparisonEmptyState } from './comparison-empty-state';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ComparisonSummary, ListComparisonResponse } from '@/app/api/compare/route';
+import Link from 'next/link';
 
 /**
  * Comparison History Component
@@ -138,12 +141,14 @@ export function ComparisonHistory({ onNewComparison }: ComparisonHistoryProps) {
 
   // Handle row click - AC-7.7.2
   const handleRowClick = (comparisonId: string, event: React.MouseEvent) => {
-    // Don't navigate if clicking on checkbox or delete button
+    // Don't navigate if clicking on checkbox, delete button, or one-pager button
     const target = event.target as HTMLElement;
     if (
       target.closest('[data-checkbox]') ||
       target.closest('[data-delete-button]') ||
-      target.tagName === 'BUTTON'
+      target.closest('[data-one-pager-button]') ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'A'
     ) {
       return;
     }
@@ -377,7 +382,9 @@ export function ComparisonHistory({ onNewComparison }: ComparisonHistoryProps) {
               <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
                 Status
               </th>
-              <th className="w-12 px-3 py-3"></th>
+              <th className="w-24 px-3 py-3 text-center text-sm font-medium text-slate-700 dark:text-slate-300">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -431,15 +438,33 @@ export function ComparisonHistory({ onNewComparison }: ComparisonHistoryProps) {
                     </td>
                     <td className="px-4 py-3">{getStatusBadge(comparison.status)}</td>
                     <td className="px-3 py-3">
-                      <button
-                        type="button"
-                        data-delete-button
-                        onClick={() => handleDeleteClick(comparison.id)}
-                        className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        aria-label="Delete comparison"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {/* AC-9.5.2: One-Pager button (only for complete/partial) */}
+                        {(comparison.status === 'complete' || comparison.status === 'partial') && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/one-pager?comparisonId=${comparison.id}`}
+                                data-one-pager-button
+                                className="p-1.5 rounded-md text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                aria-label="Generate one-pager"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>Generate One-Pager</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <button
+                          type="button"
+                          data-delete-button
+                          onClick={() => handleDeleteClick(comparison.id)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          aria-label="Delete comparison"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

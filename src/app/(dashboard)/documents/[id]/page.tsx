@@ -9,6 +9,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { OnePagerButton } from '@/components/one-pager/one-pager-button';
 
 import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
 import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view';
@@ -304,8 +305,37 @@ export default function DocumentDetailPage() {
   // AC-5.5.1: PDF renders with text layer enabled
   const documentViewerContent = (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Document header - only shown when PDF not loading */}
-      {!pdfUrl && (
+      {/* Document header - always shown when document selected */}
+      {selectedDocument && (
+        <div className="flex-shrink-0 h-14 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center px-4 gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/documents')}
+            className="sm:hidden p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+            aria-label="Back to documents"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+          </button>
+          <FileText className="h-5 w-5 text-slate-500 flex-shrink-0" />
+          {/* Filename with tooltip for truncated names (AC-6.7.15) */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h1 className="font-medium text-slate-800 dark:text-slate-200 truncate flex-1" tabIndex={0}>
+                {selectedDocument.display_name || selectedDocument.filename}
+              </h1>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-[400px]">
+              <p className="break-all">{selectedDocument.display_name || selectedDocument.filename}</p>
+            </TooltipContent>
+          </Tooltip>
+          {/* AC-9.5.3: Generate One-Pager button (only for ready documents) */}
+          {selectedDocument.status === 'ready' && (
+            <OnePagerButton documentId={selectedDocument.id} size="sm" />
+          )}
+        </div>
+      )}
+      {/* Loading/Not found header when no document selected */}
+      {!selectedDocument && (
         <div className="flex-shrink-0 h-14 border-b border-slate-200 bg-white flex items-center px-4 gap-3">
           <button
             type="button"
@@ -315,22 +345,7 @@ export default function DocumentDetailPage() {
           >
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </button>
-          {selectedDocument ? (
-            <>
-              <FileText className="h-5 w-5 text-slate-500 flex-shrink-0" />
-              {/* Filename with tooltip for truncated names (AC-6.7.15) */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <h1 className="font-medium text-slate-800 dark:text-slate-200 truncate" tabIndex={0}>
-                    {selectedDocument.display_name || selectedDocument.filename}
-                  </h1>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[400px]">
-                  <p className="break-all">{selectedDocument.display_name || selectedDocument.filename}</p>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
               <span className="text-sm text-slate-500">Loading...</span>
