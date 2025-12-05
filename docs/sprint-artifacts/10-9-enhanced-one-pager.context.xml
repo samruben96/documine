@@ -1,0 +1,161 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.9</storyId>
+    <title>Enhanced One-Pager Template</title>
+    <status>ready</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-10.9-enhanced-one-pager.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>the one-pager PDF to include policy metadata, endorsements summary, premium breakdown, and gap highlights</iWant>
+    <soThat>I can provide clients with professional, comprehensive quote documentation</soThat>
+    <tasks>
+      - Create PolicyMetadataSection component for policy details
+      - Add AM Best rating to Quote Overview with color coding
+      - Create EndorsementsSummary component for single/comparison modes
+      - Create PremiumBreakdownSection component
+      - Enhance Gaps section with endorsement gaps and limit concerns
+      - Update OnePagerPreview with all new sections
+      - Update PDF generation with new section components
+      - Write unit tests for new components
+      - Write E2E tests for enhanced one-pager
+      - Build and verify all tests pass
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="10.9.1" title="Policy Metadata Section">
+      Display Policy Type (Occurrence/Claims-Made) with explanation.
+      Show ISO form numbers, retroactive date, admitted status.
+      Comparison mode: Show as comparison row with differences highlighted.
+    </ac>
+    <ac id="10.9.2" title="AM Best Rating Display">
+      Add rating to Quote Overview. Format: "A+ (Superior)".
+      Color-code: Green A++/A+, Blue A/A-, Amber B+/below.
+      Comparison: Add AM Best Rating row to comparison table.
+    </ac>
+    <ac id="10.9.3" title="Endorsements Summary Section">
+      Single-quote: List with form numbers and type badges (broadening/restricting).
+      Highlight critical endorsements (CG 20 10, CG 20 37, CG 24 04).
+      Comparison: Mini endorsement matrix. Limit 8 with "+N more" indicator.
+    </ac>
+    <ac id="10.9.4" title="Premium Breakdown Section">
+      Show Base Premium, Taxes, Fees, Surplus Lines Tax, Total.
+      Per-coverage breakdown if available.
+      Comparison: Side-by-side with lowest total highlighted green.
+    </ac>
+    <ac id="10.9.5" title="Enhanced Gap Highlights">
+      Integrate Story 10.7 gap analysis. Risk score badge in header.
+      Endorsement Gaps subsection. Limit concerns with recommendations.
+    </ac>
+    <ac id="10.9.6" title="PDF Layout Optimization">
+      Fit on 2 pages maximum. Smaller fonts for dense sections.
+      Consistent styling with primary color accents.
+    </ac>
+    <ac id="10.9.7" title="HTML Preview Parity">
+      Update OnePagerPreview to match PDF for all new sections.
+      Live preview reflects form changes in real-time.
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-10.md" relevance="primary">
+        Epic 10 Tech Spec - Story 10.9 specifications
+      </doc>
+      <doc path="docs/sprint-artifacts/story-10.8-enhanced-comparison-table.md" relevance="primary">
+        Parallel work - same data sources, similar components
+      </doc>
+      <doc path="docs/sprint-artifacts/story-10.7-automated-gap-analysis.md" relevance="reference">
+        Gap analysis types and risk score calculation
+      </doc>
+    </docs>
+    <code>
+      <file path="src/components/one-pager/one-pager-preview.tsx" action="MODIFY">
+        Current preview - integrate new sections
+      </file>
+      <file path="src/components/one-pager/one-pager-form.tsx" action="REFERENCE">
+        Form component for client name and agent notes
+      </file>
+      <file path="src/lib/compare/diff.ts" action="REFERENCE">
+        formatCurrency, formatDate, detectGaps, COVERAGE_TYPE_LABELS
+      </file>
+      <file path="src/lib/compare/gap-analysis.ts" action="REFERENCE">
+        analyzeGaps(), getRiskLevel() for enhanced gaps
+      </file>
+      <file path="src/types/compare.ts" action="REFERENCE">
+        PolicyMetadata, CarrierInfo, Endorsement, PremiumBreakdown, GapAnalysis
+      </file>
+      <file path="src/hooks/use-agency-branding.ts" action="REFERENCE">
+        AgencyBranding type and branding hook
+      </file>
+      <file path="src/components/one-pager/policy-metadata-section.tsx" action="CREATE">
+        New policy metadata display component
+      </file>
+      <file path="src/components/one-pager/endorsements-summary.tsx" action="CREATE">
+        New endorsements list/matrix component
+      </file>
+      <file path="src/components/one-pager/premium-breakdown-section.tsx" action="CREATE">
+        New premium breakdown component
+      </file>
+    </code>
+    <dependencies>
+      <dep name="lucide-react" usage="FileText, Shield, DollarSign, FileCheck icons" />
+      <dep name="@/components/ui/badge" usage="Endorsement type and critical badges" />
+      <dep name="@/lib/compare/diff" usage="formatCurrency, formatDate, COVERAGE_TYPE_LABELS" />
+      <dep name="@react-pdf/renderer" usage="PDF generation (already installed for one-pager)" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Reuse Story 10.8 patterns where applicable (same data sources)
+    - PDF must fit on 2 pages maximum
+    - Maintain existing OnePagerPreview export signature
+    - Use existing branding colors (primaryColor, secondaryColor)
+    - CRITICAL_ENDORSEMENTS from src/types/compare.ts for highlighting
+    - PDF generation uses @react-pdf/renderer - follow existing pdf-generator patterns
+  </constraints>
+
+  <interfaces>
+    <interface name="PolicyMetadataSectionProps">
+      extraction: QuoteExtraction, primaryColor: string
+    </interface>
+    <interface name="EndorsementsSummaryProps">
+      extractions: QuoteExtraction[], primaryColor: string, isComparison: boolean
+    </interface>
+    <interface name="PremiumBreakdownSectionProps">
+      extractions: QuoteExtraction[], primaryColor: string, isComparison: boolean
+    </interface>
+    <interface name="OnePagerPreviewProps" extension="true">
+      No changes needed - extractions already contain all required data
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Vitest with React Testing Library for unit tests
+      - Playwright for E2E tests
+      - data-testid attributes for test targeting
+      - Test PDF/HTML parity by comparing rendered content
+    </standards>
+    <locations>
+      - __tests__/components/one-pager/policy-metadata-section.test.tsx
+      - __tests__/components/one-pager/endorsements-summary.test.tsx
+      - __tests__/components/one-pager/premium-breakdown-section.test.tsx
+      - __tests__/e2e/enhanced-one-pager.spec.ts
+    </locations>
+    <ideas>
+      - Test PolicyMetadataSection with occurrence vs claims-made
+      - Test EndorsementsSummary with 0, 5, 10 endorsements
+      - Test PremiumBreakdownSection with null premiumBreakdown
+      - Test comparison vs single-quote mode rendering
+      - Test gap analysis integration with mock GapAnalysis data
+      - E2E: Navigate to one-pager page, verify all sections render
+      - E2E: Test PDF download includes new sections (check file size increase)
+    </ideas>
+  </tests>
+</story-context>

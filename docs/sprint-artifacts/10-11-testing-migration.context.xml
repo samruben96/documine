@@ -1,0 +1,189 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.11</storyId>
+    <title>Testing &amp; Migration</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-10.11-testing-migration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>development team</asA>
+    <iWant>comprehensive tests and backward compatibility verification for the enhanced extraction schema</iWant>
+    <soThat>we can confidently deploy Epic 10 to production without breaking existing functionality</soThat>
+    <tasks>
+      <task id="1">Backward Compatibility Testing - Create v1/v2 fixtures, test comparison table/one-pager/gap analysis with old data (AC: 10.11.1)</task>
+      <task id="2">Schema Validation Tests - Test all 6 new schemas: PolicyMetadata, Endorsement, CarrierInfo, PremiumBreakdown, CoveragePremium, GapAnalysis (AC: 10.11.2)</task>
+      <task id="3">Gap Analysis Unit Tests - Test detectMissingCoverages, detectLimitConcerns, detectEndorsementGaps, risk score calculation (AC: 10.11.4)</task>
+      <task id="4">UI Component Tests - EndorsementMatrix, PremiumBreakdownTable, CollapsibleSection, GapConflictBanner (AC: 10.11.4)</task>
+      <task id="5">E2E Test Suite - Create epic-10-extraction.spec.ts for full extraction flow, gap analysis, endorsement matrix (AC: 10.11.5)</task>
+      <task id="6">Performance Testing - Measure extraction time, comparison load time, memory leaks, timeout handling (AC: 10.11.6)</task>
+      <task id="7">Build Verification - npm run test, npm run build, npx tsc --noEmit, npx eslint (AC: 10.11.3)</task>
+      <task id="8">Documentation - Update CLAUDE.md with Epic 10 patterns, document schema version history (AC: 10.11.7)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="10.11.1" title="Backward Compatibility - Old Extractions Load">
+      <item>Extractions from version 1 (Epic 7) display correctly in comparison table</item>
+      <item>Extractions from version 2 (Epic 8/9) display correctly</item>
+      <item>Missing new fields (policyMetadata, endorsements, etc.) render gracefully with fallbacks</item>
+      <item>No errors thrown when new fields are null or undefined</item>
+    </ac>
+    <ac id="10.11.2" title="Schema Validation Tests">
+      <item>All Zod schemas parse valid extraction data without errors</item>
+      <item>Zod schemas reject invalid data with appropriate error messages</item>
+      <item>Nullable fields accept both null and valid values</item>
+      <item>Required fields reject missing values</item>
+      <item>Schema tests cover all 6 new interfaces (PolicyMetadata, Endorsement, CarrierInfo, PremiumBreakdown, CoveragePremium, GapAnalysis)</item>
+    </ac>
+    <ac id="10.11.3" title="All Existing Tests Pass">
+      <item>npm run test passes all 1346+ tests</item>
+      <item>npm run build completes without TypeScript errors</item>
+      <item>npx tsc --noEmit shows no type errors</item>
+      <item>No regressions in existing functionality</item>
+    </ac>
+    <ac id="10.11.4" title="New Feature Test Coverage">
+      <item>Gap analysis service has comprehensive unit tests</item>
+      <item>Enhanced comparison table has component tests</item>
+      <item>Endorsement matrix displays correctly</item>
+      <item>Premium breakdown table renders properly</item>
+      <item>One-pager PDF includes all new sections</item>
+    </ac>
+    <ac id="10.11.5" title="E2E Test Suite">
+      <item>E2E test for full extraction flow (upload → extract → compare)</item>
+      <item>E2E test for gap analysis display</item>
+      <item>E2E test for endorsement matrix</item>
+      <item>E2E test for one-pager with new sections</item>
+    </ac>
+    <ac id="10.11.6" title="Performance Validation">
+      <item>Extraction time &lt; 60 seconds average (per document)</item>
+      <item>Comparison page load &lt; 5 seconds with pre-extracted data</item>
+      <item>No memory leaks in extraction flow</item>
+      <item>Document processing completes within timeout</item>
+    </ac>
+    <ac id="10.11.7" title="Documentation Updated">
+      <item>CLAUDE.md updated with Epic 10 patterns and conventions</item>
+      <item>New schema fields documented in code comments</item>
+      <item>Test coverage report generated</item>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-10.md" title="Tech Spec Epic 10" section="Testing Strategy" snippet="Story 10.11 should verify backward compatibility with v1/v2 extractions, validate all Zod schemas, and ensure no regressions in 1346 existing tests." />
+      <doc path="docs/epics/epic-10-enhanced-quote-extraction.md" title="Epic 10 Definition" section="Story 10.11" snippet="Testing &amp; Migration (2 pts) - Schema migration for new fields, test with existing extractions, update TypeScript types, performance testing." />
+      <doc path="docs/architecture.md" title="Architecture" section="ADR-007, ADR-008" snippet="GPT-5.1 for structured extraction with zodResponseFormat. EXTRACTION_VERSION = 3 for cache invalidation. Extraction at upload time stores in documents.extraction_data." />
+      <doc path="docs/sprint-artifacts/story-10.12-extraction-at-upload-time.md" title="Previous Story" section="Dev Agent Record" snippet="All 1346 tests passing. OpenAI structured outputs require ALL properties in required arrays. QA validated 32 coverages, 12 exclusions extraction." />
+      <doc path="CLAUDE.md" title="Project Instructions" section="Epic 10 patterns" snippet="EXTRACTION_VERSION = 3. OpenAI fix: nullable fields use type: ['string', 'null']. 60s timeout with AbortController." />
+    </docs>
+    <code>
+      <file path="src/types/compare.ts" kind="types" symbol="QuoteExtraction, PolicyMetadata, Endorsement, CarrierInfo, PremiumBreakdown, GapAnalysis" reason="All Epic 10 Zod schemas and TypeScript interfaces to validate. EXTRACTION_VERSION = 3." />
+      <file path="src/lib/compare/extraction.ts" kind="service" symbol="extractQuoteData" reason="GPT-5.1 extraction service with 60s timeout and retry logic." />
+      <file path="src/lib/compare/gap-analysis.ts" kind="service" symbol="analyzeGaps, detectMissingCoverages, detectLimitConcerns, detectEndorsementGaps" reason="Gap analysis functions to test with various scenarios." />
+      <file path="src/lib/compare/diff.ts" kind="service" symbol="generateCoverageDiff" reason="Comparison diff engine to test with old extraction formats." />
+      <file path="src/components/compare/comparison-table.tsx" kind="component" symbol="ComparisonTable" reason="Enhanced comparison table with new collapsible sections." />
+      <file path="src/components/compare/endorsement-matrix.tsx" kind="component" symbol="EndorsementMatrix" reason="New component to test endorsement display." />
+      <file path="src/components/compare/premium-breakdown-table.tsx" kind="component" symbol="PremiumBreakdownTable" reason="New component to test premium display." />
+      <file path="src/components/compare/collapsible-section.tsx" kind="component" symbol="CollapsibleSection" reason="New UI pattern for expandable sections." />
+      <file path="src/components/compare/gap-conflict-banner.tsx" kind="component" symbol="GapConflictBanner" reason="Risk score display component." />
+      <file path="src/components/one-pager/one-pager-preview.tsx" kind="component" symbol="OnePagerPreview" reason="One-pager preview with new sections." />
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="processDocument" reason="Upload-time extraction with document_type gating." />
+      <file path="__tests__/types/compare.test.ts" kind="test" symbol="CoverageType tests" lines="1-100" reason="44 existing schema tests - baseline for regression." />
+      <file path="__tests__/lib/compare/gap-analysis.test.ts" kind="test" symbol="analyzeGaps tests" reason="Existing gap analysis tests to extend." />
+      <file path="__tests__/components/compare/gap-conflict-banner.test.tsx" kind="test" symbol="GapConflictBanner tests" reason="Component test for gap banner." />
+      <file path="__tests__/e2e/gap-analysis-display.spec.ts" kind="e2e-test" symbol="Gap analysis E2E" reason="E2E test for gap display flow." />
+      <file path="__tests__/e2e/enhanced-comparison-table.spec.ts" kind="e2e-test" symbol="Enhanced table E2E" reason="E2E test for new comparison sections." />
+      <file path="__tests__/e2e/enhanced-one-pager.spec.ts" kind="e2e-test" symbol="Enhanced one-pager E2E" reason="E2E test for new one-pager sections." />
+    </code>
+    <dependencies>
+      <node>
+        <production>
+          <pkg name="zod" version="^4.1.13" />
+          <pkg name="openai" version="^6.9.1" />
+          <pkg name="@react-pdf/renderer" version="^4.3.1" />
+          <pkg name="@supabase/supabase-js" version="^2.84.0" />
+          <pkg name="@tanstack/react-table" version="^8.21.3" />
+        </production>
+        <dev>
+          <pkg name="vitest" version="^4.0.14" />
+          <pkg name="@testing-library/react" version="^16.3.0" />
+          <pkg name="@playwright/test" version="^1.57.0" />
+          <pkg name="happy-dom" version="^20.0.10" />
+          <pkg name="@vitest/coverage-v8" version="^4.0.14" />
+        </dev>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="backward-compat">Old extractions (v1/v2) must render without errors. Use optional chaining and nullish coalescing for new fields.</constraint>
+    <constraint category="schema-version">EXTRACTION_VERSION = 3. Cache invalidation uses version check in compare route.</constraint>
+    <constraint category="test-baseline">1346 tests must continue to pass. No regressions allowed.</constraint>
+    <constraint category="performance">Extraction &lt; 60s, comparison load &lt; 5s with pre-extracted data.</constraint>
+    <constraint category="openai-schema">OpenAI structured outputs require ALL properties in required arrays. Nullable fields use type: ['string', 'null'].</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="QuoteExtraction" kind="typescript-interface" path="src/types/compare.ts">
+      interface QuoteExtraction {
+        carrierName: string | null;
+        policyNumber: string | null;
+        namedInsured: string | null;
+        effectiveDate: string | null;
+        expirationDate: string | null;
+        annualPremium: number | null;
+        coverages: CoverageItem[];
+        exclusions: ExclusionItem[];
+        deductibles: DeductibleItem[];
+        extractedAt: string;
+        modelUsed: string;
+        // Epic 10 fields
+        policyMetadata: PolicyMetadata | null;
+        endorsements: Endorsement[];
+        carrierInfo: CarrierInfo | null;
+        premiumBreakdown: PremiumBreakdown | null;
+      }
+    </interface>
+    <interface name="GapAnalysis" kind="typescript-interface" path="src/types/compare.ts">
+      interface GapAnalysis {
+        missingCoverages: MissingCoverage[];
+        limitConcerns: LimitConcern[];
+        endorsementGaps: EndorsementGap[];
+        overallRiskScore: number;  // 0-100
+      }
+    </interface>
+    <interface name="quoteExtractionSchema" kind="zod-schema" path="src/types/compare.ts">
+      z.object({ carrierName, policyNumber, namedInsured, effectiveDate, expirationDate, annualPremium, coverages, exclusions, deductibles, policyMetadata, endorsements, carrierInfo, premiumBreakdown })
+    </interface>
+    <interface name="gapAnalysisSchema" kind="zod-schema" path="src/types/compare.ts">
+      z.object({ missingCoverages, limitConcerns, endorsementGaps, overallRiskScore })
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, @testing-library/react for component tests, Playwright for E2E tests.
+      Tests colocated in __tests__/ mirroring src/ structure.
+      Coverage target: &gt;80%. All tests must pass before merge.
+      E2E tests use data-testid attributes for element selection.
+    </standards>
+    <locations>
+      <loc>__tests__/types/*.test.ts</loc>
+      <loc>__tests__/lib/compare/*.test.ts</loc>
+      <loc>__tests__/components/compare/*.test.tsx</loc>
+      <loc>__tests__/e2e/*.spec.ts</loc>
+    </locations>
+    <ideas>
+      <idea acId="10.11.1">Create __tests__/fixtures/extraction-v1.ts and extraction-v2.ts with old schema data. Test ComparisonTable and OnePagerPreview render without errors.</idea>
+      <idea acId="10.11.2">Expand __tests__/types/compare.test.ts to cover all 6 new schemas with valid/invalid data cases. Test nullable vs required field handling.</idea>
+      <idea acId="10.11.3">Run npm run test, npm run build, npx tsc --noEmit. Verify 0 errors.</idea>
+      <idea acId="10.11.4">Add tests for EndorsementMatrix, PremiumBreakdownTable, CollapsibleSection components. Test expand/collapse, data display, empty states.</idea>
+      <idea acId="10.11.5">Create __tests__/e2e/epic-10-extraction.spec.ts with upload-to-compare flow. Verify endorsement matrix and gap banner appear.</idea>
+      <idea acId="10.11.6">Add timing measurements to extraction tests. Verify &lt;60s extraction, &lt;5s page load.</idea>
+      <idea acId="10.11.7">Update CLAUDE.md with Epic 10 section documenting schema version, new interfaces, testing patterns.</idea>
+    </ideas>
+  </tests>
+</story-context>

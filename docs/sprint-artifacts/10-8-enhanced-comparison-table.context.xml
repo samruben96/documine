@@ -1,0 +1,152 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>10.8</storyId>
+    <title>Enhanced Comparison Table</title>
+    <status>ready</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-10.8-enhanced-comparison-table.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>the comparison table to display endorsement matrices, premium breakdowns, carrier ratings, and policy metadata</iWant>
+    <soThat>I can provide clients with comprehensive side-by-side quote analysis</soThat>
+    <tasks>
+      - Create CollapsibleSection component with aria-expanded accessibility
+      - Update diff.ts to build policy metadata and carrier info rows
+      - Create EndorsementMatrix component showing endorsements across quotes
+      - Create PremiumBreakdownTable component with best value highlighting
+      - Update ComparisonTable with collapsible sections
+      - Add AM Best Rating and Admitted Status rows with color coding
+      - Write unit tests for all new components
+      - Write E2E tests for enhanced comparison table
+      - Build and verify all tests pass
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="10.8.1" title="Collapsible Sections">
+      Add collapsible section pattern with chevron icons, aria-expanded attributes.
+      Sections: Policy Overview (open), Coverage (open), Endorsements (collapsed), Premium Breakdown (collapsed).
+    </ac>
+    <ac id="10.8.2" title="Policy Metadata Display">
+      Show Policy Type (Occurrence/Claims-Made), ISO Form Numbers, Audit Provisions.
+      Display retroactive date for claims-made. Highlight differences with amber background.
+    </ac>
+    <ac id="10.8.3" title="Carrier Information Display">
+      Show AM Best Rating with color coding (A++/A+ green, A/A- blue, B+ amber).
+      Display Admitted Status and Financial Size Class.
+    </ac>
+    <ac id="10.8.4" title="Endorsement Matrix Section">
+      Rows: Each unique endorsement. Columns: One per quote.
+      Cells: Check/X with form number. Critical endorsements badged.
+      Sort: Critical first, then alphabetical.
+    </ac>
+    <ac id="10.8.5" title="Premium Breakdown Section">
+      Rows: Base, Coverage Premiums (sub-rows), Taxes, Fees, Surplus Tax, Total.
+      Highlight lowest total. Show payment plan if available.
+    </ac>
+    <ac id="10.8.6" title="Enhanced Gap Analysis Integration">
+      Pass gap analysis data to GapConflictBanner.
+      Risk score badge in header. Click gap row scrolls to section.
+    </ac>
+    <ac id="10.8.7" title="Responsive and Accessible">
+      Collapsible sections use aria-expanded/aria-controls.
+      Endorsement matrix scrolls horizontally on mobile.
+      Keyboard navigation: Enter/Space toggles sections.
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-10.md" relevance="primary">
+        Epic 10 Tech Spec - Stories 10.1-10.12 specs including UI components
+      </doc>
+      <doc path="docs/sprint-artifacts/story-10.7-automated-gap-analysis.md" relevance="primary">
+        Story 10.7 - Gap analysis types and integration patterns
+      </doc>
+      <doc path="docs/architecture.md" relevance="reference">
+        System architecture and patterns
+      </doc>
+    </docs>
+    <code>
+      <file path="src/components/compare/comparison-table.tsx" action="MODIFY">
+        Current comparison table - add collapsible sections and new components
+      </file>
+      <file path="src/lib/compare/diff.ts" action="MODIFY">
+        Add buildPolicyMetadataRows(), buildCarrierInfoRows() functions
+      </file>
+      <file path="src/lib/compare/gap-analysis.ts" action="REFERENCE">
+        Gap analysis service - analyzeGaps(), getRiskLevel() functions
+      </file>
+      <file path="src/components/compare/gap-conflict-banner.tsx" action="REFERENCE">
+        RiskScoreBadge, ImportanceBadge patterns to follow
+      </file>
+      <file path="src/types/compare.ts" action="REFERENCE">
+        PolicyMetadata, CarrierInfo, Endorsement, PremiumBreakdown interfaces
+      </file>
+      <file path="src/components/compare/collapsible-section.tsx" action="CREATE">
+        New reusable collapsible section component
+      </file>
+      <file path="src/components/compare/endorsement-matrix.tsx" action="CREATE">
+        Endorsement comparison matrix component
+      </file>
+      <file path="src/components/compare/premium-breakdown-table.tsx" action="CREATE">
+        Premium breakdown table component
+      </file>
+    </code>
+    <dependencies>
+      <dep name="lucide-react" usage="ChevronRight, ChevronDown icons for collapsible" />
+      <dep name="@/components/ui/badge" usage="Critical endorsement badges" />
+      <dep name="@/components/ui/tooltip" usage="Rating explanations, value tooltips" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - CRITICAL_ENDORSEMENTS already defined in src/types/compare.ts - reuse
+    - Follow existing diff.ts patterns for row building
+    - Use shadcn/ui primitives for consistency
+    - Maintain existing ComparisonTable export signature (backward compatible)
+    - All sections must work with 2-10 quotes (same as current table)
+  </constraints>
+
+  <interfaces>
+    <interface name="CollapsibleSectionProps">
+      title: string, defaultOpen?: boolean, badge?: number, children: React.ReactNode
+    </interface>
+    <interface name="EndorsementMatrixProps">
+      extractions: QuoteExtraction[], documents?: DocumentSummary[]
+    </interface>
+    <interface name="PremiumBreakdownTableProps">
+      extractions: QuoteExtraction[], documents?: DocumentSummary[]
+    </interface>
+    <interface name="ComparisonTableData" extension="true">
+      Add: policyMetadataRows, carrierInfoRows to existing interface
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      - Vitest with React Testing Library for unit tests
+      - Playwright for E2E tests
+      - data-testid attributes for test targeting
+      - Test accessibility: aria attributes, keyboard navigation
+    </standards>
+    <locations>
+      - __tests__/components/compare/collapsible-section.test.tsx
+      - __tests__/components/compare/endorsement-matrix.test.tsx
+      - __tests__/components/compare/premium-breakdown-table.test.tsx
+      - __tests__/e2e/enhanced-comparison-table.spec.ts
+    </locations>
+    <ideas>
+      - Test collapsible section toggle behavior and aria-expanded updates
+      - Test endorsement matrix with 0, 1, 5, 10 endorsements
+      - Test premium breakdown with missing premiumBreakdown data (null handling)
+      - Test carrier rating color coding for all rating levels
+      - Test keyboard navigation (Enter/Space toggles sections)
+      - E2E: Navigate to comparison page, verify sections expand/collapse
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story="11.2" title="Enhanced Progress Bar UI">
+  <overview>
+    <description>
+      Enhance the progress bar UI to show true percentage, stage visualization, elapsed time,
+      queue position, and realtime updates. Builds on Story 11.1's async architecture by
+      consuming the new stage and progress_percent columns directly.
+    </description>
+    <dependencies>
+      <dependency story="11.1">Async Processing Architecture - provides stage/progress_percent columns</dependency>
+    </dependencies>
+  </overview>
+
+  <existing-code>
+    <file path="src/hooks/use-processing-progress.ts">
+      <summary>
+        Existing hook that subscribes to processing_jobs realtime updates.
+        Uses progress_data JSONB field - needs to also use new stage/progress_percent columns.
+        Already handles connection state, error tracking, and simulated progress.
+      </summary>
+      <key-patterns>
+        - Fetches initial progress on mount
+        - Subscribes to postgres_changes for UPDATE events
+        - Polls every 3s as fallback for missed realtime updates
+        - Simulates parsing progress when no server data
+        - Tracks connection state for UI indicator
+      </key-patterns>
+    </file>
+    <file path="src/components/documents/processing-progress.tsx">
+      <summary>
+        Existing component with step indicator (Load→Read→Prep→Index) and progress bar.
+        Shows percentage and estimated time remaining.
+        Has compact variant for constrained spaces.
+      </summary>
+      <stages current="4">
+        - downloading: Load
+        - parsing: Read
+        - chunking: Prep
+        - embedding: Index
+      </stages>
+      <missing>
+        - "queued" stage visualization
+        - "analyzing" stage (added in Story 10.12)
+        - Elapsed time display (currently only shows remaining)
+        - Queue position indicator
+        - Success/Error states with retry button
+      </missing>
+    </file>
+  </existing-code>
+
+  <story-11.1-changes>
+    <database-columns>
+      <column name="stage" type="string">queued|downloading|parsing|chunking|embedding|analyzing|completed</column>
+      <column name="progress_percent" type="number">0-100 overall progress</column>
+      <column name="agency_id" type="string">For RLS filtering</column>
+      <column name="retry_count" type="number">For retry tracking</column>
+    </database-columns>
+    <async-architecture>
+      - Jobs created with status='pending', stage='queued', progress_percent=0
+      - pg_cron picks up jobs every minute, calls Edge Function
+      - Edge Function updates stage/progress_percent columns directly
+      - Upload returns immediately without waiting
+    </async-architecture>
+  </story-11.1-changes>
+
+  <implementation-plan>
+    <task id="1" title="Update Hook for New Columns">
+      <action>Modify use-processing-progress.ts to read stage and progress_percent columns</action>
+      <action>Use stage column for stage visualization instead of parsing progress_data.stage</action>
+      <action>Use progress_percent column for total progress instead of progress_data.total_progress</action>
+      <action>Add elapsed time calculation from created_at</action>
+    </task>
+
+    <task id="2" title="Add Queued Stage">
+      <action>Add 'queued' to STAGES array with clock icon</action>
+      <action>Show "Waiting in queue..." message for queued stage</action>
+      <action>Display queue position when status='pending'</action>
+    </task>
+
+    <task id="3" title="Add Elapsed Time Display">
+      <action>Calculate elapsed time from job created_at timestamp</action>
+      <action>Format as "Elapsed: Xm Ys"</action>
+      <action>Update every second during processing</action>
+    </task>
+
+    <task id="4" title="Queue Position Feature">
+      <action>Use get_queue_position RPC function to get position</action>
+      <action>Show "Position X of Y in queue" for pending documents</action>
+      <action>Calculate estimated wait time based on average processing time</action>
+    </task>
+
+    <task id="5" title="Success/Error States">
+      <action>Green checkmark and "Complete!" for completed status</action>
+      <action>Red indicator and error message for failed status</action>
+      <action>Add retry button that creates new processing job</action>
+    </task>
+
+    <task id="6" title="Integration & Testing">
+      <action>Ensure document list uses enhanced progress bar</action>
+      <action>Write component tests for new features</action>
+      <action>Test realtime updates work correctly</action>
+    </task>
+  </implementation-plan>
+
+  <ui-design>
+    <wireframe>
+┌─────────────────────────────────────────────────────────────┐
+│ policy-quote.pdf                                    45%    │
+│                                                            │
+│ ████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░          │
+│                                                            │
+│ ◆ Queued ✓ → ◆ Load ✓ → ● Parse → ○ Prep → ○ Index → ○ AI │
+│                                                            │
+│ Stage: Parsing document...  |  Elapsed: 1m 23s             │
+└─────────────────────────────────────────────────────────────┘
+
+Queued State:
+┌─────────────────────────────────────────────────────────────┐
+│ another-doc.pdf                           Position 3 of 5  │
+│                                                            │
+│ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │
+│                                                            │
+│ ● Queued → ○ Load → ○ Parse → ○ Prep → ○ Index → ○ AI     │
+│                                                            │
+│ Waiting in queue...  |  Est. wait: ~4 minutes              │
+└─────────────────────────────────────────────────────────────┘
+
+Success State:
+┌─────────────────────────────────────────────────────────────┐
+│ completed-doc.pdf                               ✓ Complete │
+│                                                            │
+│ ████████████████████████████████████████████████████ 100%  │
+│                                                            │
+│ ✓ Queued → ✓ Load → ✓ Parse → ✓ Prep → ✓ Index → ✓ AI     │
+└─────────────────────────────────────────────────────────────┘
+
+Error State:
+┌─────────────────────────────────────────────────────────────┐
+│ failed-doc.pdf                                    ✗ Failed │
+│                                                            │
+│ Processing failed: PDF format not supported                │
+│                                                            │
+│ [Retry]                                                    │
+└─────────────────────────────────────────────────────────────┘
+    </wireframe>
+  </ui-design>
+
+  <test-ids>
+    <testid name="processing-progress-bar">Main container</testid>
+    <testid name="progress-bar-fill">Progress bar fill element</testid>
+    <testid name="progress-percentage">Percentage text</testid>
+    <testid name="progress-stage">Current stage label</testid>
+    <testid name="progress-elapsed">Elapsed time display</testid>
+    <testid name="stage-timeline">Stage indicator timeline</testid>
+    <testid name="queue-position">Queue position indicator</testid>
+    <testid name="retry-button">Retry button for failed docs</testid>
+    <testid name="success-indicator">Success checkmark</testid>
+    <testid name="error-message">Error message display</testid>
+  </test-ids>
+</story-context>
