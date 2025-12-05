@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, X, Upload, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import type { DocumentType } from '@/types';
@@ -19,6 +20,7 @@ import { ProcessingQueueSummary } from '@/components/documents/processing-queue-
 import { useDebouncedValue } from '@/hooks/use-debounce';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import { useProcessingProgress } from '@/hooks/use-processing-progress';
+import { useFailureNotifications } from '@/hooks/use-failure-notifications';
 import {
   getDocuments,
   getUserAgencyInfo,
@@ -49,11 +51,14 @@ type DocumentWithLabels = Document & { labels?: Label[] };
  * - AC-F2-6.8: Empty state shows friendly message with upload prompt
  */
 export default function DocumentLibraryPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
+  // Story 11.5 (AC-11.5.4): Filter for failed documents
+  const [statusFilter, setStatusFilter] = useState<'all' | 'failed'>('all');
 
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
@@ -66,12 +71,22 @@ export default function DocumentLibraryPage() {
     agencyId: agencyId || '',
   });
 
+  // Story 11.5 (AC-11.5.3): Toast notifications for processing failures
+  useFailureNotifications({
+    agencyId: agencyId || '',
+    enabled: !!agencyId,
+    onViewDocument: (documentId) => router.push(`/chat-docs/${documentId}`),
+  });
+
   // Story 11.2: Get processing progress for documents with status 'processing'
-  const processingDocumentIds = useMemo(
-    () => documents.filter((d) => d.status === 'processing').map((d) => d.id),
+  // Story 11.5: Also track failed documents to get error messages
+  const trackedDocumentIds = useMemo(
+    () => documents
+      .filter((d) => d.status === 'processing' || d.status === 'failed')
+      .map((d) => d.id),
     [documents]
   );
-  const { progressMap } = useProcessingProgress(processingDocumentIds);
+  const { progressMap, errorMap } = useProcessingProgress(trackedDocumentIds);
 
   // Load documents and user info on mount
   useEffect(() => {
@@ -99,16 +114,27 @@ export default function DocumentLibraryPage() {
   }
 
   // Filter documents by search query (searches name and AI tags)
+  // Story 11.5 (AC-11.5.4): Also filter by status
   const filteredDocuments = useMemo(() => {
-    if (!debouncedQuery.trim()) return documents;
+    let filtered = documents;
 
-    const query = debouncedQuery.toLowerCase();
-    return documents.filter((doc: DocumentWithLabels) => {
-      const name = (doc.display_name || doc.filename).toLowerCase();
-      const tagsMatch = doc.ai_tags?.some(tag => tag.toLowerCase().includes(query)) ?? false;
-      return name.includes(query) || tagsMatch;
-    });
-  }, [documents, debouncedQuery]);
+    // Apply status filter first
+    if (statusFilter === 'failed') {
+      filtered = filtered.filter((doc: DocumentWithLabels) => doc.status === 'failed');
+    }
+
+    // Then apply search query
+    if (debouncedQuery.trim()) {
+      const query = debouncedQuery.toLowerCase();
+      filtered = filtered.filter((doc: DocumentWithLabels) => {
+        const name = (doc.display_name || doc.filename).toLowerCase();
+        const tagsMatch = doc.ai_tags?.some(tag => tag.toLowerCase().includes(query)) ?? false;
+        return name.includes(query) || tagsMatch;
+      });
+    }
+
+    return filtered;
+  }, [documents, debouncedQuery, statusFilter]);
 
   // Handle file upload
   const handleFilesAccepted = useCallback((files: File[]) => {
@@ -265,13 +291,18 @@ export default function DocumentLibraryPage() {
           </div>
 
           {/* Story 11.4 (AC-11.4.3): Processing Queue Summary */}
+          {/* Story 11.5 (AC-11.5.4): Click on failed count to filter */}
           {agencyId && (
-            <ProcessingQueueSummary agencyId={agencyId} className="mt-4 max-w-md" />
+            <ProcessingQueueSummary
+              agencyId={agencyId}
+              className="mt-4 max-w-md"
+              onFilterFailed={() => setStatusFilter('failed')}
+            />
           )}
 
-          {/* Search bar */}
-          <div className="mt-4 max-w-md">
-            <div className="relative">
+          {/* Search bar and filter indicator */}
+          <div className="mt-4 flex items-center gap-3 max-w-md">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"
@@ -291,6 +322,19 @@ export default function DocumentLibraryPage() {
                 </button>
               )}
             </div>
+
+            {/* Story 11.5 (AC-11.5.4): Status filter indicator */}
+            {statusFilter === 'failed' && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-full bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                data-testid="clear-failed-filter"
+              >
+                <X className="h-3 w-3" />
+                Failed only
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -378,6 +422,8 @@ export default function DocumentLibraryPage() {
                   ai_summary: doc.ai_summary,
                   carrier_name: (extraction?.carrierName as string) ?? null,
                   annual_premium: (extraction?.annualPremium as number) ?? null,
+                  // Story 11.5: Include error message for failed documents
+                  error_message: errorMap.get(doc.id) ?? null,
                 };
               })}
             />

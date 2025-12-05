@@ -1,0 +1,272 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>5</storyId>
+    <title>Error Handling &amp; User Feedback</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-11.5-error-handling-user-feedback.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user whose document failed to process</asA>
+    <iWant>clear error messages and actionable feedback</iWant>
+    <soThat>I understand what went wrong and what to do next</soThat>
+    <tasks>
+      <task id="1" ac="11.5.1">
+        <name>Error Classification</name>
+        <subtasks>
+          <subtask>Implement classifyError function (extend from 11.3 foundation)</subtask>
+          <subtask>Add error_category column to processing_jobs</subtask>
+          <subtask>Update Edge Function to classify and store errors</subtask>
+          <subtask>Test: Unit tests for error classification edge cases</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="11.5.2">
+        <name>Error Messages</name>
+        <subtasks>
+          <subtask>Define user-friendly message for each error type</subtask>
+          <subtask>Create getErrorUserMessage function</subtask>
+          <subtask>Add suggested actions to messages</subtask>
+          <subtask>Test: Unit tests for message generation</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="11.5.3">
+        <name>Toast Notifications</name>
+        <subtasks>
+          <subtask>Subscribe to processing_job failures</subtask>
+          <subtask>Show toast when document fails</subtask>
+          <subtask>Include document name in toast</subtask>
+          <subtask>Test: Component test for toast trigger</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="11.5.3,11.5.5">
+        <name>Error Display</name>
+        <subtasks>
+          <subtask>Add error indicator to document list item</subtask>
+          <subtask>Create error tooltip/popover component</subtask>
+          <subtask>Style error states consistently</subtask>
+          <subtask>Test: Component tests for DocumentError, tooltip</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="11.5.4">
+        <name>Processing Summary</name>
+        <subtasks>
+          <subtask>Create ProcessingSummary component</subtask>
+          <subtask>Calculate success/failure counts</subtask>
+          <subtask>Add failed documents filter</subtask>
+          <subtask>Test: Component tests for summary, filter behavior</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="11.5.1-11.5.5">
+        <name>Integration Testing</name>
+        <subtasks>
+          <subtask>E2E test: Document fails - toast appears</subtask>
+          <subtask>E2E test: Failed filter shows only failed docs</subtask>
+          <subtask>E2E test: Error tooltip shows correct message</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="11.5.1" name="Error Categorization">
+      <requirement>Classify errors into transient, recoverable, permanent categories</requirement>
+      <requirement>Store error category in processing_job record</requirement>
+      <requirement>Category determines retry behavior and user messaging</requirement>
+    </criterion>
+    <criterion id="11.5.2" name="User-Friendly Messages">
+      <requirement>Each error category has clear, non-technical message</requirement>
+      <requirement>Messages include suggested action when applicable</requirement>
+      <requirement>No raw error codes or stack traces shown to users</requirement>
+    </criterion>
+    <criterion id="11.5.3" name="Error Notifications">
+      <requirement>Toast notification when document processing fails</requirement>
+      <requirement>Failed documents show error indicator in document list</requirement>
+      <requirement>Error details available on hover/click</requirement>
+    </criterion>
+    <criterion id="11.5.4" name="Processing Summary">
+      <requirement>Documents page shows success/failure summary</requirement>
+      <requirement>"X of Y documents processed successfully"</requirement>
+      <requirement>Quick filter to show only failed documents</requirement>
+    </criterion>
+    <criterion id="11.5.5" name="Error Icons &amp; Styling">
+      <requirement>Failed documents show red error icon</requirement>
+      <requirement>Error message styled consistently</requirement>
+      <requirement>Visual hierarchy: error state is prominent but not alarming</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/epics/epic-11-processing-reliability-enhanced-progress.md</path>
+        <title>Epic 11: Processing Reliability &amp; Enhanced Progress</title>
+        <section>Story 11.5: Error Handling &amp; User Feedback</section>
+        <snippet>Error Categories: Transient (retry automatically), Recoverable (user action), Permanent (need support). ACs include categorization, user messages, notifications, summary, styling.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/consistency-rules.md</path>
+        <title>Consistency Rules</title>
+        <section>Error Handling</section>
+        <snippet>Use custom error classes with error codes. API routes return {data, error} format. Log unexpected errors, return generic message to users.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>API Response Format</section>
+        <snippet>Error response: { data: null, error: { code: string, message: string, details?: unknown } }. Used for all API endpoints.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/uiux-architecture.md</path>
+        <title>UI/UX Architecture</title>
+        <section>Empty State Variants</section>
+        <snippet>EmptyStateVariant includes 'error' type: "Something went wrong". Each variant has icon, headline, description, optional CTA.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-11.3-reliable-job-recovery.md</path>
+        <title>Story 11.3: Reliable Job Recovery</title>
+        <section>Error Classification Foundation</section>
+        <snippet>Already implements classifyError() in Edge Function with ErrorCategory type. Error patterns: timeout, rate limit, ECONNRESET, password protected, corrupted. 16 unit tests.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-11.4-processing-queue-visualization.md</path>
+        <title>Story 11.4: Processing Queue Visualization</title>
+        <section>ProcessingQueueSummary Component</section>
+        <snippet>Shows pending/processing/completed/failed counts with realtime updates. Collapsible details. Use as pattern for ProcessingSummary component.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/documents/processing-queue-summary.tsx</path>
+        <kind>component</kind>
+        <symbol>ProcessingQueueSummary</symbol>
+        <lines>1-243</lines>
+        <reason>Pattern for ProcessingSummary component. Shows queue status with realtime updates, collapsible details. Already shows failed count.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/processing-progress.tsx</path>
+        <kind>component</kind>
+        <symbol>ProcessingProgress</symbol>
+        <lines>141-170</lines>
+        <reason>Already handles failed state with error message display and retry button. Extend for classified error display with suggested actions.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-processing-progress.ts</path>
+        <kind>hook</kind>
+        <symbol>useProcessingProgress</symbol>
+        <lines>117-128</lines>
+        <reason>Exports errorMap for document-to-error mapping. Extend with classified error data including category, code, user message.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-list-item.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentListItem</symbol>
+        <reason>Needs error indicator added for failed documents. Uses ProcessingProgress for status display.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/documents/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentsPage</symbol>
+        <reason>Mount ProcessingSummary and ProcessingFailureNotifier components. Add filter state for failed documents.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/sonner.tsx</path>
+        <kind>component</kind>
+        <symbol>Toaster</symbol>
+        <reason>Sonner toast provider. Use toast.error() for failure notifications.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>processDocument</symbol>
+        <reason>Update error handler to classify and store error_category, error_code in processing_jobs table.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="sonner" version="^2.0.7">Toast notifications library</package>
+        <package name="lucide-react" version="^0.554.0">Icons for error states (AlertCircle, RefreshCw)</package>
+        <package name="@radix-ui/react-tooltip" version="^1.2.8">Tooltip for error details on hover</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Realtime subscription for failure events</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>ClassifiedError</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ClassifiedError { category: ErrorCategory; code: string; message: string; userMessage: string; suggestedAction: string | null; shouldAutoRetry: boolean; }</signature>
+      <path>src/lib/documents/error-classification.ts</path>
+    </interface>
+    <interface>
+      <name>ErrorCategory</name>
+      <kind>TypeScript type</kind>
+      <signature>type ErrorCategory = 'transient' | 'recoverable' | 'permanent';</signature>
+      <path>src/lib/documents/error-classification.ts</path>
+    </interface>
+    <interface>
+      <name>toast.error</name>
+      <kind>Function</kind>
+      <signature>toast.error(message: string, options?: { description?: string; duration?: number; action?: { label: string; onClick: () => void } })</signature>
+      <path>sonner library</path>
+    </interface>
+    <interface>
+      <name>Supabase Realtime</name>
+      <kind>Subscription</kind>
+      <signature>supabase.channel('name').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'processing_jobs', filter: 'status=eq.failed' }, callback).subscribe()</signature>
+      <path>@supabase/supabase-js</path>
+    </interface>
+    <interface>
+      <name>Retry API</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/documents/[id]/retry - Resets failed job to pending for retry</signature>
+      <path>src/app/api/documents/[id]/retry/route.ts</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Follow ProcessingQueueSummary component structure for ProcessingSummary</constraint>
+    <constraint type="pattern">Extend existing classifyError() from Story 11.3 - do not recreate</constraint>
+    <constraint type="pattern">Use sonner toast.error() for notifications (already used throughout app)</constraint>
+    <constraint type="pattern">Error colors: red-500 for icons, red-50 for backgrounds (per UI/UX architecture)</constraint>
+    <constraint type="database">Add error_category varchar(20) CHECK IN ('transient','recoverable','permanent') to processing_jobs</constraint>
+    <constraint type="database">Add error_code varchar(50) to processing_jobs for specific error identification</constraint>
+    <constraint type="testing">Maintain 1514+ test baseline (current count after Story 11.4)</constraint>
+    <constraint type="accessibility">WCAG AA: Use aria-labels on error icons, aria-describedby for tooltips</constraint>
+    <constraint type="performance">Toast notifications must not block UI - use async subscription</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Tests use Vitest with React Testing Library. Component tests mock Supabase client. E2E tests use Playwright. Run with 'npm run test' (Vitest) or 'npx playwright test'. Follow existing test patterns in __tests__ directory. Mock realtime subscriptions for unit tests.
+    </standards>
+    <locations>
+      <location>__tests__/components/documents/*.test.tsx</location>
+      <location>__tests__/hooks/*.test.ts</location>
+      <location>__tests__/lib/documents/*.test.ts</location>
+      <location>__tests__/e2e/*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="11.5.1">Test classifyError() with all error patterns: timeout, rate limit, PDF format, password protected, corrupted, too large, unknown</idea>
+      <idea ac="11.5.1">Test error_category column is populated correctly in processing_jobs</idea>
+      <idea ac="11.5.2">Test getErrorUserMessage() returns non-technical messages for each error code</idea>
+      <idea ac="11.5.2">Test suggested actions are present for recoverable errors, null for transient</idea>
+      <idea ac="11.5.3">Test toast.error() called when processing_job status changes to 'failed'</idea>
+      <idea ac="11.5.3">Test toast includes document name from documents table</idea>
+      <idea ac="11.5.4">Test DocumentError component renders error icon, message, suggested action</idea>
+      <idea ac="11.5.4">Test tooltip shows error details on hover</idea>
+      <idea ac="11.5.4">Test ProcessingSummary shows correct success/failure counts</idea>
+      <idea ac="11.5.4">Test failed filter shows only documents with status='failed'</idea>
+      <idea ac="11.5.5">Test error icon uses AlertCircle with text-red-600 class</idea>
+      <idea ac="11.5.5">Test error background uses bg-red-50 class</idea>
+      <idea ac="e2e">E2E: Upload document, simulate failure, verify toast appears within 5s</idea>
+      <idea ac="e2e">E2E: Click failed filter, verify only failed documents shown</idea>
+      <idea ac="e2e">E2E: Hover error icon, verify tooltip shows user message and suggested action</idea>
+    </ideas>
+  </tests>
+</story-context>

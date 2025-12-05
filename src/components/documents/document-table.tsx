@@ -53,6 +53,8 @@ export interface DocumentTableRow {
   carrier_name: string | null;
   /** Story 10.12: Annual premium from extraction_data */
   annual_premium: number | null;
+  /** Story 11.5: Error message for failed documents */
+  error_message?: string | null;
 }
 
 interface DocumentTableProps {
@@ -143,7 +145,13 @@ export function DocumentTable({ documents, progressMap, onRename, onDelete }: Do
             return <ProcessingProgress progressData={progressData} className="min-w-[140px]" />;
           }
 
-          return <DocumentStatusBadge status={status as DocumentStatusType} />;
+          // Story 11.5 (AC-11.5.3, AC-11.5.5): Pass error message for user-friendly display
+          return (
+            <DocumentStatusBadge
+              status={status as DocumentStatusType}
+              errorMessage={row.original.error_message || undefined}
+            />
+          );
         },
       },
       {

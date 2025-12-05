@@ -149,7 +149,8 @@ describe('ProcessingQueueSummary', () => {
       expect(screen.getByTestId('queue-summary')).toBeInTheDocument();
     });
 
-    const button = screen.getByRole('button');
+    // Use aria-expanded to find the toggle button specifically
+    const button = screen.getByRole('button', { name: /processing queue/i });
 
     // First click - expand
     fireEvent.click(button);
@@ -173,8 +174,8 @@ describe('ProcessingQueueSummary', () => {
       expect(screen.getByTestId('queue-summary')).toBeInTheDocument();
     });
 
-    // Expand details
-    const button = screen.getByRole('button');
+    // Expand details using the main toggle button
+    const button = screen.getByRole('button', { name: /processing queue/i });
     fireEvent.click(button);
 
     // Should show estimated time (3 pending * 2 min = 6 min)
@@ -215,7 +216,7 @@ describe('ProcessingQueueSummary', () => {
     expect(screen.getByTestId('queue-failed-count')).toHaveTextContent('1');
 
     // Expand and check details
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: /processing queue/i }));
     const details = screen.getByTestId('queue-details');
     expect(details).toHaveTextContent('Waiting:');
     expect(details).toHaveTextContent('Processing:');
@@ -267,7 +268,7 @@ describe('ProcessingQueueSummary', () => {
       expect(screen.getByTestId('queue-summary')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button', { name: /processing queue/i }));
 
     expect(screen.getByTestId('estimated-wait')).toHaveTextContent('1 document');
     expect(screen.getByTestId('estimated-wait')).not.toHaveTextContent('documents');

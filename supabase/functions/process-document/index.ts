@@ -58,55 +58,78 @@ const USER_FRIENDLY_ERRORS: Record<string, string> = {
 };
 
 // Story 11.3 (AC-11.3.4): Error classification
+// Story 11.5 (AC-11.5.1): Extended error classification with categories
 // PERMANENT errors should NOT be auto-retried (user action required)
 // TRANSIENT errors can be auto-retried by stuck job detector
+// RECOVERABLE errors need user action (re-upload corrected file)
 type ErrorType = 'permanent' | 'transient';
+type ErrorCategory = 'transient' | 'recoverable' | 'permanent';
 
 /**
- * Patterns indicating permanent errors (document issues, not infrastructure)
- * These should NOT be auto-retried since re-processing won't help
+ * Extended error classification result
+ * Story 11.5 (AC-11.5.1): Structured error with category, code, and user message
  */
-const PERMANENT_ERROR_PATTERNS = [
-  // PDF format issues
-  'page-dimensions',
-  'mediabox',
-  'libpdfium',
-  'invalid pdf',
-  'corrupt',
-  'corrupted',
-  'malformed',
-  'damaged',
-  // Unsupported formats
-  'unsupported format',
-  'not supported',
-  'file format',
-  'invalid file',
-  // Content issues
-  'empty document',
-  'no content',
-  'password protected',
-  'encrypted',
-  // Permanent service errors
-  '400 bad request',
-  '422',
-  '415 unsupported',
-] as const;
+interface ClassifiedError {
+  /** Legacy error type for backward compat (permanent/transient) */
+  errorType: ErrorType;
+  /** Error category for user messaging (transient/recoverable/permanent) */
+  category: ErrorCategory;
+  /** Machine-readable error code */
+  code: string;
+  /** Whether this error should trigger automatic retry */
+  shouldAutoRetry: boolean;
+}
 
 /**
- * Classify an error as permanent or transient
+ * Error classification patterns organized by code
+ * Story 11.5 (AC-11.5.1): Pattern-based error classification
+ */
+const ERROR_CLASSIFICATION_PATTERNS: Array<{
+  pattern: RegExp;
+  code: string;
+  category: ErrorCategory;
+  shouldAutoRetry: boolean;
+}> = [
+  // TRANSIENT errors - automatic retry
+  { pattern: /timeout|timed?\s*out/i, code: 'TIMEOUT', category: 'transient', shouldAutoRetry: true },
+  { pattern: /429|rate.?limit|too many requests/i, code: 'RATE_LIMIT', category: 'transient', shouldAutoRetry: true },
+  { pattern: /ECONNRESET|ECONNREFUSED|network|connection/i, code: 'CONNECTION_ERROR', category: 'transient', shouldAutoRetry: true },
+  { pattern: /503|service unavailable|temporarily unavailable/i, code: 'SERVICE_UNAVAILABLE', category: 'transient', shouldAutoRetry: true },
+
+  // RECOVERABLE errors - user action needed
+  { pattern: /page-dimensions|MediaBox|libpdfium|CropBox/i, code: 'PDF_FORMAT_ERROR', category: 'recoverable', shouldAutoRetry: false },
+  { pattern: /password/i, code: 'PASSWORD_PROTECTED', category: 'recoverable', shouldAutoRetry: false },
+  { pattern: /unsupported.*format|invalid.*file|not supported/i, code: 'UNSUPPORTED_FORMAT', category: 'recoverable', shouldAutoRetry: false },
+  { pattern: /corrupt|corrupted|damaged|malformed/i, code: 'FILE_CORRUPTED', category: 'recoverable', shouldAutoRetry: false },
+  { pattern: /too.?large|size.?exceeded|maximum.*size/i, code: 'FILE_TOO_LARGE', category: 'recoverable', shouldAutoRetry: false },
+  { pattern: /empty|no content|no text/i, code: 'EMPTY_DOCUMENT', category: 'recoverable', shouldAutoRetry: false },
+
+  // PERMANENT errors - needs support
+  { pattern: /max.*retr|retries?\s*exceeded/i, code: 'MAX_RETRIES_EXCEEDED', category: 'permanent', shouldAutoRetry: false },
+];
+
+/**
+ * Classify an error message into structured classification
  * Story 11.3 (AC-11.3.4): Error classification for smart retry behavior
+ * Story 11.5 (AC-11.5.1): Extended classification with category and code
  */
-function classifyError(errorMessage: string): ErrorType {
-  const lowerMessage = errorMessage.toLowerCase();
-
-  for (const pattern of PERMANENT_ERROR_PATTERNS) {
-    if (lowerMessage.includes(pattern.toLowerCase())) {
-      return 'permanent';
+function classifyError(errorMessage: string): ClassifiedError {
+  // Find matching pattern
+  for (const { pattern, code, category, shouldAutoRetry } of ERROR_CLASSIFICATION_PATTERNS) {
+    if (pattern.test(errorMessage)) {
+      // Map category to legacy error type for backward compat
+      const errorType: ErrorType = category === 'transient' ? 'transient' : 'permanent';
+      return { errorType, category, code, shouldAutoRetry };
     }
   }
 
-  // Default to transient (infrastructure issues, timeouts, etc. can be retried)
-  return 'transient';
+  // Default to unknown/permanent error
+  return {
+    errorType: 'permanent',
+    category: 'permanent',
+    code: 'UNKNOWN',
+    shouldAutoRetry: false,
+  };
 }
 
 // Story 5.12: Progress reporting configuration
@@ -522,21 +545,24 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    const errorType = classifyError(err.message);
+    const classification = classifyError(err.message);
 
     // Story 11.3 (AC-11.3.5): Structured logging with error classification
+    // Story 11.5 (AC-11.5.1): Extended logging with category and code
     log.error('Processing failed', err, {
       documentId,
       agencyId,
-      errorType,
-      isRetryable: errorType === 'transient',
+      errorType: classification.errorType,
+      errorCategory: classification.category,
+      errorCode: classification.code,
+      isRetryable: classification.shouldAutoRetry,
       step: 'unknown',
     });
 
     // Update document and job status to failed with error classification
     try {
       await updateDocumentStatus(supabase, documentId, 'failed');
-      await updateJobStatus(supabase, documentId, 'failed', err.message, errorType);
+      await updateJobStatus(supabase, documentId, 'failed', err.message, classification);
     } catch (updateError) {
       log.error('Failed to update failure status', updateError as Error, { documentId });
     }
@@ -552,7 +578,13 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: err.message, errorType }),
+      JSON.stringify({
+        success: false,
+        error: err.message,
+        errorType: classification.errorType,
+        errorCategory: classification.category,
+        errorCode: classification.code,
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -1298,7 +1330,7 @@ async function updateJobStatus(
   documentId: string,
   status: 'pending' | 'processing' | 'completed' | 'failed',
   errorMessage?: string,
-  errorType?: ErrorType
+  classification?: ClassifiedError
 ): Promise<void> {
   const updateData: Record<string, unknown> = { status };
 
@@ -1313,8 +1345,12 @@ async function updateJobStatus(
   }
 
   // Story 11.3 (AC-11.3.4): Set error_type for classification
+  // Story 11.5 (AC-11.5.1): Set error_category and error_code for extended classification
   if (status === 'failed' && errorMessage) {
-    updateData.error_type = errorType || classifyError(errorMessage);
+    const classificationResult = classification || classifyError(errorMessage);
+    updateData.error_type = classificationResult.errorType;
+    updateData.error_category = classificationResult.category;
+    updateData.error_code = classificationResult.code;
   }
 
   const { error } = await supabase

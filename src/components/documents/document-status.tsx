@@ -1,7 +1,13 @@
 'use client';
 
-import { CheckCircle2, XCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, Trash2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { classifyError, type ErrorCategory } from '@/lib/documents/error-classification';
 
 export type DocumentStatusType = 'uploading' | 'processing' | 'ready' | 'failed';
 
@@ -172,14 +178,31 @@ export function DocumentStatusBadge({
       );
 
     case 'failed':
+      // Story 11.5 (AC-11.5.3, AC-11.5.5): User-friendly error with tooltip
+      const classification = errorMessage ? classifyError(errorMessage) : null;
+      const userMessage = classification?.userMessage || 'Processing failed';
+      const suggestedAction = classification?.suggestedAction || null;
+
       return (
-        <span
-          className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
-          title={errorMessage}
-        >
-          <XCircle className="h-3 w-3" />
-          Failed
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 cursor-help"
+              data-testid="failed-status-badge"
+            >
+              <XCircle className="h-3 w-3" />
+              Failed
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-[280px]" data-testid="error-tooltip">
+            <div className="space-y-1">
+              <p className="font-medium text-sm">{userMessage}</p>
+              {suggestedAction && (
+                <p className="text-xs text-slate-400">{suggestedAction}</p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
       );
 
     default:

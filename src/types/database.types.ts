@@ -458,7 +458,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           document_id: string
+          error_category: string | null
+          error_code: string | null
           error_message: string | null
+          error_type: string | null
           id: string
           progress_data: Json | null
           progress_percent: number | null
@@ -472,7 +475,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           document_id: string
+          error_category?: string | null
+          error_code?: string | null
           error_message?: string | null
+          error_type?: string | null
           id?: string
           progress_data?: Json | null
           progress_percent?: number | null
@@ -486,7 +492,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           document_id?: string
+          error_category?: string | null
+          error_code?: string | null
           error_message?: string | null
+          error_type?: string | null
           id?: string
           progress_data?: Json | null
           progress_percent?: number | null
@@ -637,7 +646,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           document_id: string
+          error_category: string | null
+          error_code: string | null
           error_message: string | null
+          error_type: string | null
           id: string
           progress_data: Json | null
           progress_percent: number | null
@@ -687,6 +699,7 @@ export type Database = {
         }[]
       }
       process_next_document_job: { Args: never; Returns: undefined }
+      reset_stuck_processing_jobs: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

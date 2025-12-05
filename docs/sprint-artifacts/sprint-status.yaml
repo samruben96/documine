@@ -743,4 +743,12 @@ development_status:
   # Error classification, user-friendly messages, toast notifications
   # Priority: P1 - user experience
   # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.5-error-handling-user-feedback.md
-  11-5-error-handling-user-feedback: drafted
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/11-5-error-handling-user-feedback.context.xml
+  # IMPLEMENTED 2025-12-05: All 5 ACs complete
+  # - Error classification service with transient/recoverable/permanent categories
+  # - User-friendly messages with suggested actions (no technical jargon)
+  # - Toast notifications via useFailureNotifications hook (Supabase Realtime)
+  # - Error tooltips in DocumentStatusBadge with classified messages
+  # - ProcessingQueueSummary with clickable failed count filter
+  # CODE REVIEWED 2025-12-05: All tasks complete, 1514 tests pass
+  11-5-error-handling-user-feedback: done

@@ -143,12 +143,14 @@ describe('DocumentStatusBadge', () => {
     expect(screen.getByText('Ready')).toBeInTheDocument();
   });
 
-  it('renders failed badge with error message in tooltip', () => {
-    const { container } = render(
+  it('renders failed badge with error tooltip', async () => {
+    render(
       <DocumentStatusBadge status="failed" errorMessage="Test error" />
     );
     expect(screen.getByText('Failed')).toBeInTheDocument();
-    const badge = container.querySelector('[title="Test error"]');
+    // Story 11.5: Badge uses Tooltip with user-friendly message instead of title attribute
+    const badge = screen.getByTestId('failed-status-badge');
     expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('cursor-help'); // Indicates tooltip available
   });
 });

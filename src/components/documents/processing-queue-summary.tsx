@@ -21,6 +21,8 @@ interface ProcessingQueueSummaryProps {
   className?: string;
   /** Agency ID to filter queue (optional, uses current user's agency if not provided) */
   agencyId?: string;
+  /** Story 11.5 (AC-11.5.4): Callback when user clicks on failed count to filter */
+  onFilterFailed?: () => void;
 }
 
 /**
@@ -37,7 +39,7 @@ interface ProcessingQueueSummaryProps {
  * - Collapsible details section
  * - Only visible when there's activity (pending/processing/failed)
  */
-export function ProcessingQueueSummary({ className, agencyId }: ProcessingQueueSummaryProps) {
+export function ProcessingQueueSummary({ className, agencyId, onFilterFailed }: ProcessingQueueSummaryProps) {
   const [summary, setSummary] = useState<QueueSummary | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -167,8 +169,22 @@ export function ProcessingQueueSummary({ className, agencyId }: ProcessingQueueS
 
           {summary.failed > 0 && (
             <span
-              className="flex items-center gap-1 text-red-600"
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onFilterFailed?.();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onFilterFailed?.();
+                }
+              }}
+              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:underline cursor-pointer"
               data-testid="queue-failed-count"
+              title="Click to filter failed documents"
             >
               <AlertCircle className="h-3.5 w-3.5" />
               <span>{summary.failed}</span>
@@ -219,14 +235,20 @@ export function ProcessingQueueSummary({ className, agencyId }: ProcessingQueueS
               </span>
             </div>
 
-            {/* Failed (24h) */}
-            <div className="flex items-center gap-2">
+            {/* Failed (24h) - Story 11.5 (AC-11.5.4): Clickable to filter */}
+            <button
+              type="button"
+              onClick={() => onFilterFailed?.()}
+              className="flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded px-1 -mx-1 transition-colors"
+              data-testid="queue-failed-detail"
+              title="Click to filter failed documents"
+            >
               <AlertCircle className="h-4 w-4 text-red-500" />
               <span className="text-slate-600 dark:text-slate-400">Failed:</span>
               <span className="font-medium text-slate-800 dark:text-slate-200">
                 {summary.failed}
               </span>
-            </div>
+            </button>
           </div>
 
           {/* Estimated time hint */}
