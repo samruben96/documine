@@ -7,7 +7,7 @@
 **Added:** 2025-12-02 based on Epic 5 Full Retrospective (Party Mode Analysis)
 **Updated:** 2025-12-02 - Added UI Polish stories (6.5-6.9) based on Party Mode UI exploration
 
-**Tech Spec:** `docs/sprint-artifacts/tech-spec-epic-6.md`
+**Tech Spec:** `docs/sprint-artifacts/epics/epic-6/tech-spec/`
 **Research:** `docs/research-ui-best-practices-2025-12-02.md`
 
 ---
@@ -253,6 +253,6 @@ So that **the application feels professional, inviting, and easy to use**.
 - Update shadcn/ui component variants
 - Spacing audit across major views
 - Effort: M (4-6 hours)
-- Full story: `docs/sprint-artifacts/story-6.8-design-system-refresh.md`
+- Full story: `docs/sprint-artifacts/epics/epic-6/stories/story-6.8-design-system-refresh/`
 
 ---

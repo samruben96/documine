@@ -366,4 +366,4 @@ export function useProcessingJob(documentId: string) {
 - [Supabase pg_cron Documentation](https://supabase.com/docs/guides/database/extensions/pg_cron)
 - [Supabase Realtime](https://supabase.com/docs/guides/realtime)
 - [PostgreSQL SKIP LOCKED](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE)
-- [Epic 10 Retrospective](../sprint-artifacts/epic-10-retrospective.md) - Root cause analysis
+- [Epic 10 Retrospective](../sprint-artifacts/retrospectives/epic-10-retrospective.md) - Root cause analysis

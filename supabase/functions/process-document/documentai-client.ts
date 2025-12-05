@@ -34,6 +34,102 @@ export interface DocumentAIConfig {
   processorId: string;
 }
 
+// ============================================================================
+// Document AI Response Types (Story 12.2)
+// ============================================================================
+
+/**
+ * Bounding polygon for layout elements.
+ */
+export interface DocumentAIBoundingPoly {
+  normalizedVertices: Array<{
+    x: number;
+    y: number;
+  }>;
+}
+
+/**
+ * Text anchor referencing segments in the full document text.
+ */
+export interface DocumentAITextAnchor {
+  textSegments: Array<{
+    startIndex?: string;
+    endIndex?: string;
+  }>;
+}
+
+/**
+ * Layout information for a document element.
+ */
+export interface DocumentAILayout {
+  textAnchor: DocumentAITextAnchor;
+  boundingPoly: DocumentAIBoundingPoly;
+  confidence: number;
+}
+
+/**
+ * Paragraph element within a page.
+ */
+export interface DocumentAIParagraph {
+  layout: DocumentAILayout;
+}
+
+/**
+ * Table cell within a table.
+ */
+export interface DocumentAITableCell {
+  layout: DocumentAILayout;
+  rowSpan?: number;
+  colSpan?: number;
+}
+
+/**
+ * Table row containing cells.
+ */
+export interface DocumentAITableRow {
+  cells: DocumentAITableCell[];
+}
+
+/**
+ * Table element within a page.
+ */
+export interface DocumentAITable {
+  layout: DocumentAILayout;
+  headerRows: DocumentAITableRow[];
+  bodyRows: DocumentAITableRow[];
+}
+
+/**
+ * Page dimension information.
+ */
+export interface DocumentAIPageDimension {
+  width: number;
+  height: number;
+  unit: string;
+}
+
+/**
+ * Single page within the document.
+ */
+export interface DocumentAIPage {
+  pageNumber: number;
+  dimension: DocumentAIPageDimension;
+  layout: DocumentAILayout;
+  paragraphs: DocumentAIParagraph[];
+  tables: DocumentAITable[];
+}
+
+/**
+ * Document AI process response structure.
+ * Matches the API response schema.
+ */
+export interface DocumentAIProcessResponse {
+  document: {
+    text: string;
+    pages: DocumentAIPage[];
+  };
+}
+
 interface AccessTokenCache {
   token: string;
   expiresAt: number;
@@ -475,3 +571,203 @@ const log = {
 };
 
 export { log };
+
+// ============================================================================
+// Document AI Parsing Service (Story 12.2)
+// ============================================================================
+
+/**
+ * Encode Uint8Array to base64 string.
+ * Handles large files by processing in chunks to avoid stack overflow.
+ * AC-12.2.2: Base64 encoding handles large files without memory issues
+ */
+export function encodeToBase64(buffer: Uint8Array): string {
+  // For large files, process in chunks to avoid stack overflow with String.fromCharCode
+  const CHUNK_SIZE = 0x8000; // 32KB chunks
+  let result = '';
+
+  for (let i = 0; i < buffer.length; i += CHUNK_SIZE) {
+    const chunk = buffer.subarray(i, i + CHUNK_SIZE);
+    result += String.fromCharCode(...chunk);
+  }
+
+  return btoa(result);
+}
+
+/**
+ * Check if an error code is transient and should be retried.
+ * AC-12.2.5: Only retry transient errors
+ */
+export function isTransientError(code: DocumentAIErrorCode): boolean {
+  return ['NETWORK_ERROR', 'TIMEOUT', 'QUOTA_EXCEEDED'].includes(code);
+}
+
+/**
+ * Check if HTTP status code indicates a transient error.
+ */
+function isTransientHttpStatus(status: number): boolean {
+  return status >= 500 || status === 429;
+}
+
+/**
+ * Sleep utility for retry backoff.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** Timeout for Document AI API calls in milliseconds (60 seconds) */
+const DOCUMENT_AI_TIMEOUT_MS = 60000;
+
+/**
+ * Parse a PDF document using Document AI.
+ * AC-12.2.1: Encapsulates Document AI API call
+ * AC-12.2.2: Encodes PDF as base64
+ * AC-12.2.3: Returns typed response
+ * AC-12.2.4: Uses AbortController for 60s timeout
+ *
+ * @param pdfBuffer - PDF document as Uint8Array
+ * @returns Parsed document response
+ */
+export async function parseDocumentWithDocumentAI(
+  pdfBuffer: Uint8Array
+): Promise<DocumentAIProcessResponse> {
+  const startTime = Date.now();
+
+  // Get configuration and auth token
+  const config = getDocumentAIConfig();
+  const serviceAccount = getServiceAccountKey();
+  const accessToken = await getAccessToken(serviceAccount);
+
+  // Build API endpoint
+  const endpoint = `https://${config.location}-documentai.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/processors/${config.processorId}:process`;
+
+  // Encode PDF to base64 (AC-12.2.2)
+  const base64Content = encodeToBase64(pdfBuffer);
+
+  // Construct request body
+  const requestBody = {
+    rawDocument: {
+      content: base64Content,
+      mimeType: 'application/pdf',
+    },
+  };
+
+  // Create AbortController with 60s timeout (AC-12.2.4)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DOCUMENT_AI_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    // Clear timeout on successful response
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = `Document AI API error: ${response.status}`;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorMessage;
+      } catch {
+        errorMessage = `${errorMessage} - ${errorText}`;
+      }
+
+      // For HTTP errors, throw with status for classification
+      const error = new Error(errorMessage);
+      (error as Error & { status?: number }).status = response.status;
+      throw error;
+    }
+
+    const result = await response.json() as DocumentAIProcessResponse;
+
+    // Log success metrics
+    const processingTime = Date.now() - startTime;
+    const pageCount = result.document?.pages?.length || 0;
+
+    log.info('Document AI parsing completed', {
+      processingTimeMs: processingTime,
+      pageCount,
+      textLength: result.document?.text?.length || 0,
+    });
+
+    return result;
+
+  } catch (error) {
+    // Clear timeout on error
+    clearTimeout(timeoutId);
+
+    // Handle abort/timeout error (AC-12.2.4)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Document AI request timed out after ${DOCUMENT_AI_TIMEOUT_MS / 1000} seconds`);
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Parse a PDF document with retry logic.
+ * AC-12.2.5: 2 retries with exponential backoff (1s, 2s)
+ *
+ * @param pdfBuffer - PDF document as Uint8Array
+ * @param maxRetries - Maximum number of retry attempts (default: 2)
+ * @returns Parsed document response
+ */
+export async function parseDocumentWithRetry(
+  pdfBuffer: Uint8Array,
+  maxRetries = 2
+): Promise<DocumentAIProcessResponse> {
+  const delays = [1000, 2000]; // Exponential backoff delays
+  const errors: Error[] = [];
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await parseDocumentWithDocumentAI(pdfBuffer);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      errors.push(err);
+
+      // Classify the error
+      const classified = classifyDocumentAIError(err);
+
+      // Check if HTTP status indicates transient error
+      const httpStatus = (err as Error & { status?: number }).status;
+      const isHttpTransient = httpStatus ? isTransientHttpStatus(httpStatus) : false;
+
+      // Only retry transient errors (AC-12.2.5)
+      const shouldRetry = isTransientError(classified.code) || isHttpTransient;
+
+      if (!shouldRetry || attempt === maxRetries) {
+        // Non-transient error or final attempt - throw with accumulated error info
+        const finalError = new Error(
+          `Document AI parsing failed after ${attempt + 1} attempt(s): ${err.message}`
+        );
+        (finalError as Error & { attempts?: Error[] }).attempts = errors;
+        throw finalError;
+      }
+
+      // Log retry attempt
+      const delay = delays[attempt];
+      log.info(`Retry attempt ${attempt + 1}/${maxRetries}`, {
+        errorCode: classified.code,
+        errorMessage: err.message,
+        delayMs: delay,
+      });
+
+      await sleep(delay);
+    }
+  }
+
+  // Should never reach here, but TypeScript needs this
+  throw new Error('Unexpected: retry loop completed without return or throw');
+}

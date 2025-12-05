@@ -1,0 +1,204 @@
+<story-context id="12-2-document-ai-parsing-service" v="1.0">
+  <metadata>
+    <epicId>12</epicId>
+    <storyId>2</storyId>
+    <title>Create Document AI Parsing Service</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-12.2-document-ai-parsing-service.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>document processing system</asA>
+    <iWant>a TypeScript service that calls the Document AI API to parse PDF documents</iWant>
+    <soThat>documents are processed reliably with proper timeout and retry handling</soThat>
+    <tasks>
+      <task id="1" ac="12.2.3">Define Response Type Interfaces
+        <subtask>Create DocumentAIProcessResponse interface in documentai-client.ts</subtask>
+        <subtask>Create DocumentAIPage interface with pageNumber, dimension, paragraphs, tables</subtask>
+        <subtask>Create DocumentAITextAnchor, DocumentAIBoundingPoly interfaces</subtask>
+        <subtask>Export types for use in response parsing (Story 12.4)</subtask>
+      </task>
+      <task id="2" ac="12.2.2">Implement Base64 Encoding Utility
+        <subtask>Create encodeToBase64() function for Uint8Array to base64 string</subtask>
+        <subtask>Handle large files efficiently (streaming if needed)</subtask>
+        <subtask>Test: Verify encoding of 10MB PDF doesn't crash</subtask>
+      </task>
+      <task id="3" ac="12.2.1,12.2.2,12.2.3">Implement parseDocumentWithDocumentAI() Function
+        <subtask>Accept pdfBuffer: Uint8Array parameter</subtask>
+        <subtask>Build API endpoint URL from config</subtask>
+        <subtask>Construct request body with rawDocument.content and rawDocument.mimeType</subtask>
+        <subtask>Add Authorization header with bearer token from getAccessToken()</subtask>
+        <subtask>Parse JSON response and return typed DocumentAIProcessResponse</subtask>
+        <subtask>Log processing time and page count on success</subtask>
+      </task>
+      <task id="4" ac="12.2.4">Implement Timeout with AbortController
+        <subtask>Create AbortController with 60-second timeout</subtask>
+        <subtask>Pass AbortSignal to fetch options</subtask>
+        <subtask>Clear timeout on successful response</subtask>
+        <subtask>Catch AbortError and classify as TIMEOUT</subtask>
+        <subtask>Test: Mock slow API and verify timeout fires</subtask>
+      </task>
+      <task id="5" ac="12.2.5">Implement Retry Logic with Exponential Backoff
+        <subtask>Create parseDocumentWithRetry() wrapper function</subtask>
+        <subtask>Define transient error codes: NETWORK_ERROR, TIMEOUT, HTTP 5xx</subtask>
+        <subtask>Implement retry loop with max 2 retries</subtask>
+        <subtask>Apply backoff delays: 1000ms, 2000ms</subtask>
+        <subtask>Log retry attempts with attempt number</subtask>
+        <subtask>On final failure, include all attempt errors in exception</subtask>
+      </task>
+      <task id="6" ac="ALL">Unit Tests
+        <subtask>Test encodeToBase64() correctly encodes PDF buffer</subtask>
+        <subtask>Test parseDocumentWithDocumentAI() constructs correct API request</subtask>
+        <subtask>Test response parsing handles valid Document AI response</subtask>
+        <subtask>Test timeout fires after 60 seconds</subtask>
+        <subtask>Test retry logic retries transient errors</subtask>
+        <subtask>Test non-transient errors (401, 404) not retried</subtask>
+        <subtask>Test exponential backoff delays applied correctly</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-12.2.1">TypeScript Service Encapsulates Document AI API Call
+      <check>parseDocumentWithDocumentAI() function created in documentai-client.ts</check>
+      <check>Function accepts PDF buffer and returns structured response</check>
+      <check>Function uses getAccessToken() for authentication (from Story 12.1)</check>
+      <check>API endpoint constructed using config from getDocumentAIConfig()</check>
+    </criterion>
+    <criterion id="AC-12.2.2">PDF Content Encoded as Base64 Before Sending
+      <check>Input PDF buffer converted to base64 string</check>
+      <check>Request body includes rawDocument.content with base64 data</check>
+      <check>Request body includes rawDocument.mimeType as "application/pdf"</check>
+      <check>Base64 encoding handles large files without memory issues</check>
+    </criterion>
+    <criterion id="AC-12.2.3">Service Handles API Response with Proper Typing
+      <check>DocumentAIResponse interface defined matching API schema</check>
+      <check>Response includes document.text (full extracted text)</check>
+      <check>Response includes document.pages[] with page details</check>
+      <check>Error responses parsed and classified using existing error handler</check>
+    </criterion>
+    <criterion id="AC-12.2.4">Timeout Set to 60 Seconds with AbortController
+      <check>AbortController created with 60-second timeout</check>
+      <check>AbortSignal passed to fetch request</check>
+      <check>Timeout errors classified as TIMEOUT error code</check>
+      <check>Timeout fires if Document AI takes too long</check>
+    </criterion>
+    <criterion id="AC-12.2.5">Retry Logic with Exponential Backoff
+      <check>2 retries on transient failures (network, timeout, 5xx errors)</check>
+      <check>Exponential backoff: 1 second, then 2 seconds</check>
+      <check>Non-transient errors (401, 403, 404, 400) NOT retried</check>
+      <check>Final failure after retries throws with accumulated error info</check>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-12.md" title="Epic 12 Tech Spec" section="Data Models and Contracts">
+        Defines DocumentAIRequest and DocumentAIResponse interfaces, API endpoint format, and request/response schemas for Document AI.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-12.md" title="Epic 12 Tech Spec" section="Reliability/Availability">
+        Specifies 60-second timeout, 2 retries with exponential backoff (1s, 2s), error recovery via stuck job detector.
+      </doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-12.md" title="Epic 12 Tech Spec" section="Test Strategy Summary">
+        Unit tests with Vitest, mock fetch for API calls, 90%+ coverage on new code.
+      </doc>
+      <doc path="docs/sprint-artifacts/story-12.1-connect-gcp-document-ai.md" title="Story 12.1" section="Dev Agent Record">
+        JWT authentication with Web Crypto API, token caching (1-hour TTL), error classification function already implemented.
+      </doc>
+    </docs>
+    <code>
+      <file path="supabase/functions/process-document/documentai-client.ts" kind="service" symbol="getAccessToken,getDocumentAIConfig,classifyDocumentAIError,log" reason="Existing Document AI client module - extend with parsing service. Already has JWT auth, config, error classification, structured logging.">
+        <interface name="getAccessToken" signature="async function getAccessToken(serviceAccount: ServiceAccountKey): Promise&lt;string&gt;" />
+        <interface name="getDocumentAIConfig" signature="function getDocumentAIConfig(): DocumentAIConfig" />
+        <interface name="classifyDocumentAIError" signature="function classifyDocumentAIError(error: Error | string): DocumentAIConnectionError" />
+        <interface name="DocumentAIErrorCode" signature="type: 'AUTH_INVALID_CREDENTIALS' | 'AUTH_MISSING_KEY' | 'AUTH_TOKEN_FAILED' | 'PROCESSOR_NOT_FOUND' | 'PROCESSOR_INVALID_REGION' | 'NETWORK_ERROR' | 'TIMEOUT' | 'QUOTA_EXCEEDED' | 'INVALID_DOCUMENT' | 'UNKNOWN_ERROR'" />
+      </file>
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="parseDocumentWithRetry,DoclingResult" lines="640-706" reason="Current parsing implementation with Docling - will be replaced. Shows retry pattern and timeout handling to maintain consistency.">
+        <interface name="DoclingResult" signature="interface { markdown: string; pageMarkers: PageMarker[]; pageCount: number; }" />
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Database/Storage client" />
+        <package name="vitest" version="^4.0.14" purpose="Unit test framework" />
+        <package name="@vitest/coverage-v8" version="^4.0.14" purpose="Test coverage reporting" />
+      </node>
+      <deno runtime="true">
+        <note>Edge Functions run on Deno - use Web Crypto API for cryptography, native fetch, AbortController</note>
+        <import name="@supabase/functions-js/edge-runtime.d.ts" source="jsr:@supabase/functions-js/edge-runtime.d.ts" />
+      </deno>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="deno-runtime">Edge Functions run on Deno, not Node.js. Use native fetch, Web Crypto API, AbortController.</constraint>
+    <constraint type="no-new-files">Story extends existing documentai-client.ts - do NOT create new module files.</constraint>
+    <constraint type="reuse-patterns">Reuse existing getAccessToken(), classifyDocumentAIError(), log helper from Story 12.1.</constraint>
+    <constraint type="error-classification">Extend classifyDocumentAIError() to identify transient vs non-transient errors for retry logic.</constraint>
+    <constraint type="timeout-value">Use 60-second timeout as specified in tech spec (DOCLING_TIMEOUT_MS was 300s, Document AI is faster).</constraint>
+    <constraint type="backoff-delays">Use exact delays: 1000ms, 2000ms for 2 retries.</constraint>
+    <constraint type="structured-logging">Use existing log.info() and log.error() helpers for JSON structured logging.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Document AI Process Endpoint" kind="REST endpoint">
+      <signature>POST https://{location}-documentai.googleapis.com/v1/projects/{projectId}/locations/{location}/processors/{processorId}:process</signature>
+      <path>supabase/functions/process-document/documentai-client.ts</path>
+    </interface>
+    <interface name="DocumentAIRequest" kind="TypeScript interface">
+      <signature>{ rawDocument: { content: string; mimeType: string; } }</signature>
+    </interface>
+    <interface name="DocumentAIProcessResponse" kind="TypeScript interface (TO CREATE)">
+      <signature>{ document: { text: string; pages: DocumentAIPage[]; } }</signature>
+      <note>See tech spec Data Models section for full schema</note>
+    </interface>
+    <interface name="parseDocumentWithDocumentAI" kind="function signature (TO CREATE)">
+      <signature>async function parseDocumentWithDocumentAI(pdfBuffer: Uint8Array): Promise&lt;DocumentAIProcessResponse&gt;</signature>
+    </interface>
+    <interface name="parseDocumentWithRetry" kind="function signature (TO CREATE)">
+      <signature>async function parseDocumentWithRetry(pdfBuffer: Uint8Array, maxRetries?: number): Promise&lt;DocumentAIProcessResponse&gt;</signature>
+    </interface>
+    <interface name="isTransientError" kind="utility function (TO CREATE)">
+      <signature>function isTransientError(code: DocumentAIErrorCode): boolean</signature>
+      <note>Returns true for NETWORK_ERROR, TIMEOUT, QUOTA_EXCEEDED</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests with vi.fn() for mocking. Use vi.useFakeTimers() for timeout testing.
+      Mock fetch globally with vi.stubGlobal('fetch', mockFetch).
+      Test file location: __tests__/supabase/documentai-parsing.test.ts
+      Coverage goal: 90%+ on new parsing service code.
+      Follow existing test patterns from __tests__/lib/documents/processing.test.ts
+    </standards>
+    <locations>
+      <location>__tests__/supabase/documentai-parsing.test.ts (NEW - to create)</location>
+      <location>__tests__/lib/documents/error-classification.test.ts (existing pattern)</location>
+      <location>__tests__/unit/lib/docling/client.test.ts (existing pattern for API client)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-12.2.1">Test parseDocumentWithDocumentAI constructs correct API endpoint URL with config values</idea>
+      <idea ac="AC-12.2.1">Test Authorization header includes bearer token from getAccessToken()</idea>
+      <idea ac="AC-12.2.2">Test encodeToBase64 correctly encodes small PDF buffer</idea>
+      <idea ac="AC-12.2.2">Test encodeToBase64 handles 10MB buffer without memory issues</idea>
+      <idea ac="AC-12.2.2">Test request body includes rawDocument.content (base64) and rawDocument.mimeType</idea>
+      <idea ac="AC-12.2.3">Test response parsing extracts document.text correctly</idea>
+      <idea ac="AC-12.2.3">Test response parsing extracts document.pages array</idea>
+      <idea ac="AC-12.2.3">Test error response triggers classifyDocumentAIError()</idea>
+      <idea ac="AC-12.2.4">Test AbortController timeout fires after 60 seconds using vi.useFakeTimers()</idea>
+      <idea ac="AC-12.2.4">Test timeout error classified as TIMEOUT code</idea>
+      <idea ac="AC-12.2.4">Test successful response clears timeout</idea>
+      <idea ac="AC-12.2.5">Test retry occurs on NETWORK_ERROR</idea>
+      <idea ac="AC-12.2.5">Test retry occurs on TIMEOUT</idea>
+      <idea ac="AC-12.2.5">Test retry occurs on HTTP 503</idea>
+      <idea ac="AC-12.2.5">Test NO retry on 401 Unauthorized</idea>
+      <idea ac="AC-12.2.5">Test NO retry on 404 Not Found</idea>
+      <idea ac="AC-12.2.5">Test exponential backoff: first delay 1000ms, second delay 2000ms</idea>
+      <idea ac="AC-12.2.5">Test max 2 retries then throws final error</idea>
+      <idea ac="AC-12.2.5">Test successful retry (fail once, succeed on retry)</idea>
+    </ideas>
+  </tests>
+</story-context>

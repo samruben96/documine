@@ -366,6 +366,6 @@ DOCUMENT_AI_LOCATION        # "us" or "eu"
 - 12.4: Response Parsing
 - 12.5: Testing & Validation
 
-**Tech Spec Reference:** `docs/sprint-artifacts/tech-spec-epic-12.md`
+**Tech Spec Reference:** `docs/sprint-artifacts/epics/epic-12/tech-spec/`
 
 ---

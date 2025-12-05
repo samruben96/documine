@@ -28,7 +28,7 @@ All documentation has been organized into smaller, focused files:
 
 - **Architecture:** `docs/architecture/index.md`
 - **UX Design:** `docs/ux-design-specification/index.md`
-- **Tech Specs:** `docs/sprint-artifacts/tech-spec-epic-{N}/index.md`
-- **Stories:** `docs/sprint-artifacts/story-{N}/index.md`
+- **Tech Specs:** `docs/sprint-artifacts/epics/epic-{N}/tech-spec/index.md`
+- **Stories:** `docs/sprint-artifacts/epics/epic-{N}/stories/{story-name}/`
 
 Load only what you need to minimize context usage.

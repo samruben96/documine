@@ -2,7 +2,7 @@
 
 **Status:** Ready for Development
 **Created:** 2025-12-03
-**Tech Spec:** [tech-spec-epic-9.md](../sprint-artifacts/tech-spec-epic-9.md)
+**Tech Spec:** [tech-spec-epic-9](../sprint-artifacts/epics/epic-9/tech-spec/)
 
 ---
 

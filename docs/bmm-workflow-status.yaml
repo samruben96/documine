@@ -95,7 +95,7 @@ workflow_status:
         agent: "sm"
         command: "/bmad:bmm:workflows:sprint-planning"
       - id: "epic-10-tech-spec"
-        status: "docs/sprint-artifacts/tech-spec-epic-10.md"
+        status: "docs/sprint-artifacts/epics/epic-10/tech-spec/"
         agent: "architect"
         command: "/bmad:bmm:workflows:tech-spec"
         notes: "Epic 10: Enhanced Quote Extraction - Team input via Party Mode 2025-12-04"
