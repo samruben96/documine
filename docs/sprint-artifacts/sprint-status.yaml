@@ -732,7 +732,13 @@ development_status:
   # Queue position, estimated wait time, queue summary
   # Priority: P1 - user visibility
   # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.4-processing-queue-visualization.md
-  11-4-processing-queue-visualization: drafted
+  # IMPLEMENTED 2025-12-05: ProcessingQueueSummary component, documents page integration
+  # Task 1 & 2 already implemented in useProcessingProgress hook
+  # Task 3: New ProcessingQueueSummary component with collapsible details
+  # Task 4: Integrated into documents page header
+  # 12 unit tests + E2E spec, 1514 total tests pass
+  # CODE REVIEWED 2025-12-05: APPROVED - all 4 ACs verified, 16/16 tasks complete
+  11-4-processing-queue-visualization: done
   # Story 11.5: Error Handling & User Feedback (2 pts)
   # Error classification, user-friendly messages, toast notifications
   # Priority: P1 - user experience

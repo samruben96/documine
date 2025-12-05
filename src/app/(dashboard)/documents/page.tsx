@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { DocumentTable, type DocumentTableRow } from '@/components/documents/document-table';
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
+import { ProcessingQueueSummary } from '@/components/documents/processing-queue-summary';
 import { useDebouncedValue } from '@/hooks/use-debounce';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import { useProcessingProgress } from '@/hooks/use-processing-progress';
@@ -262,6 +263,11 @@ export default function DocumentLibraryPage() {
               </DialogContent>
             </Dialog>
           </div>
+
+          {/* Story 11.4 (AC-11.4.3): Processing Queue Summary */}
+          {agencyId && (
+            <ProcessingQueueSummary agencyId={agencyId} className="mt-4 max-w-md" />
+          )}
 
           {/* Search bar */}
           <div className="mt-4 max-w-md">

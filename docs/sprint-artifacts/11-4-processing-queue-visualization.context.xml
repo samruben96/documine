@@ -1,0 +1,170 @@
+<story-context id="11-4-processing-queue-visualization" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>4</storyId>
+    <title>Processing Queue Visualization</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-11.4-processing-queue-visualization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user with multiple documents uploading</asA>
+    <iWant>see my position in the processing queue</iWant>
+    <soThat>I know how long I need to wait before my documents are processed</soThat>
+    <tasks>
+      <task id="1" ac="11.4.1,11.4.4">Queue Position Hook - Create useQueuePosition hook with realtime subscription</task>
+      <task id="2" ac="11.4.2">Wait Time Estimation - Calculate estimate: position × avg_time, format as "~X minutes"</task>
+      <task id="3" ac="11.4.3">Queue Summary Component - ProcessingQueueSummary component with status grouping</task>
+      <task id="4" ac="11.4.1">Integration - Add queue position to ProcessingProgress, queue summary to documents page</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="11.4.1" title="Queue Position Display">
+      <item>Show "Position X of Y in queue" for pending documents</item>
+      <item>Position updates in realtime as other documents complete</item>
+      <item>Only show queue position for 'pending' status</item>
+    </criterion>
+    <criterion id="11.4.2" title="Estimated Wait Time">
+      <item>Calculate estimated wait time based on average processing time</item>
+      <item>Display "~X minutes" estimate</item>
+      <item>Update estimate as queue position changes</item>
+    </criterion>
+    <criterion id="11.4.3" title="Queue Summary">
+      <item>Show total documents in user's/agency's queue</item>
+      <item>Processing/pending/completed counts</item>
+      <item>Collapse/expand for queue details on documents page</item>
+    </criterion>
+    <criterion id="11.4.4" title="Realtime Updates">
+      <item>Queue position updates via Supabase Realtime</item>
+      <item>Updates reflect within 1 second of job status changes</item>
+      <item>Handle connection drops gracefully</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics/epic-11-processing-reliability-enhanced-progress.md" title="Epic 11: Processing Reliability" section="Story 11.4" snippet="Queue position indicator, estimated wait time, collapse/expand for queue details. Acceptance criteria defined for queue visualization." />
+      <doc path="docs/sprint-artifacts/story-11.3-reliable-job-recovery.md" title="Story 11.3: Reliable Job Recovery" section="Dev Agent Record" snippet="Previous story patterns: retry API, error classification, 1502 test baseline. Realtime subscription patterns in ProcessingProgress component." />
+      <doc path="docs/sprint-artifacts/story-11.2-enhanced-progress-bar-ui.md" title="Story 11.2: Enhanced Progress Bar" section="Implementation" snippet="ProcessingProgress component with jobMetadata, queueInfo props. useProcessingProgress hook with QueueInfo interface already defined." />
+      <doc path="docs/sprint-artifacts/story-11.1-async-processing-architecture.md" title="Story 11.1: Async Architecture" section="Database Schema" snippet="processing_jobs table with status, stage, progress_percent columns. pg_cron job processor, Realtime enabled on table." />
+    </docs>
+
+    <code>
+      <file path="src/hooks/use-processing-progress.ts" kind="hook" symbol="useProcessingProgress" lines="218-703" reason="CRITICAL: Already exports QueueInfo interface (line 106-110) and queueInfoMap. Contains fetchQueuePositions logic (lines 639-693) using get_queue_position RPC. EXTEND this hook for Story 11.4." />
+      <file path="src/components/documents/processing-progress.tsx" kind="component" symbol="ProcessingProgress" lines="133-357" reason="CRITICAL: Already accepts queueInfo prop and renders queue position (lines 237-243). EXTEND for additional queue visualization." />
+      <file path="src/lib/documents/service.ts" kind="service" symbol="uploadDocument" reason="Document upload service - creates processing_jobs record. Queue position depends on created_at ordering." />
+      <file path="src/app/api/documents/[id]/retry/route.ts" kind="api" symbol="POST /api/documents/[id]/retry" reason="Pattern reference: API route for document actions with permission checks." />
+      <file path="src/types/database.types.ts" kind="types" symbol="Database['public']['Tables']['processing_jobs']" reason="TypeScript types for processing_jobs table including status, stage columns." />
+      <file path="__tests__/lib/documents/processing.test.ts" kind="test" reason="Existing processing tests - follow patterns for new queue tests." />
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Realtime subscriptions, database queries" />
+        <package name="@supabase/ssr" version="^0.7.0" reason="Server-side Supabase client" />
+        <package name="react" version="19.2.0" reason="Hooks, state management" />
+        <package name="lucide-react" version="^0.554.0" reason="Icons: Clock, CheckCircle, AlertCircle, Loader2" />
+        <package name="vitest" version="devDep" reason="Unit testing framework" />
+        <package name="@testing-library/react" version="^16.3.0" reason="Component testing" />
+        <package name="@playwright/test" version="^1.57.0" reason="E2E testing" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="QueueInfo" kind="TypeScript interface" path="src/hooks/use-processing-progress.ts" lines="106-110">
+      <signature><![CDATA[
+interface QueueInfo {
+  position: number;
+  totalPending: number;
+  estimatedWaitSeconds: number | null;
+}
+      ]]></signature>
+    </interface>
+    <interface name="JobMetadata" kind="TypeScript interface" path="src/hooks/use-processing-progress.ts" lines="96-101">
+      <signature><![CDATA[
+interface JobMetadata {
+  createdAt: string;
+  startedAt: string | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  retryCount: number;
+}
+      ]]></signature>
+    </interface>
+    <interface name="useProcessingProgress" kind="React hook" path="src/hooks/use-processing-progress.ts">
+      <signature><![CDATA[
+function useProcessingProgress(documentIds: string[]): {
+  progressMap: Map<string, ProgressData>;
+  errorMap: Map<string, string>;
+  jobMetadataMap: Map<string, JobMetadata>;
+  queueInfoMap: Map<string, QueueInfo>;
+  isConnected: boolean;
+  connectionState: ConnectionState;
+}
+      ]]></signature>
+    </interface>
+    <interface name="get_queue_position" kind="Supabase RPC" path="database function">
+      <signature><![CDATA[
+-- Called via supabase.rpc('get_queue_position', { p_document_id: docId })
+-- Returns: integer (1-based position in queue)
+      ]]></signature>
+    </interface>
+    <interface name="ProcessingProgress" kind="React component" path="src/components/documents/processing-progress.tsx">
+      <signature><![CDATA[
+interface ProcessingProgressProps {
+  progressData: ProgressData | null;
+  jobMetadata?: JobMetadata | null;
+  queueInfo?: QueueInfo | null;
+  errorMessage?: string | null;
+  onRetry?: () => void;
+  className?: string;
+}
+      ]]></signature>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="Story 11.2 Implementation">useProcessingProgress hook already fetches queue positions every 10 seconds (line 690). Story 11.4 should enhance, not duplicate this logic.</constraint>
+    <constraint source="Story 11.1 Architecture">Queue position based on processing_jobs.created_at ordering. Use FOR UPDATE SKIP LOCKED pattern in database for job pickup.</constraint>
+    <constraint source="Realtime Pattern">Use existing supabase.channel() pattern with postgres_changes filter. Handle SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED states.</constraint>
+    <constraint source="Test Baseline">1502 tests passing as of Story 11.3. All new code must include unit tests. Maintain test baseline.</constraint>
+    <constraint source="Component Pattern">Follow existing ProcessingProgress component structure. Use data-testid attributes for E2E testing.</constraint>
+    <constraint source="Performance">Queue summary should only query last 24 hours of jobs to prevent table scans.</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, @testing-library/react for components, Playwright for E2E.
+      Follow patterns in __tests__/hooks/ and __tests__/components/documents/.
+      Use data-testid attributes for E2E selectors.
+      Mock Supabase client in unit tests.
+    </standards>
+    <locations>
+      <location>__tests__/hooks/use-queue-position.test.ts</location>
+      <location>__tests__/components/documents/processing-queue-summary.test.tsx</location>
+      <location>__tests__/e2e/queue-visualization.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="11.4.1">Test queue position displays correctly for position 1, 5, 10</idea>
+      <idea ac="11.4.1">Test position updates when realtime event received</idea>
+      <idea ac="11.4.1">Test position hidden when status is not 'pending'</idea>
+      <idea ac="11.4.2">Test wait time calculation: position 3 × 120s = ~6 min</idea>
+      <idea ac="11.4.2">Test wait time format: "<1 minute" for small values</idea>
+      <idea ac="11.4.3">Test summary counts pending, processing, completed, failed</idea>
+      <idea ac="11.4.3">Test summary only shows last 24 hours</idea>
+      <idea ac="11.4.4">Test realtime subscription established on mount</idea>
+      <idea ac="11.4.4">Test graceful handling of connection drop</idea>
+    </ideas>
+  </tests>
+
+  <implementationNotes>
+    <note priority="high">IMPORTANT: useProcessingProgress already has queueInfoMap and fetchQueuePositions (lines 639-693). Story 11.4's Task 1 may be PARTIALLY COMPLETE. Review existing implementation before creating new hook.</note>
+    <note priority="high">ProcessingProgress component already renders queue position (lines 237-243). Task 4 integration may be PARTIALLY COMPLETE.</note>
+    <note priority="medium">ProcessingQueueSummary is a NEW component (Task 3). Create at src/components/documents/processing-queue-summary.tsx.</note>
+    <note priority="medium">Consider extracting useQueuePosition as a standalone hook if logic becomes complex, but prefer extending existing useProcessingProgress.</note>
+    <note priority="low">Average processing time is hardcoded at 120 seconds (2 min). Future enhancement could track actual processing times.</note>
+  </implementationNotes>
+</story-context>
