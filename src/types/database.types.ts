@@ -454,36 +454,55 @@ export type Database = {
       }
       processing_jobs: {
         Row: {
+          agency_id: string | null
           completed_at: string | null
           created_at: string
           document_id: string
           error_message: string | null
           id: string
           progress_data: Json | null
+          progress_percent: number | null
+          retry_count: number | null
+          stage: string | null
           started_at: string | null
           status: string
         }
         Insert: {
+          agency_id?: string | null
           completed_at?: string | null
           created_at?: string
           document_id: string
           error_message?: string | null
           id?: string
           progress_data?: Json | null
+          progress_percent?: number | null
+          retry_count?: number | null
+          stage?: string | null
           started_at?: string | null
           status?: string
         }
         Update: {
+          agency_id?: string | null
           completed_at?: string | null
           created_at?: string
           document_id?: string
           error_message?: string | null
           id?: string
           progress_data?: Json | null
+          progress_percent?: number | null
+          retry_count?: number | null
+          stage?: string | null
           started_at?: string | null
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_jobs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processing_jobs_document_id_fkey"
             columns: ["document_id"]
@@ -614,12 +633,16 @@ export type Database = {
       get_next_pending_job: {
         Args: { p_agency_id: string }
         Returns: {
+          agency_id: string | null
           completed_at: string | null
           created_at: string
           document_id: string
           error_message: string | null
           id: string
           progress_data: Json | null
+          progress_percent: number | null
+          retry_count: number | null
+          stage: string | null
           started_at: string | null
           status: string
         }[]
@@ -663,6 +686,7 @@ export type Database = {
           similarity: number
         }[]
       }
+      process_next_document_job: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
