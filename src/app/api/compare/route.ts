@@ -9,8 +9,11 @@ import {
   rateLimitExceededResponse,
   RATE_LIMITS,
 } from '@/lib/rate-limit';
-import type { ComparisonData, DocumentSummary } from '@/types/compare';
+import type { ComparisonData, DocumentSummary, QuoteExtraction, EXTRACTION_VERSION } from '@/types/compare';
 import type { Json } from '@/types/database.types';
+
+// Import extraction version to validate cached data
+import { EXTRACTION_VERSION as CURRENT_EXTRACTION_VERSION } from '@/types/compare';
 
 /**
  * Compare API Endpoint
@@ -279,9 +282,10 @@ export async function POST(request: NextRequest) {
     const { documentIds } = parseResult.data;
 
     // Validate all documents exist and belong to user's agency
+    // Story 10.12: Also fetch extraction_data for cache optimization
     const { data: documents, error: docError } = await supabase
       .from('documents')
-      .select('id, status, filename')
+      .select('id, status, filename, extraction_data, extraction_version')
       .in('id', documentIds)
       .eq('agency_id', agencyId);
 
@@ -364,7 +368,8 @@ export async function POST(request: NextRequest) {
 
     // Start extraction asynchronously (don't await - let it run in background)
     // The comparison page will poll for status updates
-    runExtractionAsync(supabase, comparisonId, agencyId, documentIds, documents);
+    // Story 10.12: Pass extraction_data for cache optimization
+    runExtractionAsync(supabase, comparisonId, agencyId, documentIds, documents as DocumentWithExtraction[]);
 
     return NextResponse.json({
       comparisonId,
@@ -380,21 +385,35 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/** Document with optional pre-extracted data from upload processing (Story 10.12) */
+interface DocumentWithExtraction {
+  id: string;
+  filename: string;
+  status: string;
+  extraction_data: Json | null;
+  extraction_version: number | null;
+}
+
 /**
  * Run extraction for all documents in parallel.
  * Updates comparison_data as each extraction completes.
  *
  * AC-7.2.7: Parallel extraction for performance
  * AC-7.2.8: Handle partial failures gracefully
+ * AC-10.12.5: Use pre-extracted data when available (cache hit optimization)
  */
 async function runExtractionAsync(
   supabase: Awaited<ReturnType<typeof createClient>>,
   comparisonId: string,
   agencyId: string,
   documentIds: string[],
-  documents: { id: string; filename: string; status: string }[]
+  documents: DocumentWithExtraction[]
 ): Promise<void> {
   const startTime = Date.now();
+
+  // Story 10.12: Count cache hits vs misses for logging
+  let cacheHits = 0;
+  let cacheMisses = 0;
 
   log.info('Starting parallel extraction', {
     comparisonId,
@@ -403,6 +422,30 @@ async function runExtractionAsync(
 
   // Run all extractions in parallel
   const extractionPromises = documentIds.map(async (documentId) => {
+    // Story 10.12: Check for pre-extracted data first (cache hit)
+    const doc = documents.find((d) => d.id === documentId);
+    if (
+      doc?.extraction_data &&
+      doc.extraction_version === CURRENT_EXTRACTION_VERSION
+    ) {
+      cacheHits++;
+      log.info('Using pre-extracted data (cache hit)', { documentId });
+      return {
+        success: true,
+        cached: true,
+        extraction: doc.extraction_data as unknown as QuoteExtraction,
+      };
+    }
+
+    // Cache miss - run extraction
+    cacheMisses++;
+    log.info('Running extraction (cache miss)', {
+      documentId,
+      hasExtractionData: !!doc?.extraction_data,
+      extractionVersion: doc?.extraction_version,
+      currentVersion: CURRENT_EXTRACTION_VERSION,
+    });
+
     try {
       return await extractQuoteData(supabase, documentId, agencyId);
     } catch (error) {
@@ -493,6 +536,8 @@ async function runExtractionAsync(
       successCount,
       totalCount: documentIds.length,
       duration,
+      cacheHits,
+      cacheMisses,
     });
   }
 }

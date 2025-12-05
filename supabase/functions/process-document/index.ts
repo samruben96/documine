@@ -58,13 +58,15 @@ const USER_FRIENDLY_ERRORS: Record<string, string> = {
 };
 
 // Story 5.12: Progress reporting configuration
+// Story 10.12: Updated weights to include 'analyzing' stage for quote extraction
 // Stage weights for total_progress calculation:
-// downloading: 5% (quick), parsing: 60% (bulk), chunking: 10% (quick), embedding: 25%
+// downloading: 5%, parsing: 55%, chunking: 10%, embedding: 20%, analyzing: 10%
 const STAGE_WEIGHTS = {
   downloading: { start: 0, weight: 5 },
-  parsing: { start: 5, weight: 60 },
-  chunking: { start: 65, weight: 10 },
-  embedding: { start: 75, weight: 25 },
+  parsing: { start: 5, weight: 55 },
+  chunking: { start: 60, weight: 10 },
+  embedding: { start: 70, weight: 20 },
+  analyzing: { start: 90, weight: 10 },
 } as const;
 
 // Progress update throttle (max once per second to avoid flooding Realtime)
@@ -98,8 +100,9 @@ interface LogData {
 }
 
 // Story 5.12: Progress data interface
+// Story 10.12: Added 'analyzing' stage for quote extraction
 interface ProgressData {
-  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding' | 'analyzing';
   stage_progress: number; // 0-100
   stage_name: string; // User-friendly name
   estimated_seconds_remaining: number | null;
@@ -108,11 +111,13 @@ interface ProgressData {
 }
 
 // User-friendly stage names per UX design
+// Story 10.12: Added 'analyzing' stage
 const STAGE_DISPLAY_NAMES: Record<ProgressData['stage'], string> = {
   downloading: 'Loading file',
   parsing: 'Reading document',
   chunking: 'Preparing content',
   embedding: 'Indexing for search',
+  analyzing: 'Analyzing document...',
 };
 
 // Structured logging
@@ -383,10 +388,33 @@ Deno.serve(async (req: Request) => {
     await insertChunks(supabase, processingDocumentId, agencyId, chunks, embeddings);
     log.info('Chunks inserted', { documentId: processingDocumentId, count: chunks.length });
 
-    // Step 9: Update document status to 'ready' with page count
+    // Step 9: Quote Extraction (Story 10.12)
+    // Only for document_type = 'quote' or null (default)
+    // AC-10.12.1: Extract structured quote data at upload time
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'analyzing',
+      0,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'analyzing', 0),
+      true
+    );
+
+    await performQuoteExtraction(supabase, processingDocumentId, agencyId, chunks, openaiKey);
+
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'analyzing',
+      100,
+      null,
+      true
+    );
+
+    // Step 10: Update document status to 'ready' with page count
     await updateDocumentStatus(supabase, processingDocumentId, 'ready', parseResult.pageCount);
 
-    // Step 10: Complete processing job
+    // Step 11: Complete processing job
     await updateJobStatus(supabase, processingDocumentId, 'completed');
 
     const totalDuration = Date.now() - startTime;
@@ -397,7 +425,7 @@ Deno.serve(async (req: Request) => {
       pageCount: parseResult.pageCount,
     });
 
-    // Step 11: Check if there are more pending jobs for this agency (AC-4.7.3)
+    // Step 12: Check if there are more pending jobs for this agency (AC-4.7.3)
     // and trigger the next one
     const nextPendingJob = await getNextPendingJob(supabase, agencyId);
     if (nextPendingJob) {
@@ -1275,6 +1303,22 @@ async function insertChunks(
 }
 
 // ============================================================================
+// Story 10.12: Quote Extraction at Upload Time
+// ============================================================================
+
+/**
+ * Quote extraction timeout in milliseconds.
+ * AC-10.12.8: 60-second timeout for extraction
+ */
+const QUOTE_EXTRACTION_TIMEOUT_MS = 60000;
+
+/**
+ * Extraction version for cache invalidation.
+ * Must match EXTRACTION_VERSION in src/types/compare.ts
+ */
+const EXTRACTION_VERSION = 3;
+
+// ============================================================================
 // Story F2-3: AI Tagging
 // ============================================================================
 
@@ -1473,6 +1517,400 @@ async function performAITagging(
 }
 
 // ============================================================================
+// Story 10.12: Quote Extraction at Upload Time
+// ============================================================================
+
+/**
+ * System prompt for insurance quote extraction.
+ * Mirrors the prompt from src/lib/compare/extraction.ts
+ */
+const EXTRACTION_SYSTEM_PROMPT = `You are an expert insurance document analyst.
+Your task is to extract structured data from insurance quote documents.
+
+IMPORTANT GUIDELINES:
+- Extract exact values as they appear in the document
+- For each extracted item, include the page number(s) where it appears
+- If a field is not found in the document, omit it or set to null
+- Do NOT guess or infer values that are not explicitly stated
+- For currency amounts, extract the numeric value only (no $ or commas)
+- For dates, use YYYY-MM-DD format
+
+COVERAGE TYPE MAPPINGS:
+- "General Liability", "CGL", "Commercial General Liability" → general_liability
+- "Property", "Building", "Business Personal Property", "BPP" → property
+- "Auto Liability", "Automobile Liability", "Commercial Auto" → auto_liability
+- "Physical Damage", "Collision", "Comprehensive", "Auto Physical" → auto_physical_damage
+- "Umbrella", "Excess Liability", "Excess" → umbrella
+- "Workers Compensation", "WC", "Workers' Comp" → workers_comp
+- "Professional Liability", "E&O", "Errors and Omissions" → professional_liability
+- "Cyber Liability", "Data Breach", "Network Security" → cyber
+- "EPLI", "Employment Practices Liability" → epli
+- "D&O", "Directors and Officers" → d_and_o
+- "Crime", "Fidelity", "Employee Dishonesty" → crime
+- Other coverages → other
+
+EXCLUSION CATEGORY MAPPINGS:
+- Flood, water damage → flood
+- Earthquake, earth movement → earthquake
+- Pollution, contamination → pollution
+- Mold, fungus → mold
+- Cyber, data breach (when excluded) → cyber
+- Employment practices (when excluded) → employment
+- Other exclusions → other
+
+LIMIT TYPE MAPPINGS:
+- "Each Occurrence", "Per Occurrence", "Per Claim" → per_occurrence
+- "Aggregate", "Annual Aggregate", "Policy Aggregate" → aggregate
+- "Per Person", "Each Person" → per_person
+- "CSL", "Combined Single Limit" → combined_single
+
+Extract all available information and include source page numbers for traceability.`;
+
+/**
+ * JSON Schema for quote extraction structured output.
+ * Matches quoteExtractionSchema from src/types/compare.ts
+ */
+const EXTRACTION_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    carrierName: { type: ['string', 'null'], description: 'Insurance carrier/company name' },
+    policyNumber: { type: ['string', 'null'], description: 'Policy or quote number' },
+    namedInsured: { type: ['string', 'null'], description: 'Named insured (policyholder)' },
+    effectiveDate: { type: ['string', 'null'], description: 'Policy effective date (YYYY-MM-DD)' },
+    expirationDate: { type: ['string', 'null'], description: 'Policy expiration date (YYYY-MM-DD)' },
+    annualPremium: { type: ['number', 'null'], description: 'Total annual premium in USD' },
+    coverages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['general_liability', 'property', 'auto_liability', 'auto_physical_damage',
+                   'umbrella', 'workers_comp', 'professional_liability', 'cyber', 'other',
+                   'epli', 'd_and_o', 'crime', 'pollution', 'inland_marine', 'builders_risk',
+                   'business_interruption', 'product_liability', 'garage_liability',
+                   'liquor_liability', 'medical_malpractice', 'fiduciary']
+          },
+          name: { type: 'string' },
+          limit: { type: ['number', 'null'] },
+          sublimit: { type: ['number', 'null'] },
+          limitType: { type: ['string', 'null'], enum: ['per_occurrence', 'aggregate', 'per_person', 'combined_single', null] },
+          deductible: { type: ['number', 'null'] },
+          description: { type: 'string' },
+          sourcePages: { type: 'array', items: { type: 'integer' } },
+          aggregateLimit: { type: ['number', 'null'] },
+          selfInsuredRetention: { type: ['number', 'null'] },
+          coinsurance: { type: ['number', 'null'] },
+          waitingPeriod: { type: ['string', 'null'] },
+          indemnityPeriod: { type: ['string', 'null'] },
+        },
+        required: ['type', 'name', 'limit', 'sublimit', 'limitType', 'deductible', 'description', 'sourcePages', 'aggregateLimit', 'selfInsuredRetention', 'coinsurance', 'waitingPeriod', 'indemnityPeriod'],
+        additionalProperties: false,
+      },
+    },
+    exclusions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          category: { type: 'string', enum: ['flood', 'earthquake', 'pollution', 'mold', 'cyber', 'employment', 'other'] },
+          sourcePages: { type: 'array', items: { type: 'integer' } },
+        },
+        required: ['name', 'description', 'category', 'sourcePages'],
+        additionalProperties: false,
+      },
+    },
+    deductibles: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          amount: { type: 'number' },
+          appliesTo: { type: 'string' },
+          sourcePages: { type: 'array', items: { type: 'integer' } },
+        },
+        required: ['type', 'amount', 'appliesTo', 'sourcePages'],
+        additionalProperties: false,
+      },
+    },
+    policyMetadata: {
+      type: ['object', 'null'],
+      properties: {
+        formType: { type: ['string', 'null'], enum: ['iso', 'proprietary', 'manuscript', null] },
+        formNumbers: { type: 'array', items: { type: 'string' } },
+        policyType: { type: ['string', 'null'], enum: ['occurrence', 'claims-made', null] },
+        retroactiveDate: { type: ['string', 'null'] },
+        extendedReportingPeriod: { type: ['string', 'null'] },
+        auditType: { type: ['string', 'null'], enum: ['annual', 'monthly', 'final', 'none', null] },
+        sourcePages: { type: 'array', items: { type: 'integer' } },
+      },
+      required: ['formType', 'formNumbers', 'policyType', 'retroactiveDate', 'extendedReportingPeriod', 'auditType', 'sourcePages'],
+      additionalProperties: false,
+    },
+    endorsements: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          formNumber: { type: 'string' },
+          name: { type: 'string' },
+          type: { type: 'string', enum: ['broadening', 'restricting', 'conditional'] },
+          description: { type: 'string' },
+          affectedCoverage: { type: ['string', 'null'] },
+          sourcePages: { type: 'array', items: { type: 'integer' } },
+        },
+        required: ['formNumber', 'name', 'type', 'description', 'affectedCoverage', 'sourcePages'],
+        additionalProperties: false,
+      },
+    },
+    carrierInfo: {
+      type: ['object', 'null'],
+      properties: {
+        amBestRating: { type: ['string', 'null'] },
+        amBestFinancialSize: { type: ['string', 'null'] },
+        naicCode: { type: ['string', 'null'] },
+        admittedStatus: { type: ['string', 'null'], enum: ['admitted', 'non-admitted', 'surplus', null] },
+        claimsPhone: { type: ['string', 'null'] },
+        underwriter: { type: ['string', 'null'] },
+        sourcePages: { type: 'array', items: { type: 'integer' } },
+      },
+      required: ['amBestRating', 'amBestFinancialSize', 'naicCode', 'admittedStatus', 'claimsPhone', 'underwriter', 'sourcePages'],
+      additionalProperties: false,
+    },
+    premiumBreakdown: {
+      type: ['object', 'null'],
+      properties: {
+        basePremium: { type: ['number', 'null'] },
+        coveragePremiums: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              coverage: { type: 'string' },
+              premium: { type: 'number' },
+            },
+            required: ['coverage', 'premium'],
+            additionalProperties: false,
+          },
+        },
+        taxes: { type: ['number', 'null'] },
+        fees: { type: ['number', 'null'] },
+        brokerFee: { type: ['number', 'null'] },
+        surplusLinesTax: { type: ['number', 'null'] },
+        totalPremium: { type: 'number' },
+        paymentPlan: { type: ['string', 'null'] },
+        sourcePages: { type: 'array', items: { type: 'integer' } },
+      },
+      required: ['basePremium', 'coveragePremiums', 'taxes', 'fees', 'brokerFee', 'surplusLinesTax', 'totalPremium', 'paymentPlan', 'sourcePages'],
+      additionalProperties: false,
+    },
+  },
+  required: ['carrierName', 'policyNumber', 'namedInsured', 'effectiveDate', 'expirationDate', 'annualPremium', 'coverages', 'exclusions', 'deductibles', 'policyMetadata', 'endorsements', 'carrierInfo', 'premiumBreakdown'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Perform quote extraction on document chunks.
+ * Story 10.12: Extracts structured quote data at upload time.
+ *
+ * AC-10.12.1: Triggered after AI tagging for quote documents
+ * AC-10.12.2: Stores result in documents.extraction_data
+ * AC-10.12.3: Graceful degradation - failures don't block processing
+ * AC-10.12.4: Only runs for document_type = 'quote' or null
+ * AC-10.12.8: 60-second timeout
+ */
+async function performQuoteExtraction(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string,
+  agencyId: string,
+  chunks: DocumentChunk[],
+  openaiApiKey: string
+): Promise<void> {
+  const startTime = Date.now();
+
+  // AC-10.12.4: Check document type - only extract for quotes
+  const { data: docData } = await supabase
+    .from('documents')
+    .select('document_type')
+    .eq('id', documentId)
+    .single();
+
+  const documentType = docData?.document_type;
+
+  // Skip extraction for general documents
+  if (documentType === 'general') {
+    log.info('Quote extraction skipped: document_type is general', { documentId });
+    return;
+  }
+
+  log.info('Starting quote extraction', {
+    documentId,
+    documentType: documentType || 'null (treating as quote)',
+    chunkCount: chunks.length,
+  });
+
+  // Build context from all chunks with page markers
+  const context = chunks
+    .map((c) => {
+      return `--- PAGE ${c.pageNumber} ---\n${c.content}`;
+    })
+    .join('\n\n');
+
+  if (!context.trim()) {
+    log.warn('Quote extraction skipped: no content', { documentId });
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), QUOTE_EXTRACTION_TIMEOUT_MS);
+
+  try {
+    // Build request for OpenAI structured outputs
+    const requestBody = {
+      model: 'gpt-5.1',
+      messages: [
+        { role: 'system', content: EXTRACTION_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: `Extract structured insurance quote data from the following document:\n\n${context}`,
+        },
+      ],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'quote_extraction',
+          strict: true,
+          schema: EXTRACTION_JSON_SCHEMA,
+        },
+      },
+      temperature: 0.1, // Low temperature for consistent extraction
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('No content in extraction response');
+    }
+
+    // Parse the extraction result
+    const extraction = JSON.parse(content);
+
+    // Add metadata fields
+    extraction.extractedAt = new Date().toISOString();
+    extraction.modelUsed = 'gpt-5.1';
+
+    // AC-10.12.2: Store extraction in documents table
+    const { error: updateError } = await supabase
+      .from('documents')
+      .update({
+        extraction_data: extraction,
+        extraction_version: EXTRACTION_VERSION,
+        extraction_error: null, // Clear any previous error
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', documentId);
+
+    if (updateError) {
+      throw new Error(`Failed to store extraction: ${updateError.message}`);
+    }
+
+    // AC-10.12.2: Also cache in quote_extractions table for comparison flow compatibility
+    const { error: cacheError } = await supabase
+      .from('quote_extractions')
+      .upsert(
+        {
+          document_id: documentId,
+          agency_id: agencyId,
+          extracted_data: extraction,
+          extraction_version: EXTRACTION_VERSION,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'document_id',
+          ignoreDuplicates: false,
+        }
+      );
+
+    if (cacheError) {
+      log.warn('Failed to cache extraction in quote_extractions', {
+        documentId,
+        error: cacheError.message,
+      });
+      // Don't throw - documents table update succeeded
+    }
+
+    const duration = Date.now() - startTime;
+    log.info('Quote extraction completed', {
+      documentId,
+      duration,
+      coverageCount: extraction.coverages?.length || 0,
+      exclusionCount: extraction.exclusions?.length || 0,
+      carrierName: extraction.carrierName || null,
+      annualPremium: extraction.annualPremium || null,
+    });
+
+  } catch (error) {
+    clearTimeout(timeout);
+
+    const err = error instanceof Error ? error : new Error(String(error));
+    const duration = Date.now() - startTime;
+
+    // AC-10.12.3: Store error details in extraction_error column
+    const { error: updateError } = await supabase
+      .from('documents')
+      .update({
+        extraction_error: err.message,
+        extraction_data: null,
+        extraction_version: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', documentId);
+
+    if (updateError) {
+      log.warn('Failed to store extraction error', { documentId, error: updateError.message });
+    }
+
+    if (err.name === 'AbortError') {
+      log.warn('Quote extraction timeout', {
+        documentId,
+        duration,
+        timeoutMs: QUOTE_EXTRACTION_TIMEOUT_MS,
+      });
+    } else {
+      log.warn('Quote extraction failed', {
+        documentId,
+        duration,
+        error: err.message,
+      });
+    }
+
+    // AC-10.12.3: Graceful degradation - don't throw, just log and continue
+  }
+}
+
+// ============================================================================
 // Utilities
 // ============================================================================
 
@@ -1601,11 +2039,13 @@ function estimateTimeRemaining(
   const sizeMB = fileSizeBytes / MB;
 
   // Base estimates per stage (in seconds) for ~10MB file
+  // Story 10.12: Added 'analyzing' stage for quote extraction
   const baseEstimates: Record<ProgressData['stage'], number> = {
     downloading: 10,
     parsing: 120, // 2 min base for parsing
     chunking: 15,
     embedding: 60, // 1 min base for embeddings
+    analyzing: 30, // 30s base for GPT extraction
   };
 
   // Scale by file size (larger files take proportionally longer)
@@ -1616,7 +2056,8 @@ function estimateTimeRemaining(
   const remainingTime = baseTime * ((100 - stageProgress) / 100);
 
   // Add estimates for remaining stages
-  const stageOrder: ProgressData['stage'][] = ['downloading', 'parsing', 'chunking', 'embedding'];
+  // Story 10.12: Added 'analyzing' stage
+  const stageOrder: ProgressData['stage'][] = ['downloading', 'parsing', 'chunking', 'embedding', 'analyzing'];
   const currentIndex = stageOrder.indexOf(stage);
   let additionalTime = 0;
 

@@ -40,16 +40,33 @@ export type Severity = 'high' | 'medium' | 'low';
 /**
  * Coverage severity mapping.
  * AC-7.4.6: High severity for GL, Property, Workers' Comp.
+ * Epic 10: Extended for 12 new coverage types.
  */
 export const COVERAGE_SEVERITY: Record<CoverageType, Severity> = {
+  // Core commercial coverages - high severity
   general_liability: 'high',
   property: 'high',
   workers_comp: 'high',
+  // Important commercial coverages - medium severity
   auto_liability: 'medium',
   professional_liability: 'medium',
   umbrella: 'medium',
+  product_liability: 'medium',
+  business_interruption: 'medium',
+  // Specialty coverages - medium severity
+  d_and_o: 'medium',
+  epli: 'medium',
+  medical_malpractice: 'medium',
+  pollution: 'medium',
+  // Lower priority coverages - low severity
   auto_physical_damage: 'low',
   cyber: 'low',
+  crime: 'low',
+  inland_marine: 'low',
+  builders_risk: 'low',
+  garage_liability: 'low',
+  liquor_liability: 'low',
+  fiduciary: 'low',
   other: 'low',
 };
 
@@ -177,6 +194,7 @@ export interface ComparisonTableData {
 // ============================================================================
 
 export const COVERAGE_TYPE_LABELS: Record<CoverageType, string> = {
+  // Original 9 types
   general_liability: 'General Liability',
   property: 'Property',
   auto_liability: 'Auto Liability',
@@ -186,6 +204,19 @@ export const COVERAGE_TYPE_LABELS: Record<CoverageType, string> = {
   professional_liability: 'Professional Liability (E&O)',
   cyber: 'Cyber Liability',
   other: 'Other Coverage',
+  // Epic 10: 12 new types
+  epli: 'Employment Practices Liability',
+  d_and_o: 'Directors & Officers',
+  crime: 'Crime / Fidelity',
+  pollution: 'Pollution Liability',
+  inland_marine: 'Inland Marine',
+  builders_risk: "Builder's Risk",
+  business_interruption: 'Business Interruption',
+  product_liability: 'Product Liability',
+  garage_liability: 'Garage Liability',
+  liquor_liability: 'Liquor Liability',
+  medical_malpractice: 'Medical Malpractice',
+  fiduciary: 'Fiduciary Liability',
 };
 
 // ============================================================================

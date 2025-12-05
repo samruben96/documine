@@ -47,6 +47,10 @@ export interface DocumentTableRow {
   document_type: DocumentType | null;
   ai_tags: string[] | null;
   ai_summary: string | null;
+  /** Story 10.12: Carrier name from extraction_data */
+  carrier_name: string | null;
+  /** Story 10.12: Annual premium from extraction_data */
+  annual_premium: number | null;
 }
 
 interface DocumentTableProps {
@@ -170,6 +174,52 @@ export function DocumentTable({ documents, onRename, onDelete }: DocumentTablePr
               </TooltipContent>
             </Tooltip>
           );
+        },
+      },
+      // Story 10.12: Carrier column from extraction_data
+      {
+        accessorKey: 'carrier_name',
+        header: ({ column }) => (
+          <SortableHeader column={column} title="Carrier" />
+        ),
+        cell: ({ row }) => {
+          const carrier = row.original.carrier_name;
+          const premium = row.original.annual_premium;
+
+          if (!carrier && !premium) {
+            return <span className="text-slate-400 text-xs">—</span>;
+          }
+
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="min-w-0">
+                  {carrier && (
+                    <span className="truncate max-w-[120px] text-sm text-slate-700 dark:text-slate-300 block">
+                      {carrier}
+                    </span>
+                  )}
+                  {premium && (
+                    <span className="text-xs text-slate-500">
+                      ${premium.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">
+                  {carrier && <span className="font-medium">{carrier}</span>}
+                  {carrier && premium && ' — '}
+                  {premium && <span>Premium: ${premium.toLocaleString()}/yr</span>}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          const a = rowA.original.carrier_name || '';
+          const b = rowB.original.carrier_name || '';
+          return a.localeCompare(b);
         },
       },
       {

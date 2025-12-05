@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 5.14 Realtime & Delete Polish
+  Generated: 2025-12-02
+  Epic: 5 - Chat Integration
+-->
+<story-context story-id="5.14" title="Realtime & Delete Polish">
+
+  <!-- ====================================================================
+       STORY DEFINITION
+  ==================================================================== -->
+  <story>
+    <as-a>user managing documents</as-a>
+    <i-want>processing progress updates to appear immediately and deleted documents to be removed cleanly</i-want>
+    <so-that>the interface feels responsive and trustworthy</so-that>
+  </story>
+
+  <!-- ====================================================================
+       ACCEPTANCE CRITERIA (Exact from story draft)
+  ==================================================================== -->
+  <acceptance-criteria>
+    <criterion id="AC-5.14.1" priority="must">
+      Realtime channel subscribes on mount when any document has status 'processing'
+    </criterion>
+    <criterion id="AC-5.14.2" priority="must">
+      Channel unsubscribes when no documents are processing (prevents resource leaks)
+    </criterion>
+    <criterion id="AC-5.14.3" priority="must">
+      Progress bar updates reflect server-side progress_data changes within 2 seconds
+    </criterion>
+    <criterion id="AC-5.14.4" priority="must">
+      Deleted documents are removed from the list immediately (optimistic UI)
+    </criterion>
+    <criterion id="AC-5.14.5" priority="must">
+      If delete fails on server, document reappears with error toast
+    </criterion>
+    <criterion id="AC-5.14.6" priority="must">
+      Processing badge transitions smoothly from "Analyzing..." to step indicator when progress data arrives
+    </criterion>
+    <criterion id="AC-5.14.7" priority="should">
+      Connection indicator shows "Live updates active" only when actually subscribed
+    </criterion>
+    <criterion id="AC-5.14.8" priority="should">
+      Documents remain clickable/viewable during processing (graceful partial state)
+    </criterion>
+    <criterion id="AC-5.14.9" priority="should">
+      Tab visibility changes don't cause duplicate subscriptions or memory leaks
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ====================================================================
+       TASKS/SUBTASKS
+  ==================================================================== -->
+  <tasks>
+    <task id="T1" title="Audit current realtime subscription logic">
+      <subtask id="T1.1">Review useDocumentStatus hook for subscription timing</subtask>
+      <subtask id="T1.2">Review useProcessingProgress hook for subscription lifecycle</subtask>
+      <subtask id="T1.3">Identify any subscription leaks or duplicate channels</subtask>
+    </task>
+    <task id="T2" title="Fix subscription lifecycle (AC-5.14.1, AC-5.14.2)">
+      <subtask id="T2.1">Ensure channel subscribes only when processingDocumentIds.length > 0</subtask>
+      <subtask id="T2.2">Ensure channel unsubscribes when processingDocumentIds becomes empty</subtask>
+      <subtask id="T2.3">Handle edge case: new document starts processing after initial mount</subtask>
+    </task>
+    <task id="T3" title="Ensure timely progress updates (AC-5.14.3)">
+      <subtask id="T3.1">Verify polling fallback runs at appropriate interval (currently 3s)</subtask>
+      <subtask id="T3.2">Verify realtime subscription is active before polling starts</subtask>
+      <subtask id="T3.3">Test with edge function progress updates to confirm &lt;2s latency</subtask>
+    </task>
+    <task id="T4" title="Implement optimistic delete (AC-5.14.4, AC-5.14.5)">
+      <subtask id="T4.1">Remove document from local state before server call</subtask>
+      <subtask id="T4.2">On server error, restore document to state</subtask>
+      <subtask id="T4.3">Show error toast on failure with meaningful message</subtask>
+    </task>
+    <task id="T5" title="Smooth badge transition (AC-5.14.6)">
+      <subtask id="T5.1">Review DocumentListItem to ensure fallback shows "Analyzing..."</subtask>
+      <subtask id="T5.2">Ensure ProcessingProgress component shows immediately when progressData arrives</subtask>
+      <subtask id="T5.3">Add subtle transition animation if needed</subtask>
+    </task>
+    <task id="T6" title="Connection indicator accuracy (AC-5.14.7)">
+      <subtask id="T6.1">Track isConnected state from both hooks</subtask>
+      <subtask id="T6.2">Only show "Live updates active" when at least one channel is SUBSCRIBED</subtask>
+    </task>
+    <task id="T7" title="Tab visibility handling (AC-5.14.9)">
+      <subtask id="T7.1">Add visibilitychange listener to pause/resume subscriptions</subtask>
+      <subtask id="T7.2">Ensure no duplicate channels when tab becomes visible again</subtask>
+    </task>
+    <task id="T8" title="Testing">
+      <subtask id="T8.1">Write/update unit tests for subscription lifecycle</subtask>
+      <subtask id="T8.2">Manual test: upload doc, watch progress, delete, verify cleanup</subtask>
+      <subtask id="T8.3">Run npm run build to ensure no type errors</subtask>
+    </task>
+  </tasks>
+
+  <!-- ====================================================================
+       RELEVANT DOCUMENTATION
+  ==================================================================== -->
+  <documentation>
+    <doc path="docs/architecture.md" relevance="high">
+      <excerpt section="Frontend Architecture">
+        - Custom hooks for business logic (useChat, useDocumentStatus)
+        - Supabase Realtime for live updates with client-side filtering
+      </excerpt>
+    </doc>
+
+    <doc path="docs/sprint-artifacts/tech-spec-epic-5.md" relevance="high">
+      <excerpt section="5.12 Processing Progress Visualization">
+        - Edge Function writes to processing_jobs.progress_data (JSONB)
+        - Client subscribes to processing_jobs table via Realtime
+        - Progress polling fallback for missed realtime events
+        - Stage weights: downloading 5%, parsing 60%, chunking 10%, embedding 25%
+      </excerpt>
+    </doc>
+
+    <doc path="docs/sprint-artifacts/story-5.14-realtime-polish.md" relevance="high">
+      <excerpt>
+        Full story with acceptance criteria and definition of done
+      </excerpt>
+    </doc>
+
+    <doc path="CLAUDE.md" relevance="medium">
+      <excerpt section="Epic 5 Chat Integration Bug Fixes">
+        - Previous realtime issues: document viewer loading, vector search 404
+        - Chat streaming AbortController patterns for cleanup
+      </excerpt>
+    </doc>
+  </documentation>
+
+  <!-- ====================================================================
+       RELEVANT CODE REFERENCES
+  ==================================================================== -->
+  <code-references>
+    <reference path="src/hooks/use-processing-progress.ts" relevance="critical">
+      <purpose>Primary hook for progress realtime subscription</purpose>
+      <line-hints>127-128 (hook signature), 351-394 (realtime subscription setup), 270-293 (polling fallback), 396-418 (cleanup when documentIds change)</line-hints>
+      <notes>
+        - Subscribes to 'postgres_changes' on processing_jobs table
+        - Polls every 3 seconds as fallback
+        - Tracks progressMap and errorMap
+        - CRITICAL: Check if channel unsubscribes when processingDocumentIds becomes empty
+      </notes>
+    </reference>
+
+    <reference path="src/hooks/use-document-status.ts" relevance="critical">
+      <purpose>Primary hook for document realtime subscription</purpose>
+      <line-hints>44-49 (hook signature), 203-240 (realtime subscription setup), 242-267 (polling fallback), 192-198 (DELETE event handling)</line-hints>
+      <notes>
+        - Subscribes to 'postgres_changes' on documents table with agency_id filter
+        - Handles INSERT, UPDATE, DELETE events
+        - Polls every 5 seconds as fallback
+        - isConnected state tracks subscription status
+      </notes>
+    </reference>
+
+    <reference path="src/components/documents/document-list.tsx" relevance="high">
+      <purpose>Renders document list with progress and delete</purpose>
+      <line-hints>45-53 (props including progressMap), 199-216 (DocumentListItem mapping), 260-266 (DeleteDocumentModal)</line-hints>
+      <notes>
+        - Receives progressMap from page and passes to DocumentListItem
+        - Delete modal handles UI confirmation
+      </notes>
+    </reference>
+
+    <reference path="src/components/documents/document-list-item.tsx" relevance="high">
+      <purpose>Individual document row with progress display</purpose>
+      <line-hints>21-37 (props interface), 246-257 (status badge vs ProcessingProgress conditional), 299-315 (retry button)</line-hints>
+      <notes>
+        - Shows ProcessingProgress when status='processing' AND progressData exists
+        - Falls back to DocumentStatusBadge otherwise
+        - AC-5.14.6: transition from "Analyzing..." to step indicator
+      </notes>
+    </reference>
+
+    <reference path="src/components/documents/processing-progress.tsx" relevance="high">
+      <purpose>Progress visualization component</purpose>
+      <line-hints>98-117 (fallback when no progressData), 131-242 (full progress display)</line-hints>
+      <notes>
+        - Shows "Analyzing..." with shimmer when progressData is null
+        - Displays step indicator, progress bar, time estimate when data available
+        - AC-5.14.6: ensure smooth transition
+      </notes>
+    </reference>
+
+    <reference path="src/app/(dashboard)/documents/page.tsx" relevance="high">
+      <purpose>Documents page orchestrating hooks and components</purpose>
+      <line-hints>55-69 (useDocumentStatus and useProcessingProgress setup), 316-328 (connection status indicator)</line-hints>
+      <notes>
+        - Computes processingDocumentIds from documents.filter(status='processing')
+        - Shows "Live updates active" based on isConnected
+        - AC-5.14.7: indicator should reflect actual subscription state
+      </notes>
+    </reference>
+
+    <reference path="src/components/documents/delete-document-modal.tsx" relevance="medium">
+      <purpose>Delete confirmation modal</purpose>
+      <notes>
+        - Handles delete confirmation UI
+        - AC-5.14.4, AC-5.14.5: optimistic delete should be in calling code
+      </notes>
+    </reference>
+
+    <reference path="src/app/(dashboard)/documents/actions.ts" relevance="medium">
+      <purpose>Server actions including deleteDocumentAction</purpose>
+      <notes>
+        - deleteDocumentAction performs actual deletion
+        - Returns success/error for optimistic UI rollback
+      </notes>
+    </reference>
+
+    <reference path="supabase/functions/process-document/index.ts" relevance="medium">
+      <purpose>Edge function that writes progress_data</purpose>
+      <line-hints>1347-1386 (updateJobProgress function), 60-68 (STAGE_WEIGHTS)</line-hints>
+      <notes>
+        - Writes to processing_jobs.progress_data on each stage
+        - Throttles updates to 1/second to avoid flooding Realtime
+        - Understanding server-side helps verify client receives expected data
+      </notes>
+    </reference>
+  </code-references>
+
+  <!-- ====================================================================
+       INTERFACES AND API CONTRACTS
+  ==================================================================== -->
+  <interfaces>
+    <interface name="ProgressData" location="src/hooks/use-processing-progress.ts:12-19">
+      <definition><![CDATA[
+export interface ProgressData {
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage_progress: number; // 0-100
+  stage_name: string; // User-friendly name
+  estimated_seconds_remaining: number | null;
+  total_progress: number; // 0-100 across all stages
+  updated_at: string;
+}
+      ]]></definition>
+    </interface>
+
+    <interface name="UseProcessingProgressResult" location="src/hooks/use-processing-progress.ts:65-72">
+      <definition><![CDATA[
+interface UseProcessingProgressResult {
+  progressMap: Map<string, ProgressData>;
+  errorMap: Map<string, string>;
+  isConnected: boolean;
+}
+      ]]></definition>
+    </interface>
+
+    <interface name="UseDocumentStatusResult" location="src/hooks/use-document-status.ts:26-33">
+      <definition><![CDATA[
+interface UseDocumentStatusResult {
+  documents: Document[];
+  setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
+  isConnected: boolean;
+}
+      ]]></definition>
+    </interface>
+
+    <interface name="Supabase Realtime Subscription" location="Supabase SDK">
+      <definition><![CDATA[
+// Channel subscription pattern used in both hooks:
+supabase
+  .channel('channel-name')
+  .on('postgres_changes', {
+    event: 'UPDATE' | 'INSERT' | 'DELETE' | '*',
+    schema: 'public',
+    table: 'table_name',
+    filter?: 'column=eq.value'
+  }, handleChange)
+  .subscribe((status) => {
+    // status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR'
+    setIsConnected(status === 'SUBSCRIBED');
+  });
+
+// Cleanup:
+supabase.removeChannel(channel);
+      ]]></definition>
+    </interface>
+  </interfaces>
+
+  <!-- ====================================================================
+       CONSTRAINTS AND PATTERNS
+  ==================================================================== -->
+  <constraints>
+    <constraint type="dev-rule">
+      Avoid over-engineering. Only make changes that are directly requested or clearly necessary.
+    </constraint>
+    <constraint type="pattern">
+      Use existing hook patterns - useDocumentStatus and useProcessingProgress already established.
+    </constraint>
+    <constraint type="pattern">
+      Optimistic UI: update local state first, rollback on server error.
+    </constraint>
+    <constraint type="pattern">
+      Toast notifications via 'sonner' library (toast.success, toast.error).
+    </constraint>
+    <constraint type="performance">
+      Realtime subscription should only be active when needed (AC-5.14.2).
+    </constraint>
+    <constraint type="performance">
+      Avoid duplicate subscriptions - single channel per table/filter combo.
+    </constraint>
+    <constraint type="ux">
+      Connection indicator should accurately reflect subscription state (AC-5.14.7).
+    </constraint>
+    <constraint type="ux">
+      Progress updates within 2 seconds (AC-5.14.3) - polling fallback at 3s interval.
+    </constraint>
+  </constraints>
+
+  <!-- ====================================================================
+       DEPENDENCIES
+  ==================================================================== -->
+  <dependencies>
+    <dependency name="@supabase/supabase-js" version="^2.84.0">
+      <usage>Realtime subscriptions, database operations</usage>
+      <relevant-apis>
+        - supabase.channel() for creating channels
+        - .on('postgres_changes', ...) for table subscriptions
+        - .subscribe() / .unsubscribe() for lifecycle
+        - supabase.removeChannel() for cleanup
+      </relevant-apis>
+    </dependency>
+    <dependency name="react" version="19.2.0">
+      <usage>Hooks: useState, useEffect, useCallback, useRef, useMemo</usage>
+    </dependency>
+    <dependency name="sonner" version="^2.0.7">
+      <usage>Toast notifications for delete success/error</usage>
+    </dependency>
+  </dependencies>
+
+  <!-- ====================================================================
+       TESTING
+  ==================================================================== -->
+  <testing>
+    <framework>Vitest + React Testing Library</framework>
+    <test-location>__tests__/</test-location>
+    <commands>
+      <command name="test">npm run test</command>
+      <command name="build">npm run build</command>
+    </commands>
+    <testing-ideas>
+      <idea for="AC-5.14.1">Test that useProcessingProgress subscribes when documentIds.length > 0</idea>
+      <idea for="AC-5.14.2">Test that channel is removed when documentIds becomes empty array</idea>
+      <idea for="AC-5.14.4">Test optimistic delete removes doc from state immediately</idea>
+      <idea for="AC-5.14.5">Test rollback restores doc and shows toast on server error</idea>
+      <idea for="AC-5.14.6">Test ProcessingProgress renders step indicator when progressData provided</idea>
+      <idea for="AC-5.14.7">Test isConnected state updates correctly based on subscription status</idea>
+    </testing-ideas>
+  </testing>
+
+  <!-- ====================================================================
+       IMPLEMENTATION NOTES
+  ==================================================================== -->
+  <implementation-notes>
+    <note priority="high" for="AC-5.14.1, AC-5.14.2">
+      Current useProcessingProgress (line 351-394) ALWAYS subscribes when documentIds.length > 0.
+      On cleanup, it calls supabase.removeChannel(). Verify this cleanup runs when:
+      1. Component unmounts
+      2. documentIds changes from [id1] to [] (all processing complete)
+      The condition at line 353 "if (documentIds.length === 0) return;" should prevent subscription
+      when no docs are processing, but verify cleanup fires when transitioning FROM processing TO complete.
+    </note>
+
+    <note priority="high" for="AC-5.14.4, AC-5.14.5">
+      Current delete flow in DeleteDocumentModal calls deleteDocumentAction then onSuccess.
+      For optimistic delete:
+      1. Parent (DocumentList) should remove doc from local state BEFORE modal confirms
+      2. Modal's handleDelete should:
+         - Call onSuccess to trigger optimistic removal
+         - Call deleteDocumentAction
+         - On error, call a new onError callback to restore doc
+      Or: move delete logic to page.tsx with try/catch around server action.
+    </note>
+
+    <note priority="medium" for="AC-5.14.6">
+      DocumentListItem (line 248-256) already conditionally renders ProcessingProgress vs badge.
+      The condition: status === 'processing' && progressData
+      When progressData is null initially, it shows DocumentStatusBadge with "Processing".
+      Verify DocumentStatusBadge shows "Analyzing..." for processing status.
+      ProcessingProgress fallback (line 103-116) shows "Analyzing..." with shimmer - this is correct.
+    </note>
+
+    <note priority="medium" for="AC-5.14.9">
+      Tab visibility: consider adding document.addEventListener('visibilitychange', ...) in hooks.
+      When tab is hidden, could pause polling. When visible, resume and fetch latest.
+      Be careful not to create duplicate subscriptions on visibility change.
+    </note>
+  </implementation-notes>
+
+</story-context>

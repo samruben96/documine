@@ -302,6 +302,9 @@ export type Database = {
           created_at: string
           display_name: string | null
           document_type: string | null
+          extraction_data: Json | null
+          extraction_error: string | null
+          extraction_version: number | null
           filename: string
           id: string
           metadata: Json | null
@@ -318,6 +321,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           document_type?: string | null
+          extraction_data?: Json | null
+          extraction_error?: string | null
+          extraction_version?: number | null
           filename: string
           id?: string
           metadata?: Json | null
@@ -334,6 +340,9 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           document_type?: string | null
+          extraction_data?: Json | null
+          extraction_error?: string | null
+          extraction_version?: number | null
           filename?: string
           id?: string
           metadata?: Json | null

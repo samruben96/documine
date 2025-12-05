@@ -19,6 +19,10 @@ import {
   ExtractionOptions,
   EXTRACTION_VERSION,
   quoteExtractionSchema,
+  PolicyMetadata,
+  Endorsement,
+  CarrierInfo,
+  PremiumBreakdown,
 } from '@/types/compare';
 import { log } from '@/lib/utils/logger';
 
@@ -57,6 +61,20 @@ COVERAGE TYPE MAPPINGS:
 - "Cyber Liability", "Data Breach", "Network Security" → cyber
 - Other coverages → other
 
+EXTENDED COVERAGE TYPE MAPPINGS (Epic 10):
+- "EPLI", "Employment Practices Liability", "EPL", "Employment Practices" → epli
+- "D&O", "Directors and Officers", "Directors & Officers Liability", "D&O Liability" → d_and_o
+- "Crime", "Fidelity", "Employee Dishonesty", "Fidelity Bond", "Crime Coverage" → crime
+- "Pollution", "Environmental Liability", "Pollution Legal Liability", "Environmental" → pollution
+- "Inland Marine", "Equipment Floater", "Contractors Equipment", "Equipment Coverage", "Floater" → inland_marine
+- "Builders Risk", "Course of Construction", "Construction Risk", "Builder's Risk" → builders_risk
+- "Business Interruption", "BI", "Loss of Income", "Business Income", "Income Protection" → business_interruption
+- "Product Liability", "Products-Completed Operations", "Products Liability", "Products/Completed Ops" → product_liability
+- "Garage Liability", "Garagekeepers", "Garage Coverage", "Garage Keepers" → garage_liability
+- "Liquor Liability", "Dram Shop", "Liquor Coverage", "Alcohol Liability" → liquor_liability
+- "Medical Malpractice", "Medical Professional Liability", "Healthcare Liability", "Med Mal" → medical_malpractice
+- "Fiduciary Liability", "Fiduciary", "ERISA", "Employee Benefits Liability" → fiduciary
+
 EXCLUSION CATEGORY MAPPINGS:
 - Flood, water damage, rising water → flood
 - Earthquake, earth movement, seismic → earthquake
@@ -70,7 +88,83 @@ LIMIT TYPE MAPPINGS:
 - "Each Occurrence", "Per Occurrence", "Per Claim" → per_occurrence
 - "Aggregate", "Annual Aggregate", "Policy Aggregate" → aggregate
 - "Per Person", "Each Person" → per_person
-- "CSL", "Combined Single Limit" → combined_single`;
+- "CSL", "Combined Single Limit" → combined_single
+
+EXTRACTION EXAMPLES (Few-Shot):
+
+Example 1 - General Liability Coverage:
+Input: "Commercial General Liability: Each Occurrence $1,000,000, General Aggregate $2,000,000, Products-Completed Ops Aggregate $2,000,000, Deductible: $5,000 (Page 3)"
+Output: { type: "general_liability", name: "Commercial General Liability", limit: 1000000, limitType: "per_occurrence", deductible: 5000, description: "CGL coverage with $1M per occurrence and $2M aggregate", sourcePages: [3] }
+
+Example 2 - D&O Coverage:
+Input: "Directors & Officers Liability - $5,000,000 each claim, $10,000,000 aggregate, SIR: $50,000 (Pages 12-13)"
+Output: { type: "d_and_o", name: "Directors & Officers Liability", limit: 5000000, limitType: "per_occurrence", deductible: 50000, description: "D&O coverage for corporate officers and directors", sourcePages: [12, 13] }
+
+Example 3 - Employment Practices:
+Input: "EPLI Coverage: Per Claim Limit $1,000,000 / Aggregate $2,000,000, Retention $25,000"
+Output: { type: "epli", name: "Employment Practices Liability", limit: 1000000, limitType: "per_occurrence", deductible: 25000, description: "Employment practices liability coverage", sourcePages: [] }
+
+GRACEFUL NULL HANDLING:
+- If a field is not found, return null (not an error or placeholder value)
+- If a coverage section is entirely missing, return an empty array for that field
+- If dates are mentioned but format is unclear, extract in YYYY-MM-DD format or null
+- If amounts have ambiguous notation, prefer the numeric interpretation
+
+STORY 10.2 - POLICY METADATA EXTRACTION:
+- Form Type: Look for "ISO", "Standard", "Manuscript", "Proprietary" indicators
+- Form Numbers: Extract exactly as shown (CG 0001, CP 0010, CA 0001, BP 0002)
+- Policy Type: "Occurrence" → occurrence, "Claims-Made" / "Claims Made" → claims-made
+- Retroactive Date: Only for claims-made policies (YYYY-MM-DD format)
+- Extended Reporting Period: Look for "Tail Coverage", "ERP", "Extended Reporting"
+- Audit Type: "Annual Audit" → annual, "Monthly Reporting" → monthly, "Final Audit Only" → final
+
+STORY 10.3 - ENHANCED LIMITS (Coverage-level):
+- Aggregate Limit: Look for "Aggregate", "Annual Aggregate", "Policy Aggregate"
+- Self-Insured Retention (SIR): Different from deductible - insured pays first, then coverage applies
+- Coinsurance: Property coverage percentage (80%, 90%, 100%)
+- Waiting Period: Business interruption delay (72 hours, 24 hours, etc.)
+- Indemnity Period: Maximum coverage duration (12 months, 18 months, etc.)
+
+STORY 10.4 - ENDORSEMENT EXTRACTION:
+- Section indicators: "Endorsements", "Schedule of Forms", "Attached Forms", "Forms and Endorsements"
+- Extract form numbers exactly (preserve spaces: "CG 20 10" not "CG2010")
+- Classification:
+  * broadening: Adds coverage (Additional Insured, Blanket endorsements)
+  * restricting: Limits coverage (Exclusions, Limitations, Sublimits)
+  * conditional: Depends on circumstances (Audit provisions, Notice requirements)
+- CRITICAL ENDORSEMENTS (prioritize finding these):
+  * CG 20 10 - Additional Insured - Owners, Lessees or Contractors
+  * CG 20 37 - Additional Insured - Completed Operations
+  * CG 24 04 - Waiver of Transfer of Rights (Waiver of Subrogation)
+  * CG 20 01 - Primary and Non-Contributory
+
+Example - Endorsement Extraction:
+Input: "Endorsement CG 20 10 10 01 - Additional Insured - Owners, Lessees or Contractors - Scheduled Person Or Organization (Page 15)"
+Output: { formNumber: "CG 20 10", name: "Additional Insured - Owners, Lessees or Contractors", type: "broadening", description: "Extends coverage to scheduled additional insureds for ongoing operations", affectedCoverage: "General Liability", sourcePages: [15] }
+
+STORY 10.5 - CARRIER INFORMATION:
+- AM Best Rating: A++, A+, A, A-, B++, B+, B, B-, C++, C+, C, C-
+- AM Best Financial Size Class: I through XV (Roman numerals)
+- NAIC Code: Usually 5-digit number identifying the carrier
+- Admitted Status: Look for "surplus lines", "excess lines", "non-admitted", "admitted carrier"
+- Claims Phone: Look for "Claims", "Report a Claim", contact information
+- Underwriter: Individual or team name handling the account
+
+STORY 10.6 - PREMIUM BREAKDOWN:
+- Look for itemized premium schedules, premium summaries
+- Base Premium: Premium before taxes and fees
+- Coverage Premiums: Per-coverage premium allocation
+- Taxes: State/local premium taxes
+- Fees: Policy fees, inspection fees
+- Broker Fee: Agent/broker commission or fee
+- Surplus Lines Tax: For non-admitted carriers (usually 3-5%)
+- Payment Plan: Annual, semi-annual, quarterly, monthly, pay-in-full discount
+
+Example - Premium Breakdown:
+Input: "Premium Summary: Base Premium $12,500, State Tax $625, Policy Fee $150, Total $13,275"
+Output: { basePremium: 12500, taxes: 625, fees: 150, totalPremium: 13275, coveragePremiums: [], ... }`;
+
+// Token Budget: ~4,200 tokens (within reasonable limits for GPT-5.1)
 
 // ============================================================================
 // Main Extraction Function
@@ -376,11 +470,24 @@ async function callGPTExtraction(
         effectiveDate: parsed.effectiveDate ?? null,
         expirationDate: parsed.expirationDate ?? null,
         annualPremium: parsed.annualPremium ?? null,
-        coverages: parsed.coverages,
+        coverages: parsed.coverages.map((c) => ({
+          ...c,
+          // Ensure enhanced fields have explicit nulls
+          aggregateLimit: c.aggregateLimit ?? null,
+          selfInsuredRetention: c.selfInsuredRetention ?? null,
+          coinsurance: c.coinsurance ?? null,
+          waitingPeriod: c.waitingPeriod ?? null,
+          indemnityPeriod: c.indemnityPeriod ?? null,
+        })),
         exclusions: parsed.exclusions,
         deductibles: parsed.deductibles,
         extractedAt: new Date().toISOString(),
         modelUsed: MODEL,
+        // Epic 10: Stories 10.2, 10.4, 10.5, 10.6
+        policyMetadata: parsed.policyMetadata ?? null,
+        endorsements: parsed.endorsements ?? [],
+        carrierInfo: parsed.carrierInfo ?? null,
+        premiumBreakdown: parsed.premiumBreakdown ?? null,
       };
 
       return extraction;

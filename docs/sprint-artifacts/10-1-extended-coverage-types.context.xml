@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="10-1" generated="2025-12-04">
+  <story-summary>
+    <title>Extended Coverage Types Schema</title>
+    <epic>10 - Enhanced Quote Extraction</epic>
+    <points>3</points>
+    <status>drafted</status>
+    <objective>Add 12 new coverage types to the extraction schema for comprehensive commercial policy analysis</objective>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-10.1.1" priority="Must">CoverageType TypeScript enum includes 12 new types: epli, d_and_o, crime, pollution, inland_marine, builders_risk, business_interruption, product_liability, garage_liability, liquor_liability, medical_malpractice, fiduciary</criterion>
+    <criterion id="AC-10.1.2" priority="Must">Zod schema coverageItemSchema updated to accept new coverage types</criterion>
+    <criterion id="AC-10.1.3" priority="Must">Extraction prompt mappings added for all new coverage types with common variations</criterion>
+    <criterion id="AC-10.1.4" priority="Must">Existing extractions with original 9 coverage types continue to work (backward compatible)</criterion>
+    <criterion id="AC-10.1.5" priority="Must">COVERAGE_TYPES array includes all 21 types for iteration/validation</criterion>
+    <criterion id="AC-10.1.6" priority="Should">Coverage type icons/display names added for UI rendering</criterion>
+    <criterion id="AC-10.1.7" priority="Must">Unit tests verify all 21 coverage types are recognized</criterion>
+  </acceptance-criteria>
+
+  <code-artifacts>
+    <artifact path="src/types/compare.ts" action="MODIFY" purpose="Add 12 new coverage types to CoverageType union and COVERAGE_TYPES array, update Zod schema">
+      <current-code line-range="20-41">
+// Current CoverageType (9 types)
+export type CoverageType =
+  | 'general_liability'
+  | 'property'
+  | 'auto_liability'
+  | 'auto_physical_damage'
+  | 'umbrella'
+  | 'workers_comp'
+  | 'professional_liability'
+  | 'cyber'
+  | 'other';
+
+export const COVERAGE_TYPES: CoverageType[] = [
+  'general_liability',
+  'property',
+  'auto_liability',
+  'auto_physical_damage',
+  'umbrella',
+  'workers_comp',
+  'professional_liability',
+  'cyber',
+  'other',
+];
+      </current-code>
+      <target-code>
+// Extended CoverageType (21 types)
+export type CoverageType =
+  | 'general_liability'
+  | 'property'
+  | 'auto_liability'
+  | 'auto_physical_damage'
+  | 'umbrella'
+  | 'workers_comp'
+  | 'professional_liability'
+  | 'cyber'
+  | 'other'
+  // New types (Epic 10)
+  | 'epli'                    // Employment Practices Liability
+  | 'd_and_o'                 // Directors & Officers
+  | 'crime'                   // Crime / Fidelity
+  | 'pollution'               // Pollution Liability
+  | 'inland_marine'           // Inland Marine / Equipment
+  | 'builders_risk'           // Builders Risk
+  | 'business_interruption'   // Business Interruption / Loss of Income
+  | 'product_liability'       // Product Liability
+  | 'garage_liability'        // Garage Liability
+  | 'liquor_liability'        // Liquor Liability
+  | 'medical_malpractice'     // Medical Malpractice
+  | 'fiduciary';              // Fiduciary Liability
+      </target-code>
+    </artifact>
+
+    <artifact path="src/types/compare.ts" action="MODIFY" purpose="Update Zod coverageItemSchema enum">
+      <current-code line-range="232-243">
+export const coverageItemSchema = z.object({
+  type: z.enum([
+    'general_liability',
+    'property',
+    'auto_liability',
+    'auto_physical_damage',
+    'umbrella',
+    'workers_comp',
+    'professional_liability',
+    'cyber',
+    'other',
+  ]),
+      </current-code>
+    </artifact>
+
+    <artifact path="src/types/compare.ts" action="MODIFY" purpose="Bump EXTRACTION_VERSION to invalidate cache">
+      <current-code line-range="194">
+export const EXTRACTION_VERSION = 1;
+      </current-code>
+      <target-code>
+export const EXTRACTION_VERSION = 2;
+      </target-code>
+    </artifact>
+
+    <artifact path="src/types/compare.ts" action="ADD" purpose="Create COVERAGE_TYPE_DISPLAY map for UI">
+      <target-code>
+export const COVERAGE_TYPE_DISPLAY: Record&lt;CoverageType, { label: string; icon: string }&gt; = {
+  general_liability: { label: 'General Liability', icon: 'Shield' },
+  property: { label: 'Property', icon: 'Building' },
+  auto_liability: { label: 'Auto Liability', icon: 'Car' },
+  auto_physical_damage: { label: 'Auto Physical Damage', icon: 'CarFront' },
+  umbrella: { label: 'Umbrella', icon: 'Umbrella' },
+  workers_comp: { label: 'Workers Compensation', icon: 'HardHat' },
+  professional_liability: { label: 'Professional Liability', icon: 'Briefcase' },
+  cyber: { label: 'Cyber', icon: 'Lock' },
+  other: { label: 'Other', icon: 'FileQuestion' },
+  // New types
+  epli: { label: 'Employment Practices', icon: 'Users' },
+  d_and_o: { label: 'Directors &amp; Officers', icon: 'Crown' },
+  crime: { label: 'Crime / Fidelity', icon: 'AlertTriangle' },
+  pollution: { label: 'Pollution', icon: 'Leaf' },
+  inland_marine: { label: 'Inland Marine', icon: 'Truck' },
+  builders_risk: { label: 'Builders Risk', icon: 'Hammer' },
+  business_interruption: { label: 'Business Interruption', icon: 'Clock' },
+  product_liability: { label: 'Product Liability', icon: 'Package' },
+  garage_liability: { label: 'Garage Liability', icon: 'Warehouse' },
+  liquor_liability: { label: 'Liquor Liability', icon: 'Wine' },
+  medical_malpractice: { label: 'Medical Malpractice', icon: 'Stethoscope' },
+  fiduciary: { label: 'Fiduciary', icon: 'Scale' },
+};
+      </target-code>
+    </artifact>
+
+    <artifact path="src/lib/compare/extraction.ts" action="MODIFY" purpose="Add prompt mappings for new coverage types">
+      <current-code line-range="49-58">
+COVERAGE TYPE MAPPINGS:
+- "General Liability", "CGL", "Commercial General Liability" → general_liability
+- "Property", "Building", "Business Personal Property", "BPP" → property
+- "Auto Liability", "Automobile Liability", "Commercial Auto" → auto_liability
+- "Physical Damage", "Collision", "Comprehensive", "Auto Physical" → auto_physical_damage
+- "Umbrella", "Excess Liability", "Excess" → umbrella
+- "Workers Compensation", "WC", "Workers' Comp" → workers_comp
+- "Professional Liability", "E&amp;O", "Errors and Omissions", "Malpractice" → professional_liability
+- "Cyber Liability", "Data Breach", "Network Security" → cyber
+- Other coverages → other
+      </current-code>
+      <target-additions>
+COVERAGE TYPE MAPPINGS (EXTENDED):
+- "EPLI", "Employment Practices Liability", "EPL" → epli
+- "D&amp;O", "Directors and Officers", "Directors &amp; Officers Liability" → d_and_o
+- "Crime", "Fidelity", "Employee Dishonesty", "Fidelity Bond" → crime
+- "Pollution", "Environmental Liability", "Pollution Legal Liability" → pollution
+- "Inland Marine", "Equipment Floater", "Contractors Equipment", "Equipment Coverage" → inland_marine
+- "Builders Risk", "Course of Construction", "Construction Risk" → builders_risk
+- "Business Interruption", "BI", "Loss of Income", "Business Income" → business_interruption
+- "Product Liability", "Products-Completed Operations", "Products Liability" → product_liability
+- "Garage Liability", "Garagekeepers", "Garage Coverage" → garage_liability
+- "Liquor Liability", "Dram Shop", "Liquor Coverage" → liquor_liability
+- "Medical Malpractice", "Medical Professional Liability", "Healthcare Liability" → medical_malpractice
+- "Fiduciary Liability", "Fiduciary", "ERISA" → fiduciary
+      </target-additions>
+    </artifact>
+
+    <artifact path="src/lib/compare/extraction.ts" action="MODIFY" purpose="Update EXTRACT_QUOTE_DATA_FUNCTION enum">
+      <current-code line-range="329-341">
+type: {
+  type: 'string',
+  enum: [
+    'general_liability',
+    'property',
+    'auto_liability',
+    'auto_physical_damage',
+    'umbrella',
+    'workers_comp',
+    'professional_liability',
+    'cyber',
+    'other',
+  ],
+      </current-code>
+    </artifact>
+
+    <artifact path="__tests__/types/compare.test.ts" action="CREATE" purpose="Add unit tests for coverage types">
+      <target-code>
+import { describe, it, expect } from 'vitest';
+import {
+  COVERAGE_TYPES,
+  CoverageType,
+  coverageItemSchema,
+  COVERAGE_TYPE_DISPLAY,
+} from '@/types/compare';
+
+describe('CoverageType', () =&gt; {
+  it('should have 21 coverage types in COVERAGE_TYPES array', () =&gt; {
+    expect(COVERAGE_TYPES).toHaveLength(21);
+  });
+
+  it('should include all original 9 coverage types', () =&gt; {
+    const original = [
+      'general_liability', 'property', 'auto_liability', 'auto_physical_damage',
+      'umbrella', 'workers_comp', 'professional_liability', 'cyber', 'other',
+    ];
+    original.forEach(type =&gt; {
+      expect(COVERAGE_TYPES).toContain(type);
+    });
+  });
+
+  it('should include all 12 new coverage types', () =&gt; {
+    const newTypes = [
+      'epli', 'd_and_o', 'crime', 'pollution', 'inland_marine', 'builders_risk',
+      'business_interruption', 'product_liability', 'garage_liability',
+      'liquor_liability', 'medical_malpractice', 'fiduciary',
+    ];
+    newTypes.forEach(type =&gt; {
+      expect(COVERAGE_TYPES).toContain(type);
+    });
+  });
+
+  it('should validate all coverage types with Zod schema', () =&gt; {
+    COVERAGE_TYPES.forEach(type =&gt; {
+      const result = coverageItemSchema.safeParse({
+        type,
+        name: 'Test Coverage',
+        description: 'Test description',
+        sourcePages: [1],
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  it('should have display names for all coverage types', () =&gt; {
+    COVERAGE_TYPES.forEach(type =&gt; {
+      expect(COVERAGE_TYPE_DISPLAY[type]).toBeDefined();
+      expect(COVERAGE_TYPE_DISPLAY[type].label).toBeTruthy();
+      expect(COVERAGE_TYPE_DISPLAY[type].icon).toBeTruthy();
+    });
+  });
+});
+      </target-code>
+    </artifact>
+  </code-artifacts>
+
+  <files-using-coverage-types>
+    <file path="src/components/one-pager/one-pager-preview.tsx" usage="Renders coverage types in preview"/>
+    <file path="src/lib/one-pager/pdf-template.tsx" usage="Renders coverage types in PDF"/>
+    <file path="src/lib/compare/diff.ts" usage="Compares coverage types between quotes"/>
+  </files-using-coverage-types>
+
+  <dependencies>
+    <dependency type="parallel">Story 10.10 (Extraction Prompts) - should be done in parallel</dependency>
+  </dependencies>
+
+  <constraints>
+    <constraint type="backward-compatibility">Existing extractions with version 1 must continue to render correctly</constraint>
+    <constraint type="type-safety">Zod schema must match TypeScript types exactly</constraint>
+    <constraint type="cache-invalidation">EXTRACTION_VERSION bump triggers re-extraction for cached documents</constraint>
+  </constraints>
+
+  <patterns>
+    <pattern name="Zod Schema Pattern">Use .nullable().default(null) for optional fields</pattern>
+    <pattern name="Type Safety">Ensure COVERAGE_TYPES array matches CoverageType union exactly</pattern>
+    <pattern name="Testing">Unit tests in __tests__/ mirroring source structure</pattern>
+  </patterns>
+
+  <tech-spec-reference>docs/sprint-artifacts/tech-spec-epic-10.md</tech-spec-reference>
+</story-context>

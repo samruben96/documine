@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context version="1.0" story-id="7.3" story-key="7-3-comparison-table-view">
+  <metadata>
+    <generated-at>2025-12-03</generated-at>
+    <workflow>story-context</workflow>
+    <epic>Epic 7: Quote Comparison</epic>
+    <project>docuMINE</project>
+  </metadata>
+
+  <story-summary>
+    <title>Comparison Table View</title>
+    <description>Display extracted quote data in a side-by-side comparison table with difference highlighting and best/worst value indicators. This is the visual comparison UI that makes it easy for insurance agents to compare quotes.</description>
+    <status>drafted</status>
+    <effort>M (4-6 hours)</effort>
+    <priority>P0</priority>
+    <prerequisites>
+      <story id="7.1">Quote Selection Interface (DONE)</story>
+      <story id="7.2">Quote Data Extraction (DONE)</story>
+    </prerequisites>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-7.3.1" title="Table Layout">
+      <description>Side-by-side table with field names in first column and quote data in subsequent columns</description>
+      <details>
+        - Columns: Field name, Quote 1, Quote 2, Quote 3, Quote 4 (as applicable)
+        - Rows: One per extracted field
+        - Column headers: Carrier name from extraction
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.2" title="Sticky Headers">
+      <description>Table headers remain visible during scroll</description>
+      <details>
+        - Sticky header row (carrier names)
+        - Sticky first column (field names)
+        - Horizontal scroll if needed (4 quotes)
+        - Zebra striping for readability
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.3" title="Difference Highlighting">
+      <description>Visual indicators for differences between quotes</description>
+      <details>
+        - Cells with different values: subtle highlight
+        - Best value in row: green indicator (●)
+        - Worst/lowest value: red indicator (○)
+        - "Best/worst" logic:
+          - Limits: higher is better
+          - Deductibles: lower is better
+          - Premium: lower is better
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.4" title="Not Found Handling">
+      <description>Graceful display of missing values</description>
+      <details>
+        - Gray text: "—" or "Not found"
+        - Doesn't participate in best/worst comparison
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.5" title="Design Consistency">
+      <description>Matches docuMINE design system</description>
+      <details>
+        - Electric Blue (#3b82f6) accent per Story 6.8
+        - Trustworthy Slate colors
+        - Clean borders
+        - Readable typography
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.6" title="Sticky Header and Column">
+      <description>Headers remain visible during scroll</description>
+      <details>
+        - Header row (carrier names) remains visible on vertical scroll
+        - First column (field names) remains visible on horizontal scroll
+        - Proper z-index layering
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.7" title="Empty State Handling">
+      <description>Graceful handling when extraction fails</description>
+      <details>
+        - Clear message explaining the failure
+        - Option to retry extraction
+        - Link back to quote selection
+      </details>
+    </criterion>
+    <criterion id="AC-7.3.8" title="Responsive Layout">
+      <description>Table works on tablet and smaller screens</description>
+      <details>
+        - Horizontal scroll for 3-4 quotes on narrow screens
+        - Touch/swipe gestures work naturally
+        - Table remains readable at smaller sizes
+      </details>
+    </criterion>
+  </acceptance-criteria>
+
+  <functional-requirements>
+    <requirement id="FR22">System displays extracted data in aligned comparison view</requirement>
+    <requirement id="FR23">System highlights differences between quotes</requirement>
+  </functional-requirements>
+
+  <user-story>
+    <as-a>user comparing insurance quotes</as-a>
+    <i-want>to see extracted quote data in a side-by-side table</i-want>
+    <so-that>I can easily compare coverage details across carriers and make informed decisions</so-that>
+  </user-story>
+
+  <tasks>
+    <task id="1" name="Create DiffEngine Utility" acs="7.3.3, 7.3.4, 7.3.5">
+      <subtask>Create src/lib/compare/diff.ts</subtask>
+      <subtask>Implement buildComparisonRows() function</subtask>
+      <subtask>Implement calculateBestWorst() function per field type</subtask>
+      <subtask>Implement detectDifferences() function</subtask>
+      <subtask>Handle null/undefined values correctly</subtask>
+    </task>
+    <task id="2" name="Create ComparisonTable Component" acs="7.3.1, 7.3.2">
+      <subtask>Create src/components/compare/comparison-table.tsx</subtask>
+      <subtask>Define ComparisonTableProps interface</subtask>
+      <subtask>Render header row with carrier names</subtask>
+      <subtask>Render data rows from DiffEngine output</subtask>
+      <subtask>Map coverage types to human-readable labels</subtask>
+    </task>
+    <task id="3" name="Implement Visual Indicators" acs="7.3.3, 7.3.4, 7.3.5">
+      <subtask>Add best value indicator (green dot)</subtask>
+      <subtask>Add worst value indicator (red circle)</subtask>
+      <subtask>Add difference row highlighting (subtle amber)</subtask>
+      <subtask>Style "not found" cells appropriately</subtask>
+    </task>
+    <task id="4" name="Implement Sticky Behavior" acs="7.3.6">
+      <subtask>Apply sticky positioning to header row</subtask>
+      <subtask>Apply sticky positioning to first column</subtask>
+      <subtask>Handle z-index layering correctly</subtask>
+      <subtask>Test on various screen sizes</subtask>
+    </task>
+    <task id="5" name="Integrate with Comparison Page" acs="7.3.7, 7.3.8">
+      <subtask>Update src/app/(dashboard)/compare/[id]/page.tsx</subtask>
+      <subtask>Replace ExtractionCard grid with ComparisonTable</subtask>
+      <subtask>Handle loading/error states</subtask>
+      <subtask>Add error state with retry option</subtask>
+    </task>
+    <task id="6" name="Unit Tests">
+      <subtask>Test DiffEngine best/worst calculation</subtask>
+      <subtask>Test difference detection</subtask>
+      <subtask>Test null value handling</subtask>
+      <subtask>Test coverage type mapping</subtask>
+    </task>
+    <task id="7" name="E2E Tests">
+      <subtask>Test table renders with mock data</subtask>
+      <subtask>Test sticky headers work correctly</subtask>
+      <subtask>Test horizontal scroll on mobile</subtask>
+    </task>
+  </tasks>
+
+  <project-documentation>
+    <document name="PRD" path="docs/prd.md">
+      <relevant-sections>
+        <section title="Quote Comparison (FR20-FR26)">
+          FR22: System displays extracted data in aligned comparison view
+          FR23: System highlights differences between quotes
+          Target: Visual comparison highlighting differences between quotes
+        </section>
+        <section title="User Experience Principles">
+          - Trust Through Transparency: Every answer shows its source
+          - Speed You Can Feel: Responses appear fast
+          - Clean Over Clever: Simple layouts, clear typography
+        </section>
+      </relevant-sections>
+    </document>
+
+    <document name="Architecture" path="docs/architecture.md">
+      <relevant-sections>
+        <section title="UI/UX Architecture">
+          Color System: Electric Blue (#3b82f6) accent, Trustworthy Slate palette
+          Component Library: shadcn/ui (Radix primitives)
+          Spacing: 4px base unit, consistent padding
+          Typography: System fonts, clear hierarchy
+        </section>
+        <section title="Design Tokens">
+          --primary: oklch(0.65 0.19 250.5) - Electric Blue
+          --accent: oklch(0.65 0.19 250.5)
+          Tables use Card component with proper borders
+        </section>
+      </relevant-sections>
+    </document>
+
+    <document name="Epic 7 Tech Spec" path="docs/sprint-artifacts/tech-spec-epic-7.md">
+      <relevant-sections>
+        <section title="Story 7.3: Comparison Table View">
+          Component: src/components/compare/comparison-table.tsx
+          Purpose: Side-by-side table with difference highlighting
+          Data Flow: Receives QuoteExtraction[] from comparison page
+          Best/worst logic configurable per field type
+        </section>
+        <section title="Comparison Logic">
+          Higher is better: limits, coverage counts
+          Lower is better: premium, deductibles
+          Difference threshold: visual indicator when values differ by >10%
+        </section>
+      </relevant-sections>
+    </document>
+
+    <document name="Story 7.3 Definition" path="docs/sprint-artifacts/story-7.3-comparison-table-view.md">
+      <full-story>
+        See docs/sprint-artifacts/story-7.3-comparison-table-view.md for complete story definition
+        with acceptance criteria and technical notes.
+      </full-story>
+    </document>
+  </project-documentation>
+
+  <existing-code-artifacts>
+    <artifact type="types" path="src/types/compare.ts" lines="463">
+      <description>TypeScript types and Zod schemas for comparison feature</description>
+      <key-exports>
+        <export name="QuoteExtraction">Main extraction output interface (lines 164-187)</export>
+        <export name="CoverageItem">Coverage with type, limit, deductible, sourcePages (lines 108-125)</export>
+        <export name="ExclusionItem">Exclusion with name, description, category (lines 131-140)</export>
+        <export name="DeductibleItem">Deductible with type, amount, appliesTo (lines 145-154)</export>
+        <export name="DocumentSummary">Document info in comparison (lines 443-450)</export>
+        <export name="ComparisonData">Comparison status and results (lines 455-462)</export>
+        <export name="CoverageType">9 coverage type options (lines 20-29)</export>
+        <export name="LimitType">4 limit type options (lines 47-54)</export>
+        <export name="ExclusionCategory">7 exclusion categories (lines 64-71)</export>
+      </key-exports>
+      <usage-notes>
+        Use QuoteExtraction[] to populate comparison table rows.
+        CoverageItem.limit and DeductibleItem.amount are numeric for comparison.
+        sourcePages arrays enable "View in document" links (Story 7.5).
+      </usage-notes>
+    </artifact>
+
+    <artifact type="page" path="src/app/(dashboard)/compare/[id]/page.tsx" lines="442">
+      <description>Comparison result page with polling and extraction cards</description>
+      <key-components>
+        <component name="ComparisonPage" lines="35-152">Main page component with fetch/poll logic</component>
+        <component name="StatusBadge" lines="158-191">Processing/complete/partial/failed badges</component>
+        <component name="ProcessingView" lines="197-237">Shows extraction progress</component>
+        <component name="ExtractionSummaryView" lines="269-329">Displays extraction cards - PLACEHOLDER FOR TABLE</component>
+        <component name="ExtractionCard" lines="335-428">Individual quote summary card</component>
+      </key-components>
+      <integration-point>
+        Lines 311-326 contain placeholder for ComparisonTable component:
+        "Detailed comparison table will be implemented in Story 7.3"
+        Replace this Card with actual ComparisonTable component.
+      </integration-point>
+    </artifact>
+
+    <artifact type="component" path="src/components/compare/quote-selector.tsx" lines="338">
+      <description>Document selection UI with filtering (Story 7.1)</description>
+      <pattern-reference>
+        Use similar Card styling and grid patterns for table design.
+        Follow accessibility patterns: role attributes, keyboard support.
+        Color scheme: primary for selected, slate for neutral, green/red for status.
+      </pattern-reference>
+    </artifact>
+
+    <artifact type="component" path="src/components/compare/selection-counter.tsx" lines="58">
+      <description>Selection progress display</description>
+      <pattern-reference>
+        Badge styling for counts and indicators.
+        Helper text patterns for empty/active/max states.
+      </pattern-reference>
+    </artifact>
+
+    <artifact type="service" path="src/lib/compare/extraction.ts" lines="454">
+      <description>GPT-5.1 extraction service (Story 7.2)</description>
+      <note>Not directly used by Story 7.3 but provides the data model context.</note>
+    </artifact>
+
+    <artifact type="api" path="src/app/api/compare/[id]/route.ts" lines="96">
+      <description>GET endpoint returning comparison with extractions</description>
+      <response-shape>
+        {
+          comparisonId: string,
+          status: 'processing' | 'complete' | 'partial' | 'failed',
+          documents: DocumentSummary[],
+          extractions: QuoteExtraction[],
+          createdAt: string,
+          completedAt?: string
+        }
+      </response-shape>
+    </artifact>
+
+    <artifact type="ui-components" path="src/components/ui/">
+      <description>shadcn/ui components available for use</description>
+      <available-components>
+        <component name="Card">Container with header/content sections</component>
+        <component name="Table">Basic table with responsive wrapper</component>
+        <component name="Badge">Small status indicators</component>
+        <component name="Tooltip">Hover information</component>
+        <component name="Button">Action buttons</component>
+      </available-components>
+      <note>May need to add Table component from shadcn if not present</note>
+    </artifact>
+  </existing-code-artifacts>
+
+  <dependencies>
+    <dependency name="react" version="19.2.0">React framework</dependency>
+    <dependency name="next" version="16.0.4">Next.js App Router</dependency>
+    <dependency name="tailwindcss" version="^4">Styling</dependency>
+    <dependency name="class-variance-authority" version="^0.7.1">Component variants</dependency>
+    <dependency name="lucide-react" version="^0.554.0">Icons</dependency>
+    <dependency name="@radix-ui/react-tooltip" version="^1.2.8">Tooltips</dependency>
+  </dependencies>
+
+  <implementation-guidance>
+    <component-structure>
+      <file path="src/components/compare/comparison-table.tsx">
+        Main comparison table component.
+        Props: extractions: QuoteExtraction[], documents: DocumentSummary[]
+
+        Sub-components:
+        - TableHeader: Sticky carrier names
+        - TableRow: Field name + values across quotes
+        - ValueCell: Individual cell with comparison indicator
+        - DifferenceIndicator: Best/worst visual markers
+      </file>
+
+      <file path="src/lib/compare/diff.ts" optional="true">
+        Comparison utilities:
+        - getBestValue(values: (number|null)[], higherIsBetter: boolean)
+        - getWorstValue(values: (number|null)[], higherIsBetter: boolean)
+        - hasDifference(values: (number|null|string)[])
+        - formatValue(value: number|null, type: 'currency'|'date'|'text')
+      </file>
+    </component-structure>
+
+    <table-row-structure>
+      <category name="Basic Info">
+        <row field="carrierName" label="Carrier" type="text"/>
+        <row field="policyNumber" label="Policy Number" type="text"/>
+        <row field="namedInsured" label="Named Insured" type="text"/>
+        <row field="effectiveDate" label="Effective Date" type="date"/>
+        <row field="expirationDate" label="Expiration Date" type="date"/>
+        <row field="annualPremium" label="Annual Premium" type="currency" comparison="lower-is-better"/>
+      </category>
+      <category name="Coverages">
+        Each coverage type as a row showing limits/deductibles
+        Use CoverageType enum for grouping
+        Format: "Limit: $X / Deductible: $Y"
+      </category>
+      <category name="Exclusions">
+        Group by ExclusionCategory
+        Show count or list per quote
+      </category>
+    </table-row-structure>
+
+    <styling-patterns>
+      <pattern name="Sticky Header">
+        .sticky { position: sticky; top: 0; z-index: 10; }
+        Use bg-white/dark:bg-slate-900 to prevent content showing through
+      </pattern>
+      <pattern name="Sticky First Column">
+        First td/th: position: sticky; left: 0; z-index: 5;
+        Requires overflow-x-auto on container
+      </pattern>
+      <pattern name="Best Value Indicator">
+        Green dot (●) with text-green-600
+        Tooltip: "Best value in this category"
+      </pattern>
+      <pattern name="Worst Value Indicator">
+        Red circle (○) with text-red-500
+        Tooltip: "Higher than other quotes"
+      </pattern>
+      <pattern name="Difference Highlight">
+        bg-amber-50 or border-l-2 border-amber-400
+        Applied when values differ by >10%
+      </pattern>
+    </styling-patterns>
+
+    <accessibility-requirements>
+      - Table uses semantic HTML: table, thead, tbody, tr, th, td
+      - scope="col" on header cells
+      - aria-sort on sortable columns (if sortable)
+      - Screen reader text for indicators: "Best value" / "Highest in comparison"
+      - Keyboard navigation: Tab through cells
+      - High contrast mode support
+    </accessibility-requirements>
+  </implementation-guidance>
+
+  <testing-requirements>
+    <test-file path="__tests__/components/compare/comparison-table.test.tsx">
+      <test-cases>
+        <case name="renders table with correct structure">
+          Given: 2-4 QuoteExtraction objects
+          Then: Table has carrier name headers, field rows
+        </case>
+        <case name="displays basic info rows">
+          Given: Extractions with carrier, premium, dates
+          Then: All basic fields render correctly
+        </case>
+        <case name="highlights best premium (lower)">
+          Given: Quotes with premiums $5000, $6000, $4500
+          Then: $4500 cell shows green indicator
+        </case>
+        <case name="highlights best limit (higher)">
+          Given: Quotes with limits $1M, $2M, $500K
+          Then: $2M cell shows green indicator
+        </case>
+        <case name="handles null values">
+          Given: Quote with null premium
+          Then: Shows "—" and excludes from best/worst
+        </case>
+        <case name="sticky header scrolls correctly">
+          Given: Table with many rows
+          When: User scrolls down
+          Then: Header row remains visible
+        </case>
+        <case name="responsive horizontal scroll">
+          Given: 4 quotes on narrow viewport
+          When: Content overflows
+          Then: Horizontal scrollbar appears
+        </case>
+      </test-cases>
+    </test-file>
+  </testing-requirements>
+
+  <integration-checklist>
+    <item>Create src/components/compare/comparison-table.tsx component</item>
+    <item>Create src/lib/compare/diff.ts utility (optional but recommended)</item>
+    <item>Import and use ComparisonTable in compare/[id]/page.tsx</item>
+    <item>Replace placeholder Card (lines 311-326) with ComparisonTable</item>
+    <item>Add shadcn/ui Table component if not present: npx shadcn@latest add table</item>
+    <item>Add unit tests for comparison logic and table rendering</item>
+    <item>Test with 2, 3, and 4 quote comparisons</item>
+    <item>Test responsive behavior on mobile/tablet viewports</item>
+    <item>Verify accessibility with screen reader</item>
+  </integration-checklist>
+
+  <related-stories>
+    <story id="7.1" status="done">Quote Selection Interface - provides document selection</story>
+    <story id="7.2" status="done">Quote Data Extraction - provides QuoteExtraction data</story>
+    <story id="7.4" status="pending">Gap &amp; Conflict Identification - builds on comparison table</story>
+    <story id="7.5" status="pending">Source Citations in Comparison - adds "View source" to cells</story>
+    <story id="7.6" status="pending">Export Comparison Results - exports table data</story>
+  </related-stories>
+
+  <notes>
+    <note type="important">
+      The comparison table is the centerpiece of the Quote Comparison feature.
+      Focus on clarity and usability - agents need to quickly spot differences.
+    </note>
+    <note type="design">
+      Per PRD: "Visual comparison highlighting differences between quotes"
+      Follow the "Trust Through Transparency" principle - values should be clearly sourced.
+    </note>
+    <note type="technical">
+      QuoteExtraction.coverages is an array - need to align coverage types across quotes.
+      Use CoverageType enum to match coverages: if Quote1 has "general_liability" and Quote2
+      has "general_liability", show them in the same row.
+    </note>
+    <note type="future">
+      Story 7.5 will add "View in document" links to cells.
+      Design cells to accommodate a small source icon in the future.
+    </note>
+  </notes>
+</story-context>

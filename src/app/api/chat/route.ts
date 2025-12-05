@@ -30,7 +30,10 @@ import {
 import {
   retrieveContext,
   buildPrompt,
+  buildPromptWithStructuredData,
   chunksToSourceCitations,
+  getStructuredExtractionData,
+  formatStructuredContext,
 } from '@/lib/chat/rag';
 import { classifyIntent } from '@/lib/chat/intent';
 import { createChatStream } from '@/lib/chat/openai-stream';
@@ -203,8 +206,20 @@ export async function POST(request: Request): Promise<Response> {
       openaiApiKey
     );
 
-    // Build prompt with context
-    const promptMessages = buildPrompt(message, ragContext.chunks, previousMessages);
+    // Story 10.12: Fetch structured extraction data for enhanced context
+    // AC-10.12.6: Answer field queries from extraction_data
+    const extractionData = await getStructuredExtractionData(supabase, documentId);
+    const structuredContext = extractionData
+      ? formatStructuredContext(extractionData)
+      : undefined;
+
+    // Build prompt with both structured and unstructured context
+    const promptMessages = buildPromptWithStructuredData(
+      message,
+      ragContext.chunks,
+      previousMessages,
+      structuredContext
+    );
 
     // Convert chunks to source citations for storage
     const sources: SourceCitation[] = chunksToSourceCitations(ragContext.chunks);
@@ -215,6 +230,7 @@ export async function POST(request: Request): Promise<Response> {
       userId: user.id,
       confidence: ragContext.confidence,
       chunksRetrieved: ragContext.chunks.length,
+      hasStructuredData: !!structuredContext, // Story 10.12
     });
 
     // Note: We no longer force a "not found" response.

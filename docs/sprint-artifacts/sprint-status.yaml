@@ -572,28 +572,40 @@ development_status:
 # Reason: Agents need comprehensive policy data for thorough quote analysis
 # Research: Based on industry checklists from IIAT, IRMI, AmTrust
 # Doc: docs/epics/epic-10-enhanced-quote-extraction.md
+# Tech Spec: docs/sprint-artifacts/tech-spec-epic-10.md
+# Party Mode Input: Winston (Arch), John (PM), Amelia (Dev), Sally (UX), Murat (TEA), Bob (SM), Mary (Analyst)
 # Total Points: 26 (11 stories)
+# Story Order (per team consensus): 10.1+10.10 → 10.2-10.6 → 10.7 → 10.8-10.9 → 10.11
 
   # Epic 10: Enhanced Quote Extraction & Analysis
-  epic-10: backlog
+  epic-10: contexted
   # Story 10.1: Extended Coverage Types Schema (3 pts)
   # Add: Cyber, E&O, Workers Comp, Umbrella, EPLI, Pollution, BI, Auto, D&O, Crime
-  10-1-extended-coverage-types: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.1-extended-coverage-types.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-1-extended-coverage-types.context.xml
+  # IMPLEMENTED 2025-12-04: All 7 ACs complete, 17 unit tests, build passes
+  # CODE REVIEWED 2025-12-04: APPROVED - all ACs verified, ready to merge
+  10-1-extended-coverage-types: done
   # Story 10.2: Policy Form & Structure Metadata (2 pts)
   # Extract: ISO form numbers, occurrence vs claims-made, audit provisions, admitted status
-  10-2-policy-form-metadata: backlog
+  # IMPLEMENTED 2025-12-04: PolicyMetadata interface, policyMetadataSchema Zod, extraction prompt
+  10-2-policy-form-metadata: done
   # Story 10.3: Enhanced Limits & Deductibles (2 pts)
   # Add: Aggregate limits, sublimits, SIR, coinsurance, waiting periods
-  10-3-enhanced-limits-deductibles: backlog
+  # IMPLEMENTED 2025-12-04: Extended CoverageItem with 5 new fields, Zod schema updated
+  10-3-enhanced-limits-deductibles: done
   # Story 10.4: Endorsements Extraction (3 pts)
   # Extract: CG 20 10, CG 20 37, waiver of subrogation, primary & non-contributory
-  10-4-endorsements-extraction: backlog
+  # IMPLEMENTED 2025-12-04: Endorsement interface, endorsementSchema Zod, CRITICAL_ENDORSEMENTS constant
+  10-4-endorsements-extraction: done
   # Story 10.5: Carrier Information & Ratings (2 pts)
   # Extract: AM Best rating, admitted status, claims contact, underwriter
-  10-5-carrier-information: backlog
+  # IMPLEMENTED 2025-12-04: CarrierInfo interface, carrierInfoSchema Zod, extraction prompt
+  10-5-carrier-information: done
   # Story 10.6: Premium Breakdown (2 pts)
   # Extract: Per-coverage premiums, taxes, fees, broker fees, payment terms
-  10-6-premium-breakdown: backlog
+  # IMPLEMENTED 2025-12-04: PremiumBreakdown interface, premiumBreakdownSchema Zod, CoveragePremium
+  10-6-premium-breakdown: done
   # Story 10.7: Automated Gap Analysis (3 pts)
   # Identify: Missing coverages, inadequate limits, unusual exclusions, missing endorsements
   10-7-automated-gap-analysis: backlog
@@ -605,7 +617,24 @@ development_status:
   10-9-enhanced-one-pager: backlog
   # Story 10.10: Extraction Prompt Engineering (3 pts)
   # GPT: Updated prompts, examples, testing, accuracy metrics
-  10-10-extraction-prompts: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.10-extraction-prompts.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-10-extraction-prompts.context.xml
+  # IMPLEMENTED 2025-12-04: Few-shot examples, graceful null handling, test corpus, 14 accuracy tests
+  # CODE REVIEWED 2025-12-04: APPROVED - 5/7 ACs verified, 2 deferred to accuracy testing
+  10-10-extraction-prompts: done
   # Story 10.11: Testing & Migration (2 pts)
   # QA: Backward compatibility, schema migration, validation, performance
   10-11-testing-migration: backlog
+  # Story 10.12: Extraction at Upload Time (3 pts) - NEW 2025-12-04
+  # Trigger extraction in process-document Edge Function after chunking
+  # Store in documents.extraction_data JSONB, enable chat structured data, source citations
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.12-extraction-at-upload-time.md
+  # IMPLEMENTED 2025-12-04: All 9 ACs complete
+  # - Edge Function Step 9: GPT-5.1 extraction after AI tagging (60s timeout)
+  # - Database: extraction_data JSONB, extraction_version, extraction_error columns
+  # - Chat RAG: getStructuredExtractionData(), formatStructuredContext(), buildPromptWithStructuredData()
+  # - Comparison: Cache hit/miss logic with version check
+  # - Document Library: Carrier/premium display from extraction_data
+  # - QA Validated: 32 coverages, 12 exclusions extracted from test document
+  # CODE REVIEWED 2025-12-04: APPROVED - all 9 ACs verified, 10 unit tests, 1346 total tests pass
+  10-12-extraction-at-upload-time: done

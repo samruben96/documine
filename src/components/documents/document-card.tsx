@@ -34,6 +34,10 @@ interface DocumentCardProps {
   aiTags?: string[] | null;
   /** AI-generated summary (Story F2-3: AC-F2-3.2) */
   aiSummary?: string | null;
+  /** Story 10.12: Carrier name from extraction_data */
+  carrierName?: string | null;
+  /** Story 10.12: Annual premium from extraction_data */
+  annualPremium?: number | null;
   className?: string;
 }
 
@@ -58,6 +62,8 @@ export function DocumentCard({
   isUpdatingType = false,
   aiTags,
   aiSummary,
+  carrierName,
+  annualPremium,
   className,
 }: DocumentCardProps) {
   const router = useRouter();
@@ -143,6 +149,25 @@ export function DocumentCard({
             </div>
           )}
         </div>
+
+        {/* Story 10.12: Carrier and Premium from extraction_data */}
+        {(carrierName || annualPremium) && (
+          <div
+            className="flex items-center justify-between text-xs"
+            data-testid="quote-info"
+          >
+            {carrierName && (
+              <span className="text-slate-600 dark:text-slate-400 truncate max-w-[140px] font-medium">
+                {carrierName}
+              </span>
+            )}
+            {annualPremium && (
+              <span className="text-slate-500 dark:text-slate-500 font-semibold">
+                ${annualPremium.toLocaleString()}/yr
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Labels */}
         {labels.length > 0 && (

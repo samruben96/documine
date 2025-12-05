@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 6.7 Document List UX Polish (COMBINED)
+  Generated: 2025-12-02
+  Combined from: Original 6.7 (Selection), 6.8 (Empty State), 6.9 (Tooltip)
+
+  This context provides all information needed to implement the combined UX polish story.
+-->
+<story-context story-id="6.7" epic="6" title="Document List UX Polish">
+
+  <summary>
+    Three UX polish items for the document list/sidebar area:
+    1. Document selection highlight - visual indication of active document
+    2. Empty state improvement - engaging messaging and CTA
+    3. Long filename tooltip - reveal truncated names on hover
+  </summary>
+
+  <acceptance-criteria>
+    <!-- Document Selection Highlight -->
+    <criterion id="AC-6.7.1">Selected document has distinct background color</criterion>
+    <criterion id="AC-6.7.2">Selected state persists across page navigation</criterion>
+    <criterion id="AC-6.7.3">Hover state distinct from selected state</criterion>
+    <criterion id="AC-6.7.4">Selection visible in both light and dark modes</criterion>
+    <criterion id="AC-6.7.5">Accessible - aria-selected attribute added</criterion>
+
+    <!-- Empty State UX -->
+    <criterion id="AC-6.7.6">"No documents" state has engaging headline and illustration</criterion>
+    <criterion id="AC-6.7.7">Clear CTA button for upload when no documents exist</criterion>
+    <criterion id="AC-6.7.8">"Select document" state has clear guidance text</criterion>
+    <criterion id="AC-6.7.9">Different messaging for "no documents" vs "select document"</criterion>
+    <criterion id="AC-6.7.10">Empty states responsive on mobile</criterion>
+
+    <!-- Long Filename Tooltip -->
+    <criterion id="AC-6.7.11">Long filenames truncate with ellipsis</criterion>
+    <criterion id="AC-6.7.12">Tooltip shows full filename on hover</criterion>
+    <criterion id="AC-6.7.13">Truncation preserves file extension visibility</criterion>
+    <criterion id="AC-6.7.14">Tooltip accessible via keyboard focus</criterion>
+    <criterion id="AC-6.7.15">Consistent truncation in sidebar and header</criterion>
+  </acceptance-criteria>
+
+  <files-to-modify>
+    <file path="src/components/documents/document-list-item.tsx" priority="high">
+      <purpose>Add selection highlight styling, filename tooltip</purpose>
+      <changes>
+        - Already has isSelected prop, but needs aria-selected attribute
+        - Has title={name} on paragraph - replace with Tooltip component
+        - Styling already includes selection highlight (line 168), verify it's prominent enough
+        - Add dark mode variants if missing
+      </changes>
+      <current-selection-styling>
+        isSelected &amp;&amp; 'bg-[#f1f5f9] border-l-2 border-l-[#475569]'
+      </current-selection-styling>
+    </file>
+
+    <file path="src/components/documents/document-list.tsx" priority="medium">
+      <purpose>Already passes isSelected based on URL params (line 239)</purpose>
+      <changes>
+        - No changes needed - already working correctly
+        - Uses useParams to get selectedId and passes to DocumentListItem
+      </changes>
+    </file>
+
+    <file path="src/components/documents/document-list-empty.tsx" priority="high">
+      <purpose>Improve empty state messaging and styling</purpose>
+      <changes>
+        - Update headline from "No documents yet" to more engaging copy
+        - Add value proposition text
+        - Ensure responsive layout
+      </changes>
+    </file>
+
+    <file path="src/app/(dashboard)/documents/page.tsx" priority="medium">
+      <purpose>Improve main area empty state (lines 345-378)</purpose>
+      <changes>
+        - Current: "Welcome to docuMINE" / "Select a document"
+        - Update messaging to be more action-focused
+        - Already handles "no documents" vs "select document" states
+      </changes>
+    </file>
+
+    <file path="src/app/(dashboard)/documents/[id]/page.tsx" priority="low">
+      <purpose>Document header filename (lines 316-318)</purpose>
+      <changes>
+        - Add tooltip for long filename in document header
+        - Same pattern as document list item
+      </changes>
+    </file>
+  </files-to-modify>
+
+  <files-to-create>
+    <file path="src/components/documents/empty-state.tsx" priority="high">
+      <purpose>Reusable empty state component with variants</purpose>
+      <structure>
+        interface EmptyStateProps {
+          variant: 'no-documents' | 'select-document';
+          onUpload?: () => void;
+        }
+
+        Two variants:
+        1. no-documents: Upload CTA, value proposition
+        2. select-document: Guidance to pick from sidebar
+      </structure>
+    </file>
+
+    <file path="__tests__/e2e/document-list-ux.spec.ts" priority="medium">
+      <purpose>Playwright E2E tests for all 15 ACs</purpose>
+    </file>
+  </files-to-create>
+
+  <existing-components>
+    <component name="Tooltip" path="src/components/ui/tooltip.tsx">
+      <status>INSTALLED - Ready to use</status>
+      <exports>Tooltip, TooltipTrigger, TooltipContent, TooltipProvider</exports>
+      <usage>
+        import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
+        &lt;Tooltip&gt;
+          &lt;TooltipTrigger asChild&gt;
+            &lt;p className="truncate"&gt;{filename}&lt;/p&gt;
+          &lt;/TooltipTrigger&gt;
+          &lt;TooltipContent side="right"&gt;
+            &lt;p className="break-all"&gt;{filename}&lt;/p&gt;
+          &lt;/TooltipContent&gt;
+        &lt;/Tooltip&gt;
+      </usage>
+    </component>
+
+    <component name="Button" path="src/components/ui/button.tsx">
+      <status>INSTALLED</status>
+      <usage>For upload CTA in empty state</usage>
+    </component>
+
+    <component name="Icons" path="lucide-react">
+      <status>INSTALLED</status>
+      <relevant-icons>FileUp, FileText, Upload, ArrowRight</relevant-icons>
+    </component>
+  </existing-components>
+
+  <current-implementation-analysis>
+    <document-list-item>
+      <file>src/components/documents/document-list-item.tsx</file>
+      <lines>162-172</lines>
+      <selection-styling>
+        - Already has isSelected prop (line 32, 62)
+        - Already applies bg-[#f1f5f9] border-l-2 border-l-[#475569] when selected
+        - Already has aria-current="page" (line 231)
+        - Missing: aria-selected attribute
+      </selection-styling>
+      <filename-display>
+        - Line 239-244: Uses title={name} for native tooltip
+        - Already has truncate class
+        - Need to replace with shadcn Tooltip component
+      </filename-display>
+    </document-list-item>
+
+    <document-list>
+      <file>src/components/documents/document-list.tsx</file>
+      <lines>58-62, 239</lines>
+      <selection-handling>
+        - Uses useParams to get selectedId
+        - Passes isSelected={doc.id === selectedId} to each item
+        - Working correctly - no changes needed
+      </selection-handling>
+    </document-list>
+
+    <empty-states>
+      <sidebar-empty file="src/components/documents/document-list-empty.tsx">
+        - Shows when no documents (line 167-173 in document-list.tsx)
+        - Current: "No documents yet" + "Upload your first document"
+        - Has UploadZone embedded
+      </sidebar-empty>
+      <main-area-empty file="src/app/(dashboard)/documents/page.tsx" lines="345-378">
+        - Shows different messages based on document count
+        - "Welcome to docuMINE" when no docs
+        - "Select a document" when docs exist
+        - Already has conditional logic
+      </main-area-empty>
+    </empty-states>
+  </current-implementation-analysis>
+
+  <implementation-tasks>
+    <task id="1" priority="high" effort="30min">
+      <name>Add aria-selected to document list item</name>
+      <file>src/components/documents/document-list-item.tsx</file>
+      <details>
+        Replace aria-current="page" with aria-selected={isSelected}
+        Line 231 in current code
+      </details>
+    </task>
+
+    <task id="2" priority="high" effort="45min">
+      <name>Add Tooltip for filename in document list item</name>
+      <file>src/components/documents/document-list-item.tsx</file>
+      <details>
+        - Import Tooltip components
+        - Wrap filename paragraph (lines 239-244) with Tooltip
+        - Side="right" to avoid overlap with list
+        - Only show tooltip if text is actually truncated (optional optimization)
+      </details>
+    </task>
+
+    <task id="3" priority="medium" effort="45min">
+      <name>Verify/enhance selection highlight styling</name>
+      <file>src/components/documents/document-list-item.tsx</file>
+      <details>
+        - Current styling is good but verify contrast
+        - Add dark mode variants: dark:bg-slate-800 dark:border-l-slate-400
+        - Ensure hover state (hover:bg-slate-100) is visually distinct
+      </details>
+    </task>
+
+    <task id="4" priority="high" effort="30min">
+      <name>Update sidebar empty state messaging</name>
+      <file>src/components/documents/document-list-empty.tsx</file>
+      <details>
+        - Change "No documents yet" to "Ready to analyze"
+        - Change "Upload your first document to get started" to value proposition
+        - Example: "Upload a policy or quote to start asking questions"
+      </details>
+    </task>
+
+    <task id="5" priority="medium" effort="30min">
+      <name>Update main area empty state</name>
+      <file>src/app/(dashboard)/documents/page.tsx</file>
+      <details>
+        Lines 345-378 already have good conditional logic
+        - Tweak "Welcome to docuMINE" messaging
+        - "Select a document" → "Choose a document to explore"
+        - Add subtle illustration or icon enhancement
+      </details>
+    </task>
+
+    <task id="6" priority="low" effort="15min">
+      <name>Add tooltip to document header</name>
+      <file>src/app/(dashboard)/documents/[id]/page.tsx</file>
+      <details>
+        Lines 316-318 show document name in header
+        Wrap with Tooltip for consistency
+      </details>
+    </task>
+
+    <task id="7" priority="medium" effort="45min">
+      <name>Write Playwright E2E tests</name>
+      <file>__tests__/e2e/document-list-ux.spec.ts</file>
+      <details>
+        - Test selection highlight (aria-selected)
+        - Test tooltip on hover
+        - Test empty state variants
+        - Test responsive behavior
+      </details>
+    </task>
+  </implementation-tasks>
+
+  <styling-guidelines>
+    <selection-highlight>
+      <!-- Current styling (working) -->
+      isSelected &amp;&amp; 'bg-[#f1f5f9] border-l-2 border-l-[#475569]'
+
+      <!-- Suggested enhancement for dark mode -->
+      dark:bg-slate-800 dark:border-l-slate-400
+
+      <!-- Hover should be lighter than selection -->
+      hover:bg-slate-100 (lighter than selected bg-[#f1f5f9])
+    </selection-highlight>
+
+    <tooltip>
+      <!-- Use default shadcn styling -->
+      side="right" for sidebar items
+      className="max-w-[300px]" to limit width
+      Content: className="break-all" to handle long names
+    </tooltip>
+
+    <empty-state>
+      <!-- Icon size: h-12 w-12 or h-16 w-16 -->
+      <!-- Headline: text-lg or text-xl font-semibold -->
+      <!-- Body: text-sm text-muted-foreground -->
+      <!-- CTA: size="lg" variant="default" -->
+    </empty-state>
+  </styling-guidelines>
+
+  <test-plan>
+    <manual-tests>
+      <test id="M1">Selection highlight visible in light mode</test>
+      <test id="M2">Selection highlight visible in dark mode</test>
+      <test id="M3">Hover state different from selected state</test>
+      <test id="M4">Tooltip appears on hover for long filenames</test>
+      <test id="M5">Tooltip accessible via keyboard (Tab + focus)</test>
+      <test id="M6">Empty state (no documents) shows upload CTA</test>
+      <test id="M7">Empty state (has documents) shows guidance</test>
+      <test id="M8">All states work on mobile viewport</test>
+    </manual-tests>
+
+    <playwright-tests>
+      <test id="P1">aria-selected="true" on selected document</test>
+      <test id="P2">tooltip content matches filename</test>
+      <test id="P3">upload button visible in no-documents state</test>
+      <test id="P4">correct messaging for each empty state variant</test>
+    </playwright-tests>
+  </test-plan>
+
+  <definition-of-done>
+    <item>All 15 acceptance criteria verified</item>
+    <item>Playwright E2E tests pass</item>
+    <item>npm run build passes</item>
+    <item>npm run test passes</item>
+    <item>Visual review in light and dark modes</item>
+    <item>Mobile responsive verification</item>
+    <item>Code reviewed</item>
+    <item>Merged to main</item>
+  </definition-of-done>
+
+</story-context>

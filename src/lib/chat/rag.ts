@@ -8,17 +8,21 @@
  * 4. Calculate confidence
  * 5. Build prompt with context
  *
+ * Story 10.12: Enhanced with structured data from extraction_data
+ * for field-specific queries (premium, carrier, dates, etc.)
+ *
  * @module @/lib/chat/rag
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database.types';
+import type { Database, Json } from '@/types/database.types';
 import { generateEmbeddings } from '@/lib/openai/embeddings';
 import { searchSimilarChunks, getTopKChunks } from './vector-search';
 import { rerankChunks, isRerankerEnabled, getCohereApiKey } from './reranker';
 import { calculateConfidence, type ConfidenceLevel } from '@/lib/chat/confidence';
 import { classifyIntent } from './intent';
 import type { RAGContext, RetrievedChunk, ChatMessage, SourceCitation } from './types';
+import type { QuoteExtraction } from '@/types/compare';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -224,4 +228,207 @@ export function getNotFoundMessage(): string {
  */
 export function shouldShowNotFound(confidence: ConfidenceLevel): boolean {
   return confidence === 'not_found';
+}
+
+// ============================================================================
+// Story 10.12: Structured Data Integration
+// ============================================================================
+
+/**
+ * Retrieve extraction data from document for structured field queries.
+ *
+ * AC-10.12.6: When user asks about specific fields (premium, carrier, dates),
+ * the RAG system can answer from extraction_data without requiring vector search.
+ *
+ * @param supabase - Supabase client
+ * @param documentId - The document to retrieve extraction for
+ * @returns Extraction data if available, null otherwise
+ */
+export async function getStructuredExtractionData(
+  supabase: SupabaseClient<Database>,
+  documentId: string
+): Promise<QuoteExtraction | null> {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('extraction_data')
+    .eq('id', documentId)
+    .maybeSingle();
+
+  if (error || !data?.extraction_data) {
+    return null;
+  }
+
+  return data.extraction_data as unknown as QuoteExtraction;
+}
+
+/**
+ * Format extraction data as structured context for the LLM.
+ * Provides key fields in a clear, structured format.
+ *
+ * @param extraction - The extraction data
+ * @returns Formatted string for inclusion in prompt
+ */
+export function formatStructuredContext(extraction: QuoteExtraction): string {
+  const lines: string[] = ['STRUCTURED POLICY DATA (pre-extracted):'];
+
+  // Basic policy info
+  if (extraction.carrierName) {
+    lines.push(`• Carrier: ${extraction.carrierName}`);
+  }
+  if (extraction.policyNumber) {
+    lines.push(`• Policy Number: ${extraction.policyNumber}`);
+  }
+  if (extraction.namedInsured) {
+    lines.push(`• Named Insured: ${extraction.namedInsured}`);
+  }
+
+  // Dates
+  if (extraction.effectiveDate || extraction.expirationDate) {
+    const dates = [];
+    if (extraction.effectiveDate) dates.push(`Effective: ${extraction.effectiveDate}`);
+    if (extraction.expirationDate) dates.push(`Expires: ${extraction.expirationDate}`);
+    lines.push(`• Policy Period: ${dates.join(' to ')}`);
+  }
+
+  // Premium
+  if (extraction.annualPremium) {
+    lines.push(`• Annual Premium: $${extraction.annualPremium.toLocaleString()}`);
+  }
+
+  // Premium breakdown (Story 10.6)
+  if (extraction.premiumBreakdown) {
+    const pb = extraction.premiumBreakdown;
+    if (pb.basePremium) {
+      lines.push(`• Base Premium: $${pb.basePremium.toLocaleString()}`);
+    }
+    if (pb.taxes) {
+      lines.push(`• Taxes: $${pb.taxes.toLocaleString()}`);
+    }
+    if (pb.fees) {
+      lines.push(`• Fees: $${pb.fees.toLocaleString()}`);
+    }
+    if (pb.paymentPlan) {
+      lines.push(`• Payment Plan: ${pb.paymentPlan}`);
+    }
+  }
+
+  // Carrier info (Story 10.5)
+  if (extraction.carrierInfo) {
+    const ci = extraction.carrierInfo;
+    if (ci.amBestRating) {
+      lines.push(`• AM Best Rating: ${ci.amBestRating}`);
+    }
+    if (ci.admittedStatus) {
+      lines.push(`• Carrier Status: ${ci.admittedStatus}`);
+    }
+  }
+
+  // Coverages summary
+  if (extraction.coverages && extraction.coverages.length > 0) {
+    lines.push('\nCoverages:');
+    for (const cov of extraction.coverages.slice(0, 10)) { // Limit to 10 for prompt length
+      const limit = cov.limit ? `$${cov.limit.toLocaleString()}` : 'N/A';
+      const deductible = cov.deductible ? ` (Ded: $${cov.deductible.toLocaleString()})` : '';
+      const pages = cov.sourcePages?.length ? ` [Page ${cov.sourcePages.join(', ')}]` : '';
+      lines.push(`  - ${cov.name}: ${limit}${deductible}${pages}`);
+    }
+    if (extraction.coverages.length > 10) {
+      lines.push(`  ... and ${extraction.coverages.length - 10} more coverages`);
+    }
+  }
+
+  // Deductibles summary
+  if (extraction.deductibles && extraction.deductibles.length > 0) {
+    lines.push('\nDeductibles:');
+    for (const ded of extraction.deductibles.slice(0, 5)) {
+      const pages = ded.sourcePages?.length ? ` [Page ${ded.sourcePages.join(', ')}]` : '';
+      lines.push(`  - ${ded.type}: $${ded.amount.toLocaleString()}${pages}`);
+    }
+  }
+
+  // Exclusions summary
+  if (extraction.exclusions && extraction.exclusions.length > 0) {
+    lines.push('\nKey Exclusions:');
+    for (const exc of extraction.exclusions.slice(0, 5)) {
+      const pages = exc.sourcePages?.length ? ` [Page ${exc.sourcePages.join(', ')}]` : '';
+      lines.push(`  - ${exc.name}${pages}`);
+    }
+  }
+
+  // Endorsements summary (Story 10.4)
+  if (extraction.endorsements && extraction.endorsements.length > 0) {
+    lines.push('\nEndorsements:');
+    for (const end of extraction.endorsements.slice(0, 5)) {
+      const pages = end.sourcePages?.length ? ` [Page ${end.sourcePages.join(', ')}]` : '';
+      lines.push(`  - ${end.formNumber || 'N/A'}: ${end.name} (${end.type})${pages}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build the full prompt with both structured and unstructured context.
+ *
+ * Story 10.12: Enhanced to include structured extraction data when available.
+ *
+ * @param query - The user's question
+ * @param chunks - Retrieved document chunks
+ * @param conversationHistory - Previous messages for context
+ * @param structuredContext - Optional formatted structured data
+ * @returns The messages array for OpenAI chat completion
+ */
+export function buildPromptWithStructuredData(
+  query: string,
+  chunks: RetrievedChunk[],
+  conversationHistory: ChatMessage[],
+  structuredContext?: string
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+
+  // System prompt
+  messages.push({
+    role: 'system',
+    content: SYSTEM_PROMPT,
+  });
+
+  // Build context
+  let contextPrompt = '';
+
+  // Include structured data first (if available)
+  if (structuredContext) {
+    contextPrompt += structuredContext;
+    contextPrompt += '\n\n';
+  }
+
+  // Then unstructured chunk context
+  if (chunks.length > 0) {
+    contextPrompt += 'DOCUMENT CONTEXT (from the uploaded policy):\n';
+    contextPrompt += chunks
+      .map((c) => `[Page ${c.pageNumber}]: ${c.content}`)
+      .join('\n\n');
+    contextPrompt += '\n\n';
+  } else if (!structuredContext) {
+    contextPrompt += 'DOCUMENT CONTEXT: No relevant sections found for this query.\n\n';
+  }
+
+  // Add conversation history (last 10 messages)
+  if (conversationHistory.length > 0) {
+    contextPrompt += 'CONVERSATION HISTORY:\n';
+    contextPrompt += conversationHistory
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+    contextPrompt += '\n\n';
+  }
+
+  // Add user question
+  contextPrompt += `USER QUESTION: ${query}\n\n`;
+  contextPrompt += 'Please answer the question based on the document context. Cite specific page numbers when available.';
+
+  messages.push({
+    role: 'user',
+    content: contextPrompt,
+  });
+
+  return messages;
 }

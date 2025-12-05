@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 7.6 - Export Comparison Results
+  Generated: 2025-12-03
+  Status: ready-for-dev
+-->
+<story-context version="1.0">
+  <metadata>
+    <story-id>7.6</story-id>
+    <story-key>7-6-export-comparison-results</story-key>
+    <epic-id>7</epic-id>
+    <title>Export Comparison Results</title>
+    <priority>P1</priority>
+    <effort>M (4-6 hours)</effort>
+  </metadata>
+
+  <user-story>
+    <as-a>user who has compared insurance quotes</as-a>
+    <i-want>to export comparison results to PDF or CSV</i-want>
+    <so-that>I can share them with clients, print for meetings, or save for records</so-that>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC-7.6.1" name="Export Dropdown">
+      Given I am viewing a completed comparison
+      When I click the Export button
+      Then a dropdown menu appears with "Export as PDF" and "Export as CSV" options
+      And the dropdown is styled consistently with other UI elements
+    </criterion>
+    <criterion id="AC-7.6.2" name="PDF Content">
+      Given I click "Export as PDF"
+      When the PDF is generated
+      Then the PDF includes: docuMINE header/branding, export date, carrier names, full comparison table, gaps/conflicts summary
+    </criterion>
+    <criterion id="AC-7.6.3" name="PDF Visual Formatting">
+      Given the PDF is generated
+      When I view the PDF
+      Then visual indicators are preserved: best/worst value indicators (green/red), gap rows with warning styling, "Not found" cells marked, professional print-ready formatting
+    </criterion>
+    <criterion id="AC-7.6.4" name="CSV Content">
+      Given I click "Export as CSV"
+      When the CSV is generated
+      Then the file contains: header row with Field and carrier names, data rows for all comparison fields, proper CSV escaping for commas/quotes
+    </criterion>
+    <criterion id="AC-7.6.5" name="Automatic Download">
+      Given I click an export option
+      When export generation completes
+      Then the file downloads automatically with filename format: docuMINE-comparison-YYYY-MM-DD.pdf/csv
+    </criterion>
+    <criterion id="AC-7.6.6" name="Loading State">
+      Given I click an export option
+      When export is being generated
+      Then the Export button shows a loading spinner, is disabled, and shows "Generating PDF..." for PDF exports
+    </criterion>
+  </acceptance-criteria>
+
+  <tasks>
+    <task id="1" ac="7.6.1">Add Export Dropdown Component
+      - Create src/components/compare/export-button.tsx
+      - Use shadcn/ui DropdownMenu component
+      - Style with Download icon and chevron
+      - Accept onExportPdf and onExportCsv callbacks
+      - Add to compare/[id]/page.tsx header area
+    </task>
+    <task id="2" ac="7.6.4,7.6.5">Implement CSV Export Service
+      - Create src/lib/compare/export.ts
+      - Implement generateCsvContent(result: ComparisonResult): string
+      - Handle proper CSV escaping (quotes, commas, newlines)
+      - Implement downloadCsv() using file-saver or native Blob download
+    </task>
+    <task id="3" ac="7.6.2,7.6.3">Implement PDF Export Service
+      - Install @react-pdf/renderer and file-saver dependencies
+      - Create src/lib/compare/pdf-export.tsx with React PDF components
+      - Design PDF layout: header, date, table, gaps summary
+      - Implement best/worst indicator styling in PDF
+      - Handle page breaks for long tables
+    </task>
+    <task id="4" ac="7.6.5,7.6.6">Wire Up Export Handlers
+      - Add export functions to compare/[id]/page.tsx
+      - Implement loading state management with useState
+      - Generate timestamp for filenames
+      - Handle errors with toast notification
+    </task>
+    <task id="5" ac="7.6.6">Add Loading State UI
+      - Show spinner in export button during generation
+      - Disable button during export
+      - Show "Generating PDF..." text during PDF export
+    </task>
+    <task id="6">Unit Tests
+      - Test CSV generation with various data types
+      - Test CSV escaping edge cases
+      - Test filename format generation
+      - Test export button rendering and dropdown
+      - Create __tests__/lib/compare/export.test.ts
+      - Create __tests__/components/compare/export-button.test.tsx
+    </task>
+    <task id="7">E2E Tests
+      - Create __tests__/e2e/comparison-export.spec.ts
+      - Test Export button opens dropdown
+      - Test CSV export triggers download
+      - Test PDF export shows loading state
+    </task>
+  </tasks>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-7.md" title="Epic 7 Tech Spec" section="Story 7.6">
+        Defines AC-7.6.1 through AC-7.6.6. PDF includes header, date, carrier names, full table, gaps summary.
+        CSV contains tabular data. Dependencies: @react-pdf/renderer, file-saver.
+      </doc>
+      <doc path="docs/epics.md" title="Epic Definitions" section="Epic 7">
+        FR26: Users can export comparison results (PDF or structured format).
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture" section="UI/UX">
+        Button/dropdown patterns, loading state conventions, toast notifications for user feedback.
+      </doc>
+      <doc path="docs/sprint-artifacts/story-7.5-source-citations-in-comparison.md" title="Story 7.5" section="Previous Story Learnings">
+        Established patterns for comparison table, modal handling, component testing patterns.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/types/compare.ts" kind="types" reason="QuoteExtraction, ComparisonResult types needed for export functions">
+        Defines CoverageType, ExclusionCategory, QuoteExtraction, DocumentSummary, ComparisonData.
+        Export functions will consume these types.
+      </file>
+      <file path="src/lib/compare/diff.ts" kind="service" reason="ComparisonTableData, ComparisonRow, GapWarning, ConflictWarning types for export">
+        buildComparisonRows() generates table data. Export functions need this same data structure.
+        formatCurrency(), formatDate() helpers can be reused.
+        Lines 198-260: Value formatting functions.
+      </file>
+      <file path="src/components/compare/comparison-table.tsx" kind="component" reason="Reference for table structure to replicate in PDF">
+        Table column/row structure. Best/worst indicator patterns. Gap row styling.
+        PDF export should mirror this visual structure.
+      </file>
+      <file path="src/components/compare/gap-conflict-banner.tsx" kind="component" reason="Gap/conflict display patterns for PDF summary">
+        GapWarning and ConflictWarning display patterns. Severity styling.
+      </file>
+      <file path="src/app/(dashboard)/compare/[id]/page.tsx" kind="page" reason="Integration point for ExportButton">
+        ExtractionSummaryView component at line 293-421. Add ExportButton to header area.
+        Lines 119-138: Header section where export button should be added.
+        ComparisonResponse type defines available data.
+      </file>
+      <file path="src/components/ui/dropdown-menu.tsx" kind="ui" reason="shadcn/ui DropdownMenu component">
+        Use for export dropdown menu. Already installed.
+      </file>
+    </code>
+
+    <dependencies>
+      <current>
+        <package name="react" version="19.2.0" />
+        <package name="next" version="16.0.4" />
+        <package name="lucide-react" version="0.554.0">Download, FileSpreadsheet, FileText, Loader2, ChevronDown icons</package>
+        <package name="@radix-ui/react-dropdown-menu" version="2.1.16">shadcn dropdown-menu</package>
+        <package name="sonner" version="2.0.7">Toast notifications for success/error</package>
+        <package name="zod" version="4.1.13">Type validation</package>
+      </current>
+      <to-add>
+        <package name="@react-pdf/renderer" version="^3.4.4">PDF generation with React components</package>
+        <package name="file-saver" version="^2.0.5">Cross-browser file download</package>
+        <package name="@types/file-saver" version="^2.0.7" dev="true">TypeScript types</package>
+      </to-add>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="ExportButtonProps" kind="component-props" path="src/components/compare/export-button.tsx">
+      interface ExportButtonProps {
+        onExportPdf: () => void;
+        onExportCsv: () => void;
+        isExporting: boolean;
+        exportType?: 'pdf' | 'csv' | null;
+      }
+    </interface>
+    <interface name="generateCsvContent" kind="function" path="src/lib/compare/export.ts">
+      function generateCsvContent(result: ComparisonTableData): string
+      // Returns CSV string content
+    </interface>
+    <interface name="downloadCsv" kind="function" path="src/lib/compare/export.ts">
+      function downloadCsv(tableData: ComparisonTableData, documents?: DocumentSummary[]): void
+      // Generates CSV and triggers download
+    </interface>
+    <interface name="downloadPdf" kind="function" path="src/lib/compare/pdf-export.tsx">
+      async function downloadPdf(
+        tableData: ComparisonTableData,
+        documents?: DocumentSummary[]
+      ): Promise&lt;void&gt;
+      // Generates PDF and triggers download
+    </interface>
+    <interface name="ComparisonTableData" kind="type" path="src/lib/compare/diff.ts">
+      interface ComparisonTableData {
+        headers: string[];
+        rows: ComparisonRow[];
+        documentCount: number;
+        gaps: GapWarning[];
+        conflicts: ConflictWarning[];
+      }
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Use shadcn/ui components: DropdownMenu, Button</constraint>
+    <constraint type="pattern">Loading states with Loader2 icon and disabled state</constraint>
+    <constraint type="pattern">Toast notifications via sonner for success/error feedback</constraint>
+    <constraint type="pattern">Timestamp filenames: docuMINE-comparison-YYYY-MM-DD.pdf/csv</constraint>
+    <constraint type="visual">PDF best value: green (#16a34a), worst value: red (#dc2626)</constraint>
+    <constraint type="visual">PDF gap rows: amber background (#fef3c7)</constraint>
+    <constraint type="visual">PDF not found: muted gray (#9ca3af)</constraint>
+    <constraint type="testing">Unit tests in __tests__/lib/compare/ and __tests__/components/compare/</constraint>
+    <constraint type="testing">E2E tests in __tests__/e2e/</constraint>
+    <constraint type="security">No sensitive data in exports beyond what user can already see</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests. Playwright for E2E tests.
+      Test files mirror source structure: src/lib/compare/export.ts -> __tests__/lib/compare/export.test.ts
+      Component tests use @testing-library/react.
+      E2E tests in __tests__/e2e/ directory.
+    </standards>
+    <locations>
+      __tests__/lib/compare/*.test.ts
+      __tests__/components/compare/*.test.tsx
+      __tests__/e2e/*.spec.ts
+    </locations>
+    <ideas>
+      <idea ac="7.6.1">Test ExportButton renders dropdown with PDF and CSV options</idea>
+      <idea ac="7.6.1">Test dropdown opens on button click</idea>
+      <idea ac="7.6.4">Test CSV escaping for values with commas: "Value, with comma"</idea>
+      <idea ac="7.6.4">Test CSV escaping for values with quotes: "Value ""with"" quotes"</idea>
+      <idea ac="7.6.4">Test CSV escaping for values with newlines</idea>
+      <idea ac="7.6.4">Test CSV header row format: Field, Carrier1, Carrier2...</idea>
+      <idea ac="7.6.4">Test CSV includes gap summary section</idea>
+      <idea ac="7.6.5">Test filename format includes correct date</idea>
+      <idea ac="7.6.6">Test button shows loading spinner when isExporting=true</idea>
+      <idea ac="7.6.6">Test button is disabled when isExporting=true</idea>
+      <idea ac="7.6.6">Test button shows "Generating PDF..." when exportType='pdf'</idea>
+      <idea>E2E: Navigate to comparison, click Export, verify dropdown appears</idea>
+      <idea>E2E: Click "Export as CSV", verify download initiated</idea>
+    </ideas>
+  </tests>
+
+  <dev-notes>
+    <note priority="high">
+      Install dependencies first: npm install @react-pdf/renderer file-saver &amp;&amp; npm install -D @types/file-saver
+    </note>
+    <note priority="high">
+      PDF uses landscape A4 orientation for wider table display. See tech-spec for styles.
+    </note>
+    <note priority="medium">
+      CSV export is client-side (instant), PDF export is async (show loading state).
+    </note>
+    <note priority="medium">
+      Reuse formatCurrency and formatDate from diff.ts for consistent formatting.
+    </note>
+    <note priority="low">
+      @react-pdf/renderer uses StyleSheet.create() similar to React Native, not Tailwind classes.
+    </note>
+  </dev-notes>
+
+  <file-structure>
+    <new-files>
+      src/components/compare/export-button.tsx
+      src/lib/compare/export.ts
+      src/lib/compare/pdf-export.tsx
+      __tests__/lib/compare/export.test.ts
+      __tests__/components/compare/export-button.test.tsx
+      __tests__/e2e/comparison-export.spec.ts
+    </new-files>
+    <modified-files>
+      src/app/(dashboard)/compare/[id]/page.tsx (add ExportButton to header)
+      package.json (add dependencies)
+    </modified-files>
+  </file-structure>
+</story-context>

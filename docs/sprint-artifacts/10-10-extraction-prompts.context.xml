@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context story-id="10-10" generated="2025-12-04">
+  <story-summary>
+    <title>Extraction Prompt Engineering</title>
+    <epic>10 - Enhanced Quote Extraction</epic>
+    <points>3</points>
+    <status>drafted</status>
+    <objective>Engineer extraction prompts for comprehensive policy data extraction with 95%+ accuracy for existing fields and 90%+ for new fields</objective>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-10.10.1" priority="Must">Extraction prompt includes mappings and examples for all new field types from Stories 10.1-10.6 (coverage types, policy metadata, limits, endorsements, carrier info, premium breakdown)</criterion>
+    <criterion id="AC-10.10.2" priority="Must">Existing extraction accuracy maintained at 95%+ for original fields (carrier name, policy number, dates, basic coverages)</criterion>
+    <criterion id="AC-10.10.3" priority="Should">New fields extracted with 90%+ accuracy when present in document</criterion>
+    <criterion id="AC-10.10.4" priority="Must">Graceful handling when document doesn't contain certain sections (returns null, not error)</criterion>
+    <criterion id="AC-10.10.5" priority="Should">Token usage documented and optimized (prompt should not exceed 4K tokens)</criterion>
+    <criterion id="AC-10.10.6" priority="Must">Test corpus of 5+ real commercial policies with documented extraction accuracy</criterion>
+    <criterion id="AC-10.10.7" priority="Should">Prompt includes few-shot examples for complex extractions (endorsements, premium breakdown)</criterion>
+  </acceptance-criteria>
+
+  <code-artifacts>
+    <artifact path="src/lib/compare/extraction.ts" action="MODIFY" purpose="Extend EXTRACTION_SYSTEM_PROMPT with new sections">
+      <current-code line-range="38-85">
+const EXTRACTION_SYSTEM_PROMPT = `You are an expert insurance document analyst.
+Your task is to extract structured data from insurance quote documents.
+
+IMPORTANT GUIDELINES:
+- Extract exact values as they appear in the document
+- For each extracted item, include the page number(s) where it appears
+- If a field is not found in the document, omit it or set to null
+- Do NOT guess or infer values that are not explicitly stated
+- For currency amounts, extract the numeric value only (no $ or commas)
+- For dates, use YYYY-MM-DD format
+
+COVERAGE TYPE MAPPINGS:
+- "General Liability", "CGL", "Commercial General Liability" → general_liability
+- [existing mappings...]
+
+EXTENDED COVERAGE TYPE MAPPINGS (Epic 10):
+- "EPLI", "Employment Practices Liability", "EPL" → epli
+- [new mappings from Story 10.1...]
+
+EXCLUSION CATEGORY MAPPINGS:
+- [existing mappings...]
+
+LIMIT TYPE MAPPINGS:
+- [existing mappings...]`;
+      </current-code>
+      <additions-needed>
+        <!-- ENDORSEMENT EXTRACTION section -->
+        <!-- POLICY METADATA section -->
+        <!-- CARRIER INFORMATION section -->
+        <!-- PREMIUM BREAKDOWN section -->
+        <!-- FEW-SHOT EXAMPLES section -->
+      </additions-needed>
+    </artifact>
+
+    <artifact path="docs/test-documents/" action="CREATE" purpose="Test corpus directory">
+      <description>Directory for anonymized commercial policy samples with expected extraction JSON</description>
+    </artifact>
+
+    <artifact path="__tests__/lib/compare/extraction-accuracy.test.ts" action="CREATE" purpose="Accuracy measurement tests">
+      <structure>
+        - Test extraction accuracy per field type
+        - Compare extracted values to expected values
+        - Calculate and report accuracy metrics
+      </structure>
+    </artifact>
+  </code-artifacts>
+
+  <prompt-sections-to-add>
+    <section name="ENDORSEMENT EXTRACTION">
+      <content>
+ENDORSEMENT EXTRACTION:
+- Section indicators: "Endorsements", "Schedule of Forms", "Attached Forms", "Forms and Endorsements"
+- Extract form numbers exactly as shown (preserve spaces: "CG 20 10" not "CG2010")
+- Classification:
+  * broadening: Adds coverage (Additional Insured, Blanket endorsements)
+  * restricting: Limits coverage (Exclusions, Limitations)
+  * conditional: Depends on circumstances (Audit provisions)
+
+CRITICAL ENDORSEMENTS (prioritize finding these):
+1. CG 20 10 - Additional Insured - Owners, Lessees or Contractors
+2. CG 20 37 - Additional Insured - Owners, Lessees or Contractors - Completed Operations
+3. CG 24 04 - Waiver of Transfer of Rights (Waiver of Subrogation)
+4. CG 20 01 - Primary and Non-Contributory
+5. Blanket Additional Insured (any form)
+      </content>
+    </section>
+
+    <section name="POLICY METADATA">
+      <content>
+POLICY METADATA:
+- Policy Type indicators:
+  * "Occurrence" → occurrence
+  * "Claims-Made", "Claims Made" → claims-made
+- Form numbers appear on declarations page (CG 0001 = ISO CGL form)
+- Retroactive date only applies to claims-made policies
+- Audit provisions: look for "audit", "premium adjustment"
+- Admitted status: look for "surplus lines", "excess lines", "non-admitted"
+      </content>
+    </section>
+
+    <section name="CARRIER INFORMATION">
+      <content>
+CARRIER INFORMATION:
+- AM Best ratings: A++, A+, A, A-, B++, B+, B, B-, C++, C+, C, C-
+- Financial Size Class: I through XV (Roman numerals)
+- Look for "Rated" or "AM Best" mentions
+- NAIC code: 5-digit number, often in footer
+      </content>
+    </section>
+
+    <section name="PREMIUM BREAKDOWN">
+      <content>
+PREMIUM BREAKDOWN:
+- Look for itemized premium schedules, "Premium Summary"
+- Separate: base premium, taxes, fees, surplus lines tax
+- Payment terms: annual, semi-annual, quarterly, monthly
+- Minimum premium: floor amount regardless of audit
+      </content>
+    </section>
+
+    <section name="FEW-SHOT EXAMPLES">
+      <content>
+ENDORSEMENT EXAMPLE:
+Input: "CG 20 10 07 04 - Additional Insured - Owners, Lessees or Contractors - Scheduled Person Or Organization"
+Output: { formNumber: "CG 20 10", name: "Additional Insured - Owners, Lessees or Contractors", type: "broadening" }
+
+PREMIUM BREAKDOWN EXAMPLE:
+Input: "Annual Premium: $15,000, Taxes: $750, Broker Fee: $500, Total: $16,250"
+Output: { basePremium: 15000, taxes: 750, brokerFee: 500, totalPremium: 16250 }
+      </content>
+    </section>
+  </prompt-sections-to-add>
+
+  <dependencies>
+    <dependency type="completed">Story 10.1 (Extended Coverage Types) - provides base coverage type mappings</dependency>
+    <dependency type="parallel">Stories 10.2-10.6 - may need schema updates if not yet done</dependency>
+  </dependencies>
+
+  <constraints>
+    <constraint type="token-budget">Prompt must not exceed 4K tokens (current ~2K + ~1.5K new = ~3.5K target)</constraint>
+    <constraint type="accuracy">95%+ for original fields, 90%+ for new fields</constraint>
+    <constraint type="graceful-degradation">Return null (not error) when sections are missing</constraint>
+  </constraints>
+
+  <testing-strategy>
+    <unit-tests>
+      - Verify prompt includes all required sections
+      - Verify token count is under 4K
+      - Mock GPT responses for graceful degradation tests
+    </unit-tests>
+    <integration-tests>
+      - Real extraction tests against test corpus (manual)
+      - Accuracy measurement per field type
+    </integration-tests>
+  </testing-strategy>
+
+  <tech-spec-reference>docs/sprint-artifacts/tech-spec-epic-10.md</tech-spec-reference>
+</story-context>

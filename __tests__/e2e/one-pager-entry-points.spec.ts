@@ -216,7 +216,7 @@ test.describe('One-Pager Entry Points', () => {
         return;
       }
 
-      await page.goto(`/documents/${docId}`);
+      await page.goto(`/chat-docs/${docId}`);
 
       // Wait for document to load
       await page.waitForTimeout(2000); // Wait for PDF loading
@@ -240,7 +240,7 @@ test.describe('One-Pager Entry Points', () => {
         return;
       }
 
-      await page.goto(`/documents/${docId}`);
+      await page.goto(`/chat-docs/${docId}`);
       await page.waitForTimeout(2000);
 
       // Check if button exists

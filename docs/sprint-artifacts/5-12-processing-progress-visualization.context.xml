@@ -1,0 +1,1226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 5.12 - Document Processing Progress Visualization
+  Generated: 2025-12-02
+  Updated: 2025-12-02 (UX Design Complete - Party Mode session)
+  Epic: 5 - Document Q&A with Trust Transparency
+
+  This context file provides everything needed to implement Story 5.12.
+  For AI agents: Read this file completely before implementation.
+
+  UX Design Status: COMPLETE (Party Mode 2025-12-02)
+  - Step indicator pattern: ✓─●─○─○ (Load, Read, Prep, Index)
+  - Desktop/Mobile layouts defined
+  - Color palette: Trustworthy Slate
+  - Accessibility: ARIA labels, WCAG AA
+-->
+<story-context story-id="5.12" title="Document Processing Progress Visualization">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1: STORY OVERVIEW                                               -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <story-overview>
+    <user-story>
+      As a **user uploading documents**,
+      I want **visual feedback on processing progress beyond just "Analyzing..."**,
+      So that **I understand what's happening and how long it might take**.
+    </user-story>
+
+    <status>Drafted (UX Design Complete)</status>
+    <type>Enhancement</type>
+    <prerequisite>Story 5.8.1 (Large Document Processing)</prerequisite>
+    <ux-designer-required>No - Completed 2025-12-02 (Party Mode)</ux-designer-required>
+
+    <problem-statement>
+      With Story 5.8.1 optimizations, documents can take 5-8 minutes to process (large files on paid tier).
+      Users currently only see "Analyzing..." with no indication of progress, stage, or time remaining.
+      This causes frustration and users may close the browser thinking processing is stuck.
+    </problem-statement>
+
+    <expected-outcome>
+      Users see detailed progress during document processing:
+      - Current processing stage (Downloading, Parsing, Chunking, Embedding)
+      - Progress bar within each stage (0-100%)
+      - Estimated time remaining
+      - Real-time updates via Supabase Realtime
+    </expected-outcome>
+  </story-overview>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2: ACCEPTANCE CRITERIA                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <acceptance-criteria>
+    <criterion id="AC-5.12.1" title="Processing Stages Display">
+      <given>a document is processing</given>
+      <when>I view the document in the list</when>
+      <then>
+        I see the current stage:
+        - "Downloading..." (5-10s)
+        - "Parsing document..." (1-5 min)
+        - "Chunking content..." (5-15s)
+        - "Generating embeddings..." (30s-2 min)
+      </then>
+    </criterion>
+
+    <criterion id="AC-5.12.2" title="Progress Bar per Stage">
+      <given>a document is in a processing stage</given>
+      <when>the stage reports progress</when>
+      <then>I see a progress bar (0-100%) for that stage</then>
+    </criterion>
+
+    <criterion id="AC-5.12.3" title="Estimated Time Remaining">
+      <given>a document is processing</given>
+      <when>progress data is available</when>
+      <then>I see estimated time remaining (e.g., "~2 min remaining")</then>
+    </criterion>
+
+    <criterion id="AC-5.12.4" title="Real-time Updates">
+      <given>a document is processing</given>
+      <when>progress changes</when>
+      <then>the UI updates in real-time via Supabase Realtime</then>
+    </criterion>
+
+    <criterion id="AC-5.12.5" title="Visual Design (UX Designer)">
+      <given>the UX designer reviews the design</given>
+      <when>they provide mockups/guidance</when>
+      <then>
+        the progress UI is:
+        - Clear and uncluttered
+        - Matches brand aesthetic (Trustworthy Slate)
+        - Mobile-friendly
+        - Accessible (ARIA labels, color contrast)
+      </then>
+    </criterion>
+  </acceptance-criteria>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3: TECHNICAL APPROACH                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <technical-approach>
+    <recommended-approach name="Server-Sent Progress">
+      <description>
+        Edge Function reports progress to processing_jobs table,
+        frontend subscribes via Supabase Realtime.
+      </description>
+
+      <backend-changes>
+        <change>Add progress_data JSONB column to processing_jobs table</change>
+        <change>Create progress reporting utility in Edge Function</change>
+        <change>Update each stage to report progress periodically</change>
+      </backend-changes>
+
+      <frontend-changes>
+        <change>Subscribe to processing_jobs table changes via Supabase Realtime</change>
+        <change>Parse progress_data JSON for stage/progress/time info</change>
+        <change>Create ProcessingProgress component</change>
+        <change>Update DocumentListItem to show detailed progress</change>
+      </frontend-changes>
+
+      <progress-data-schema>
+        <![CDATA[
+{
+  "stage": "parsing" | "downloading" | "chunking" | "embedding",
+  "stage_progress": 0-100,
+  "stage_name": "Parsing document",
+  "estimated_seconds_remaining": 120,
+  "total_progress": 0-100,
+  "updated_at": "2025-12-02T10:30:00Z"
+}
+        ]]>
+      </progress-data-schema>
+    </recommended-approach>
+
+    <processing-stages>
+      <stage name="downloading" order="1" typical-duration="5-10s">
+        <user-friendly-label>Load</user-friendly-label>
+        <display-text>Loading file...</display-text>
+        <description>Download PDF from Supabase Storage</description>
+        <progress-source>bytes downloaded / total bytes</progress-source>
+      </stage>
+      <stage name="parsing" order="2" typical-duration="1-5 min">
+        <user-friendly-label>Read</user-friendly-label>
+        <display-text>Reading document...</display-text>
+        <description>Send to Docling service for text/table extraction</description>
+        <progress-source>Time-based estimation (Docling doesn't report page-level progress)</progress-source>
+      </stage>
+      <stage name="chunking" order="3" typical-duration="5-15s">
+        <user-friendly-label>Prep</user-friendly-label>
+        <display-text>Preparing content...</display-text>
+        <description>Split content into semantic chunks (table-aware)</description>
+        <progress-source>Pages processed / total pages</progress-source>
+      </stage>
+      <stage name="embedding" order="4" typical-duration="30s-2 min">
+        <user-friendly-label>Index</user-friendly-label>
+        <display-text>Indexing for search...</display-text>
+        <description>Generate OpenAI embeddings for each chunk</description>
+        <progress-source>Batches processed / total batches (20 chunks per batch)</progress-source>
+      </stage>
+    </processing-stages>
+  </technical-approach>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4: EXISTING CODE REFERENCE                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <existing-code>
+
+    <!-- DOCUMENT STATUS COMPONENTS -->
+    <file path="src/components/documents/document-status.tsx" purpose="Status display components">
+      <description>
+        Contains DocumentStatus (full widget) and DocumentStatusBadge (compact badge).
+        Currently shows: uploading (progress bar), processing (shimmer "Analyzing..."),
+        ready (green checkmark), failed (red X with retry/delete).
+
+        This is where ProcessingProgress component should integrate or replace the
+        processing state display.
+      </description>
+      <key-types>
+        <![CDATA[
+export type DocumentStatusType = 'uploading' | 'processing' | 'ready' | 'failed';
+
+interface DocumentStatusProps {
+  status: DocumentStatusType;
+  progress?: number;       // For uploading state (0-100%)
+  errorMessage?: string;   // Tooltip for failed state
+  onRetry?: () => void;
+  onDelete?: () => void;
+  className?: string;
+}
+
+// DocumentStatusBadge also accepts:
+// queuePosition?: number;  // 0 = actively processing, 1+ = position in queue
+        ]]>
+      </key-types>
+      <current-processing-display>
+        <![CDATA[
+case 'processing':
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      {/* Shimmer animation per AC-4.2.4 (no spinners > 200ms) */}
+      <div className="relative overflow-hidden rounded-md bg-slate-100 px-2 py-1">
+        <span className="relative z-10 text-xs font-medium text-slate-600">
+          Analyzing...
+        </span>
+        <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-slate-200/60 to-transparent" />
+      </div>
+    </div>
+  );
+        ]]>
+      </current-processing-display>
+    </file>
+
+    <!-- REALTIME SUBSCRIPTION HOOK -->
+    <file path="src/hooks/use-document-status.ts" purpose="Supabase Realtime subscription">
+      <description>
+        Hook for subscribing to document status changes via Supabase Realtime.
+        Currently subscribes to 'documents' table with agency_id filter.
+
+        To implement Story 5.12, need to ALSO subscribe to 'processing_jobs' table
+        to receive progress_data updates.
+      </description>
+      <key-pattern>
+        <![CDATA[
+// Current subscription pattern:
+channel = supabase
+  .channel(`documents-${agencyId}`)
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'documents',
+    filter: `agency_id=eq.${agencyId}`,
+  }, handleRealtimeChange)
+  .subscribe()
+
+// For Story 5.12, add similar subscription to processing_jobs:
+// Note: processing_jobs links to documents via document_id
+// May need to subscribe to processing_jobs where document_id is in agency's documents
+        ]]>
+      </key-pattern>
+      <exported-interfaces>
+        <![CDATA[
+interface UseDocumentStatusOptions {
+  agencyId: string;
+  initialDocuments?: Document[];
+  onDocumentReady?: (document: Document) => void;
+  onDocumentFailed?: (document: Document) => void;
+}
+
+interface UseDocumentStatusResult {
+  documents: Document[];
+  setDocuments: React.Dispatch<React.SetStateAction<Document[]>>;
+  isConnected: boolean;
+}
+        ]]>
+      </exported-interfaces>
+    </file>
+
+    <!-- EDGE FUNCTION - PROCESSING PIPELINE -->
+    <file path="supabase/functions/process-document/index.ts" purpose="Document processing orchestration">
+      <description>
+        Main Edge Function that processes documents. Currently has 4 stages:
+        1. Download from Storage
+        2. Parse via Docling service
+        3. Chunk content (table-aware)
+        4. Generate embeddings
+
+        Currently only logs progress, doesn't write to database.
+        Need to add progress reporting to processing_jobs table.
+      </description>
+      <current-stages>
+        <![CDATA[
+// Step 4: Download PDF from Storage
+const pdfBuffer = await downloadFromStorage(supabase, processingStoragePath);
+log.info('PDF downloaded', { documentId: processingDocumentId, size: pdfBuffer.byteLength });
+
+// Step 5: Send to Docling service
+const parseResult = await parseDocumentWithRetry(pdfBuffer, processingStoragePath, doclingServiceUrl);
+log.info('Docling parsing completed', { duration: Date.now() - parseStartTime, pageCount: parseResult.pageCount });
+
+// Step 6: Chunk the content
+const chunks = chunkMarkdown(parseResult.markdown, parseResult.pageMarkers);
+log.info('Chunking completed', { chunkCount: chunks.length });
+
+// Step 7: Generate embeddings
+const embeddings = await generateEmbeddingsWithRetry(chunks.map((c) => c.content), openaiKey);
+log.info('Embeddings completed', { duration: Date.now() - embeddingsStartTime });
+        ]]>
+      </current-stages>
+      <job-status-update-function>
+        <![CDATA[
+async function updateJobStatus(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string,
+  status: 'pending' | 'processing' | 'completed' | 'failed',
+  errorMessage?: string
+): Promise<void> {
+  const updateData: Record<string, unknown> = { status };
+
+  if (status === 'processing') {
+    updateData.started_at = new Date().toISOString();
+  } else if (status === 'completed' || status === 'failed') {
+    updateData.completed_at = new Date().toISOString();
+  }
+
+  if (errorMessage) {
+    updateData.error_message = errorMessage;
+  }
+
+  const { error } = await supabase
+    .from('processing_jobs')
+    .update(updateData)
+    .eq('document_id', documentId);
+
+  if (error) {
+    throw new Error(`Failed to update job status: ${error.message}`);
+  }
+}
+
+// Need to extend this to also update progress_data JSONB field
+        ]]>
+      </job-status-update-function>
+      <embedding-batch-info>
+        <![CDATA[
+const EMBEDDING_BATCH_SIZE = 20;
+
+// Embeddings are generated in batches of 20 chunks
+// This is the primary source of progress for embedding stage
+for (let i = 0; i < texts.length; i += EMBEDDING_BATCH_SIZE) {
+  const batch = texts.slice(i, i + EMBEDDING_BATCH_SIZE);
+  const batchEmbeddings = await generateBatchWithRetry(batch, apiKey);
+  embeddings.push(...batchEmbeddings);
+  // Can report progress here: (i + batch.length) / texts.length * 100
+}
+        ]]>
+      </embedding-batch-info>
+    </file>
+
+    <!-- PROCESSING HELPERS -->
+    <file path="src/lib/documents/processing.ts" purpose="Processing time estimation">
+      <description>
+        Contains helpers for estimating processing time based on file size.
+        Can be extended for more accurate time-remaining calculations.
+      </description>
+      <current-functions>
+        <![CDATA[
+export function estimateProcessingTime(fileSizeBytes: number): string {
+  const MB = 1024 * 1024;
+
+  if (fileSizeBytes < 5 * MB) {
+    return '<1 min';
+  } else if (fileSizeBytes < 20 * MB) {
+    return '1-2 min';
+  } else {
+    return '3-5 min';
+  }
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
+        ]]>
+      </current-functions>
+    </file>
+
+    <!-- DATABASE TYPES -->
+    <file path="src/types/database.types.ts" purpose="Auto-generated Supabase types">
+      <description>
+        Contains TypeScript types generated from Supabase schema.
+        The processing_jobs table type will need updating after migration.
+      </description>
+      <processing-jobs-type>
+        <![CDATA[
+interface ProcessingJob {
+  id: string;
+  document_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  // NEW COLUMN NEEDED:
+  // progress_data: Json | null;  // JSONB with stage, progress, time estimate
+}
+        ]]>
+      </processing-jobs-type>
+    </file>
+
+    <!-- DOCUMENTS PAGE -->
+    <file path="src/app/(dashboard)/documents/page.tsx" purpose="Main documents page">
+      <description>
+        Main documents page that lists all documents and their statuses.
+        Currently fetches queue positions for processing documents.
+        This is where processing_jobs subscriptions would be initiated.
+      </description>
+      <queue-position-fetching>
+        <![CDATA[
+// Current pattern for fetching queue positions:
+const fetchQueuePositions = useCallback(async (docs: Document[]) => {
+  const processingDocs = docs.filter((doc) => doc.status === 'processing');
+  const positions = new Map<string, number>();
+  await Promise.all(
+    processingDocs.map(async (doc) => {
+      const result = await getDocumentQueuePosition(doc.id);
+      if (result.success && result.position !== undefined) {
+        positions.set(doc.id, result.position);
+      }
+    })
+  );
+  setQueuePositions(positions);
+}, []);
+
+// For Story 5.12: Could add similar pattern for fetching progress_data
+// OR subscribe to processing_jobs via Realtime for live updates
+        ]]>
+      </queue-position-fetching>
+    </file>
+
+    <!-- DOCUMENT LIST COMPONENTS -->
+    <file path="src/components/documents/document-list.tsx" purpose="Document list container">
+      <description>Lists documents with queue positions passed to items.</description>
+      <props-interface>
+        <![CDATA[
+interface DocumentListProps {
+  documents: DocumentWithLabels[];
+  queuePositions?: Map<string, number>;  // documentId -> queue position
+  isLoading?: boolean;
+  onRetryClick?: (documentId: string) => void;
+}
+        ]]>
+      </props-interface>
+    </file>
+
+    <file path="src/components/documents/document-list-item.tsx" purpose="Individual document list item">
+      <description>
+        Displays individual document with status badge.
+        This is where ProcessingProgress component would be integrated.
+      </description>
+      <status-display>
+        <![CDATA[
+// Current status badge display:
+<DocumentStatusBadge
+  status={status as DocumentStatusType}
+  queuePosition={queuePosition}
+/>
+
+// For Story 5.12: Replace with ProcessingProgress when processing
+// which shows stage, progress bar, time remaining
+        ]]>
+      </status-display>
+    </file>
+
+    <!-- UPLOAD ZONE -->
+    <file path="src/components/documents/upload-zone.tsx" purpose="Document upload interface">
+      <description>
+        Handles file uploads with real-time progress tracking.
+        Shows upload progress (0-100%) during file upload phase.
+        After upload, document status becomes 'processing'.
+      </description>
+      <upload-state-interface>
+        <![CDATA[
+interface UploadingFile {
+  id: string;
+  file: File;
+  progress: number;           // 0-100%
+  status: 'uploading' | 'processing' | 'ready' | 'failed';
+  error?: string;
+}
+        ]]>
+      </upload-state-interface>
+    </file>
+  </existing-code>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 5: DATABASE SCHEMA                                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <database-schema>
+    <table name="processing_jobs">
+      <current-columns>
+        <column name="id" type="uuid" primary-key="true"/>
+        <column name="document_id" type="uuid" foreign-key="documents.id"/>
+        <column name="status" type="text" values="pending|processing|completed|failed"/>
+        <column name="error_message" type="text" nullable="true"/>
+        <column name="started_at" type="timestamptz" nullable="true"/>
+        <column name="completed_at" type="timestamptz" nullable="true"/>
+        <column name="created_at" type="timestamptz"/>
+      </current-columns>
+
+      <new-column-needed>
+        <column name="progress_data" type="jsonb" nullable="true">
+          <description>
+            Stores real-time progress information for each processing stage.
+            Updated periodically during processing.
+          </description>
+          <example-value>
+            <![CDATA[
+{
+  "stage": "parsing",
+  "stage_progress": 45,
+  "stage_name": "Parsing document",
+  "estimated_seconds_remaining": 120,
+  "total_progress": 30,
+  "updated_at": "2025-12-02T10:30:00Z"
+}
+            ]]>
+          </example-value>
+        </column>
+      </new-column-needed>
+    </table>
+
+    <migration-needed name="add_progress_data_to_processing_jobs">
+      <![CDATA[
+-- Migration: Add progress_data column to processing_jobs
+ALTER TABLE processing_jobs
+ADD COLUMN progress_data JSONB;
+
+-- Optional: Add comment
+COMMENT ON COLUMN processing_jobs.progress_data IS
+  'Real-time progress data including stage, progress percentage, and time estimate';
+      ]]>
+    </migration-needed>
+  </database-schema>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 6: UI/UX DESIGN CONTEXT                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <ux-design-context>
+    <design-system>
+      <theme>Trustworthy Slate</theme>
+      <primary-color>#475569 (slate-600)</primary-color>
+      <success-color>#10b981 (emerald-500)</success-color>
+      <error-color>#ef4444 (red-500)</error-color>
+      <warning-color>#f59e0b (amber-500)</warning-color>
+      <font-family>System font stack</font-family>
+    </design-system>
+
+    <current-patterns>
+      <pattern name="Progress Bar">
+        <![CDATA[
+<!-- Upload progress bar pattern -->
+<div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+  <div
+    className="h-full bg-slate-600 transition-all duration-200"
+    style={{ width: `${progress}%` }}
+  />
+</div>
+        ]]>
+      </pattern>
+
+      <pattern name="Shimmer Animation">
+        <![CDATA[
+<!-- Processing shimmer pattern -->
+<div className="relative overflow-hidden rounded-md bg-slate-100 px-2 py-1">
+  <span className="relative z-10 text-xs font-medium text-slate-600">
+    Analyzing...
+  </span>
+  <div className="absolute inset-0 -translate-x-full animate-shimmer
+    bg-gradient-to-r from-transparent via-slate-200/60 to-transparent" />
+</div>
+        ]]>
+      </pattern>
+
+      <pattern name="Status Badge">
+        <![CDATA[
+<!-- Ready badge pattern -->
+<span className="inline-flex items-center gap-1 rounded-full
+  bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+  <CheckCircle2 className="h-3 w-3" />
+  Ready
+</span>
+        ]]>
+      </pattern>
+    </current-patterns>
+
+    <!-- UX DESIGN DECISIONS (Party Mode 2025-12-02) -->
+    <approved-design session="Party Mode 2025-12-02">
+      <participants>Sally (UX), Amelia (Dev), Winston (Architect), John (PM), Bob (SM), Murat (Test)</participants>
+
+      <visual-pattern>Step indicator + progress bar (honest about stages, precise where possible)</visual-pattern>
+
+      <step-indicator>
+        <pattern>✓────●────○────○</pattern>
+        <stages>Load → Read → Prep → Index</stages>
+        <description>4 dots connected by lines. Completed=checkmark, Active=filled, Pending=outline</description>
+      </step-indicator>
+
+      <stage-name-mapping>
+        <stage technical="downloading" user-friendly="Load" display="Loading file..."/>
+        <stage technical="parsing" user-friendly="Read" display="Reading document..."/>
+        <stage technical="chunking" user-friendly="Prep" display="Preparing content..."/>
+        <stage technical="embedding" user-friendly="Index" display="Indexing for search..."/>
+      </stage-name-mapping>
+
+      <desktop-layout>
+        <![CDATA[
+┌──────────────────────────────────────────────────┐
+│   📄 insurance-policy.pdf                        │
+│                                                  │
+│   ✓────●────○────○                               │
+│   ↓    ↓    ↓    ↓                               │
+│  Load  Read  Prep  Index                         │
+│                                                  │
+│   Reading document...                            │
+│   ████████░░░░░░░░░░  45%                        │
+│                                                  │
+│   ~2-4 min remaining                             │
+└──────────────────────────────────────────────────┘
+        ]]>
+      </desktop-layout>
+
+      <mobile-layout>
+        <![CDATA[
+┌──────────────────────┐
+│ 📄 insurance-pol...  │
+│ ✓─●─○─○  Reading...  │
+│ ████░░░░░░░ ~2-4 min │
+└──────────────────────┘
+        ]]>
+      </mobile-layout>
+
+      <color-palette theme="Trustworthy Slate">
+        <color element="Completed stage" value="emerald-500" hex="#10b981"/>
+        <color element="Active stage" value="slate-600 + shimmer" hex="#475569"/>
+        <color element="Pending stage" value="slate-300" hex="#cbd5e1"/>
+        <color element="Progress bar fill" value="slate-600" hex="#475569"/>
+        <color element="Time estimate text" value="slate-400" hex="#94a3b8"/>
+      </color-palette>
+
+      <key-decisions>
+        <decision question="Visual pattern" answer="Step indicator + progress bar" rationale="Honest about stages without false precision"/>
+        <decision question="Stage names" answer="User-friendly (Load, Read, Prep, Index)" rationale="More approachable than technical jargon"/>
+        <decision question="Placement" answer="Inline in document list" rationale="No modal interruption, natural flow"/>
+        <decision question="Time display" answer="Ranges (~2-4 min) not exact" rationale="Manage expectations honestly"/>
+        <decision question="Hover behavior" answer="Nothing extra (MVP)" rationale="Ship simple, iterate later"/>
+        <decision question="Slow processing" answer="Taking longer than usual - hang tight!" rationale="Reassuring, not alarming"/>
+      </key-decisions>
+
+      <progress-accuracy-by-stage>
+        <stage name="downloading" source="bytes downloaded / total" accuracy="Precise"/>
+        <stage name="parsing" source="Time-based estimation" accuracy="Approximate (Docling no page callback)"/>
+        <stage name="chunking" source="Fast, just show complete" accuracy="N/A (5-15s)"/>
+        <stage name="embedding" source="batches / total batches" accuracy="Precise (20 chunks/batch)"/>
+      </progress-accuracy-by-stage>
+    </approved-design>
+
+    <accessibility-requirements>
+      <requirement>aria-label with full context: "Document processing: stage 2 of 4, parsing document, 45 percent complete, approximately 2 to 4 minutes remaining"</requirement>
+      <requirement>aria-live="polite" on stage changes</requirement>
+      <requirement>Minimum 44x44px touch targets</requirement>
+      <requirement>Color contrast >= 4.5:1 (WCAG AA)</requirement>
+      <requirement>Screen reader announces stage changes</requirement>
+    </accessibility-requirements>
+
+    <new-files-to-create>
+      <file>src/components/documents/processing-progress.tsx</file>
+      <file>src/hooks/use-processing-progress.ts</file>
+    </new-files-to-create>
+  </ux-design-context>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 7: IMPLEMENTATION TASKS                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <implementation-tasks>
+    <phase name="Backend Infrastructure" priority="P0">
+      <task id="1">Add progress_data JSONB column to processing_jobs table via migration</task>
+      <task id="2">Create updateJobProgress utility function in Edge Function</task>
+      <task id="3">Add progress reporting to download stage (bytes downloaded / total)</task>
+      <task id="4">Add progress reporting to parsing stage (time-based estimation)</task>
+      <task id="5">Add progress reporting to chunking stage (pages processed)</task>
+      <task id="6">Add progress reporting to embedding stage (batches processed)</task>
+      <task id="7">Deploy updated Edge Function and verify progress_data updates</task>
+      <task id="8">Regenerate TypeScript types with npx supabase gen types</task>
+    </phase>
+
+    <phase name="UX Design" priority="P0" status="COMPLETE">
+      <task id="9" status="done">UX Designer: Create mockups for progress states ✅ (Party Mode 2025-12-02)</task>
+      <task id="10" status="done">UX Designer: Define animations/transitions ✅ (shimmer on active stage)</task>
+      <task id="11" status="done">UX Designer: Review accessibility requirements ✅ (ARIA labels, WCAG AA)</task>
+      <task id="12" status="done">Dev: Review and validate technical feasibility ✅ (Amelia confirmed)</task>
+    </phase>
+
+    <phase name="Frontend Implementation" priority="P1">
+      <task id="13">Create useProcessingProgress hook to subscribe to processing_jobs</task>
+      <task id="14">Create ProcessingProgress component with stage display</task>
+      <task id="15">Implement progress bar per stage</task>
+      <task id="16">Implement time remaining calculation/display</task>
+      <task id="17">Integrate ProcessingProgress into DocumentListItem</task>
+      <task id="18">Handle edge cases: stuck progress, connection loss, errors</task>
+      <task id="19">Add mobile responsive styling</task>
+    </phase>
+
+    <phase name="Testing and Polish" priority="P2">
+      <task id="20">Manual testing with 5MB, 20MB, 50MB documents</task>
+      <task id="21">Test progress updates frequency (throttle if too fast)</task>
+      <task id="22">Test mobile responsiveness</task>
+      <task id="23">Test accessibility (screen readers)</task>
+      <task id="24">Add unit tests for progress calculation</task>
+      <task id="25">Performance testing (Realtime subscription overhead)</task>
+    </phase>
+  </implementation-tasks>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 8: SUPABASE REALTIME PATTERNS                                   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <realtime-patterns>
+    <current-subscription table="documents">
+      <![CDATA[
+// src/hooks/use-document-status.ts
+channel = supabase
+  .channel(`documents-${agencyId}`)
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'documents',
+    filter: `agency_id=eq.${agencyId}`,
+  }, handleRealtimeChange)
+  .subscribe()
+      ]]>
+    </current-subscription>
+
+    <new-subscription-needed table="processing_jobs">
+      <description>
+        Subscribe to processing_jobs updates for documents being processed.
+        Challenge: processing_jobs doesn't have agency_id column directly.
+        Options:
+        1. Join on documents table (complex)
+        2. Add agency_id to processing_jobs (schema change)
+        3. Subscribe to all processing_jobs, filter client-side by document_id
+
+        Recommended: Option 3 for simplicity (low volume of processing docs)
+      </description>
+      <example-implementation>
+        <![CDATA[
+// New hook: src/hooks/use-processing-progress.ts
+export function useProcessingProgress(documentIds: string[]) {
+  const [progressMap, setProgressMap] = useState<Map<string, ProgressData>>(new Map());
+
+  useEffect(() => {
+    if (documentIds.length === 0) return;
+
+    const supabase = createClient();
+
+    // Subscribe to processing_jobs for these document IDs
+    const channel = supabase
+      .channel('processing-progress')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'processing_jobs',
+      }, (payload) => {
+        const job = payload.new;
+        if (documentIds.includes(job.document_id) && job.progress_data) {
+          setProgressMap(prev => {
+            const next = new Map(prev);
+            next.set(job.document_id, job.progress_data);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [documentIds]);
+
+  return progressMap;
+}
+        ]]>
+      </example-implementation>
+    </new-subscription-needed>
+  </realtime-patterns>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 9: EDGE FUNCTION PROGRESS REPORTING                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <edge-function-changes>
+    <new-utility name="updateJobProgress">
+      <![CDATA[
+interface ProgressData {
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage_progress: number;     // 0-100
+  stage_name: string;         // User-friendly name
+  estimated_seconds_remaining: number | null;
+  total_progress: number;     // 0-100 across all stages
+  updated_at: string;
+}
+
+async function updateJobProgress(
+  supabase: ReturnType<typeof createClient>,
+  documentId: string,
+  progress: ProgressData
+): Promise<void> {
+  const { error } = await supabase
+    .from('processing_jobs')
+    .update({
+      progress_data: progress
+    })
+    .eq('document_id', documentId);
+
+  if (error) {
+    log.warn('Failed to update progress', { error: error.message, documentId });
+    // Don't throw - progress updates are best-effort
+  }
+}
+
+// Stage weights for total_progress calculation:
+// downloading: 5% (quick)
+// parsing: 60% (bulk of time for large docs)
+// chunking: 10% (quick)
+// embedding: 25% (depends on chunk count)
+      ]]>
+    </new-utility>
+
+    <stage-reporting-examples>
+      <stage name="downloading">
+        <![CDATA[
+// In downloadFromStorage or wrapper:
+const pdfBuffer = await downloadFromStorage(supabase, storagePath);
+await updateJobProgress(supabase, documentId, {
+  stage: 'downloading',
+  stage_progress: 100,
+  stage_name: 'Downloading',
+  estimated_seconds_remaining: calculateEstimate(fileSize, 'downloading'),
+  total_progress: 5,
+  updated_at: new Date().toISOString()
+});
+        ]]>
+      </stage>
+
+      <stage name="parsing">
+        <![CDATA[
+// Parsing is time-based since Docling doesn't report page progress
+// Report start and end:
+await updateJobProgress(supabase, documentId, {
+  stage: 'parsing',
+  stage_progress: 0,
+  stage_name: 'Parsing document',
+  estimated_seconds_remaining: estimateParseDuration(fileSize),
+  total_progress: 5,
+  updated_at: new Date().toISOString()
+});
+
+const parseResult = await parseDocumentWithRetry(...);
+
+await updateJobProgress(supabase, documentId, {
+  stage: 'parsing',
+  stage_progress: 100,
+  stage_name: 'Parsing document',
+  estimated_seconds_remaining: null,
+  total_progress: 65, // 5 + 60
+  updated_at: new Date().toISOString()
+});
+        ]]>
+      </stage>
+
+      <stage name="chunking">
+        <![CDATA[
+// Chunking is fast, just report start/end
+await updateJobProgress(supabase, documentId, {
+  stage: 'chunking',
+  stage_progress: 0,
+  stage_name: 'Chunking content',
+  estimated_seconds_remaining: 10,
+  total_progress: 65,
+  updated_at: new Date().toISOString()
+});
+
+const chunks = chunkMarkdown(parseResult.markdown, parseResult.pageMarkers);
+
+await updateJobProgress(supabase, documentId, {
+  stage: 'chunking',
+  stage_progress: 100,
+  stage_name: 'Chunking content',
+  estimated_seconds_remaining: null,
+  total_progress: 75, // 65 + 10
+  updated_at: new Date().toISOString()
+});
+        ]]>
+      </stage>
+
+      <stage name="embedding">
+        <![CDATA[
+// Embedding has clear progress: batches processed
+const BATCH_SIZE = 20;
+const totalBatches = Math.ceil(chunks.length / BATCH_SIZE);
+
+for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+  const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+  const batchProgress = Math.round((batchIndex / totalBatches) * 100);
+
+  await updateJobProgress(supabase, documentId, {
+    stage: 'embedding',
+    stage_progress: batchProgress,
+    stage_name: 'Generating embeddings',
+    estimated_seconds_remaining: estimateEmbeddingTime(totalBatches - batchIndex),
+    total_progress: 75 + Math.round(batchProgress * 0.25), // 75-100
+    updated_at: new Date().toISOString()
+  });
+
+  // Process batch...
+}
+        ]]>
+      </stage>
+    </stage-reporting-examples>
+  </edge-function-changes>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 10: COMPONENT DESIGN                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <component-design>
+    <new-component name="ProcessingProgress">
+      <location>src/components/documents/processing-progress.tsx</location>
+      <description>
+        Displays detailed processing progress for a document using approved UX design.
+        Shows 4-step indicator (Load, Read, Prep, Index), progress bar, and time remaining.
+        Desktop: full layout with labels. Mobile: condensed single-line.
+      </description>
+      <props-interface>
+        <![CDATA[
+interface ProcessingProgressProps {
+  documentId: string;
+  progressData: ProgressData | null;
+  className?: string;
+}
+
+interface ProgressData {
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage_progress: number;
+  stage_name: string;
+  estimated_seconds_remaining: number | null;
+  total_progress: number;
+}
+
+// Stage mapping for step indicator
+const STAGES = [
+  { key: 'downloading', label: 'Load', display: 'Loading file...' },
+  { key: 'parsing', label: 'Read', display: 'Reading document...' },
+  { key: 'chunking', label: 'Prep', display: 'Preparing content...' },
+  { key: 'embedding', label: 'Index', display: 'Indexing for search...' },
+] as const;
+        ]]>
+      </props-interface>
+      <render-skeleton>
+        <![CDATA[
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
+
+export function ProcessingProgress({
+  documentId,
+  progressData,
+  className
+}: ProcessingProgressProps) {
+  if (!progressData) {
+    // Fallback to basic "Analyzing..." if no progress data
+    return <DocumentStatusBadge status="processing" />;
+  }
+
+  const { stage, stage_progress, estimated_seconds_remaining } = progressData;
+  const currentStageIndex = STAGES.findIndex(s => s.key === stage);
+  const currentStage = STAGES[currentStageIndex];
+
+  return (
+    <div
+      className={cn('flex flex-col gap-2', className)}
+      role="region"
+      aria-label={`Document processing: stage ${currentStageIndex + 1} of 4, ${currentStage?.display}, ${stage_progress} percent complete${estimated_seconds_remaining ? `, approximately ${formatTimeRemaining(estimated_seconds_remaining)} remaining` : ''}`}
+      aria-live="polite"
+    >
+      {/* Step Indicator: ✓────●────○────○ */}
+      <div className="flex items-center gap-1">
+        {STAGES.map((s, index) => {
+          const isCompleted = index < currentStageIndex;
+          const isActive = index === currentStageIndex;
+          const isPending = index > currentStageIndex;
+
+          return (
+            <div key={s.key} className="flex items-center">
+              {/* Step dot */}
+              <div
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full text-xs font-medium',
+                  isCompleted && 'bg-emerald-500 text-white',
+                  isActive && 'bg-slate-600 text-white relative overflow-hidden',
+                  isPending && 'border-2 border-slate-300 text-slate-300'
+                )}
+              >
+                {isCompleted ? (
+                  <Check className="h-3 w-3" />
+                ) : isActive ? (
+                  <>
+                    <span className="relative z-10">●</span>
+                    {/* Shimmer animation on active */}
+                    <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  </>
+                ) : (
+                  '○'
+                )}
+              </div>
+
+              {/* Connector line (not after last) */}
+              {index < STAGES.length - 1 && (
+                <div
+                  className={cn(
+                    'h-0.5 w-4',
+                    index < currentStageIndex ? 'bg-emerald-500' : 'bg-slate-300'
+                  )}
+                />
+              )}
+            </div>
+          );
+        })}
+
+        {/* Mobile: inline stage text */}
+        <span className="ml-2 text-xs text-slate-600 sm:hidden">
+          {currentStage?.display}
+        </span>
+      </div>
+
+      {/* Desktop: Stage labels below dots */}
+      <div className="hidden sm:flex items-center gap-1 text-[10px] text-slate-500">
+        {STAGES.map((s, index) => (
+          <div key={s.key} className="flex items-center">
+            <span className={cn(
+              'w-5 text-center',
+              index === currentStageIndex && 'font-medium text-slate-700'
+            )}>
+              {s.label}
+            </span>
+            {index < STAGES.length - 1 && <div className="w-4" />}
+          </div>
+        ))}
+      </div>
+
+      {/* Current stage display text (desktop only) */}
+      <span className="hidden sm:block text-xs font-medium text-slate-600">
+        {currentStage?.display}
+      </span>
+
+      {/* Progress bar */}
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full bg-slate-600 transition-all duration-300"
+            style={{ width: `${stage_progress}%` }}
+            role="progressbar"
+            aria-valuenow={stage_progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
+        </div>
+        <span className="text-xs text-slate-500">{stage_progress}%</span>
+      </div>
+
+      {/* Time remaining (ranges, not exact) */}
+      {estimated_seconds_remaining !== null && (
+        <span className="text-xs text-slate-400">
+          ~{formatTimeRemainingRange(estimated_seconds_remaining)} remaining
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Format as ranges per UX decision (e.g., "2-4 min" not "3 min")
+function formatTimeRemainingRange(seconds: number): string {
+  if (seconds < 60) return '<1 min';
+  const mins = Math.ceil(seconds / 60);
+  if (mins <= 2) return '1-2 min';
+  if (mins <= 4) return '2-4 min';
+  if (mins <= 6) return '4-6 min';
+  return `${mins - 2}-${mins} min`;
+}
+        ]]>
+      </render-skeleton>
+    </new-component>
+
+    <integration-point component="DocumentListItem">
+      <![CDATA[
+// In document-list-item.tsx, replace status badge when processing:
+
+{status === 'processing' && progressData ? (
+  <ProcessingProgress
+    documentId={doc.id}
+    progressData={progressData}
+  />
+) : (
+  <DocumentStatusBadge
+    status={status as DocumentStatusType}
+    queuePosition={queuePosition}
+  />
+)}
+      ]]>
+    </integration-point>
+  </component-design>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 11: TESTING REQUIREMENTS                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <testing-requirements>
+    <unit-tests>
+      <test-case name="formatTimeRemaining">
+        <input>30</input>
+        <expected>30s</expected>
+      </test-case>
+      <test-case name="formatTimeRemaining">
+        <input>90</input>
+        <expected>2 min</expected>
+      </test-case>
+      <test-case name="formatTimeRemaining">
+        <input>300</input>
+        <expected>5 min</expected>
+      </test-case>
+    </unit-tests>
+
+    <integration-tests>
+      <test>Verify progress_data updates via Supabase Realtime subscription</test>
+      <test>Verify Edge Function writes progress_data at each stage</test>
+      <test>Verify UI updates reactively when progress_data changes</test>
+    </integration-tests>
+
+    <manual-testing>
+      <scenario name="Small document (5MB)">
+        <steps>
+          <step>Upload 5MB PDF</step>
+          <step>Verify progress stages display correctly</step>
+          <step>Verify completion within expected time (~1 min)</step>
+        </steps>
+      </scenario>
+      <scenario name="Large document (50MB)">
+        <steps>
+          <step>Upload 50MB PDF</step>
+          <step>Verify progress updates every few seconds</step>
+          <step>Verify time estimate is reasonable</step>
+          <step>Verify completion within expected time (5-8 min)</step>
+        </steps>
+      </scenario>
+      <scenario name="Browser navigation during processing">
+        <steps>
+          <step>Start processing document</step>
+          <step>Navigate to different page</step>
+          <step>Return to documents page</step>
+          <step>Verify progress still updating</step>
+        </steps>
+      </scenario>
+    </manual-testing>
+
+    <accessibility-testing>
+      <test>Screen reader announces stage changes</test>
+      <test>Progress bar has proper ARIA attributes</test>
+      <test>Color contrast meets WCAG AA (4.5:1)</test>
+    </accessibility-testing>
+  </testing-requirements>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 12: RISKS AND MITIGATIONS                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <risks-and-mitigations>
+    <risk severity="medium">
+      <description>Docling doesn't report page-level progress during parsing</description>
+      <mitigation>Use time-based estimation based on file size</mitigation>
+    </risk>
+
+    <risk severity="medium">
+      <description>Realtime updates too frequent causing performance issues</description>
+      <mitigation>Throttle progress updates to max 1-2 per second in Edge Function</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <description>UX design delay blocks implementation</description>
+      <mitigation>Implement basic version first, enhance with UX guidance later</mitigation>
+    </risk>
+
+    <risk severity="low">
+      <description>Progress estimation inaccurate for unusual documents</description>
+      <mitigation>Better to have estimate than nothing; can refine over time</mitigation>
+    </risk>
+  </risks-and-mitigations>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 13: DEFINITION OF DONE                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <definition-of-done>
+    <criterion status="done">UX design mockups approved ✅ (Party Mode 2025-12-02)</criterion>
+    <criterion>progress_data column added to database via migration</criterion>
+    <criterion>Edge Function reports progress for all stages (downloading, parsing, chunking, embedding)</criterion>
+    <criterion>Frontend subscribes to progress updates via Supabase Realtime</criterion>
+    <criterion>ProcessingProgress component displays current stage + progress bar</criterion>
+    <criterion>Time remaining estimation shown</criterion>
+    <criterion>Mobile responsive</criterion>
+    <criterion>Accessibility validated (ARIA, screen reader)</criterion>
+    <criterion>Manual testing with 5MB, 20MB, 50MB documents</criterion>
+    <criterion>Code review passed</criterion>
+    <criterion>Deployed to production</criterion>
+  </definition-of-done>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- SECTION 14: RELATED CONTEXT                                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <related-stories>
+    <story id="5.8.1" title="Large Document Processing" relationship="prerequisite">
+      Extended processing timeouts to 5-8 minutes for large files.
+      This story addresses the UX gap created by longer processing times.
+    </story>
+    <story id="5.7" title="Responsive Chat Experience" relationship="pattern-reference">
+      Mobile responsive patterns used for progress display.
+    </story>
+    <story id="4.7" title="Queue Management" relationship="infrastructure">
+      Processing_jobs table and queue position display that this story extends.
+    </story>
+  </related-stories>
+
+</story-context>

@@ -348,17 +348,23 @@ export default function DocumentLibraryPage() {
           // Document table (AC-F2-6.1, 6.2, 6.3, 6.4, 6.5, 6.6)
           <div data-testid="document-table">
             <DocumentTable
-              documents={filteredDocuments.map((doc: DocumentWithLabels): DocumentTableRow => ({
-                id: doc.id,
-                filename: doc.filename,
-                display_name: doc.display_name,
-                status: doc.status,
-                page_count: doc.page_count,
-                created_at: doc.created_at,
-                document_type: doc.document_type as DocumentType | null,
-                ai_tags: doc.ai_tags,
-                ai_summary: doc.ai_summary,
-              }))}
+              documents={filteredDocuments.map((doc: DocumentWithLabels): DocumentTableRow => {
+                // Story 10.12: Extract carrier and premium from extraction_data JSONB
+                const extraction = doc.extraction_data as Record<string, unknown> | null;
+                return {
+                  id: doc.id,
+                  filename: doc.filename,
+                  display_name: doc.display_name,
+                  status: doc.status,
+                  page_count: doc.page_count,
+                  created_at: doc.created_at,
+                  document_type: doc.document_type as DocumentType | null,
+                  ai_tags: doc.ai_tags,
+                  ai_summary: doc.ai_summary,
+                  carrier_name: (extraction?.carrierName as string) ?? null,
+                  annual_premium: (extraction?.annualPremium as number) ?? null,
+                };
+              })}
             />
           </div>
         )}

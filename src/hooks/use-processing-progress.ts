@@ -9,9 +9,10 @@ import type { ConnectionState } from '@/components/ui/connection-indicator';
 /**
  * Story 5.12: Processing progress data interface
  * Matches Edge Function progress_data JSON structure
+ * Story 10.12: Added 'analyzing' stage for quote extraction
  */
 export interface ProgressData {
-  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding' | 'analyzing';
   stage_progress: number; // 0-100
   stage_name: string; // User-friendly name
   estimated_seconds_remaining: number | null;
@@ -25,12 +26,14 @@ const MAX_CONSECUTIVE_ERRORS = 3;
 /**
  * Stage weights for simulating progress during parsing
  * (Docling doesn't provide intermediate progress callbacks)
+ * Story 10.12: Added 'analyzing' stage for quote extraction
  */
 const STAGE_WEIGHTS = {
   downloading: { start: 0, weight: 5 },
-  parsing: { start: 5, weight: 60 },
-  chunking: { start: 65, weight: 10 },
-  embedding: { start: 75, weight: 25 },
+  parsing: { start: 5, weight: 55 },
+  chunking: { start: 60, weight: 10 },
+  embedding: { start: 70, weight: 20 },
+  analyzing: { start: 90, weight: 10 },
 } as const;
 
 /**
@@ -102,7 +105,8 @@ function parseProgressData(json: Json | null): ProgressData | null {
   }
 
   // Validate stage is one of the expected values
-  const validStages = ['downloading', 'parsing', 'chunking', 'embedding'];
+  // Story 10.12: Added 'analyzing' stage
+  const validStages = ['downloading', 'parsing', 'chunking', 'embedding', 'analyzing'];
   if (!validStages.includes(data.stage)) {
     return null;
   }

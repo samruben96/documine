@@ -1,0 +1,235 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>5</epicId>
+    <storyId>13</storyId>
+    <title>Docling PDF Parsing Robustness</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-02</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-5.13-docling-pdf-robustness.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user uploading documents</asA>
+    <iWant>all valid PDFs to be processed successfully</iWant>
+    <soThat>I don't encounter errors for documents that work in other PDF readers</soThat>
+    <tasks>
+      <task phase="1" priority="P0">Detect "page-dimensions" error in Edge Function</task>
+      <task phase="1" priority="P0">Return user-friendly error message to frontend</task>
+      <task phase="1" priority="P0">Add diagnostic logging (PDF size, error details)</task>
+      <task phase="1" priority="P0">Update error display in document list</task>
+      <task phase="2" priority="P1">Add `disable_cell_matching` query param to Docling service</task>
+      <task phase="2" priority="P1">Implement retry logic in Edge Function</task>
+      <task phase="2" priority="P1">Test with known problematic PDF</task>
+      <task phase="3" priority="P2">Test pypdfium2 backend locally with problematic PDFs</task>
+      <task phase="3" priority="P2">Benchmark accuracy vs libpdfium</task>
+      <task phase="3" priority="P2">Decision: Switch or keep libpdfium</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-5.13.1" type="functional">
+      <description>User-Friendly Error Message</description>
+      <given>A document fails with "page-dimensions" error</given>
+      <when>The user views the document status</when>
+      <then>They see a helpful message like: "This PDF has an unusual format that our system can't process. Try re-saving it with Adobe Acrobat or a PDF converter."</then>
+    </criterion>
+    <criterion id="AC-5.13.2" type="functional">
+      <description>Automatic Retry with Fallback Settings</description>
+      <given>A document fails on first parse attempt</given>
+      <when>The error is "could not find the page-dimensions"</when>
+      <then>Retry parsing with `do_cell_matching = False` option</then>
+    </criterion>
+    <criterion id="AC-5.13.3" type="observability">
+      <description>Diagnostic Logging</description>
+      <given>Any PDF fails to parse</given>
+      <when>The error occurs</when>
+      <then>Log PDF metadata (size, page count if available, source if detectable) for analysis</then>
+    </criterion>
+    <criterion id="AC-5.13.4" type="enhancement">
+      <description>Future-Proof Backend Option</description>
+      <given>We want to increase PDF compatibility</given>
+      <when>Configuring the Docling service</when>
+      <then>Consider switching to `pypdfium2` backend for better MediaBox handling</then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>ADR-002: Docling for PDF Processing</section>
+        <snippet>Use self-hosted Docling service (IBM TableFormer model) for all PDF processing. 97.9% table extraction accuracy. Deployed at https://docling-for-documine-production.up.railway.app</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Error Handling Pattern</section>
+        <snippet>Application errors use custom error classes with code property. API routes return { data: null, error: { code, message } } for errors. Log unexpected errors with console.error.</snippet>
+      </doc>
+      <doc>
+        <path>docs/deployment/docling.md</path>
+        <title>Docling Deployment Guide</title>
+        <section>API Reference - Parse Document</section>
+        <snippet>POST /parse returns { markdown, page_markers, page_count, processing_time_ms }. Error responses: 400 (unsupported file type), 500 (processing error), 503 (service not initialized).</snippet>
+      </doc>
+      <doc>
+        <path>docs/deployment/docling.md</path>
+        <title>Docling Deployment Guide</title>
+        <section>Error Responses</section>
+        <snippet>Status 500 indicates processing error. The "could not find page-dimensions" error is a known libpdfium limitation for PDFs with non-standard MediaBox inheritance.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-5.md</path>
+        <title>Epic 5 Tech Spec</title>
+        <section>Document Processing Flow</section>
+        <snippet>Document uploads trigger Edge Function processing via processing_jobs queue. Documents have status: 'processing' | 'ready' | 'failed'. Failed documents store error_message in processing_jobs table.</snippet>
+      </doc>
+      <doc>
+        <path>CLAUDE.md</path>
+        <title>Project CLAUDE.md</title>
+        <section>Known Issues - LlamaParse Replaced by Docling</section>
+        <snippet>Docling service deployed at https://docling-for-documine-production.up.railway.app. Environment Variable: DOCLING_SERVICE_URL. Edge Function: supabase/functions/process-document/index.ts</snippet>
+      </doc>
+    </docs>
+    <code>
+      <!-- Edge Function: Primary file to modify for error detection and retry logic -->
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>parseDocument, parseDocumentWithRetry</symbol>
+        <lines>471-562</lines>
+        <reason>Contains Docling API call, error handling, and retry logic. AC-5.13.1 (error detection), AC-5.13.2 (fallback retry), AC-5.13.3 (logging)</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>updateJobStatus</symbol>
+        <lines>1107-1133</lines>
+        <reason>Updates processing_jobs.error_message which is displayed to users. AC-5.13.1 (user-friendly message)</reason>
+      </file>
+      <!-- Docling Client: TypeScript client library -->
+      <file>
+        <path>src/lib/docling/client.ts</path>
+        <kind>service-client</kind>
+        <symbol>parseDocument, DoclingError</symbol>
+        <lines>110-189</lines>
+        <reason>TypeScript Docling client with error handling. May need updates for fallback option support.</reason>
+      </file>
+      <!-- Error Classes -->
+      <file>
+        <path>src/lib/errors.ts</path>
+        <kind>error-types</kind>
+        <symbol>DoclingError</symbol>
+        <lines>84-91</lines>
+        <reason>Custom error class for Docling errors. May need subclass for specific error types like page-dimensions.</reason>
+      </file>
+      <!-- Document Status Display -->
+      <file>
+        <path>src/components/documents/document-status.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentStatusBadge</symbol>
+        <lines>121-188</lines>
+        <reason>Displays error status with tooltip. AC-5.13.1 (user sees helpful message via errorMessage prop)</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-list-item.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentListItem</symbol>
+        <lines>66-398</lines>
+        <reason>Document list with retry button for failed docs. Uses DocumentStatusBadge to show errors.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Database client, used in Edge Function</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <purpose>Icons (XCircle for error, RefreshCw for retry)</purpose>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <purpose>Toast notifications for errors</purpose>
+      </node>
+      <external>
+        <service>Docling</service>
+        <url>https://docling-for-documine-production.up.railway.app</url>
+        <purpose>PDF parsing service (self-hosted Python on Railway)</purpose>
+        <repo>https://github.com/samruben96/docling-for-documine</repo>
+      </external>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>Error messages stored in processing_jobs.error_message column (text)</rule>
+      <rationale>Existing pattern from Story 5.8.1 - messages propagate to UI via DocumentStatusBadge</rationale>
+    </constraint>
+    <constraint type="ux">
+      <rule>Failed status shows error tooltip on hover (title attribute)</rule>
+      <rationale>DocumentStatusBadge uses title={errorMessage} for tooltip display</rationale>
+    </constraint>
+    <constraint type="deployment">
+      <rule>Docling service changes require separate deployment to docling-for-documine repo</rule>
+      <rationale>Docling is deployed on Railway from separate GitHub repo</rationale>
+    </constraint>
+    <constraint type="logging">
+      <rule>Use structured logging with JSON format: { level, message, ...data, timestamp }</rule>
+      <rationale>Edge Function uses log.info/warn/error helpers. See lines 98-126 in process-document/index.ts</rationale>
+    </constraint>
+    <constraint type="timeout">
+      <rule>Docling timeout: 300s (5 min), Total processing timeout: 480s (8 min)</rule>
+      <rationale>Story 5.8.1 optimized for Supabase paid tier 550s platform limit</rationale>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Docling /parse endpoint</name>
+      <kind>REST</kind>
+      <signature>POST /parse multipart/form-data { file: blob }</signature>
+      <path>https://docling-for-documine-production.up.railway.app/parse</path>
+      <notes>Returns { markdown, page_markers, page_count, processing_time_ms }. AC-5.13.2 requires adding ?disable_cell_matching=true query param support in Docling service.</notes>
+    </interface>
+    <interface>
+      <name>processing_jobs table</name>
+      <kind>database</kind>
+      <signature>UPDATE processing_jobs SET error_message = $1 WHERE document_id = $2</signature>
+      <path>supabase/functions/process-document/index.ts:1107-1133</path>
+      <notes>error_message column stores user-visible error string. AC-5.13.1 requires friendly message formatting.</notes>
+    </interface>
+    <interface>
+      <name>DocumentStatusBadge errorMessage prop</name>
+      <kind>component-prop</kind>
+      <signature>errorMessage?: string</signature>
+      <path>src/components/documents/document-status.tsx:125</path>
+      <notes>Displayed as title attribute (tooltip). AC-5.13.1 message flows here from processing_jobs.error_message.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Vitest with React Testing Library. Unit tests for error detection logic, integration tests for Edge Function behavior. Manual testing required with known problematic PDFs. Follow existing patterns in __tests__/ directory.
+    </standards>
+    <locations>
+      <location>__tests__/lib/docling/*.test.ts</location>
+      <location>__tests__/components/documents/*.test.tsx</location>
+      <location>Manual: Upload known problematic PDF and verify error message</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-5.13.1">Unit test: parseDocument detects "page-dimensions" error string and returns user-friendly message</idea>
+      <idea ac="AC-5.13.1">Component test: DocumentStatusBadge shows error tooltip with correct text</idea>
+      <idea ac="AC-5.13.2">Unit test: parseDocumentWithRetry calls fallback endpoint on page-dimensions error</idea>
+      <idea ac="AC-5.13.2">Integration test: Edge Function retries with disable_cell_matching=true on specific error</idea>
+      <idea ac="AC-5.13.3">Unit test: Logging includes file size, error type, and retry attempts</idea>
+      <idea ac="AC-5.13.3">Manual: Check Railway logs for diagnostic output after failed parse</idea>
+      <idea ac="Manual">E2E: Upload document ID ae1b2c97-01cc-4a53-9e2a-f4181b636aba (known to fail) and verify error message</idea>
+    </ideas>
+  </tests>
+</story-context>

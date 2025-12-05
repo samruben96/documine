@@ -1,0 +1,176 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>7</epicId>
+    <storyId>7.7</storyId>
+    <title>Comparison History</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-7.7-comparison-history.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user who has created quote comparisons</asA>
+    <iWant>to view, search, filter, and manage my comparison history</iWant>
+    <soThat>I can access past comparisons without recreating them and keep my comparison library organized</soThat>
+    <tasks>
+      <task priority="1">Create ComparisonHistoryUI component with table layout showing: checkbox, date, document filenames, status badge</task>
+      <task priority="2">Create HistoryFiltersUI component with search input, date range picker (From/To), and preset buttons</task>
+      <task priority="3">Implement GET /api/compare endpoint for listing comparisons with pagination, search, and date filtering</task>
+      <task priority="4">Implement DELETE /api/compare/[id] endpoint for single comparison deletion</task>
+      <task priority="5">Implement DELETE /api/compare (bulk) endpoint for deleting multiple comparisons</task>
+      <task priority="6">Add row click navigation to /compare/[id] for loading stored comparison</task>
+      <task priority="7">Implement optimistic UI with row fade-out animation on delete</task>
+      <task priority="8">Add confirmation dialogs for single and bulk delete operations</task>
+      <task priority="9">Implement header checkbox for select/deselect all visible rows</task>
+      <task priority="10">Create empty state with CTA to create first comparison</task>
+      <task priority="11">Add pagination controls (20 per page) at table bottom</task>
+      <task priority="12">Write unit and E2E tests for all acceptance criteria</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-7.7.1">Given I have performed one or more comparisons, when I visit the Compare page, then I see a history table with each row displaying: checkbox, date, document filenames, status badge. Rows sorted by most recent first (Date column sortable).</criterion>
+    <criterion id="AC-7.7.2">Given I see a comparison in my history, when I click on the row (not on checkbox or delete icon), then I navigate to /compare/[id] showing the full comparison. The comparison loads from stored data (no re-extraction).</criterion>
+    <criterion id="AC-7.7.3">Given I see a comparison in my history, when I click the delete (trash) icon on a row, then I see a confirmation dialog. Upon confirmation, the comparison is removed from history and the row fades out with optimistic UI update.</criterion>
+    <criterion id="AC-7.7.4">Given I have many comparisons in my history, when I type in the search field, the table filters to show matching comparisons (search matches against document filenames). When I select a date range (From/To or preset), the table filters to show comparisons within that range.</criterion>
+    <criterion id="AC-7.7.5">Given I have no past comparisons, when I visit the Compare page, then I see "No comparisons yet" with value proposition text and a "Create Your First Comparison" CTA button. Clicking CTA navigates to quote selection view.</criterion>
+    <criterion id="AC-7.7.6">Given I have more than 20 comparisons, when I view the history table, results are paginated (20 per page) with pagination controls at bottom. Performance remains snappy.</criterion>
+    <criterion id="AC-7.7.7">Given I have selected one or more comparisons via checkboxes, when I click "Delete Selected (N)" action, I see a confirmation dialog showing count. Upon confirmation, all selected comparisons are removed and selected rows fade out with optimistic UI update. Selection state resets after deletion.</criterion>
+    <criterion id="AC-7.7.8">Given I am viewing the history table, when I click the header checkbox, all visible rows are selected. When I click it again, all rows are deselected.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/prd.md" relevance="requirements">FR27: Comparison history and management</doc>
+      <doc path="docs/architecture.md" relevance="architecture">Multi-tenant data model, RLS policies, API patterns</doc>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-7.md" relevance="high">
+        - Complete API specifications for GET /api/compare (list), DELETE /api/compare/[id], DELETE /api/compare (bulk)
+        - ListComparisonResponse and ComparisonSummary interfaces
+        - Component props: ComparisonHistoryUI, HistoryFiltersUI
+        - Pagination and filtering query params
+        - E2E test specifications: compare-history.spec.ts, compare-history-search.spec.ts, compare-history-delete.spec.ts, compare-history-bulk-delete.spec.ts
+      </doc>
+      <doc path="docs/epics.md" relevance="context">Story 7.7 definition with user value description</doc>
+    </docs>
+    <code>
+      <file path="src/types/compare.ts" relevance="high">
+        - ComparisonData interface with status types
+        - DocumentSummary interface for comparison documents
+        - All quote extraction types
+      </file>
+      <file path="src/types/database.types.ts" relevance="high">
+        - comparisons table schema: id, agency_id, user_id, document_ids (UUID[]), comparison_data (JSONB), created_at
+        - RLS policy reference: "Users can access own agency comparisons"
+        - documents table for joining filenames
+      </file>
+      <file path="src/app/(dashboard)/compare/page.tsx" relevance="high">Existing compare page - add history section or tab here</file>
+      <file path="src/app/(dashboard)/compare/[id]/page.tsx" relevance="high">Existing comparison result page - already supports loading from stored comparison</file>
+      <file path="src/components/compare/quote-selector.tsx" relevance="medium">Quote selection component for new comparisons</file>
+      <file path="src/components/compare/comparison-table.tsx" relevance="medium">Table component patterns to follow</file>
+      <file path="src/lib/compare/diff.ts" relevance="medium">buildComparisonRows and ComparisonTableData for rendering</file>
+      <file path="src/lib/compare/export.ts" relevance="low">Export utilities if needed for history exports</file>
+    </code>
+    <dependencies>
+      <dep name="@tanstack/react-table" installed="no" purpose="Table with selection, sorting, pagination - consider for complex table needs">Optional - can use simple table with shadcn/ui</dep>
+      <dep name="date-fns" installed="yes" purpose="Date formatting and filtering">Used throughout project</dep>
+      <dep name="sonner" installed="yes" purpose="Toast notifications for delete confirmation">Already used in compare module</dep>
+      <dep name="lucide-react" installed="yes" purpose="Icons for delete, search, calendar">Already used throughout</dep>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">RLS policies enforce agency isolation - users can only see/delete own agency comparisons</constraint>
+    <constraint type="architecture">Navigation to /compare/[id] must not trigger re-extraction - use cached comparison_data</constraint>
+    <constraint type="performance">Pagination required - do not load all comparisons at once (max 20 per page)</constraint>
+    <constraint type="ux">Optimistic UI required for delete operations - row should fade before server confirms</constraint>
+    <constraint type="ux">Confirmation dialogs required for both single and bulk delete</constraint>
+    <constraint type="ux">Search should filter client-side for instant feedback OR use debounced server query</constraint>
+    <constraint type="testing">Playwright E2E tests required per tech spec test matrix</constraint>
+  </constraints>
+
+  <interfaces>
+    <api>
+      <endpoint method="GET" path="/api/compare">
+        <description>List comparisons with pagination, search, and date filtering</description>
+        <queryParams>
+          <param name="page" type="number" default="1">Page number</param>
+          <param name="limit" type="number" default="20">Items per page</param>
+          <param name="search" type="string" optional="true">Search document filenames</param>
+          <param name="from" type="string" optional="true">Date range start (ISO date)</param>
+          <param name="to" type="string" optional="true">Date range end (ISO date)</param>
+        </queryParams>
+        <response>
+          <field name="comparisons" type="ComparisonSummary[]">List of comparison summaries</field>
+          <field name="totalCount" type="number">Total count for pagination</field>
+          <field name="page" type="number">Current page</field>
+          <field name="totalPages" type="number">Total pages</field>
+        </response>
+      </endpoint>
+      <endpoint method="DELETE" path="/api/compare/[id]">
+        <description>Delete a single comparison by ID</description>
+        <response>{ success: true }</response>
+      </endpoint>
+      <endpoint method="DELETE" path="/api/compare">
+        <description>Bulk delete comparisons</description>
+        <body>{ ids: string[] }</body>
+        <response>{ success: true, deletedCount: number }</response>
+      </endpoint>
+    </api>
+    <types>
+      <type name="ComparisonSummary">
+        <field name="id" type="string">Comparison UUID</field>
+        <field name="createdAt" type="string">ISO timestamp</field>
+        <field name="status" type="processing|complete|partial|failed">Comparison status</field>
+        <field name="documentCount" type="number">Number of documents compared</field>
+        <field name="documentNames" type="string[]">Filenames from joined documents table</field>
+      </type>
+      <type name="ListComparisonResponse">
+        <field name="comparisons" type="ComparisonSummary[]">Page of results</field>
+        <field name="totalCount" type="number">Total matching count</field>
+        <field name="page" type="number">Current page (1-indexed)</field>
+        <field name="totalPages" type="number">Total pages</field>
+      </type>
+    </types>
+    <components>
+      <component name="ComparisonHistoryUI" path="src/components/compare/comparison-history.tsx">
+        <description>History table with checkbox selection, date display, document names, status badges</description>
+        <props>None - fetches data internally</props>
+      </component>
+      <component name="HistoryFiltersUI" path="src/components/compare/comparison-history-filters.tsx">
+        <description>Search input, date range picker with presets (Today, Last 7 days, Last 30 days, Custom)</description>
+        <props>
+          <prop name="onFilterChange" type="(filters: HistoryFilters) => void">Callback when filters change</prop>
+          <prop name="filters" type="HistoryFilters">Current filter state</prop>
+        </props>
+      </component>
+    </components>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit tests with Vitest + React Testing Library in __tests__/</standard>
+      <standard>E2E tests with Playwright in __tests__/e2e/</standard>
+      <standard>Mock Supabase client for unit tests</standard>
+      <standard>Test accessibility (aria-selected for rows, keyboard navigation)</standard>
+    </standards>
+    <locations>
+      <location path="__tests__/components/compare/comparison-history.test.tsx">Unit tests for history table component</location>
+      <location path="__tests__/components/compare/comparison-history-filters.test.tsx">Unit tests for filter component</location>
+      <location path="__tests__/e2e/compare-history.spec.ts">E2E: View history, click row, verify comparison loads</location>
+      <location path="__tests__/e2e/compare-history-search.spec.ts">E2E: Enter search term, verify table filters</location>
+      <location path="__tests__/e2e/compare-history-delete.spec.ts">E2E: Click delete, confirm, verify row removed</location>
+      <location path="__tests__/e2e/compare-history-bulk-delete.spec.ts">E2E: Select multiple, bulk delete, confirm, verify all removed</location>
+    </locations>
+    <ideas>
+      <idea>Test empty state when no comparisons exist</idea>
+      <idea>Test pagination navigation (next/prev/specific page)</idea>
+      <idea>Test date range filter with custom dates</idea>
+      <idea>Test search debounce behavior</idea>
+      <idea>Test header checkbox select all / deselect all</idea>
+      <idea>Test optimistic UI rollback on delete failure</idea>
+      <idea>Test status badge variants (processing, complete, partial, failed)</idea>
+      <idea>Test keyboard accessibility (Enter to navigate row, Delete key for selected)</idea>
+    </ideas>
+  </tests>
+</story-context>

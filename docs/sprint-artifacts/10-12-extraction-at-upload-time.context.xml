@@ -1,0 +1,348 @@
+<story-context id="{bmad_folder}/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>10</epicId>
+    <storyId>12</storyId>
+    <title>Extraction at Upload Time</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-10.12-extraction-at-upload-time.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an insurance agent</asA>
+    <iWant>quote data automatically extracted when I upload a document</iWant>
+    <soThat>my chat Q&A has access to structured policy data, comparisons load instantly, and I can see key policy details in the document library without waiting</soThat>
+    <tasks>
+      <task id="1" title="Database Schema" acs="10.12.2, 10.12.3">
+        <subtask>Create migration adding extraction_data JSONB to documents</subtask>
+        <subtask>Add extraction_version INTEGER DEFAULT NULL column</subtask>
+        <subtask>Add extraction_error TEXT DEFAULT NULL column</subtask>
+        <subtask>Regenerate TypeScript types</subtask>
+      </task>
+      <task id="2" title="Edge Function Integration" acs="10.12.1, 10.12.3, 10.12.4">
+        <subtask>Import extraction service in process-document Edge Function</subtask>
+        <subtask>Add Step 7: Quote Extraction (after AI tagging)</subtask>
+        <subtask>Check document_type to gate extraction</subtask>
+        <subtask>Call extractQuoteData with document content</subtask>
+        <subtask>Store result in documents.extraction_data</subtask>
+        <subtask>Handle errors gracefully (log, store in extraction_error, continue)</subtask>
+        <subtask>Add 60-second timeout with AbortController</subtask>
+      </task>
+      <task id="3" title="Progress Visualization" acs="10.12.8">
+        <subtask>Add "Analyzing quote..." step to processing progress</subtask>
+        <subtask>Update use-processing-progress.ts with new step</subtask>
+        <subtask>Update progress percentage allocation</subtask>
+      </task>
+      <task id="4" title="Document Library UI" acs="10.12.6">
+        <subtask>Extend DocumentCard to show carrier name from extraction_data</subtask>
+        <subtask>Extend DocumentTable row to show carrier, premium</subtask>
+        <subtask>Add currency formatting for premium</subtask>
+        <subtask>Handle null extraction_data gracefully</subtask>
+      </task>
+      <task id="5" title="Comparison Flow Optimization" acs="10.12.7">
+        <subtask>Update extractQuoteData to check documents.extraction_data first</subtask>
+        <subtask>Add version check logic (compare to EXTRACTION_VERSION)</subtask>
+        <subtask>Log cache hits/misses</subtask>
+        <subtask>Ensure backward compatibility with existing comparisons</subtask>
+      </task>
+      <task id="6" title="Chat RAG Integration" acs="10.12.5">
+        <subtask>Update RAG context builder to include extraction_data when available</subtask>
+        <subtask>Add structured data extraction for direct field queries</subtask>
+        <subtask>Implement field mapping (e.g., "deductible" → coverages[].deductible)</subtask>
+        <subtask>A/B flag for hybrid approach</subtask>
+      </task>
+      <task id="7" title="Source Citation Preservation" acs="10.12.9">
+        <subtask>Verify all extracted fields include sourcePages arrays</subtask>
+        <subtask>Update chat response builder to include source citations from structured data</subtask>
+        <subtask>Ensure citations link to correct page in document viewer</subtask>
+        <subtask>Test click-to-navigate for structured data citations</subtask>
+        <subtask>Verify existing RAG source citations still work</subtask>
+      </task>
+      <task id="8" title="Testing" acs="All">
+        <subtask>Unit tests for extraction gating logic</subtask>
+        <subtask>Integration test: upload quote → verify extraction_data populated</subtask>
+        <subtask>Integration test: upload general doc → verify extraction skipped</subtask>
+        <subtask>E2E test: upload → view document library → see carrier name</subtask>
+        <subtask>E2E test: comparison uses cached extraction</subtask>
+        <subtask>E2E test: chat answer from structured data shows source citation</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="10.12.1" title="Extraction Trigger on Upload">
+      <criterion>After chunking completes in process-document Edge Function, call extraction</criterion>
+      <criterion>Only trigger for documents where document_type = 'quote' (or null for backward compat)</criterion>
+      <criterion>Skip extraction for document_type = 'general' documents</criterion>
+      <criterion>Extraction runs after AI tagging (tagging determines document_type)</criterion>
+    </ac>
+    <ac id="10.12.2" title="Extraction Storage">
+      <criterion>Add extraction_data JSONB column to documents table</criterion>
+      <criterion>Add extraction_version INTEGER column to documents table</criterion>
+      <criterion>Store full QuoteExtraction object in extraction_data</criterion>
+      <criterion>Set extraction_version to current EXTRACTION_VERSION constant (currently 3)</criterion>
+      <criterion>Also cache in quote_extractions table (existing pattern) for comparison flow</criterion>
+    </ac>
+    <ac id="10.12.3" title="Graceful Degradation">
+      <criterion>Extraction failure MUST NOT fail document processing</criterion>
+      <criterion>extraction_data remains null if extraction fails</criterion>
+      <criterion>Log extraction errors with document ID for debugging</criterion>
+      <criterion>Document status still transitions to 'ready' even if extraction fails</criterion>
+      <criterion>Error details stored in extraction_error column (text, nullable)</criterion>
+    </ac>
+    <ac id="10.12.4" title="Document Type Gating">
+      <criterion>Check document_type after AI tagging step</criterion>
+      <criterion>If document_type = 'general': skip extraction, proceed to completion</criterion>
+      <criterion>If document_type = 'quote' or null: run extraction</criterion>
+      <criterion>Log decision for debugging</criterion>
+    </ac>
+    <ac id="10.12.5" title="Chat RAG Integration">
+      <criterion>When user asks question, check if extraction_data is available</criterion>
+      <criterion>For direct field queries (deductible, premium, carrier), prioritize structured data</criterion>
+      <criterion>Hybrid approach: structured data for exact values, chunks for context/reasoning</criterion>
+      <criterion>Add useStructuredDataForAnswer flag in chat context</criterion>
+    </ac>
+    <ac id="10.12.6" title="Document Library Display">
+      <criterion>DocumentCard and DocumentTable show carrier name from extraction_data.carrierName</criterion>
+      <criterion>Show annual premium with currency formatting</criterion>
+      <criterion>Show policy number if extracted</criterion>
+      <criterion>Fields appear after processing completes (or on refresh if not realtime)</criterion>
+      <criterion>Gracefully handle null values (show "-" or hide field)</criterion>
+    </ac>
+    <ac id="10.12.7" title="Comparison Flow Optimization">
+      <criterion>Before calling extractQuoteData, check documents.extraction_data</criterion>
+      <criterion>If extraction_version matches current version, use cached data</criterion>
+      <criterion>If version mismatch or null, run on-demand extraction (existing flow)</criterion>
+      <criterion>Log cache hit/miss for performance monitoring</criterion>
+    </ac>
+    <ac id="10.12.8" title="Performance Budget">
+      <criterion>Extraction step has 60-second timeout</criterion>
+      <criterion>Average extraction time less than 30 seconds for typical insurance quote</criterion>
+      <criterion>Processing progress shows "Analyzing quote..." during extraction step</criterion>
+      <criterion>Total document processing time increase less than 35 seconds average</criterion>
+    </ac>
+    <ac id="10.12.9" title="Source Citations Preserved">
+      <criterion>Extracted data includes sourcePages arrays for all extracted fields</criterion>
+      <criterion>Chat answers from structured data include source page citations</criterion>
+      <criterion>Source citations link to document viewer at correct page</criterion>
+      <criterion>Coverage items, endorsements, carrier info all have sourcePages</criterion>
+      <criterion>Document viewer highlight navigation continues to work</criterion>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-10.md" purpose="Epic 10 tech spec with extraction architecture" />
+      <doc path="docs/epics/epic-10-enhanced-quote-extraction.md" purpose="Epic 10 full epic definition" />
+      <doc path="docs/sprint-artifacts/story-10.10-extraction-prompts.md" purpose="Extraction prompt engineering (dependency)" />
+      <doc path="docs/architecture.md" purpose="System architecture reference" />
+      <doc path="CLAUDE.md" purpose="Project conventions and patterns" />
+    </docs>
+    <code>
+      <!-- CRITICAL: Main files to modify -->
+      <file path="supabase/functions/process-document/index.ts" purpose="Edge Function: Add extraction step after AI tagging" lines="1-500+" action="MODIFY">
+        <note>Add Step 7: Quote Extraction after AI tagging (Step 6.5)</note>
+        <note>Import extraction service (use fetch to Next.js API route or inline)</note>
+        <note>Check document_type to gate extraction</note>
+        <note>60-second timeout with AbortController</note>
+        <note>Store result in documents.extraction_data</note>
+        <note>Graceful error handling (log, continue, don't fail processing)</note>
+      </file>
+
+      <file path="src/lib/compare/extraction.ts" purpose="Existing extraction service" lines="1-561" action="REFERENCE">
+        <note>EXTRACTION_SYSTEM_PROMPT already complete with Epic 10 mappings (Story 10.10 done)</note>
+        <note>extractQuoteData function with 60s timeout, retry logic</note>
+        <note>Uses zodResponseFormat for GPT-5.1 structured outputs</note>
+        <note>getCachedExtraction uses quote_extractions table</note>
+        <note>For Edge Function: May need to port or call via API</note>
+      </file>
+
+      <file path="src/types/compare.ts" purpose="Extraction types and Zod schemas" lines="1-974" action="REFERENCE">
+        <note>QuoteExtraction interface with all Epic 10 fields</note>
+        <note>EXTRACTION_VERSION = 3</note>
+        <note>quoteExtractionSchema for structured outputs</note>
+      </file>
+
+      <file path="src/types/database.types.ts" purpose="Database type definitions" action="WILL_REGENERATE">
+        <note>After migration: will add extraction_data, extraction_version, extraction_error to documents table</note>
+      </file>
+
+      <file path="src/hooks/use-processing-progress.ts" purpose="Processing progress hook" lines="1-493" action="MODIFY">
+        <note>Add 'analyzing' stage to ProgressData interface</note>
+        <note>Update STAGE_WEIGHTS for new extraction step</note>
+        <note>Current weights: downloading(5%) + parsing(60%) + chunking(10%) + embedding(25%) = 100%</note>
+        <note>New weights: downloading(5%) + parsing(55%) + chunking(10%) + embedding(20%) + analyzing(10%) = 100%</note>
+      </file>
+
+      <file path="src/components/documents/document-card.tsx" purpose="Document grid card" lines="1-201" action="MODIFY">
+        <note>Add carrierName display from extraction_data</note>
+        <note>Add annualPremium display with currency formatting</note>
+        <note>Handle null extraction_data gracefully</note>
+      </file>
+
+      <file path="src/components/documents/document-table.tsx" purpose="Document table view" lines="1-368" action="MODIFY">
+        <note>Add Carrier column from extraction_data.carrierName</note>
+        <note>Add Premium column with currency formatting</note>
+        <note>Update DocumentTableRow interface</note>
+      </file>
+
+      <file path="src/lib/chat/rag.ts" purpose="RAG context builder" lines="1-228" action="MODIFY">
+        <note>Check for extraction_data when building context</note>
+        <note>Add structured data to context for direct field queries</note>
+        <note>Hybrid approach: structured data for exact values, chunks for context</note>
+      </file>
+
+      <!-- SUPPORTING FILES -->
+      <file path="src/app/(dashboard)/documents/page.tsx" purpose="Document library page" action="MODIFY">
+        <note>Pass extraction_data to DocumentCard and DocumentTable</note>
+        <note>Ensure query fetches extraction_data column</note>
+      </file>
+
+      <file path="src/lib/utils/format.ts" purpose="Utility functions" action="MODIFY_OR_CREATE">
+        <note>Add formatCurrency() for premium display</note>
+      </file>
+    </code>
+    <dependencies>
+      <dep name="openai" version="4.x" purpose="GPT-5.1 structured outputs in Edge Function" />
+      <dep name="zod" version="3.x" purpose="Schema validation (already in project)" />
+      <dep name="@supabase/supabase-js" version="2.x" purpose="Database operations" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance">
+      <rule>Extraction step has 60-second timeout (AC-10.12.8)</rule>
+      <rule>Average extraction time must be under 30 seconds</rule>
+      <rule>Total document processing time increase less than 35 seconds average</rule>
+    </constraint>
+    <constraint type="reliability">
+      <rule>Extraction failure MUST NOT fail document processing (AC-10.12.3)</rule>
+      <rule>Document status transitions to 'ready' even if extraction fails</rule>
+      <rule>Error details stored in extraction_error column for debugging</rule>
+    </constraint>
+    <constraint type="storage">
+      <rule>extraction_data is JSONB, stores full QuoteExtraction object</rule>
+      <rule>extraction_version tracks schema version for cache invalidation</rule>
+      <rule>Also cache in quote_extractions table for comparison flow compatibility</rule>
+    </constraint>
+    <constraint type="compatibility">
+      <rule>Existing comparison flow continues to work</rule>
+      <rule>If extraction_data exists and version matches, use cached data</rule>
+      <rule>If version mismatch or null, run on-demand extraction</rule>
+    </constraint>
+    <constraint type="gating">
+      <rule>Only extract for document_type = 'quote' or null (backward compat)</rule>
+      <rule>Skip extraction for document_type = 'general'</rule>
+      <rule>Extraction runs AFTER AI tagging (tagging determines document_type)</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="database">
+      <table name="documents">
+        <column name="extraction_data" type="JSONB" nullable="true" purpose="Stores QuoteExtraction object" />
+        <column name="extraction_version" type="INTEGER" nullable="true" purpose="Schema version for cache invalidation" />
+        <column name="extraction_error" type="TEXT" nullable="true" purpose="Error message if extraction failed" />
+      </table>
+    </interface>
+
+    <interface type="edge-function">
+      <step n="7" name="Quote Extraction" after="AI Tagging">
+        <input>document_id, document_type, chunked content</input>
+        <output>extraction_data JSONB or extraction_error</output>
+        <timeout>60 seconds</timeout>
+      </step>
+    </interface>
+
+    <interface type="progress">
+      <stage name="analyzing">
+        <displayName>Analyzing quote...</displayName>
+        <weight>10</weight>
+        <position>after embedding</position>
+      </stage>
+    </interface>
+
+    <interface type="chat-rag">
+      <enhancement>
+        <when>extraction_data is available</when>
+        <priority>Structured data for exact field values (deductible, premium, carrier)</priority>
+        <fallback>RAG chunks for context and reasoning</fallback>
+        <flag>useStructuredDataForAnswer in context</flag>
+      </enhancement>
+    </interface>
+
+    <interface type="comparison-optimization">
+      <check>documents.extraction_data before calling extractQuoteData</check>
+      <condition>If extraction_version matches EXTRACTION_VERSION (3), use cached</condition>
+      <fallback>Run on-demand extraction if null or version mismatch</fallback>
+      <logging>Log cache hit/miss for performance monitoring</logging>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Vitest for unit tests</standard>
+      <standard>Playwright for E2E tests</standard>
+      <standard>Mock OpenAI API calls in unit tests</standard>
+      <standard>Use data-testid attributes for E2E selectors</standard>
+      <standard>Test both success and error paths</standard>
+    </standards>
+    <locations>
+      <location path="__tests__/lib/documents/extraction-at-upload.test.ts" purpose="Unit tests for extraction gating logic" />
+      <location path="__tests__/components/documents/document-card-extraction.test.tsx" purpose="DocumentCard extraction display tests" />
+      <location path="__tests__/components/documents/document-table-extraction.test.tsx" purpose="DocumentTable extraction columns tests" />
+      <location path="__tests__/e2e/extraction-at-upload.spec.ts" purpose="E2E: upload → extraction → display flow" />
+    </locations>
+    <ideas>
+      <test id="unit-1" ac="10.12.4">
+        <desc>Extraction gating: Skip for general documents</desc>
+        <given>Document with document_type = 'general'</given>
+        <when>Processing completes</when>
+        <then>extraction_data remains null, no extraction call made</then>
+      </test>
+      <test id="unit-2" ac="10.12.4">
+        <desc>Extraction gating: Process for quote documents</desc>
+        <given>Document with document_type = 'quote'</given>
+        <when>Processing completes</when>
+        <then>extractQuoteData is called, extraction_data populated</then>
+      </test>
+      <test id="unit-3" ac="10.12.3">
+        <desc>Graceful degradation: Extraction failure doesn't fail processing</desc>
+        <given>Extraction service throws error</given>
+        <when>Processing completes</when>
+        <then>Document status = 'ready', extraction_error set, extraction_data null</then>
+      </test>
+      <test id="unit-4" ac="10.12.7">
+        <desc>Cache hit: Use existing extraction_data</desc>
+        <given>documents.extraction_data exists with matching version</given>
+        <when>Comparison flow starts</when>
+        <then>No new extraction call, cached data returned</then>
+      </test>
+      <test id="unit-5" ac="10.12.7">
+        <desc>Cache miss: Version mismatch triggers re-extraction</desc>
+        <given>documents.extraction_version = 2, current EXTRACTION_VERSION = 3</given>
+        <when>Comparison flow starts</when>
+        <then>New extraction call made, extraction_data updated</then>
+      </test>
+      <test id="e2e-1" ac="10.12.1, 10.12.6">
+        <desc>Full flow: Upload quote → see carrier name in library</desc>
+        <given>User is on documents page</given>
+        <when>User uploads a quote PDF</when>
+        <then>After processing, DocumentCard shows carrier name from extraction</then>
+      </test>
+      <test id="e2e-2" ac="10.12.7">
+        <desc>Comparison uses cached extraction</desc>
+        <given>Document with extraction_data exists</given>
+        <when>User creates comparison with this document</when>
+        <then>Comparison completes faster (no re-extraction), log shows cache hit</then>
+      </test>
+      <test id="e2e-3" ac="10.12.9">
+        <desc>Chat answer from structured data shows source citation</desc>
+        <given>Document with extraction_data containing carrierName on page 1</given>
+        <when>User asks "What is the carrier name?"</when>
+        <then>Answer includes carrier name with page 1 citation</then>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

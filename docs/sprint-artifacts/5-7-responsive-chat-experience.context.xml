@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 5.7 Responsive Chat Experience
+  Generated: 2025-12-01
+  Epic: 5 - Document Q&A with Trust Transparency
+-->
+<story-context>
+  <metadata>
+    <story-id>5.7</story-id>
+    <story-key>5-7-responsive-chat-experience</story-key>
+    <title>Responsive Chat Experience</title>
+    <epic-id>5</epic-id>
+    <status>drafted</status>
+    <prerequisites>Story 5.5 (Document Viewer with Highlight Navigation)</prerequisites>
+    <created>2025-12-01</created>
+  </metadata>
+
+  <user-story>
+    <role>mobile/tablet user</role>
+    <want>to ask questions about documents on smaller screens</want>
+    <benefit>I can use docuMINE on any device</benefit>
+  </user-story>
+
+  <acceptance-criteria>
+    <criterion id="AC-5.7.1" title="Desktop Layout (>1024px)">
+      <description>Split view displays with Document Viewer (min 40%), Chat Panel (360px fixed), and Sidebar (240px)</description>
+      <status>ALREADY_IMPLEMENTED</status>
+      <notes>Implemented in split-view.tsx - lg:grid-cols-[minmax(40%,1fr)_360px]</notes>
+    </criterion>
+    <criterion id="AC-5.7.2" title="Tablet Layout (640-1024px)">
+      <description>Split view with narrower panels, sidebar collapsed (hamburger), chat panel 40% width</description>
+      <status>ALREADY_IMPLEMENTED</status>
+      <notes>Implemented in split-view.tsx - md:grid-cols-[60%_40%]</notes>
+    </criterion>
+    <criterion id="AC-5.7.3" title="Mobile Layout (<640px)">
+      <description>Tabbed interface with [Document] and [Chat] tabs, only one panel visible</description>
+      <status>ALREADY_IMPLEMENTED</status>
+      <notes>Implemented in mobile-document-chat-tabs.tsx</notes>
+    </criterion>
+    <criterion id="AC-5.7.4" title="Mobile Tab Switching">
+      <description>View switches between tabs, indicator updates, scroll position preserved</description>
+      <status>ALREADY_IMPLEMENTED</status>
+      <notes>Implemented via MobileDocumentChatTabs with switchToDocument/switchToChat methods</notes>
+    </criterion>
+    <criterion id="AC-5.7.5" title="Touch Target Sizing">
+      <description>All interactive elements minimum 44x44px</description>
+      <status>NEEDS_VERIFICATION</status>
+      <notes>Most buttons use h-9 w-9 (36px) - may need audit. Mobile tabs use min-h-[44px]. Send button uses h-11 w-11 (44px).</notes>
+    </criterion>
+    <criterion id="AC-5.7.6" title="Mobile Chat Input">
+      <description>Input fixed at bottom, keyboard doesn't obscure, send button tappable</description>
+      <status>PARTIALLY_IMPLEMENTED</status>
+      <notes>ChatPanel has flex-shrink-0 input area at bottom. May need testing for keyboard behavior on actual devices.</notes>
+    </criterion>
+    <criterion id="AC-5.7.7" title="Trust Elements on Mobile">
+      <description>Confidence badge and source citation display correctly on mobile</description>
+      <status>NEEDS_VERIFICATION</status>
+      <notes>Components exist and should scale, needs visual verification on mobile viewports</notes>
+    </criterion>
+    <criterion id="AC-5.7.8" title="Streaming on Mobile">
+      <description>Text streams word-by-word, Thinking indicator visible, no performance degradation</description>
+      <status>NEEDS_VERIFICATION</status>
+      <notes>Streaming implementation is viewport-agnostic, needs performance testing</notes>
+    </criterion>
+    <criterion id="AC-5.7.9" title="Document Readability">
+      <description>Document readable with zoom, pinch-to-zoom works, controls accessible</description>
+      <status>PARTIALLY_IMPLEMENTED</status>
+      <notes>Zoom controls exist but pinch-to-zoom may need CSS touch-action configuration</notes>
+    </criterion>
+    <criterion id="AC-5.7.10" title="Source Citation Navigation (Mobile)">
+      <description>Citation tap switches to Document tab, scrolls to page, shows highlight</description>
+      <status>ALREADY_IMPLEMENTED</status>
+      <notes>handleSourceClick in page.tsx handles mobile tab switch then highlight</notes>
+    </criterion>
+  </acceptance-criteria>
+
+  <existing-code>
+    <file path="src/components/layout/split-view.tsx" purpose="Split view layout with responsive breakpoints">
+      <key-exports>
+        <export name="SplitView" type="component">Main sidebar + content layout</export>
+        <export name="DocumentChatSplitView" type="component">Document + Chat side-by-side with responsive grid</export>
+      </key-exports>
+      <responsive-classes>
+        <class breakpoint="lg (>1024px)">grid-cols-[minmax(40%,1fr)_360px]</class>
+        <class breakpoint="md (640-1024px)">grid-cols-[60%_40%]</class>
+        <class breakpoint="mobile (<640px)">grid-cols-1 (chat hidden on mobile via hidden md:block)</class>
+      </responsive-classes>
+    </file>
+
+    <file path="src/components/layout/mobile-document-chat-tabs.tsx" purpose="Mobile tabbed interface">
+      <key-exports>
+        <export name="MobileDocumentChatTabs" type="component">Tabbed Document/Chat interface for mobile</export>
+        <export name="MobileDocumentChatTabsRef" type="interface">Ref methods for programmatic tab switching</export>
+      </key-exports>
+      <features>
+        <feature>Tab bar with Document and Chat buttons</feature>
+        <feature>44px minimum touch targets (min-h-[44px])</feature>
+        <feature>switchToDocument() and switchToChat() methods exposed via ref</feature>
+        <feature>ARIA roles for accessibility (role="tablist", role="tab", role="tabpanel")</feature>
+      </features>
+    </file>
+
+    <file path="src/app/(dashboard)/documents/[id]/page.tsx" purpose="Document detail page with responsive layout">
+      <key-features>
+        <feature>Desktop: DocumentChatSplitView (hidden md:block)</feature>
+        <feature>Mobile: MobileDocumentChatTabs (md:hidden)</feature>
+        <feature>handleSourceClick handles mobile tab switch before highlighting</feature>
+        <feature>Refs for documentViewer and mobileTabs for cross-component communication</feature>
+      </key-features>
+    </file>
+
+    <file path="src/components/chat/chat-panel.tsx" purpose="Chat panel with messages and input">
+      <layout>
+        <section>Header (h-14) with title and New Chat button</section>
+        <section>Scrollable messages area (flex-1 overflow-y-auto)</section>
+        <section>Fixed input at bottom (flex-shrink-0)</section>
+      </layout>
+    </file>
+
+    <file path="src/components/chat/chat-input.tsx" purpose="Chat text input with send button">
+      <touch-targets>
+        <element name="textarea" size="min-height: 44px">Meets 44px minimum</element>
+        <element name="send-button" size="h-11 w-11 (44px)">Meets 44px minimum</element>
+      </touch-targets>
+    </file>
+
+    <file path="src/components/documents/document-viewer.tsx" purpose="PDF viewer with zoom and highlight">
+      <zoom-controls>
+        <control>fitToWidth</control>
+        <control>zoomIn (+0.25)</control>
+        <control>zoomOut (-0.25)</control>
+        <range min="0.5" max="2.0"/>
+      </zoom-controls>
+      <touch-targets>
+        <element name="zoom-buttons" size="h-9 w-9 (36px)">Below 44px - may need review</element>
+        <element name="page-nav-buttons" size="h-9 w-9 (36px)">Below 44px - may need review</element>
+      </touch-targets>
+    </file>
+
+    <file path="src/components/chat/confidence-badge.tsx" purpose="Trust indicator badges">
+      <responsive>Uses inline-flex with relative sizing, should scale naturally</responsive>
+    </file>
+
+    <file path="src/components/chat/source-citation.tsx" purpose="Source citation links">
+      <responsive>Need to verify touch target size for links on mobile</responsive>
+    </file>
+  </existing-code>
+
+  <implementation-analysis>
+    <finding type="mostly-complete">
+      Most responsive functionality is already implemented. The story requires:
+      1. Verification/testing of existing implementations
+      2. Touch target audit and fixes where needed
+      3. Mobile-specific testing (keyboard behavior, pinch-to-zoom)
+    </finding>
+
+    <gaps>
+      <gap id="1" severity="medium" ac="AC-5.7.5">
+        Touch targets for document viewer buttons (h-9 w-9 = 36px) are below 44px minimum.
+        Files affected: src/components/documents/document-viewer.tsx
+      </gap>
+      <gap id="2" severity="low" ac="AC-5.7.9">
+        Pinch-to-zoom may need CSS touch-action property configuration.
+        Files affected: src/components/documents/document-viewer.tsx
+      </gap>
+      <gap id="3" severity="low" ac="AC-5.7.6">
+        Mobile keyboard behavior needs testing on actual devices.
+        No code changes expected, just verification.
+      </gap>
+    </gaps>
+  </implementation-analysis>
+
+  <dependencies>
+    <npm-packages>
+      <package name="react-pdf" version="^10.2.0" purpose="PDF rendering" />
+      <package name="pdfjs-dist" version="^5.4.449" purpose="PDF.js worker" />
+      <package name="@radix-ui/react-tabs" version="^1.1.13" purpose="Tab component primitives" />
+      <package name="lucide-react" version="^0.554.0" purpose="Icons" />
+    </npm-packages>
+    <no-new-dependencies>true</no-new-dependencies>
+    <tailwind-utilities>
+      <utility>Responsive prefixes: sm:, md:, lg:</utility>
+      <utility>Grid: grid-cols-*, hidden, block</utility>
+      <utility>Flexbox: flex, flex-shrink-0, flex-1</utility>
+      <utility>Sizing: h-*, w-*, min-h-*, min-w-*</utility>
+    </tailwind-utilities>
+  </dependencies>
+
+  <testing-guidance>
+    <unit-tests>
+      <test-area>Touch target size validation (programmatic check)</test-area>
+      <test-area>Tab state management in MobileDocumentChatTabs</test-area>
+    </unit-tests>
+
+    <component-tests>
+      <test file="mobile-document-chat-tabs.test.tsx">
+        <scenario>Tab switching changes activeTab state</scenario>
+        <scenario>switchToDocument and switchToChat methods work via ref</scenario>
+        <scenario>Only one panel visible at a time</scenario>
+        <scenario>ARIA attributes correct for accessibility</scenario>
+      </test>
+      <test file="document-viewer.test.tsx">
+        <scenario>Touch targets meet 44px minimum (if updated)</scenario>
+        <scenario>Zoom controls work correctly</scenario>
+      </test>
+    </component-tests>
+
+    <manual-tests priority="required">
+      <test device="iOS (Safari)">
+        <check>Tab switching works</check>
+        <check>Chat input doesn't get hidden by keyboard</check>
+        <check>Pinch-to-zoom on document works</check>
+        <check>Source citation tap switches tabs and highlights</check>
+      </test>
+      <test device="Android (Chrome)">
+        <check>Same as iOS tests</check>
+      </test>
+      <test device="iPad (tablet breakpoint)">
+        <check>Split view displays correctly at 768px and 1024px widths</check>
+        <check>Both panels usable simultaneously</check>
+      </test>
+    </manual-tests>
+
+    <browser-simulation>
+      <viewport name="iPhone SE" width="375" height="667" />
+      <viewport name="iPhone 12 Pro" width="390" height="844" />
+      <viewport name="iPad" width="768" height="1024" />
+      <viewport name="iPad Pro" width="1024" height="1366" />
+    </browser-simulation>
+  </testing-guidance>
+
+  <implementation-tasks>
+    <task id="1" priority="high" estimated-effort="small">
+      <title>Audit and fix touch target sizes</title>
+      <description>
+        Review all interactive elements in document-viewer.tsx and increase button sizes
+        from h-9 w-9 to h-11 w-11 for 44px touch targets.
+      </description>
+      <files>src/components/documents/document-viewer.tsx</files>
+      <acceptance-criteria>AC-5.7.5</acceptance-criteria>
+    </task>
+
+    <task id="2" priority="medium" estimated-effort="small">
+      <title>Add pinch-to-zoom CSS configuration</title>
+      <description>
+        Ensure touch-action CSS property allows pinch-to-zoom on document viewer.
+        Add touch-action: manipulation or touch-action: pan-x pan-y pinch-zoom.
+      </description>
+      <files>src/components/documents/document-viewer.tsx</files>
+      <acceptance-criteria>AC-5.7.9</acceptance-criteria>
+    </task>
+
+    <task id="3" priority="high" estimated-effort="medium">
+      <title>Manual testing on actual devices</title>
+      <description>
+        Test all acceptance criteria on real iOS and Android devices.
+        Document any issues found and fix.
+      </description>
+      <files>N/A - Testing only</files>
+      <acceptance-criteria>AC-5.7.5 through AC-5.7.10</acceptance-criteria>
+    </task>
+
+    <task id="4" priority="low" estimated-effort="small">
+      <title>Write component tests for responsive behavior</title>
+      <description>
+        Add tests for MobileDocumentChatTabs component to verify tab switching,
+        accessibility attributes, and ref methods.
+      </description>
+      <files>__tests__/components/layout/mobile-document-chat-tabs.test.tsx</files>
+      <acceptance-criteria>AC-5.7.3, AC-5.7.4</acceptance-criteria>
+    </task>
+  </implementation-tasks>
+
+  <design-constraints>
+    <constraint type="ux">Trust elements (confidence badges, citations) must be visible on all screen sizes</constraint>
+    <constraint type="accessibility">All touch targets minimum 44x44px</constraint>
+    <constraint type="performance">Streaming must perform identically on mobile and desktop</constraint>
+    <constraint type="layout">Only CSS/Tailwind responsive utilities - no major component restructuring needed</constraint>
+  </design-constraints>
+
+  <tech-spec-reference>
+    <section name="Story 5.7: Responsive Chat Experience">
+      <ac-range>AC-5.7.1 through AC-5.7.10</ac-range>
+      <fr-coverage>FR32 (Responsive design)</fr-coverage>
+    </section>
+    <breakpoints>
+      <breakpoint name="desktop" min="1025px">Full split view with sidebar</breakpoint>
+      <breakpoint name="tablet" range="640-1024px">Narrower split view, collapsed sidebar</breakpoint>
+      <breakpoint name="mobile" max="639px">Tabbed interface</breakpoint>
+    </breakpoints>
+  </tech-spec-reference>
+
+  <notes>
+    <note type="implementation">
+      This story is largely about verification rather than new implementation.
+      Most responsive behavior already exists. Focus on:
+      1. Touch target audit and fixes
+      2. Real device testing
+      3. Edge case handling
+    </note>
+    <note type="testing">
+      Browser DevTools device simulation is helpful but NOT sufficient.
+      Must test on actual iOS and Android devices for:
+      - Keyboard behavior
+      - Touch interactions
+      - Pinch-to-zoom
+      - Performance under mobile constraints
+    </note>
+  </notes>
+</story-context>
