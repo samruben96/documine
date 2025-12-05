@@ -13,7 +13,9 @@ import type {
   CoverageType,
   DocumentSummary,
   ExclusionCategory,
+  GapAnalysis,
 } from '@/types/compare';
+import { analyzeGaps } from './gap-analysis';
 
 // ============================================================================
 // Types
@@ -187,6 +189,8 @@ export interface ComparisonTableData {
   gaps: GapWarning[];
   /** AC-7.4.3: Detected conflicts */
   conflicts: ConflictWarning[];
+  /** AC-10.7.5: Comprehensive gap analysis */
+  gapAnalysis: GapAnalysis;
 }
 
 // ============================================================================
@@ -663,6 +667,12 @@ export function buildComparisonRows(
       documentCount: 0,
       gaps: [],
       conflicts: [],
+      gapAnalysis: {
+        missingCoverages: [],
+        limitConcerns: [],
+        endorsementGaps: [],
+        overallRiskScore: 0,
+      },
     };
   }
 
@@ -698,6 +708,9 @@ export function buildComparisonRows(
   const gaps = detectGaps(extractions);
   const conflicts = detectConflicts(extractions);
 
+  // AC-10.7.5: Perform comprehensive gap analysis
+  const gapAnalysis = analyzeGaps(extractions);
+
   // AC-7.4.2: Annotate rows with gap/conflict info
   annotateRowsWithIssues(rows, gaps, conflicts);
 
@@ -707,6 +720,7 @@ export function buildComparisonRows(
     documentCount: extractions.length,
     gaps,
     conflicts,
+    gapAnalysis,
   };
 }
 

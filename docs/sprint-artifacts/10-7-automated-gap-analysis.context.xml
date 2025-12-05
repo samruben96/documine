@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 10.7 - Automated Gap Analysis
+  Generated: 2025-12-04
+  Epic: 10 - Enhanced Quote Extraction & Analysis
+  Status: drafted
+
+  This context file assembles documentation, existing code, and patterns
+  relevant to implementing Story 10.7 Automated Gap Analysis.
+-->
+
+<story-context story-id="10.7" epic-id="10">
+
+  <!-- ===================================================================== -->
+  <!-- STORY OVERVIEW -->
+  <!-- ===================================================================== -->
+
+  <story-summary>
+    <title>Automated Gap Analysis</title>
+    <goal>Enhance the gap detection system to provide automated AI-powered gap analysis that identifies coverage gaps, recommends remediation options, and generates client-ready summary text</goal>
+    <status>drafted</status>
+    <priority>high</priority>
+
+    <acceptance-criteria>
+      <criterion id="AC-10.7.1">AI analyzes detected gaps and suggests specific remediation options (add coverage, increase limits, waive requirement)</criterion>
+      <criterion id="AC-10.7.2">Gap severity is auto-classified (critical, important, advisory) based on coverage type and business context</criterion>
+      <criterion id="AC-10.7.3">Client-ready summary text is generated for each gap explaining business impact</criterion>
+      <criterion id="AC-10.7.4">Integration with existing GapConflictBanner component for enhanced display</criterion>
+      <criterion id="AC-10.7.5">Gap analysis results cached alongside extraction data for performance</criterion>
+      <criterion id="AC-10.7.6">Tests cover AI analysis, severity classification, and text generation</criterion>
+    </acceptance-criteria>
+
+    <dependencies>
+      <dependency>Story 7.4: Gap/Conflict Detection (completed)</dependency>
+      <dependency>Story 10.1-10.6: Enhanced extraction fields (completed)</dependency>
+      <dependency>Epic 8: Rate limiting infrastructure (completed)</dependency>
+    </dependencies>
+  </story-summary>
+
+  <!-- ===================================================================== -->
+  <!-- TECHNICAL SPECIFICATION EXCERPT -->
+  <!-- ===================================================================== -->
+
+  <tech-spec-excerpt>
+    <section name="Story 10.7: Automated Gap Analysis">
+      <subsection name="Overview">
+        <description>
+          Build on the existing gap detection (Story 7.4) to provide AI-powered gap analysis
+          that helps agents understand the business impact of coverage gaps and provides
+          actionable remediation recommendations.
+        </description>
+      </subsection>
+
+      <subsection name="AI Analysis Approach">
+        <pattern>
+          Use GPT-5.1 to analyze detected gaps with insurance domain expertise:
+          1. Receive gap/conflict data from existing detectGaps/detectConflicts functions
+          2. For each gap, generate:
+             - Severity classification (critical/important/advisory)
+             - Business impact explanation (1-2 sentences, client-friendly)
+             - Remediation options (add coverage, increase limits, request waiver)
+             - Suggested endorsement if applicable
+        </pattern>
+
+        <model>GPT-5.1 (gpt-5.1)</model>
+        <temperature>0.3</temperature>
+        <rationale>Slightly higher than extraction (0.1) for more natural language, but still consistent</rationale>
+      </subsection>
+
+      <subsection name="Severity Classification Rules">
+        <classification name="critical">
+          <description>Coverage gaps that expose the insured to significant uninsured liability</description>
+          <examples>
+            <example>Missing General Liability coverage</example>
+            <example>Missing Workers Compensation (in mandatory states)</example>
+            <example>Missing Property coverage for owned buildings</example>
+            <example>Liability limits below contract requirements</example>
+          </examples>
+        </classification>
+
+        <classification name="important">
+          <description>Gaps that represent meaningful risk but may be acceptable in some contexts</description>
+          <examples>
+            <example>Missing Umbrella coverage</example>
+            <example>Missing Professional Liability for services businesses</example>
+            <example>Deductible significantly higher than industry standard</example>
+            <example>Missing endorsements commonly required by contracts</example>
+          </examples>
+        </classification>
+
+        <classification name="advisory">
+          <description>Gaps to note but not necessarily actionable</description>
+          <examples>
+            <example>Missing Cyber coverage for low-tech businesses</example>
+            <example>Missing Inland Marine for businesses without equipment</example>
+            <example>Premium variance within normal range</example>
+          </examples>
+        </classification>
+      </subsection>
+
+      <subsection name="Remediation Options">
+        <option type="add_coverage">
+          <description>Recommend adding the missing coverage type</description>
+          <output>Quote text suggesting carrier add coverage or obtain from another carrier</output>
+        </option>
+
+        <option type="increase_limits">
+          <description>Current limits are below recommended or contractual requirements</description>
+          <output>Suggest specific limit increase with estimated premium impact if possible</output>
+        </option>
+
+        <option type="add_endorsement">
+          <description>Coverage exists but needs specific endorsement</description>
+          <output>Reference specific endorsement form number (e.g., CG 20 10)</output>
+        </option>
+
+        <option type="request_waiver">
+          <description>Gap may be acceptable with documented waiver</description>
+          <output>Template text for requesting waiver from contracting party</output>
+        </option>
+
+        <option type="accept_risk">
+          <description>Gap represents acceptable risk for this specific situation</description>
+          <output>Documentation template for insured acknowledgment</output>
+        </option>
+      </subsection>
+
+      <subsection name="Integration Points">
+        <integration>
+          <component>GapConflictBanner</component>
+          <enhancement>Display AI-generated summary text and remediation options</enhancement>
+          <location>src/components/compare/gap-conflict-banner.tsx</location>
+        </integration>
+
+        <integration>
+          <component>ComparisonTableData</component>
+          <enhancement>Include analyzed gaps with severity and recommendations</enhancement>
+          <location>src/lib/compare/diff.ts</location>
+        </integration>
+
+        <integration>
+          <component>One-Pager PDF</component>
+          <enhancement>Include gap analysis summary in PDF export</enhancement>
+          <location>src/components/one-pager/one-pager-pdf-document.tsx</location>
+        </integration>
+      </subsection>
+
+      <subsection name="Caching Strategy">
+        <pattern>
+          Store gap analysis results in comparisons.analysis_data JSONB column:
+          - Key by sorted document IDs for consistent cache hits
+          - Include analysis_version for cache invalidation
+          - TTL based on extraction timestamps
+        </pattern>
+
+        <invalidation>
+          - Re-run analysis if any document extraction is newer than cached analysis
+          - Re-run if ANALYSIS_VERSION constant changes
+        </invalidation>
+      </subsection>
+    </section>
+  </tech-spec-excerpt>
+
+  <!-- ===================================================================== -->
+  <!-- EXISTING CODE ARTIFACTS -->
+  <!-- ===================================================================== -->
+
+  <existing-code>
+
+    <artifact name="Gap/Conflict Detection" path="src/lib/compare/diff.ts">
+      <description>
+        Core gap and conflict detection logic from Story 7.4.
+        Provides detectGaps() and detectConflicts() functions that identify
+        coverage gaps and term conflicts between quotes.
+      </description>
+
+      <key-types>
+        <type name="GapWarning">
+          <field name="field" type="string">Display name for the gap (e.g., "General Liability")</field>
+          <field name="coverageType" type="CoverageType">Coverage type for styling and row lookup</field>
+          <field name="documentsMissing" type="number[]">Indices of documents missing this coverage</field>
+          <field name="documentsPresent" type="number[]">Indices of documents with this coverage</field>
+          <field name="severity" type="Severity">Current severity (high/medium/low)</field>
+        </type>
+
+        <type name="ConflictWarning">
+          <field name="field" type="string">Display name for the conflict field</field>
+          <field name="conflictType" type="ConflictType">limit_variance | deductible_variance | exclusion_mismatch</field>
+          <field name="description" type="string">Human-readable description</field>
+          <field name="affectedDocuments" type="number[]">Indices of affected documents</field>
+          <field name="severity" type="Severity">Severity based on coverage type</field>
+          <field name="coverageType" type="CoverageType | undefined">Coverage type if applicable</field>
+        </type>
+
+        <type name="Severity">high | medium | low</type>
+      </key-types>
+
+      <key-functions>
+        <function name="detectGaps">
+          <signature>(extractions: QuoteExtraction[]) => GapWarning[]</signature>
+          <purpose>Identifies coverage present in some quotes but missing in others</purpose>
+        </function>
+
+        <function name="detectConflicts">
+          <signature>(extractions: QuoteExtraction[]) => ConflictWarning[]</signature>
+          <purpose>Identifies limit variance, deductible variance, exclusion mismatches</purpose>
+        </function>
+
+        <function name="buildComparisonRows">
+          <signature>(extractions: QuoteExtraction[], documents?: DocumentSummary[]) => ComparisonTableData</signature>
+          <purpose>Builds comparison table data including gaps and conflicts</purpose>
+        </function>
+      </key-functions>
+
+      <coverage-severity-mapping>
+        <!-- High severity (core commercial) -->
+        <coverage type="general_liability" severity="high" />
+        <coverage type="property" severity="high" />
+        <coverage type="workers_comp" severity="high" />
+
+        <!-- Medium severity (important) -->
+        <coverage type="auto_liability" severity="medium" />
+        <coverage type="professional_liability" severity="medium" />
+        <coverage type="umbrella" severity="medium" />
+        <coverage type="product_liability" severity="medium" />
+        <coverage type="business_interruption" severity="medium" />
+        <coverage type="d_and_o" severity="medium" />
+        <coverage type="epli" severity="medium" />
+        <coverage type="medical_malpractice" severity="medium" />
+        <coverage type="pollution" severity="medium" />
+
+        <!-- Low severity -->
+        <coverage type="auto_physical_damage" severity="low" />
+        <coverage type="cyber" severity="low" />
+        <coverage type="crime" severity="low" />
+        <coverage type="inland_marine" severity="low" />
+        <coverage type="builders_risk" severity="low" />
+        <coverage type="garage_liability" severity="low" />
+        <coverage type="liquor_liability" severity="low" />
+        <coverage type="fiduciary" severity="low" />
+        <coverage type="other" severity="low" />
+      </coverage-severity-mapping>
+    </artifact>
+
+    <artifact name="GapConflictBanner Component" path="src/components/compare/gap-conflict-banner.tsx">
+      <description>
+        UI component displaying gap and conflict summary banner.
+        Collapsible with click-to-scroll navigation.
+      </description>
+
+      <props>
+        <prop name="gaps" type="GapWarning[]">Coverage gaps detected</prop>
+        <prop name="conflicts" type="ConflictWarning[]">Conflicts detected</prop>
+        <prop name="onItemClick" type="(field: string, coverageType?: string) => void">Click handler for row navigation</prop>
+        <prop name="className" type="string | undefined">Optional class name</prop>
+      </props>
+
+      <enhancement-points>
+        <point>Add AI-generated summary text display per gap/conflict item</point>
+        <point>Add remediation options as clickable actions or expandable details</point>
+        <point>Add severity badge with new classification (critical/important/advisory)</point>
+        <point>Add loading state while AI analysis runs</point>
+      </enhancement-points>
+    </artifact>
+
+    <artifact name="Quote Extraction Service" path="src/lib/compare/extraction.ts">
+      <description>
+        GPT-5.1 structured output extraction for insurance documents.
+        Uses zodResponseFormat for guaranteed schema compliance.
+      </description>
+
+      <patterns-to-reuse>
+        <pattern name="Retry with Exponential Backoff">
+          MAX_RETRIES = 3, INITIAL_RETRY_DELAY_MS = 1000
+        </pattern>
+        <pattern name="Timeout Handling">
+          EXTRACTION_TIMEOUT_MS = 60000 with Promise.race
+        </pattern>
+        <pattern name="Cache Invalidation">
+          EXTRACTION_VERSION constant for cache invalidation
+        </pattern>
+        <pattern name="Structured Output">
+          OpenAI chat.completions.parse with zodResponseFormat
+        </pattern>
+      </patterns-to-reuse>
+
+      <model-config>
+        <model>gpt-5.1</model>
+        <temperature>0.1</temperature>
+        <note>For gap analysis, use 0.3 for more natural language output</note>
+      </model-config>
+    </artifact>
+
+    <artifact name="Compare Types" path="src/types/compare.ts">
+      <description>
+        TypeScript types for quote extraction and comparison.
+        Includes coverage types, endorsements, carrier info, premium breakdown.
+      </description>
+
+      <types-to-extend>
+        <type name="GapAnalysis" status="new">
+          <description>AI-analyzed gap with recommendations</description>
+          <proposed-fields>
+            <field name="gapWarning" type="GapWarning">Original gap detection</field>
+            <field name="aiSeverity" type="'critical' | 'important' | 'advisory'">AI-classified severity</field>
+            <field name="businessImpact" type="string">Client-friendly impact explanation</field>
+            <field name="remediationOptions" type="RemediationOption[]">Suggested remediation actions</field>
+            <field name="suggestedEndorsement" type="string | null">Form number if applicable</field>
+          </proposed-fields>
+        </type>
+
+        <type name="ConflictAnalysis" status="new">
+          <description>AI-analyzed conflict with recommendations</description>
+          <proposed-fields>
+            <field name="conflictWarning" type="ConflictWarning">Original conflict detection</field>
+            <field name="aiSeverity" type="'critical' | 'important' | 'advisory'">AI-classified severity</field>
+            <field name="businessImpact" type="string">Client-friendly impact explanation</field>
+            <field name="recommendation" type="string">Suggested action</field>
+          </proposed-fields>
+        </type>
+
+        <type name="RemediationOption" status="new">
+          <proposed-fields>
+            <field name="type" type="'add_coverage' | 'increase_limits' | 'add_endorsement' | 'request_waiver' | 'accept_risk'">Option type</field>
+            <field name="description" type="string">Action description</field>
+            <field name="templateText" type="string | null">Template text for communications</field>
+            <field name="estimatedCost" type="string | null">Cost indication if available</field>
+          </proposed-fields>
+        </type>
+
+        <type name="GapAnalysisResult" status="new">
+          <description>Complete gap analysis result</description>
+          <proposed-fields>
+            <field name="analyzedGaps" type="GapAnalysis[]">Analyzed gaps</field>
+            <field name="analyzedConflicts" type="ConflictAnalysis[]">Analyzed conflicts</field>
+            <field name="overallRiskSummary" type="string">High-level summary for client</field>
+            <field name="analysisVersion" type="number">For cache invalidation</field>
+            <field name="analyzedAt" type="string">ISO timestamp</field>
+          </proposed-fields>
+        </type>
+      </types-to-extend>
+    </artifact>
+
+    <artifact name="Gap/Conflict Tests" path="__tests__/lib/compare/gap-conflict-detection.test.ts">
+      <description>
+        Vitest tests for gap and conflict detection.
+        Provides test patterns and fixtures for gap analysis testing.
+      </description>
+
+      <test-patterns>
+        <pattern name="createCoverage">Helper to create coverage items for testing</pattern>
+        <pattern name="createExclusion">Helper to create exclusion items</pattern>
+        <pattern name="createExtraction">Helper to create full extraction fixtures</pattern>
+      </test-patterns>
+
+      <coverage>
+        - detectGaps returns empty for single extraction
+        - detectGaps identifies coverage present in some but missing in others
+        - detectGaps sorts by severity (high → medium → low)
+        - detectConflicts identifies limit variance >50%
+        - detectConflicts identifies deductible variance >100%
+        - detectConflicts identifies exclusion mismatches
+        - buildComparisonRows annotates rows with isGap/isConflict flags
+      </coverage>
+    </artifact>
+
+    <artifact name="Comparison Table Component" path="src/components/compare/comparison-table.tsx">
+      <description>
+        Main comparison table UI component.
+        Uses ComparisonTableData to render comparison grid.
+      </description>
+
+      <enhancement-points>
+        <point>Pass gap analysis results to GapConflictBanner</point>
+        <point>Add loading state for AI analysis</point>
+        <point>Consider inline gap/conflict detail expansion</point>
+      </enhancement-points>
+    </artifact>
+
+    <artifact name="Compare Page" path="src/app/(dashboard)/compare/[id]/page.tsx">
+      <description>
+        Comparison results page that displays ComparisonTable and GapConflictBanner.
+        Entry point for gap analysis integration.
+      </description>
+    </artifact>
+
+  </existing-code>
+
+  <!-- ===================================================================== -->
+  <!-- ARCHITECTURE CONTEXT -->
+  <!-- ===================================================================== -->
+
+  <architecture-context>
+
+    <section name="AI Integration Pattern">
+      <description>
+        Gap analysis follows the established pattern for AI-powered features:
+        1. Use GPT-5.1 via OpenAI SDK with structured outputs
+        2. Implement retry with exponential backoff
+        3. Cache results with version-based invalidation
+        4. Graceful degradation on failure (show original gap without AI analysis)
+      </description>
+
+      <model-hierarchy>
+        <model rank="1" name="GPT-5.1" use-case="Primary for structured analysis" />
+        <fallback>If AI analysis fails, display original gap/conflict detection without AI enhancements</fallback>
+      </model-hierarchy>
+    </section>
+
+    <section name="Database Schema">
+      <table name="comparisons">
+        <description>Stores comparison results and analysis</description>
+        <relevant-columns>
+          <column name="comparison_data" type="jsonb">Stores ComparisonData including gaps/conflicts</column>
+          <column name="analysis_data" type="jsonb" status="proposed">Store GapAnalysisResult</column>
+          <column name="analysis_version" type="integer" status="proposed">For cache invalidation</column>
+        </relevant-columns>
+      </table>
+    </section>
+
+    <section name="Performance Considerations">
+      <target name="Analysis Time">Complete within 30 seconds for up to 4 documents</target>
+      <target name="Caching">Cache analysis results to avoid redundant API calls</target>
+      <target name="Rate Limiting">Respect existing rate limit infrastructure (Story 8.5)</target>
+      <strategy>
+        - Batch all gaps/conflicts into single API call
+        - Use streaming response for progress indication
+        - Fallback to non-AI display if analysis times out
+      </strategy>
+    </section>
+
+    <section name="Error Handling">
+      <principle>Graceful degradation - if AI analysis fails, show original detection results</principle>
+      <error-codes>
+        <code name="ANALYSIS_TIMEOUT">Analysis exceeded 30 second limit</code>
+        <code name="ANALYSIS_API_ERROR">OpenAI API error</code>
+        <code name="ANALYSIS_PARSE_ERROR">Failed to parse AI response</code>
+      </error-codes>
+    </section>
+
+  </architecture-context>
+
+  <!-- ===================================================================== -->
+  <!-- IMPLEMENTATION GUIDANCE -->
+  <!-- ===================================================================== -->
+
+  <implementation-guidance>
+
+    <phase name="1. Types and Interfaces">
+      <task>Define GapAnalysis, ConflictAnalysis, RemediationOption, GapAnalysisResult types in src/types/compare.ts</task>
+      <task>Create Zod schemas for AI response validation</task>
+      <task>Update ComparisonTableData to include optional analyzedGaps/analyzedConflicts</task>
+    </phase>
+
+    <phase name="2. Analysis Service">
+      <task>Create src/lib/compare/gap-analysis.ts</task>
+      <task>Implement analyzeGaps(gaps, conflicts, extractions) function</task>
+      <task>Build system prompt with insurance domain expertise</task>
+      <task>Use zodResponseFormat for structured output</task>
+      <task>Implement caching logic with analysis_version</task>
+      <task>Add timeout and retry handling following extraction.ts patterns</task>
+    </phase>
+
+    <phase name="3. Integration">
+      <task>Update buildComparisonRows or create wrapper to include analysis</task>
+      <task>Modify compare/[id]/page.tsx to call gap analysis after extraction</task>
+      <task>Update GapConflictBanner to display AI-enhanced information</task>
+      <task>Add loading state while analysis runs</task>
+    </phase>
+
+    <phase name="4. Testing">
+      <task>Create __tests__/lib/compare/gap-analysis.test.ts</task>
+      <task>Unit test severity classification logic</task>
+      <task>Unit test remediation option generation</task>
+      <task>Integration test with mocked OpenAI responses</task>
+      <task>Update gap-conflict-banner.test.tsx for new props</task>
+    </phase>
+
+    <phase name="5. Optional Enhancements">
+      <task>Add gap analysis to One-Pager PDF export</task>
+      <task>Consider streaming response for real-time analysis display</task>
+      <task>Add analytics/telemetry for analysis performance</task>
+    </phase>
+
+  </implementation-guidance>
+
+  <!-- ===================================================================== -->
+  <!-- FILE CREATION PLAN -->
+  <!-- ===================================================================== -->
+
+  <file-plan>
+
+    <file path="src/lib/compare/gap-analysis.ts" action="create">
+      <description>Gap analysis service with GPT-5.1 integration</description>
+      <exports>
+        <export name="analyzeGaps">Main analysis function</export>
+        <export name="ANALYSIS_VERSION">For cache invalidation</export>
+        <export name="buildAnalysisPrompt">System prompt builder (for testing)</export>
+      </exports>
+    </file>
+
+    <file path="src/types/compare.ts" action="modify">
+      <description>Add new types for gap analysis</description>
+      <additions>
+        <type>GapAnalysis</type>
+        <type>ConflictAnalysis</type>
+        <type>RemediationOption</type>
+        <type>RemediationType</type>
+        <type>AnalysisSeverity</type>
+        <type>GapAnalysisResult</type>
+        <zod-schema>gapAnalysisResultSchema</zod-schema>
+      </additions>
+    </file>
+
+    <file path="src/components/compare/gap-conflict-banner.tsx" action="modify">
+      <description>Enhance to display AI analysis results</description>
+      <changes>
+        <change>Add optional analyzedGaps prop</change>
+        <change>Add optional analyzedConflicts prop</change>
+        <change>Add loading state for analysis</change>
+        <change>Display business impact and remediation options</change>
+        <change>Update severity badge for new classification</change>
+      </changes>
+    </file>
+
+    <file path="src/app/(dashboard)/compare/[id]/page.tsx" action="modify">
+      <description>Integrate gap analysis call</description>
+      <changes>
+        <change>Call analyzeGaps after extraction completes</change>
+        <change>Pass analysis results to GapConflictBanner</change>
+        <change>Handle analysis loading state</change>
+      </changes>
+    </file>
+
+    <file path="__tests__/lib/compare/gap-analysis.test.ts" action="create">
+      <description>Tests for gap analysis service</description>
+      <test-cases>
+        <case>analyzeGaps returns analysis for each gap</case>
+        <case>Severity classification matches expected rules</case>
+        <case>Remediation options are appropriate for gap type</case>
+        <case>Business impact text is client-friendly</case>
+        <case>Handles empty gaps/conflicts gracefully</case>
+        <case>Caching works correctly</case>
+        <case>Timeout handling gracefully degrades</case>
+      </test-cases>
+    </file>
+
+    <file path="__tests__/components/compare/gap-conflict-banner.test.tsx" action="modify">
+      <description>Update tests for AI-enhanced display</description>
+      <additions>
+        <case>Displays business impact when provided</case>
+        <case>Displays remediation options when provided</case>
+        <case>Shows loading state during analysis</case>
+        <case>Shows new severity badges (critical/important/advisory)</case>
+      </additions>
+    </file>
+
+  </file-plan>
+
+  <!-- ===================================================================== -->
+  <!-- PROMPT TEMPLATES -->
+  <!-- ===================================================================== -->
+
+  <prompt-templates>
+
+    <template name="gap-analysis-system-prompt">
+      <content><![CDATA[
+You are an expert insurance advisor analyzing coverage gaps between insurance quotes.
+
+Your task is to analyze each gap and conflict to provide:
+1. Severity classification (critical/important/advisory)
+2. Client-friendly business impact explanation
+3. Actionable remediation recommendations
+
+SEVERITY CLASSIFICATION RULES:
+
+CRITICAL - Gaps exposing significant uninsured liability:
+- Missing General Liability for any business
+- Missing Workers Compensation in mandatory states
+- Missing Property coverage for owned buildings/equipment
+- Liability limits below contract requirements
+- Missing Professional Liability for services businesses
+
+IMPORTANT - Meaningful risk that may be acceptable in some contexts:
+- Missing Umbrella coverage
+- Missing Business Interruption for revenue-dependent businesses
+- Deductibles significantly above industry standard (>2x typical)
+- Missing endorsements commonly required by contracts (Additional Insured, Waiver of Subrogation)
+- D&O/EPLI missing for businesses with employees
+
+ADVISORY - Items to note but not necessarily actionable:
+- Missing Cyber for low-tech, low-data businesses
+- Missing Inland Marine for businesses without significant equipment
+- Premium variance within normal range (±20%)
+- Missing specialty coverages not relevant to business type
+
+REMEDIATION OPTIONS:
+- add_coverage: Recommend adding the missing coverage
+- increase_limits: Suggest specific limit increases
+- add_endorsement: Reference specific endorsement form (e.g., CG 20 10)
+- request_waiver: Provide template for waiver request
+- accept_risk: Document acknowledgment of accepted risk
+
+BUSINESS IMPACT WRITING STYLE:
+- Write for a business owner, not an insurance professional
+- Focus on what could go wrong without the coverage
+- Use specific examples relevant to the business type
+- Keep to 1-2 sentences
+- Avoid jargon
+
+Example for missing General Liability:
+"Without General Liability coverage, your business is personally responsible for any customer injury or property damage claims. A single slip-and-fall lawsuit could cost $50,000-$500,000 or more."
+
+Example for missing Cyber coverage (advisory):
+"Cyber coverage protects against data breaches and network attacks. For businesses handling minimal customer data, this may be optional but is increasingly recommended."
+]]></content>
+    </template>
+
+    <template name="gap-analysis-user-prompt">
+      <content><![CDATA[
+Analyze the following coverage gaps and conflicts between {{documentCount}} insurance quotes for {{namedInsured}}.
+
+DETECTED GAPS:
+{{#gaps}}
+- {{field}} ({{coverageType}}): Missing in {{documentsMissing.length}} of {{documentCount}} quotes
+  Present in: {{documentsPresent}}
+  Current severity: {{severity}}
+{{/gaps}}
+
+DETECTED CONFLICTS:
+{{#conflicts}}
+- {{field}}: {{description}}
+  Type: {{conflictType}}
+  Current severity: {{severity}}
+{{/conflicts}}
+
+BUSINESS CONTEXT:
+- Named Insured: {{namedInsured}}
+- Coverages present in at least one quote: {{presentCoverages}}
+- Policy effective date: {{effectiveDate}}
+
+For each gap and conflict, provide:
+1. Your severity classification (critical/important/advisory) with justification
+2. Business impact explanation (1-2 sentences, client-friendly)
+3. 1-3 remediation options with actionable recommendations
+
+Also provide an overall risk summary (2-3 sentences) suitable for client communication.
+]]></content>
+    </template>
+
+  </prompt-templates>
+
+  <!-- ===================================================================== -->
+  <!-- TESTING FIXTURES -->
+  <!-- ===================================================================== -->
+
+  <testing-fixtures>
+
+    <fixture name="Critical Gap - Missing GL">
+      <gap>
+        <field>General Liability</field>
+        <coverageType>general_liability</coverageType>
+        <documentsMissing>[1]</documentsMissing>
+        <documentsPresent>[0, 2]</documentsPresent>
+        <severity>high</severity>
+      </gap>
+      <expected-analysis>
+        <aiSeverity>critical</aiSeverity>
+        <businessImpact>Contains "lawsuit" or "liability" or "personal responsibility"</businessImpact>
+        <remediationOptions>Includes add_coverage option</remediationOptions>
+      </expected-analysis>
+    </fixture>
+
+    <fixture name="Important Gap - Missing Umbrella">
+      <gap>
+        <field>Umbrella/Excess</field>
+        <coverageType>umbrella</coverageType>
+        <documentsMissing>[0]</documentsMissing>
+        <documentsPresent>[1]</documentsPresent>
+        <severity>medium</severity>
+      </gap>
+      <expected-analysis>
+        <aiSeverity>important</aiSeverity>
+        <businessImpact>Contains "excess" or "additional protection" or "large claims"</businessImpact>
+        <remediationOptions>Includes add_coverage option</remediationOptions>
+      </expected-analysis>
+    </fixture>
+
+    <fixture name="Advisory Gap - Missing Cyber for Low-Tech">
+      <gap>
+        <field>Cyber Liability</field>
+        <coverageType>cyber</coverageType>
+        <documentsMissing>[0]</documentsMissing>
+        <documentsPresent>[1]</documentsPresent>
+        <severity>low</severity>
+      </gap>
+      <context>
+        <businessType>Landscaping company</businessType>
+        <dataHandling>Minimal customer data</dataHandling>
+      </context>
+      <expected-analysis>
+        <aiSeverity>advisory</aiSeverity>
+        <businessImpact>Contains "optional" or "minimal data" or "consider"</businessImpact>
+        <remediationOptions>May include accept_risk option</remediationOptions>
+      </expected-analysis>
+    </fixture>
+
+    <fixture name="Limit Variance Conflict">
+      <conflict>
+        <field>General Liability</field>
+        <conflictType>limit_variance</conflictType>
+        <description>General Liability limit varies 70% ($300,000 to $1,000,000)</description>
+        <severity>high</severity>
+      </conflict>
+      <expected-analysis>
+        <aiSeverity>critical</aiSeverity>
+        <recommendation>Contains "increase" or "match" or "higher limit"</recommendation>
+      </expected-analysis>
+    </fixture>
+
+  </testing-fixtures>
+
+  <!-- ===================================================================== -->
+  <!-- RELATED PATTERNS -->
+  <!-- ===================================================================== -->
+
+  <related-patterns>
+
+    <pattern name="Structured Output with zodResponseFormat" source="extraction.ts">
+      <usage>Use for AI response parsing and validation</usage>
+      <code-reference>
+        import { zodResponseFormat } from 'openai/helpers/zod';
+
+        const response = await openai.chat.completions.parse({
+          model: 'gpt-5.1',
+          messages: [...],
+          response_format: zodResponseFormat(gapAnalysisResultSchema, 'gap_analysis'),
+          temperature: 0.3,
+        });
+
+        const parsed = response.choices[0]?.message?.parsed;
+      </code-reference>
+    </pattern>
+
+    <pattern name="Retry with Exponential Backoff" source="extraction.ts">
+      <usage>Handle transient API failures</usage>
+      <config>MAX_RETRIES = 3, INITIAL_RETRY_DELAY_MS = 1000</config>
+    </pattern>
+
+    <pattern name="Version-Based Cache Invalidation" source="extraction.ts">
+      <usage>Invalidate cached analysis when schema/prompt changes</usage>
+      <code-reference>
+        export const ANALYSIS_VERSION = 1;
+
+        // Check version before returning cached result
+        if (cached.analysis_version !== ANALYSIS_VERSION) {
+          return null; // Force re-analysis
+        }
+      </code-reference>
+    </pattern>
+
+    <pattern name="Graceful Degradation" source="AI tagging">
+      <usage>Show original detection results if AI analysis fails</usage>
+      <code-reference>
+        try {
+          const analysis = await analyzeGaps(gaps, conflicts, extractions);
+          return { ...comparisonData, analysis };
+        } catch (error) {
+          log.warn('Gap analysis failed, using detection only', { error });
+          return comparisonData; // Original gaps/conflicts without AI enhancement
+        }
+      </code-reference>
+    </pattern>
+
+  </related-patterns>
+
+  <!-- ===================================================================== -->
+  <!-- NOTES -->
+  <!-- ===================================================================== -->
+
+  <notes>
+    <note priority="high">
+      Gap analysis is an enhancement to existing functionality. The core gap/conflict
+      detection from Story 7.4 must continue to work even if AI analysis fails.
+    </note>
+
+    <note priority="medium">
+      Consider rate limiting AI analysis calls. Each comparison already triggers
+      extractions; adding analysis adds another API call. May want to batch or
+      throttle for high-volume users.
+    </note>
+
+    <note priority="medium">
+      The business impact text is client-facing. Review generated text for accuracy
+      and appropriateness before exposing in production. Consider A/B testing
+      different prompt approaches.
+    </note>
+
+    <note priority="low">
+      Future enhancement: Use business type from document extraction to customize
+      severity classification and recommendations (e.g., construction company vs
+      professional services firm have different coverage priorities).
+    </note>
+  </notes>
+
+</story-context>

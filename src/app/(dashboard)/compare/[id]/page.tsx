@@ -422,10 +422,12 @@ function ExtractionSummaryView({
       )}
 
       {/* AC-7.4.4: Gap/Conflict Summary Banner */}
+      {/* AC-10.7.6: Enhanced with gap analysis, endorsement gaps, and risk score */}
       <GapConflictBanner
         gaps={tableData.gaps}
         conflicts={tableData.conflicts}
         onItemClick={handleBannerItemClick}
+        gapAnalysis={tableData.gapAnalysis}
       />
 
       {/* Extraction summary cards */}

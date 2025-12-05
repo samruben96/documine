@@ -4,6 +4,7 @@
  * GapConflictBanner Component Tests
  *
  * Story 7.4: AC-7.4.4, AC-7.4.5
+ * Story 10.7: AC-10.7.6 - Enhanced with gap analysis, endorsement gaps, risk score
  * Tests for the gap/conflict summary banner.
  */
 
@@ -11,6 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
 import type { GapWarning, ConflictWarning } from '@/lib/compare/diff';
+import type { GapAnalysis } from '@/types/compare';
 
 // ============================================================================
 // Test Fixtures
@@ -64,7 +66,7 @@ describe('GapConflictBanner', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('AC-7.4.4: renders summary with correct counts', () => {
+  it('AC-7.4.4: renders summary with total issue count', () => {
     const onItemClick = vi.fn();
     render(
       <GapConflictBanner
@@ -74,9 +76,8 @@ describe('GapConflictBanner', () => {
       />
     );
 
-    // Check summary text
-    expect(screen.getByText(/2 potential gaps/)).toBeInTheDocument();
-    expect(screen.getByText(/2 conflicts identified/)).toBeInTheDocument();
+    // Check summary text - now shows total issues count
+    expect(screen.getByText(/4 issues identified/)).toBeInTheDocument();
   });
 
   it('renders gaps only when no conflicts', () => {
@@ -85,8 +86,8 @@ describe('GapConflictBanner', () => {
       <GapConflictBanner gaps={mockGaps} conflicts={[]} onItemClick={onItemClick} />
     );
 
-    expect(screen.getByText(/2 potential gaps/)).toBeInTheDocument();
-    expect(screen.getByText(/0 conflicts/)).toBeInTheDocument();
+    // Should show 2 issues (2 gaps)
+    expect(screen.getByText(/2 issues identified/)).toBeInTheDocument();
   });
 
   it('renders conflicts only when no gaps', () => {
@@ -95,8 +96,8 @@ describe('GapConflictBanner', () => {
       <GapConflictBanner gaps={[]} conflicts={mockConflicts} onItemClick={onItemClick} />
     );
 
-    expect(screen.getByText(/0 potential gaps/)).toBeInTheDocument();
-    expect(screen.getByText(/2 conflicts/)).toBeInTheDocument();
+    // Should show 2 issues (2 conflicts)
+    expect(screen.getByText(/2 issues identified/)).toBeInTheDocument();
   });
 
   it('displays gap items with field names', () => {
@@ -217,8 +218,8 @@ describe('GapConflictBanner interactions', () => {
     // Initially expanded - should see gap/conflict items
     expect(screen.getByText('Property')).toBeInTheDocument();
 
-    // Click header to collapse
-    const header = screen.getByText(/2 potential gaps/);
+    // Click header to collapse - use the new "issues identified" text
+    const header = screen.getByText(/4 issues identified/);
     fireEvent.click(header);
 
     // Content should be hidden
@@ -283,9 +284,33 @@ describe('GapConflictBanner edge cases', () => {
       />
     );
 
-    // Should use singular form when count is 1
-    expect(screen.getByText(/1 potential gap,/)).toBeInTheDocument();
-    expect(screen.getByText(/1 conflict identified/)).toBeInTheDocument();
+    // Should use singular "issue" when count is > 1, but correctly pluralize
+    // 1 gap + 1 conflict = 2 issues
+    expect(screen.getByText(/2 issues identified/)).toBeInTheDocument();
+  });
+
+  it('handles single issue with singular form', () => {
+    const onItemClick = vi.fn();
+    const singleGap: GapWarning[] = [
+      {
+        field: 'Property',
+        coverageType: 'property',
+        documentsMissing: [1],
+        documentsPresent: [0],
+        severity: 'high',
+      },
+    ];
+
+    render(
+      <GapConflictBanner
+        gaps={singleGap}
+        conflicts={[]}
+        onItemClick={onItemClick}
+      />
+    );
+
+    // Should use singular "issue" when count is 1
+    expect(screen.getByText(/1 issue identified/)).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
@@ -301,5 +326,166 @@ describe('GapConflictBanner edge cases', () => {
 
     const banner = screen.getByTestId('gap-conflict-banner');
     expect(banner).toHaveClass('custom-class');
+  });
+});
+
+// ============================================================================
+// Story 10.7: Gap Analysis Feature Tests
+// ============================================================================
+
+describe('GapConflictBanner with gapAnalysis (AC-10.7.6)', () => {
+  const mockGapAnalysis: GapAnalysis = {
+    missingCoverages: [],
+    limitConcerns: [
+      {
+        coverage: 'General Liability',
+        currentLimit: 500000,
+        recommendedMinimum: 1000000,
+        reason: 'GL limit is below recommended minimum',
+        documentIndex: 0,
+        carrierName: 'Carrier A',
+      },
+    ],
+    endorsementGaps: [
+      {
+        endorsement: 'Additional Insured',
+        formNumber: 'CG 20 10',
+        importance: 'critical',
+        reason: 'Required for most contracts',
+        presentIn: ['Carrier B'],
+      },
+    ],
+    overallRiskScore: 60,
+  };
+
+  it('displays risk score badge when gapAnalysis is provided', () => {
+    const onItemClick = vi.fn();
+    render(
+      <GapConflictBanner
+        gaps={[]}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={mockGapAnalysis}
+      />
+    );
+
+    const riskBadge = screen.getByTestId('risk-score-badge');
+    expect(riskBadge).toBeInTheDocument();
+    expect(riskBadge).toHaveTextContent('60');
+    expect(riskBadge).toHaveTextContent('High Risk');
+  });
+
+  it('displays endorsement gaps section', () => {
+    const onItemClick = vi.fn();
+    render(
+      <GapConflictBanner
+        gaps={[]}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={mockGapAnalysis}
+      />
+    );
+
+    expect(screen.getByText(/Missing Endorsements/)).toBeInTheDocument();
+    expect(screen.getByTestId('endorsement-gap-item')).toBeInTheDocument();
+    expect(screen.getByText('Additional Insured')).toBeInTheDocument();
+    expect(screen.getByText('(CG 20 10)')).toBeInTheDocument();
+    expect(screen.getByText('Critical')).toBeInTheDocument();
+  });
+
+  it('displays limit concerns section', () => {
+    const onItemClick = vi.fn();
+    render(
+      <GapConflictBanner
+        gaps={[]}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={mockGapAnalysis}
+      />
+    );
+
+    expect(screen.getByText(/Limit Concerns/)).toBeInTheDocument();
+    expect(screen.getByTestId('limit-concern-item')).toBeInTheDocument();
+    expect(screen.getByText(/\$500,000/)).toBeInTheDocument();
+    expect(screen.getByText(/\$1,000,000/)).toBeInTheDocument();
+    expect(screen.getByText('Carrier A', { exact: false })).toBeInTheDocument();
+  });
+
+  it('includes gapAnalysis issues in total count', () => {
+    const onItemClick = vi.fn();
+    render(
+      <GapConflictBanner
+        gaps={mockGaps} // 2 gaps
+        conflicts={[]} // 0 conflicts
+        onItemClick={onItemClick}
+        gapAnalysis={mockGapAnalysis} // 1 limit concern + 1 endorsement gap = 2
+      />
+    );
+
+    // Total: 2 gaps + 0 conflicts + 1 limit concern + 1 endorsement gap = 4
+    expect(screen.getByText(/4 issues identified/)).toBeInTheDocument();
+  });
+
+  it('does not show risk badge when score is 0', () => {
+    const onItemClick = vi.fn();
+    const zeroScoreAnalysis: GapAnalysis = {
+      missingCoverages: [],
+      limitConcerns: [],
+      endorsementGaps: [],
+      overallRiskScore: 0,
+    };
+
+    render(
+      <GapConflictBanner
+        gaps={mockGaps}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={zeroScoreAnalysis}
+      />
+    );
+
+    expect(screen.queryByTestId('risk-score-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows correct risk level colors', () => {
+    const onItemClick = vi.fn();
+
+    // Test medium risk (30-59)
+    const mediumRiskAnalysis: GapAnalysis = {
+      missingCoverages: [],
+      limitConcerns: [mockGapAnalysis.limitConcerns[0]!],
+      endorsementGaps: [],
+      overallRiskScore: 45,
+    };
+
+    const { rerender } = render(
+      <GapConflictBanner
+        gaps={[]}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={mediumRiskAnalysis}
+      />
+    );
+
+    let riskBadge = screen.getByTestId('risk-score-badge');
+    expect(riskBadge).toHaveTextContent('Medium Risk');
+
+    // Test low risk (<30)
+    const lowRiskAnalysis: GapAnalysis = {
+      ...mediumRiskAnalysis,
+      overallRiskScore: 15,
+    };
+
+    rerender(
+      <GapConflictBanner
+        gaps={[]}
+        conflicts={[]}
+        onItemClick={onItemClick}
+        gapAnalysis={lowRiskAnalysis}
+      />
+    );
+
+    riskBadge = screen.getByTestId('risk-score-badge');
+    expect(riskBadge).toHaveTextContent('Low Risk');
   });
 });

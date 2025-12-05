@@ -608,12 +608,16 @@ development_status:
   10-6-premium-breakdown: done
   # Story 10.7: Automated Gap Analysis (3 pts)
   # Identify: Missing coverages, inadequate limits, unusual exclusions, missing endorsements
-  10-7-automated-gap-analysis: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.7-automated-gap-analysis.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-7-automated-gap-analysis.context.xml
+  10-7-automated-gap-analysis: in-progress
   # Story 10.8: Enhanced Comparison Table (2 pts)
   # UI: Endorsement matrix, premium breakdown, carrier ratings, collapsible sections
+  # NOTE: Review Story 10.12 - extraction now at upload time, data in documents.extraction_data
   10-8-enhanced-comparison-table: backlog
   # Story 10.9: Enhanced One-Pager Template (2 pts)
   # PDF: Policy metadata, endorsements summary, premium breakdown, gap highlights
+  # NOTE: Review Story 10.12 - extraction now at upload time, instant one-pager generation
   10-9-enhanced-one-pager: backlog
   # Story 10.10: Extraction Prompt Engineering (3 pts)
   # GPT: Updated prompts, examples, testing, accuracy metrics
@@ -624,6 +628,8 @@ development_status:
   10-10-extraction-prompts: done
   # Story 10.11: Testing & Migration (2 pts)
   # QA: Backward compatibility, schema migration, validation, performance
+  # NOTE: Review Story 10.12 - adds extraction_data JSONB, extraction_version columns to documents table
+  # NOTE: 10.12 already verified backward compat, 1346 tests pass, QA validated extraction
   10-11-testing-migration: backlog
   # Story 10.12: Extraction at Upload Time (3 pts) - NEW 2025-12-04
   # Trigger extraction in process-document Edge Function after chunking
