@@ -64,14 +64,17 @@ export async function createDocumentRecord(
 }
 
 /**
- * Create a processing job for a document and trigger the Edge Function
+ * Create a processing job for a document
+ *
+ * Story 11.1: Async Processing Architecture
+ * - Creates a processing_job record with status='pending' and agency_id
+ * - Returns immediately WITHOUT triggering Edge Function
+ * - pg_cron will pick up pending jobs every minute and invoke Edge Function
  *
  * Uses service role client internally because processing_jobs table has RLS
  * policies that only allow service_role access. This is by design - processing
  * jobs are meant to be managed by the system (Edge Functions), not directly
  * by users.
- *
- * After creating the job, invokes the Edge Function to start processing.
  *
  * @param documentId - Document ID to process
  * @returns Created processing job record
@@ -82,7 +85,7 @@ export async function createProcessingJob(
   // Use service client to bypass RLS - processing_jobs requires service_role
   const serviceClient = createServiceClient();
 
-  // First, get the document details needed for Edge Function invocation
+  // First, get the document details (agency_id needed for job record)
   const { data: document, error: docError } = await serviceClient
     .from('documents')
     .select('storage_path, agency_id')
@@ -97,11 +100,17 @@ export async function createProcessingJob(
     throw new ProcessingError(`Failed to get document: ${docError?.message || 'Not found'}`);
   }
 
+  // Story 11.1 (AC-11.1.2): Create job with agency_id, status='pending'
+  // pg_cron will pick this up within 1 minute and invoke Edge Function
   const { data, error } = await serviceClient
     .from('processing_jobs')
     .insert({
       document_id: documentId,
+      agency_id: document.agency_id, // Story 11.1: Include agency_id for RLS
       status: 'pending',
+      stage: 'queued',
+      progress_percent: 0,
+      retry_count: 0,
     })
     .select()
     .single();
@@ -114,12 +123,12 @@ export async function createProcessingJob(
     throw new ProcessingError(`Failed to create processing job: ${error.message}`);
   }
 
-  // Trigger the Edge Function to start processing (fire-and-forget)
-  triggerEdgeFunction(documentId, document.storage_path, document.agency_id).catch((err) => {
-    console.error('Failed to trigger Edge Function (will be processed on next poll):', {
-      documentId,
-      error: err instanceof Error ? err.message : String(err),
-    });
+  // Story 11.1 (AC-11.1.2): NO synchronous Edge Function trigger
+  // pg_cron picks up pending jobs every minute via process_next_document_job()
+  log.info('Processing job created (async)', {
+    jobId: data.id,
+    documentId,
+    agencyId: document.agency_id,
   });
 
   return data;

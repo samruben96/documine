@@ -148,7 +148,8 @@ describe('OnePagerPreview', () => {
         />
       );
 
-      expect(screen.getByText('$25,000')).toBeInTheDocument();
+      // Story 10.9: Premium now appears in multiple places (overview + breakdown)
+      expect(screen.getAllByText('$25,000').length).toBeGreaterThan(0);
     });
 
     it('AC-9.3.7: displays policy dates', () => {

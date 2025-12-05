@@ -1,5 +1,14 @@
 'use client';
 
+/**
+ * OnePagerPreview - Live preview of one-pager content
+ *
+ * Story 9.3: AC-9.3.7 - Live HTML preview matching PDF output.
+ * Story 10.9: AC-10.9.1 through AC-10.9.7 - Enhanced one-pager template.
+ *
+ * @module @/components/one-pager/one-pager-preview
+ */
+
 import { useMemo } from 'react';
 import { FileText, Calendar, DollarSign, Shield, AlertTriangle, Table } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +23,10 @@ import {
   detectGaps,
   type GapWarning,
 } from '@/lib/compare/diff';
+import { formatRating, getRatingColorClass } from '@/lib/compare/carrier-utils';
+import { PolicyMetadataSection } from './policy-metadata-section';
+import { EndorsementsSummary } from './endorsements-summary';
+import { PremiumBreakdownSection } from './premium-breakdown-section';
 
 /**
  * OnePagerPreview Props
@@ -361,6 +374,14 @@ export function OnePagerPreview({
             </p>
           </div>
 
+          {/* AC-10.9.2: AM Best Rating */}
+          <div>
+            <p className="text-xs text-slate-500 uppercase tracking-wide">AM Best Rating</p>
+            <p className={`font-medium ${getRatingColorClass(primaryExtraction?.carrierInfo?.amBestRating ?? null)}`}>
+              {formatRating(primaryExtraction?.carrierInfo?.amBestRating ?? null)}
+            </p>
+          </div>
+
           {/* Premium */}
           <div>
             <p className="text-xs text-slate-500 uppercase tracking-wide flex items-center gap-1">
@@ -468,6 +489,28 @@ export function OnePagerPreview({
           </div>
         </div>
       )}
+
+      {/* AC-10.9.1: Policy Metadata Section */}
+      <PolicyMetadataSection
+        extraction={primaryExtraction!}
+        primaryColor={primaryColor}
+        isComparison={isComparison}
+        extractions={extractions}
+      />
+
+      {/* AC-10.9.3: Endorsements Summary */}
+      <EndorsementsSummary
+        extractions={extractions}
+        primaryColor={primaryColor}
+        isComparison={isComparison}
+      />
+
+      {/* AC-10.9.4: Premium Breakdown Section */}
+      <PremiumBreakdownSection
+        extractions={extractions}
+        primaryColor={primaryColor}
+        isComparison={isComparison}
+      />
 
       {/* Agent notes section */}
       {agentNotes && (

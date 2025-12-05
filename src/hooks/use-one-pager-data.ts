@@ -137,13 +137,25 @@ export function useOnePagerData(
       }
 
       // Check for cached extraction in quote_extractions table
-      const { data: extractionData } = await supabase
+      // Use maybeSingle() to gracefully handle case where no extraction exists yet
+      const { data: extractionData, error: extractionError } = await supabase
         .from('quote_extractions')
         .select('*')
         .eq('document_id', id)
-        .single();
+        .maybeSingle();
 
-      const extraction = extractionData?.extracted_data as QuoteExtraction | null;
+      if (extractionError) {
+        console.warn('Error fetching extraction:', extractionError);
+      }
+
+      // Try extraction from quote_extractions table first, fall back to documents.extraction_data
+      let extraction = extractionData?.extracted_data as QuoteExtraction | null;
+
+      // Fallback: check documents.extraction_data (Story 10.12 - extraction at upload)
+      if (!extraction && docData.extraction_data) {
+        extraction = docData.extraction_data as unknown as QuoteExtraction;
+      }
+
       const extractions = extraction ? [extraction] : [];
 
       const documentSummary: DocumentSummary = {

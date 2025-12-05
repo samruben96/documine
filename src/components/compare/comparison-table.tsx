@@ -5,14 +5,15 @@
  *
  * Story 7.3: AC-7.3.1 through AC-7.3.8
  * Story 7.5: AC-7.5.1, AC-7.5.5 - Source citations and inferred values
+ * Story 10.8: AC-10.8.1 through AC-10.8.7 - Enhanced comparison table
  *
  * Displays extracted quote data in a comparison table with:
- * - Sticky header row and first column
- * - Best/worst value indicators
- * - Difference highlighting
- * - Not found handling
- * - View source links (AC-7.5.1)
- * - Inferred value indicators (AC-7.5.5)
+ * - Collapsible sections (AC-10.8.1)
+ * - Policy metadata and carrier info (AC-10.8.2, AC-10.8.3)
+ * - Endorsement matrix (AC-10.8.4)
+ * - Premium breakdown (AC-10.8.5)
+ * - Gap analysis integration (AC-10.8.6)
+ * - Accessibility improvements (AC-10.8.7)
  *
  * @module @/components/compare/comparison-table
  */
@@ -33,6 +34,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CollapsibleSection } from './collapsible-section';
+import { EndorsementMatrix } from './endorsement-matrix';
+import { PremiumBreakdownTable } from './premium-breakdown-table';
+import { getRatingColorClass } from '@/lib/compare/carrier-utils';
 
 // ============================================================================
 // Props
@@ -121,6 +126,8 @@ interface TableCellProps {
   documentIndex?: number;
   /** AC-7.5.1: Callback when "View source" is clicked */
   onSourceClick?: SourceClickHandler;
+  /** AC-10.8.3: Row ID for special styling (e.g., AM Best rating) */
+  rowId?: string;
 }
 
 function TableCell({
@@ -131,12 +138,18 @@ function TableCell({
   documentId,
   documentIndex,
   onSourceClick,
+  rowId,
 }: TableCellProps) {
   const isNotFound = value.status === 'not_found';
   // AC-7.5.1: Show source link if we have source pages
   const hasSource = value.sourcePages && value.sourcePages.length > 0;
   // AC-7.5.5: Inferred value has data but no source
   const isInferred = value.status === 'found' && !hasSource;
+  // AC-10.8.3: AM Best rating color
+  const isAmBestRating = rowId === 'am-best-rating';
+  const ratingColorClass = isAmBestRating && value.rawValue
+    ? getRatingColorClass(value.rawValue as string)
+    : undefined;
 
   const handleSourceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,7 +174,7 @@ function TableCell({
           <span className="text-left w-full">{value.displayValue}</span>
         ) : (
           <>
-            <span>{value.displayValue}</span>
+            <span className={ratingColorClass}>{value.displayValue}</span>
             {isBest && <ValueIndicator type="best" />}
             {isWorst && <ValueIndicator type="worst" />}
 
@@ -290,6 +303,7 @@ function TableRow({
           documentId={documentIds?.[index]}
           documentIndex={index}
           onSourceClick={onSourceClick}
+          rowId={row.id}
         />
       ))}
     </tr>
@@ -347,19 +361,40 @@ export function ComparisonTable({
     [documents]
   );
 
-  // Group rows by category for section headers
-  const rowsWithCategories = useMemo(() => {
-    const result: { row: ComparisonRow; isFirstInCategory: boolean }[] = [];
-    let lastCategory: ComparisonRow['category'] | null = null;
+  // AC-10.8.1: Group rows by section for collapsible display
+  const groupedRows = useMemo(() => {
+    const basicRows: ComparisonRow[] = [];
+    const coverageRows: ComparisonRow[] = [];
+    const summaryRows: ComparisonRow[] = [];
 
     for (const row of tableData.rows) {
-      const isFirstInCategory = row.category !== lastCategory;
-      result.push({ row, isFirstInCategory });
-      lastCategory = row.category;
+      if (row.category === 'basic') {
+        basicRows.push(row);
+      } else if (row.category === 'coverage') {
+        coverageRows.push(row);
+      } else if (row.category === 'summary') {
+        summaryRows.push(row);
+      }
     }
 
-    return result;
+    return { basicRows, coverageRows, summaryRows };
   }, [tableData.rows]);
+
+  // Count endorsements for badge
+  const endorsementCount = useMemo(() => {
+    const allEndorsements = new Set<string>();
+    for (const e of extractions) {
+      for (const endorsement of e.endorsements || []) {
+        allEndorsements.add(endorsement.formNumber || endorsement.name);
+      }
+    }
+    return allEndorsements.size;
+  }, [extractions]);
+
+  // Check if any premium breakdown data exists
+  const hasPremiumBreakdown = useMemo(() => {
+    return extractions.some((e) => e.premiumBreakdown?.totalPremium || e.annualPremium);
+  }, [extractions]);
 
   if (tableData.rows.length === 0) {
     return (
@@ -369,68 +404,128 @@ export function ComparisonTable({
     );
   }
 
-  return (
-    <div
-      className={cn(
-        'overflow-x-auto overflow-y-auto max-h-[70vh] rounded-lg border border-slate-200 dark:border-slate-700',
-        className
-      )}
-    >
-      <table className="w-full border-collapse">
-        {/* Sticky header */}
-        <thead className="sticky top-0 z-20 bg-white dark:bg-slate-900">
-          <tr>
-            {/* Field column header */}
-            <th
-              scope="col"
-              className={cn(
-                'sticky left-0 z-30 bg-slate-50 dark:bg-slate-800',
-                'px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300',
-                'border-b-2 border-r border-slate-300 dark:border-slate-600 min-w-[200px]'
-              )}
-            >
-              Field
-            </th>
-
-            {/* Carrier/quote headers */}
-            {tableData.headers.map((header, index) => (
-              <th
-                key={index}
-                scope="col"
+  // Shared table header component
+  const renderTableHeader = () => (
+    <thead className="sticky top-0 z-20 bg-white dark:bg-slate-900">
+      <tr>
+        <th
+          scope="col"
+          className={cn(
+            'sticky left-0 z-30 bg-slate-50 dark:bg-slate-800',
+            'px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300',
+            'border-b-2 border-r border-slate-300 dark:border-slate-600 min-w-[200px]'
+          )}
+        >
+          Field
+        </th>
+        {tableData.headers.map((header, index) => (
+          <th
+            key={index}
+            scope="col"
+            className={cn(
+              'px-4 py-3 text-right text-sm font-semibold text-slate-700 dark:text-slate-300',
+              'border-b-2 border-r border-slate-300 dark:border-slate-600 min-w-[140px]',
+              'bg-slate-50 dark:bg-slate-800'
+            )}
+          >
+            <div className="flex items-center justify-end gap-2">
+              <span
                 className={cn(
-                  'px-4 py-3 text-right text-sm font-semibold text-slate-700 dark:text-slate-300',
-                  'border-b-2 border-r border-slate-300 dark:border-slate-600 min-w-[140px]',
-                  'bg-slate-50 dark:bg-slate-800'
+                  'flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold',
+                  'bg-primary/10 text-primary'
                 )}
               >
-                <div className="flex items-center justify-end gap-2">
-                  <span
-                    className={cn(
-                      'flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold',
-                      'bg-primary/10 text-primary'
-                    )}
-                  >
-                    {index + 1}
-                  </span>
-                  <span className="truncate max-w-[120px]">{header}</span>
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
+                {index + 1}
+              </span>
+              <span className="truncate max-w-[120px]">{header}</span>
+            </div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
 
+  // Render a section table with rows
+  const renderSectionTable = (rows: ComparisonRow[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        {renderTableHeader()}
         <tbody>
-          {rowsWithCategories.map(({ row, isFirstInCategory }) => (
+          {rows.map((row, idx) => (
             <TableRow
               key={row.id}
               row={row}
-              isFirstInCategory={isFirstInCategory}
+              isFirstInCategory={idx === 0}
               documentIds={documentIds}
               onSourceClick={onSourceClick}
             />
           ))}
         </tbody>
       </table>
+    </div>
+  );
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900',
+        className
+      )}
+      data-testid="comparison-table"
+    >
+      {/* AC-10.8.1: Policy Details Section */}
+      <CollapsibleSection
+        title="Policy Details"
+        defaultOpen={true}
+        badge={groupedRows.basicRows.length}
+      >
+        {renderSectionTable(groupedRows.basicRows)}
+      </CollapsibleSection>
+
+      {/* AC-10.8.1: Coverage Limits & Deductibles Section */}
+      <CollapsibleSection
+        title="Coverage Limits & Deductibles"
+        defaultOpen={true}
+        badge={groupedRows.coverageRows.length}
+      >
+        {renderSectionTable(groupedRows.coverageRows)}
+      </CollapsibleSection>
+
+      {/* AC-10.8.4: Endorsements Section */}
+      {endorsementCount > 0 && (
+        <CollapsibleSection
+          title="Endorsements"
+          defaultOpen={false}
+          badge={endorsementCount}
+        >
+          <EndorsementMatrix
+            extractions={extractions}
+            documents={documents}
+          />
+        </CollapsibleSection>
+      )}
+
+      {/* AC-10.8.5: Premium Breakdown Section */}
+      {hasPremiumBreakdown && (
+        <CollapsibleSection
+          title="Premium Breakdown"
+          defaultOpen={true}
+        >
+          <PremiumBreakdownTable
+            extractions={extractions}
+            documents={documents}
+          />
+        </CollapsibleSection>
+      )}
+
+      {/* Summary Section */}
+      <CollapsibleSection
+        title="Summary"
+        defaultOpen={true}
+        badge={groupedRows.summaryRows.length}
+      >
+        {renderSectionTable(groupedRows.summaryRows)}
+      </CollapsibleSection>
     </div>
   );
 }

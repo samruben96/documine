@@ -13,6 +13,7 @@ global.fetch = mockFetch;
 const mockSelect = vi.fn();
 const mockEq = vi.fn();
 const mockSingle = vi.fn();
+const mockMaybeSingle = vi.fn();
 const mockOrder = vi.fn();
 const mockLimit = vi.fn();
 const mockGetUser = vi.fn();
@@ -67,13 +68,22 @@ describe('useOnePagerData', () => {
     });
 
     it('determines document mode when documentId provided', async () => {
-      mockSingle.mockResolvedValue({
-        data: { id: 'doc-123', display_name: 'test.pdf', filename: 'test.pdf' },
+      // First call for document - uses single()
+      const mockDocSingle = vi.fn().mockResolvedValue({
+        data: { id: 'doc-123', display_name: 'test.pdf', filename: 'test.pdf', created_at: '2024-01-01' },
         error: null,
       });
-      mockEq.mockReturnValue({ single: mockSingle });
-      mockSelect.mockReturnValue({ eq: mockEq });
-      mockFrom.mockReturnValue({ select: mockSelect });
+      const mockDocEq = vi.fn().mockReturnValue({ single: mockDocSingle });
+      const mockDocSelect = vi.fn().mockReturnValue({ eq: mockDocEq });
+
+      // Second call for extraction - uses maybeSingle()
+      const mockExtMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      const mockExtEq = vi.fn().mockReturnValue({ maybeSingle: mockExtMaybeSingle });
+      const mockExtSelect = vi.fn().mockReturnValue({ eq: mockExtEq });
+
+      mockFrom
+        .mockReturnValueOnce({ select: mockDocSelect })
+        .mockReturnValueOnce({ select: mockExtSelect });
 
       const { result } = renderHook(() =>
         useOnePagerData(null, 'doc-123')
@@ -175,8 +185,8 @@ describe('useOnePagerData', () => {
       const mockDocEq = vi.fn().mockReturnValue({ single: mockDocSingle });
       const mockDocSelect = vi.fn().mockReturnValue({ eq: mockDocEq });
 
-      // Second call for extraction
-      const mockExtSingle = vi.fn().mockResolvedValue({
+      // Second call for extraction - uses maybeSingle now
+      const mockExtMaybeSingle = vi.fn().mockResolvedValue({
         data: {
           extracted_data: {
             carrierName: 'Test Carrier',
@@ -186,7 +196,7 @@ describe('useOnePagerData', () => {
         },
         error: null,
       });
-      const mockExtEq = vi.fn().mockReturnValue({ single: mockExtSingle });
+      const mockExtEq = vi.fn().mockReturnValue({ maybeSingle: mockExtMaybeSingle });
       const mockExtSelect = vi.fn().mockReturnValue({ eq: mockExtEq });
 
       mockFrom
@@ -332,8 +342,9 @@ describe('useOnePagerData', () => {
       const mockDocEq = vi.fn().mockReturnValue({ single: mockDocSingle });
       const mockDocSelect = vi.fn().mockReturnValue({ eq: mockDocEq });
 
-      const mockExtSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-      const mockExtEq = vi.fn().mockReturnValue({ single: mockExtSingle });
+      // Extraction uses maybeSingle now
+      const mockExtMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      const mockExtEq = vi.fn().mockReturnValue({ maybeSingle: mockExtMaybeSingle });
       const mockExtSelect = vi.fn().mockReturnValue({ eq: mockExtEq });
 
       mockFrom
