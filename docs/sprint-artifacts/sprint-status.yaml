@@ -537,10 +537,13 @@ development_status:
   # Epic F6: Document Processing Reliability (was F3)
   # Source: Story 5.13 Implementation - 2025-12-02
   # Reason: ~1-2% of PDFs fail with libpdfium page-dimensions errors
-  epic-f6-document-processing-reliability: future
-  f6-1-pypdfium2-backend-evaluation: future
-  f6-2-multi-backend-fallback-chain: future
-  f6-3-pdf-preprocessing-normalization: future
+  # STATUS: OBSOLETE - 2025-12-05
+  # Epic 12 (Google Cloud Document AI) supersedes this epic
+  # Document AI provides enterprise-grade reliability without pypdfium2 issues
+  epic-f6-document-processing-reliability: obsolete
+  f6-1-pypdfium2-backend-evaluation: obsolete
+  f6-2-multi-backend-fallback-chain: obsolete
+  f6-3-pdf-preprocessing-normalization: obsolete
 
   # Epic F7: Mobile Optimization (was F4)
   # Source: Epic 6 Story 6.4 - 2025-12-02
@@ -693,7 +696,12 @@ development_status:
 # Total Points: 15 (5 stories)
 
   # Epic 11: Processing Reliability & Enhanced Progress Visualization
-  epic-11: drafted
+  # RETROSPECTIVE 2025-12-05: docs/sprint-artifacts/epic-11-retrospective.md
+  # Key finding: Async architecture works, but Docling is the bottleneck (150+ second hangs)
+  # Decision: Replace Docling with Google Cloud Document AI (Epic 12)
+  # Grade: B- (good delivery, but didn't solve root cause)
+  epic-11: done
+  epic-11-retrospective: completed
   # Story 11.1: Async Processing Architecture (5 pts)
   # pg_cron job queue, processing_jobs table, Edge Function modification
   # Priority: P0 - foundation for reliability
@@ -752,3 +760,44 @@ development_status:
   # - ProcessingQueueSummary with clickable failed count filter
   # CODE REVIEWED 2025-12-05: All tasks complete, 1514 tests pass
   11-5-error-handling-user-feedback: done
+
+# ===========================================
+# EPIC 12: GOOGLE CLOUD DOCUMENT AI MIGRATION
+# ===========================================
+# Source: Epic 11 Retrospective - 2025-12-05
+# Reason: Docling hangs for 150+ seconds on complex insurance PDFs
+# Evidence: foran auto nationwide.pdf (1.3MB) stuck at 5% for 10+ minutes
+# Solution: Replace Docling with Google Cloud Document AI
+# Cost: ~$1.50 per 1000 pages (~$0.08 per typical document)
+# Expected: 5-30 second processing vs 150+ seconds
+# Doc: docs/epics/epic-12-document-ai-migration.md (TBD)
+# Total Points: 15 (5 stories)
+# NOTE: After Epic 12 complete, Sam can CANCEL RAILWAY ACCOUNT (Docling service)
+
+  # Epic 12: Google Cloud Document AI Migration
+  # TECH SPEC 2025-12-05: docs/sprint-artifacts/tech-spec-epic-12.md
+  # Party Mode validated: Winston, Charlie, Dana, Alice, Bob approved
+  epic-12: contexted
+  # Story 12.1: Connect GCP Document AI (2 pts)
+  # Sam has created GCP instance - needs help connecting
+  # Priority: P0 - foundation
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/12-1-connect-gcp-document-ai.context.xml
+  # IMPLEMENTED 2025-12-05: JWT auth with Web Crypto API, token caching, error classification
+  # CODE REVIEWED 2025-12-05: APPROVED - 12/12 ACs verified, excellent code quality
+  12-1-connect-gcp-document-ai: done
+  # Story 12.2: Create Document AI Parsing Service (3 pts)
+  # TypeScript service wrapping Document AI API
+  # Priority: P0 - core service
+  12-2-document-ai-parsing-service: backlog
+  # Story 12.3: Integrate into Edge Function (5 pts)
+  # Replace Docling call with Document AI call
+  # Priority: P0 - main integration
+  12-3-edge-function-integration: backlog
+  # Story 12.4: Response Parsing (3 pts)
+  # Convert Document AI response to our internal format
+  # Priority: P0 - data compatibility
+  12-4-response-parsing: backlog
+  # Story 12.5: Testing & Validation (2 pts)
+  # Test with foran auto nationwide.pdf and diverse documents
+  # Priority: P0 - quality gate
+  12-5-testing-validation: backlog

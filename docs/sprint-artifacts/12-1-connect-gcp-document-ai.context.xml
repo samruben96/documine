@@ -1,0 +1,287 @@
+<story-context id="12-1-connect-gcp-document-ai" v="1.0">
+  <metadata>
+    <epicId>12</epicId>
+    <storyId>1</storyId>
+    <title>Connect GCP Document AI</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-12.1-connect-gcp-document-ai.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>system administrator</asA>
+    <iWant>the Edge Function to connect to Google Cloud Document AI</iWant>
+    <soThat>document parsing uses a reliable, enterprise-grade service instead of Docling</soThat>
+    <tasks>
+      <task id="1" ac="12.1.1">
+        <name>Obtain GCP Credentials from Sam</name>
+        <subtasks>
+          <subtask>Get service account JSON key file from Sam</subtask>
+          <subtask>Verify key has documentai.documents.process permission</subtask>
+          <subtask>Note processor ID and region from Sam's GCP console</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="12.1.1,12.1.2">
+        <name>Configure Edge Function Secrets</name>
+        <subtasks>
+          <subtask>Set GOOGLE_SERVICE_ACCOUNT_KEY secret via Supabase CLI or Dashboard</subtask>
+          <subtask>Set DOCUMENT_AI_PROCESSOR_ID environment variable</subtask>
+          <subtask>Set DOCUMENT_AI_LOCATION environment variable</subtask>
+          <subtask>Verify secrets are accessible in Edge Function with Deno.env.get()</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="12.1.3">
+        <name>Implement JWT Authentication for GCP</name>
+        <subtasks>
+          <subtask>Create getAccessToken() function for service account auth</subtask>
+          <subtask>Sign JWT with RS256 using service account private key</subtask>
+          <subtask>Exchange JWT for access token via Google OAuth endpoint</subtask>
+          <subtask>Cache access token (1 hour TTL)</subtask>
+          <subtask>Test: Verify token can be obtained</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="12.1.3">
+        <name>Create Document AI Client</name>
+        <subtasks>
+          <subtask>Create documentai-client.ts module in Edge Function</subtask>
+          <subtask>Implement testConnection() function</subtask>
+          <subtask>Make test API call to Document AI with empty/minimal request</subtask>
+          <subtask>Test: Verify connection returns success</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="12.1.4">
+        <name>Implement Error Handling</name>
+        <subtasks>
+          <subtask>Handle invalid credentials (401 Unauthorized)</subtask>
+          <subtask>Handle missing/invalid processor (404 Not Found)</subtask>
+          <subtask>Handle network timeouts (ECONNRESET, etc.)</subtask>
+          <subtask>Provide actionable error messages for each case</subtask>
+          <subtask>Test: Unit tests for error classification</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="12.1.1" name="Service Account Credentials Configured">
+      <requirement>GCP service account JSON key stored as Supabase Edge Function secret</requirement>
+      <requirement>Secret name: GOOGLE_SERVICE_ACCOUNT_KEY</requirement>
+      <requirement>Key contains: project_id, private_key, client_email</requirement>
+    </criterion>
+    <criterion id="12.1.2" name="Environment Variables Configured">
+      <requirement>DOCUMENT_AI_PROCESSOR_ID environment variable set</requirement>
+      <requirement>DOCUMENT_AI_LOCATION environment variable set (e.g., "us" or "eu")</requirement>
+      <requirement>Environment variables accessible in Edge Function</requirement>
+    </criterion>
+    <criterion id="12.1.3" name="Authentication Verified">
+      <requirement>Test API call successfully authenticates with Document AI</requirement>
+      <requirement>Access token generation from service account works</requirement>
+      <requirement>JWT signing with RS256 algorithm works in Deno</requirement>
+    </criterion>
+    <criterion id="12.1.4" name="Connection Errors Produce Actionable Messages">
+      <requirement>Invalid credentials return clear error message</requirement>
+      <requirement>Missing processor ID returns helpful error</requirement>
+      <requirement>Network failures are distinguishable from auth failures</requirement>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-12.md</path>
+        <title>Epic 12 Tech Spec: Google Cloud Document AI Migration</title>
+        <section>Story 12.1: Connect GCP Document AI</section>
+        <snippet>AC-12.1.1 to AC-12.1.4 define credentials configuration, environment variables, authentication verification, and error handling requirements.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-12.md</path>
+        <title>Epic 12 Tech Spec: Deno Compatibility</title>
+        <section>Implementation Notes (Party Mode Validation)</section>
+        <snippet>Supabase Edge Functions run on Deno. Use raw fetch() with manually signed JWT for service account authentication. google-auth-library may not work directly.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epic-11-retrospective.md</path>
+        <title>Epic 11 Retrospective</title>
+        <section>Action Items for Epic 12</section>
+        <snippet>Replace Docling with Document AI. Docling hangs 150+ seconds on complex PDFs. Document AI provides 5-30 second processing with 99% reliability.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/architecture-decision-records-adrs.md</path>
+        <title>ADR-009: Google Cloud Document AI for PDF Processing</title>
+        <section>Epic 12</section>
+        <snippet>Hard cutover to Document AI (no Docling fallback). JWT-based service account auth in Deno. Environment vars: GOOGLE_SERVICE_ACCOUNT_KEY, DOCUMENT_AI_PROCESSOR_ID, DOCUMENT_AI_LOCATION.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-11.5-error-handling-user-feedback.md</path>
+        <title>Story 11.5: Error Handling &amp; User Feedback</title>
+        <section>Dev Agent Record</section>
+        <snippet>Error classification pattern with classifyError(), ErrorCategory type, user-friendly messages with suggested actions. Extend this pattern for Document AI errors.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>Edge Function</kind>
+        <symbol>parseDocumentWithRetry</symbol>
+        <lines>640-706</lines>
+        <reason>Current Docling parsing function to be replaced with Document AI call in Story 12.3. Story 12.1 creates the client module that this function will use.</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>Edge Function</kind>
+        <symbol>classifyError</symbol>
+        <lines>116-133</lines>
+        <reason>Error classification function in Edge Function. Story 12.1 error handling should follow this pattern for Document AI errors.</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>Edge Function</kind>
+        <symbol>Deno.env.get</symbol>
+        <lines>249-254</lines>
+        <reason>Pattern for accessing environment variables in Deno Edge Function. Document AI config will use same approach.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/documents/error-classification.ts</path>
+        <kind>service</kind>
+        <symbol>classifyError, ClassifiedError, ErrorCategory</symbol>
+        <lines>1-266</lines>
+        <reason>Frontend error classification service. Document AI errors should map to this classification system for consistent user messaging.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Supabase client for Edge Function</purpose>
+      </node>
+      <deno>
+        <note>No google-auth-library - use native Web Crypto API for JWT signing</note>
+        <note>Use fetch() directly for Google OAuth token exchange</note>
+        <note>Use Deno.env.get() for environment variable access</note>
+      </deno>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="runtime">
+      <name>Deno Runtime</name>
+      <description>Supabase Edge Functions run on Deno, not Node.js. Must use Web Crypto API for cryptographic operations.</description>
+    </constraint>
+    <constraint type="security">
+      <name>Service Account Key Storage</name>
+      <description>Service account JSON must be stored as Edge Function secret, not environment variable, to prevent exposure in logs.</description>
+    </constraint>
+    <constraint type="architecture">
+      <name>Error Classification Integration</name>
+      <description>Document AI errors must integrate with existing error classification (transient/recoverable/permanent) from Story 11.5.</description>
+    </constraint>
+    <constraint type="backwards-compat">
+      <name>Epic 11 Infrastructure</name>
+      <description>All Epic 11 infrastructure (pg_cron jobs, progress tracking, Realtime subscriptions) must remain unchanged. Only the parsing service changes.</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Google OAuth Token Exchange</name>
+      <kind>REST endpoint</kind>
+      <signature>POST https://oauth2.googleapis.com/token
+Body: grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&amp;assertion={signed_jwt}
+Response: { access_token: string, expires_in: number, token_type: "Bearer" }</signature>
+      <path>External Google API</path>
+    </interface>
+    <interface>
+      <name>Document AI Processor Info</name>
+      <kind>REST endpoint</kind>
+      <signature>GET https://{location}-documentai.googleapis.com/v1/projects/{projectId}/locations/{location}/processors/{processorId}
+Headers: Authorization: Bearer {access_token}
+Response: { name, displayName, type, state }</signature>
+      <path>External Google Cloud API</path>
+    </interface>
+    <interface>
+      <name>ServiceAccountKey</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ServiceAccountKey {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+}</signature>
+      <path>supabase/functions/process-document/documentai-client.ts (to create)</path>
+    </interface>
+    <interface>
+      <name>DocumentAIConfig</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface DocumentAIConfig {
+  projectId: string;
+  location: string;
+  processorId: string;
+}</signature>
+      <path>supabase/functions/process-document/documentai-client.ts (to create)</path>
+    </interface>
+    <interface>
+      <name>DocumentAIConnectionError</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface DocumentAIConnectionError {
+  code: DocumentAIErrorCode;
+  message: string;
+  userMessage: string;
+  suggestedAction: string;
+}</signature>
+      <path>supabase/functions/process-document/documentai-client.ts (to create)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <paragraph>Testing follows Vitest for unit tests (src/lib, supabase/functions) and Playwright for E2E tests. Edge Function tests should mock external API calls. Error classification tests should verify pattern matching and user message generation. All 1514+ existing tests must continue to pass.</paragraph>
+    </standards>
+    <locations>
+      <location>__tests__/lib/**/*.test.ts</location>
+      <location>__tests__/e2e/**/*.spec.ts</location>
+      <location>supabase/functions/**/*.test.ts (new)</location>
+    </locations>
+    <ideas>
+      <idea ac="12.1.1">
+        <description>Test getDocumentAIConfig() throws with missing GOOGLE_SERVICE_ACCOUNT_KEY</description>
+      </idea>
+      <idea ac="12.1.2">
+        <description>Test getDocumentAIConfig() throws with missing DOCUMENT_AI_PROCESSOR_ID</description>
+      </idea>
+      <idea ac="12.1.2">
+        <description>Test getDocumentAIConfig() uses default 'us' for missing DOCUMENT_AI_LOCATION</description>
+      </idea>
+      <idea ac="12.1.3">
+        <description>Test getAccessToken() generates valid JWT structure (header.payload.signature)</description>
+      </idea>
+      <idea ac="12.1.3">
+        <description>Test getAccessToken() caches token and reuses until near expiry</description>
+      </idea>
+      <idea ac="12.1.3">
+        <description>Test importPrivateKey() handles PEM format correctly</description>
+      </idea>
+      <idea ac="12.1.4">
+        <description>Test classifyDocumentAIError() returns AUTH_MISSING_KEY for missing credentials</description>
+      </idea>
+      <idea ac="12.1.4">
+        <description>Test classifyDocumentAIError() returns AUTH_INVALID_CREDENTIALS for 401 errors</description>
+      </idea>
+      <idea ac="12.1.4">
+        <description>Test classifyDocumentAIError() returns PROCESSOR_NOT_FOUND for 404 errors</description>
+      </idea>
+      <idea ac="12.1.4">
+        <description>Test classifyDocumentAIError() returns NETWORK_ERROR for connection issues</description>
+      </idea>
+      <idea ac="12.1.3">
+        <description>Integration test: testDocumentAIConnection() returns success with valid credentials (requires real credentials)</description>
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

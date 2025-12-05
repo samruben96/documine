@@ -17,23 +17,31 @@
 
 ---
 
-## ADR-002: Docling for PDF Processing (Updated 2025-11-30)
+## ADR-002: Docling for PDF Processing (SUPERSEDED 2025-12-05)
 
-**Status:** Accepted (Updated from LlamaParse)
+**Status:** ~~Accepted~~ **Superseded by ADR-009**
 
 **Context:** Insurance PDFs have complex tables, multi-column layouts, and varying quality. Need 95%+ extraction accuracy. Original LlamaParse solution had 75% table accuracy and API cost concerns.
 
-**Decision:** Use self-hosted Docling service (IBM TableFormer model) for all PDF processing.
+**Decision:** ~~Use self-hosted Docling service (IBM TableFormer model) for all PDF processing.~~
 
-**Consequences:**
+**Superseded Note:** Docling was replaced by Google Cloud Document AI in Epic 12 (2025-12-05). See ADR-009.
+
+**Why superseded:**
+- Docling hangs for 150+ seconds on complex insurance PDFs (e.g., `foran auto nationwide.pdf`)
+- ~50% success rate on production documents
+- Self-hosted infrastructure added maintenance burden
+- Railway service ($5/month) provided no reliability guarantees
+
+**Original Consequences (Historical):**
 - (+) 97.9% table extraction accuracy (critical for insurance documents)
 - (+) Zero API costs (self-hosted)
 - (+) Full data privacy (documents never leave our infrastructure)
 - (+) Same page marker format for backward compatibility
 - (-) Requires self-managed infrastructure (Railway deployment)
-- (-) Slightly longer processing time for large documents
+- (-) **CRITICAL: 150+ second hangs on complex PDFs - production blocker**
 
-**Migration Note:** Completed Story 4.8 (2025-11-30). Docling service deployed at https://docling-for-documine-production.up.railway.app
+**Migration Note:** Docling service at https://docling-for-documine-production.up.railway.app to be deprecated after Epic 12 completion. Cancel Railway subscription after migration.
 
 ---
 
@@ -229,7 +237,7 @@ const response = await openai.chat.completions.create({
 
 ## ADR-008: Extraction at Upload Time (Story 10.12)
 
-**Status:** Proposed (2025-12-04)
+**Status:** Implemented (2025-12-04)
 
 **Context:** Quote extraction currently runs on-demand during comparison flow. This means:
 - Chat Q&A uses only unstructured chunks (no access to structured policy data)
@@ -277,5 +285,87 @@ if (documentHasExtraction && isDirectFieldQuery(query)) {
 // Fallback to standard RAG for complex queries
 return ragPipeline(query, chunks);
 ```
+
+---
+
+## ADR-009: Google Cloud Document AI for PDF Processing (Epic 12)
+
+**Status:** In Progress (2025-12-05)
+
+**Context:** Docling (ADR-002) proved unreliable for production insurance documents. Evidence:
+- `foran auto nationwide.pdf` (1.3MB) stuck at 5% for 10+ minutes
+- Edge Function logs show 504 timeouts at ~150 seconds
+- ~50% success rate on complex insurance PDFs with tables
+- Epic 11 async infrastructure (pg_cron, progress tracking) couldn't compensate for Docling's parsing latency
+
+**Decision:** Replace Docling with Google Cloud Document AI for all document parsing.
+
+**Why Document AI:**
+
+| Feature | Docling (Railway) | Document AI (GCP) |
+|---------|-------------------|-------------------|
+| Parse Time (typical) | 30-120 seconds | 5-15 seconds |
+| Parse Time (complex) | 150+ seconds (hangs) | 15-30 seconds |
+| Success Rate | ~50% | ~99% |
+| Table Extraction | Good when it works | Enterprise-grade |
+| OCR Quality | Basic | GPU-accelerated |
+| Cost | $5/month (Railway) | ~$1.50/1000 pages |
+| Reliability | Self-managed | Google SLA (99.9%) |
+
+**Architecture:**
+
+```
+BEFORE (Docling):
+Upload → Edge Function → Docling API (Railway) → 30-150+ seconds
+       [pg_cron job]
+
+AFTER (Document AI):
+Upload → Edge Function → Document AI API (GCP) → 5-30 seconds
+       [pg_cron job]     [Service Account Auth]
+```
+
+**Implementation:**
+
+1. **Authentication:** JWT-based service account auth (Deno-native, no npm package)
+2. **API Endpoint:** `https://{region}-documentai.googleapis.com/v1/projects/{projectId}/locations/{region}/processors/{processorId}:process`
+3. **Response Parsing:** Convert Document AI response to existing markdown + page markers format
+4. **Error Handling:** Integrate with Epic 11 error classification (transient/recoverable/permanent)
+
+**Environment Variables:**
+```bash
+GOOGLE_SERVICE_ACCOUNT_KEY  # JSON service account key (Edge Function secret)
+DOCUMENT_AI_PROCESSOR_ID    # Processor ID from GCP Console
+DOCUMENT_AI_LOCATION        # "us" or "eu"
+```
+
+**Consequences:**
+- (+) 5-30 second processing vs 150+ seconds
+- (+) ~99% reliability vs ~50%
+- (+) Enterprise-grade OCR with GPU acceleration
+- (+) Google SLA (99.9% availability)
+- (+) Simpler infrastructure (no Railway to manage)
+- (-) Cost: ~$0.08 per typical document
+- (-) Vendor dependency on GCP (mitigated: standard Document AI API)
+- (-) Requires service account key management
+
+**Migration Strategy:**
+- **Hard cutover** (no Docling fallback) - reliability is the goal
+- All Epic 11 infrastructure (jobs, progress, errors) unchanged
+- Only `supabase/functions/process-document/index.ts` modified
+
+**Post-Migration Cleanup:**
+1. Cancel Railway subscription (Docling service)
+2. Remove `DOCLING_SERVICE_URL` environment variable
+3. Remove Docling-specific code paths
+4. Update CLAUDE.md to remove Docling references
+
+**Stories:**
+- 12.1: Connect GCP Document AI
+- 12.2: Create Document AI Parsing Service
+- 12.3: Integrate into Edge Function
+- 12.4: Response Parsing
+- 12.5: Testing & Validation
+
+**Tech Spec Reference:** `docs/sprint-artifacts/tech-spec-epic-12.md`
 
 ---
