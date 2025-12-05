@@ -7,12 +7,19 @@ import type { Json } from '@/types/database.types';
 import type { ConnectionState } from '@/components/ui/connection-indicator';
 
 /**
+ * Story 11.2: Processing stage type
+ * Updated to include 'queued' stage from Story 11.1 async architecture
+ */
+export type ProcessingStage = 'queued' | 'downloading' | 'parsing' | 'chunking' | 'embedding' | 'analyzing' | 'completed';
+
+/**
  * Story 5.12: Processing progress data interface
  * Matches Edge Function progress_data JSON structure
  * Story 10.12: Added 'analyzing' stage for quote extraction
+ * Story 11.2: Now also populated from direct stage/progress_percent columns
  */
 export interface ProgressData {
-  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding' | 'analyzing';
+  stage: ProcessingStage;
   stage_progress: number; // 0-100
   stage_name: string; // User-friendly name
   estimated_seconds_remaining: number | null;
@@ -27,14 +34,29 @@ const MAX_CONSECUTIVE_ERRORS = 3;
  * Stage weights for simulating progress during parsing
  * (Docling doesn't provide intermediate progress callbacks)
  * Story 10.12: Added 'analyzing' stage for quote extraction
+ * Story 11.2: Added 'queued' stage for async processing
  */
 const STAGE_WEIGHTS = {
+  queued: { start: 0, weight: 0 },
   downloading: { start: 0, weight: 5 },
   parsing: { start: 5, weight: 55 },
   chunking: { start: 60, weight: 10 },
   embedding: { start: 70, weight: 20 },
   analyzing: { start: 90, weight: 10 },
 } as const;
+
+/**
+ * Story 11.2: Stage labels for UI display
+ */
+export const STAGE_LABELS: Record<ProcessingStage, string> = {
+  queued: 'Waiting in queue...',
+  downloading: 'Downloading file...',
+  parsing: 'Parsing document...',
+  chunking: 'Preparing content...',
+  embedding: 'Indexing for search...',
+  analyzing: 'Analyzing with AI...',
+  completed: 'Processing complete!',
+};
 
 /**
  * Simulate progress during parsing stage based on elapsed time
@@ -51,16 +73,40 @@ function simulateParsingProgress(
 
 /**
  * Processing job record from Supabase
+ * Story 11.1: Added stage, progress_percent, agency_id, retry_count columns
  */
 interface ProcessingJobPayload {
   id: string;
   document_id: string;
+  agency_id: string | null;
   status: string;
+  stage: string | null;
+  progress_percent: number | null;
   progress_data: Json | null;
   error_message: string | null;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  retry_count: number | null;
+}
+
+/**
+ * Story 11.2: Job metadata for elapsed time and queue position
+ */
+export interface JobMetadata {
+  createdAt: string;
+  startedAt: string | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  retryCount: number;
+}
+
+/**
+ * Story 11.2: Queue position info
+ */
+export interface QueueInfo {
+  position: number;
+  totalPending: number;
+  estimatedWaitSeconds: number | null;
 }
 
 /**
@@ -71,6 +117,10 @@ interface UseProcessingProgressResult {
   progressMap: Map<string, ProgressData>;
   /** Map of document ID to error message (for failed jobs) - Story 5.13 */
   errorMap: Map<string, string>;
+  /** Story 11.2: Map of document ID to job metadata */
+  jobMetadataMap: Map<string, JobMetadata>;
+  /** Story 11.2: Map of document ID to queue info (for pending jobs) */
+  queueInfoMap: Map<string, QueueInfo>;
   /** Whether realtime connection is active (backward compatible) */
   isConnected: boolean;
   /** Story 6.6: Granular connection state for UI indicator */
@@ -82,6 +132,11 @@ interface UseProcessingProgressResult {
  * to prevent simulated progress from overriding actual server data
  */
 type ProgressSource = 'server' | 'simulated';
+
+/**
+ * Story 11.2: Valid processing stages
+ */
+const VALID_STAGES: ProcessingStage[] = ['queued', 'downloading', 'parsing', 'chunking', 'embedding', 'analyzing', 'completed'];
 
 /**
  * Parse JSON progress_data from database into typed ProgressData
@@ -105,14 +160,13 @@ function parseProgressData(json: Json | null): ProgressData | null {
   }
 
   // Validate stage is one of the expected values
-  // Story 10.12: Added 'analyzing' stage
-  const validStages = ['downloading', 'parsing', 'chunking', 'embedding', 'analyzing'];
-  if (!validStages.includes(data.stage)) {
+  // Story 11.2: Added 'queued' and 'completed' stages
+  if (!VALID_STAGES.includes(data.stage as ProcessingStage)) {
     return null;
   }
 
   return {
-    stage: data.stage as ProgressData['stage'],
+    stage: data.stage as ProcessingStage,
     stage_progress: data.stage_progress,
     stage_name: data.stage_name,
     estimated_seconds_remaining:
@@ -121,6 +175,30 @@ function parseProgressData(json: Json | null): ProgressData | null {
         : null,
     total_progress: data.total_progress,
     updated_at: data.updated_at,
+  };
+}
+
+/**
+ * Story 11.2: Create ProgressData from direct columns (stage, progress_percent)
+ * Used when progress_data JSONB is not available but direct columns are
+ */
+function createProgressFromColumns(
+  stage: string | null,
+  progressPercent: number | null
+): ProgressData | null {
+  if (!stage || !VALID_STAGES.includes(stage as ProcessingStage)) {
+    return null;
+  }
+
+  const typedStage = stage as ProcessingStage;
+
+  return {
+    stage: typedStage,
+    stage_progress: progressPercent ?? 0,
+    stage_name: STAGE_LABELS[typedStage] || 'Processing...',
+    estimated_seconds_remaining: null,
+    total_progress: progressPercent ?? 0,
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -145,6 +223,10 @@ export function useProcessingProgress(
   );
   // Story 5.13: Track error messages for failed jobs
   const [errorMap, setErrorMap] = useState<Map<string, string>>(new Map());
+  // Story 11.2: Track job metadata for elapsed time
+  const [jobMetadataMap, setJobMetadataMap] = useState<Map<string, JobMetadata>>(new Map());
+  // Story 11.2: Track queue info for pending jobs
+  const [queueInfoMap, setQueueInfoMap] = useState<Map<string, QueueInfo>>(new Map());
   // Story 6.6: Track granular connection state
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
 
@@ -173,6 +255,18 @@ export function useProcessingProgress(
       // Store job metadata for simulation
       jobMetadataRef.current.set(job.document_id, { started_at: job.started_at });
 
+      // Story 11.2: Update job metadata for elapsed time tracking
+      setJobMetadataMap((prev) => {
+        const next = new Map(prev);
+        next.set(job.document_id, {
+          createdAt: job.created_at,
+          startedAt: job.started_at,
+          status: job.status as JobMetadata['status'],
+          retryCount: job.retry_count ?? 0,
+        });
+        return next;
+      });
+
       // Story 5.13: Track error messages for failed jobs
       if (job.status === 'failed' && job.error_message) {
         setErrorMap((prev) => {
@@ -182,7 +276,30 @@ export function useProcessingProgress(
         });
       }
 
-      // If we have progress_data from the server, use it
+      // Story 11.2: Try direct columns first (stage, progress_percent from Story 11.1)
+      // These are more reliable than progress_data JSONB
+      if (job.stage && job.progress_percent !== null) {
+        const progressData = createProgressFromColumns(job.stage, job.progress_percent);
+        if (progressData) {
+          progressSourceRef.current.set(job.document_id, 'server');
+
+          setProgressMap((prev) => {
+            const next = new Map(prev);
+            const existing = prev.get(job.document_id);
+
+            // Story 5.14 (AC-5.14.1): Monotonic progress
+            if (existing && progressData.total_progress < existing.total_progress) {
+              return prev;
+            }
+
+            next.set(job.document_id, progressData);
+            return next;
+          });
+          return;
+        }
+      }
+
+      // Fallback: If we have progress_data JSONB from the server, use it
       // Story 5.14 (AC-5.14.3): Mark as server-sourced to prevent simulation override
       if (job.progress_data) {
         const progressData = parseProgressData(job.progress_data);
@@ -207,12 +324,13 @@ export function useProcessingProgress(
         }
       }
 
-      // No progress_data yet - create initial progress based on job status
+      // No progress data yet - create initial progress based on job status
+      // Story 11.2: Use 'queued' for pending status
       if (job.status === 'processing' || job.status === 'pending') {
         const initialProgress: ProgressData = {
-          stage: 'downloading',
+          stage: job.status === 'pending' ? 'queued' : 'downloading',
           stage_progress: 0,
-          stage_name: 'Loading file...',
+          stage_name: job.status === 'pending' ? 'Waiting in queue...' : 'Loading file...',
           estimated_seconds_remaining: null,
           total_progress: 0,
           updated_at: new Date().toISOString(),
@@ -261,9 +379,10 @@ export function useProcessingProgress(
     }
 
     const supabase = createClient();
+    // Story 11.2: Include stage, progress_percent, agency_id, retry_count columns
     const { data: jobs, error } = await supabase
       .from('processing_jobs')
-      .select('id, document_id, status, progress_data, error_message, started_at, created_at')
+      .select('id, document_id, agency_id, status, stage, progress_percent, progress_data, error_message, started_at, completed_at, created_at, retry_count')
       .in('document_id', documentIds);
 
     if (error) {
@@ -472,6 +591,36 @@ export function useProcessingProgress(
       return prev;
     });
 
+    // Story 11.2: Clean up job metadata map
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: filter map when documentIds changes
+    setJobMetadataMap((prev) => {
+      const next = new Map<string, JobMetadata>();
+      for (const [docId, metadata] of prev) {
+        if (documentIds.includes(docId)) {
+          next.set(docId, metadata);
+        }
+      }
+      if (next.size !== prev.size) {
+        return next;
+      }
+      return prev;
+    });
+
+    // Story 11.2: Clean up queue info map
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Legitimate sync: filter map when documentIds changes
+    setQueueInfoMap((prev) => {
+      const next = new Map<string, QueueInfo>();
+      for (const [docId, info] of prev) {
+        if (documentIds.includes(docId)) {
+          next.set(docId, info);
+        }
+      }
+      if (next.size !== prev.size) {
+        return next;
+      }
+      return prev;
+    });
+
     // Clean up metadata too
     for (const docId of jobMetadataRef.current.keys()) {
       if (!documentIds.includes(docId)) {
@@ -487,9 +636,67 @@ export function useProcessingProgress(
     }
   }, [documentIds]);
 
+  // Story 11.2: Fetch queue positions for pending jobs
+  useEffect(() => {
+    if (documentIds.length === 0) return;
+
+    const fetchQueuePositions = async () => {
+      const supabase = createClient();
+
+      // Get pending jobs to calculate queue positions
+      const pendingDocIds: string[] = [];
+      for (const [docId, metadata] of jobMetadataMap) {
+        if (metadata.status === 'pending') {
+          pendingDocIds.push(docId);
+        }
+      }
+
+      if (pendingDocIds.length === 0) {
+        // Clear queue info if no pending jobs
+        if (queueInfoMap.size > 0) {
+          setQueueInfoMap(new Map());
+        }
+        return;
+      }
+
+      // Get total pending count
+      const { count: totalPending } = await supabase
+        .from('processing_jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      // For each pending doc, get its queue position
+      const newQueueInfo = new Map<string, QueueInfo>();
+      for (const docId of pendingDocIds) {
+        const { data: positionResult } = await supabase
+          .rpc('get_queue_position', { p_document_id: docId });
+
+        const position = positionResult ?? 1;
+        // Estimate ~2 minutes per document (120 seconds average processing time)
+        const estimatedWaitSeconds = position > 1 ? (position - 1) * 120 : null;
+
+        newQueueInfo.set(docId, {
+          position,
+          totalPending: totalPending ?? 0,
+          estimatedWaitSeconds,
+        });
+      }
+
+      setQueueInfoMap(newQueueInfo);
+    };
+
+    // Fetch queue positions initially and every 10 seconds for pending jobs
+    fetchQueuePositions();
+    const interval = setInterval(fetchQueuePositions, 10000);
+
+    return () => clearInterval(interval);
+  }, [documentIds, jobMetadataMap, queueInfoMap.size]);
+
   return {
     progressMap,
     errorMap,
+    jobMetadataMap,
+    queueInfoMap,
     isConnected: connectionState === 'connected',
     connectionState,
   };

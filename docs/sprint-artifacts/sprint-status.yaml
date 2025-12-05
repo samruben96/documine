@@ -620,23 +620,49 @@ development_status:
   # Story 10.8: Enhanced Comparison Table (2 pts)
   # UI: Endorsement matrix, premium breakdown, carrier ratings, collapsible sections
   # NOTE: Review Story 10.12 - extraction now at upload time, data in documents.extraction_data
-  10-8-enhanced-comparison-table: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.8-enhanced-comparison-table.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-8-enhanced-comparison-table.context.xml
+  # IMPLEMENTED 2025-12-04: All ACs complete - collapsible sections, endorsement matrix, premium breakdown
+  # CODE REVIEWED 2025-12-04: APPROVED
+  10-8-enhanced-comparison-table: done
   # Story 10.9: Enhanced One-Pager Template (2 pts)
   # PDF: Policy metadata, endorsements summary, premium breakdown, gap highlights
   # NOTE: Review Story 10.12 - extraction now at upload time, instant one-pager generation
-  10-9-enhanced-one-pager: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.9-enhanced-one-pager.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-9-enhanced-one-pager.context.xml
+  # IMPLEMENTED 2025-12-04: All ACs complete - AM Best Rating, Policy Details, Endorsements, Premium Summary
+  # CODE REVIEWED 2025-12-04: APPROVED
+  10-9-enhanced-one-pager: done
+  # Story 10-audit: Epic 10 Comprehensive Codebase Audit
+  # Quality gate before Story 10.11 testing
+  # Checks: type schemas, component duplication, code quality, extraction/gap services, UI components
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10-audit-epic-10-codebase-audit.md
+  # COMPLETED 2025-12-04: All 8 ACs verified, 1386 tests pass, build successful
+  # Findings: docs/sprint-artifacts/epic-10-audit-findings.md
+  10-audit-epic-10-codebase-audit: done
   # Story 10.10: Extraction Prompt Engineering (3 pts)
   # GPT: Updated prompts, examples, testing, accuracy metrics
   # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.10-extraction-prompts.md
   # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/10-10-extraction-prompts.context.xml
   # IMPLEMENTED 2025-12-04: Few-shot examples, graceful null handling, test corpus, 14 accuracy tests
-  # CODE REVIEWED 2025-12-04: APPROVED - 5/7 ACs verified, 2 deferred to accuracy testing
+    # CODE REVIEWED 2025-12-04: APPROVED - 5/7 ACs verified, 2 deferred to accuracy testing
   10-10-extraction-prompts: done
   # Story 10.11: Testing & Migration (2 pts)
   # QA: Backward compatibility, schema migration, validation, performance
   # NOTE: Review Story 10.12 - adds extraction_data JSONB, extraction_version columns to documents table
   # NOTE: 10.12 already verified backward compat, 1346 tests pass, QA validated extraction
-  10-11-testing-migration: backlog
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-10.11-testing-migration.md
+  # CONTEXT 2025-12-04: docs/sprint-artifacts/10-11-testing-migration.context.xml
+  # IMPLEMENTED 2025-12-04: All 8 tasks complete
+  # - Task 1: v1/v2/v3 extraction fixtures created
+  # - Task 2: Schema validation (44 tests verified)
+  # - Task 3: Gap analysis tests (33 tests verified)
+  # - Task 4: UI component tests (67 tests) - EndorsementMatrix, PremiumBreakdownTable, CollapsibleSection
+  # - Task 5: E2E test suite created (epic-10-extraction.spec.ts)
+  # - Task 6: Performance timeouts verified in code
+  # - Task 7: Build verification - 1481 tests pass, build OK, tsc OK, ESLint warnings only
+  # - Task 8: CLAUDE.md updated with Epic 10 patterns
+  10-11-testing-migration: done
   # Story 10.12: Extraction at Upload Time (3 pts) - NEW 2025-12-04
   # Trigger extraction in process-document Edge Function after chunking
   # Store in documents.extraction_data JSONB, enable chat structured data, source citations
@@ -650,3 +676,64 @@ development_status:
   # - QA Validated: 32 coverages, 12 exclusions extracted from test document
   # CODE REVIEWED 2025-12-04: APPROVED - all 9 ACs verified, 10 unit tests, 1346 total tests pass
   10-12-extraction-at-upload-time: done
+  # RETROSPECTIVE 2025-12-04: docs/sprint-artifacts/epic-10-retrospective.md
+  # Key learnings: OpenAI structured output schema requirements, trigger vs execution timeout
+  # 504 timeout issue identified - leads to Epic 11
+  # Grade: A- (B+ for process due to 504 discovery post-completion)
+  epic-10-retrospective: completed
+
+# ===========================================
+# EPIC 11: PROCESSING RELIABILITY & ENHANCED PROGRESS
+# ===========================================
+# Source: Epic 10 Retrospective - 2025-12-04
+# Reason: 504 timeout errors after Story 10.12 extended processing to 100-250s
+# Root Cause: HTTP trigger timeout (~150s) < processing time
+# Solution: Async processing with pg_cron + enhanced progress UI
+# Doc: docs/epics/epic-11-processing-reliability-enhanced-progress.md
+# Total Points: 15 (5 stories)
+
+  # Epic 11: Processing Reliability & Enhanced Progress Visualization
+  epic-11: drafted
+  # Story 11.1: Async Processing Architecture (5 pts)
+  # pg_cron job queue, processing_jobs table, Edge Function modification
+  # Priority: P0 - foundation for reliability
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.1-async-processing-architecture.md
+  # CONTEXT 2025-12-04: Context file at docs/sprint-artifacts/11-1-async-processing-architecture.context.xml
+  # IMPLEMENTED 2025-12-04: Database migrations, service.ts, Edge Function modifications
+  # - pg_cron + pg_net extensions enabled
+  # - processing_jobs columns: agency_id, stage, progress_percent, retry_count
+  # - process_next_document_job() function with SKIP LOCKED
+  # - Upload returns immediately (no sync Edge Function trigger)
+  # - Edge Function accepts job_id, updates stage/progress_percent columns
+  # CODE REVIEWED 2025-12-04: APPROVED - 6/6 ACs verified, 5/5 tasks verified
+  # Migrations: async_processing_infrastructure + job_processor_function
+  # pg_cron triggers Edge Function every minute via pg_net
+  11-1-async-processing-architecture: done
+  # Story 11.2: Enhanced Progress Bar UI (3 pts)
+  # True percentage, stage visualization, elapsed time, realtime updates
+  # Priority: P0 - user visibility
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.2-enhanced-progress-bar-ui.md
+  # IMPLEMENTED 2025-12-04: All 6 ACs complete
+  # - Enhanced processing-progress.tsx with queued/analyzing stages
+  # - use-processing-progress.ts updated with JobMetadata, QueueInfo, direct column reading
+  # - Queue position via get_queue_position RPC
+  # - Failed/success states with retry button
+  # - All required data-testid attributes
+  # - 1481 tests pass
+  # CODE REVIEWED 2025-12-05: APPROVED - all 6 ACs verified, all 6 tasks complete, solid implementation
+  11-2-enhanced-progress-bar-ui: done
+  # Story 11.3: Reliable Job Recovery (3 pts)
+  # Stuck job detection, automatic retry, max retries, manual retry
+  # Priority: P1 - reliability
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.3-reliable-job-recovery.md
+  11-3-reliable-job-recovery: drafted
+  # Story 11.4: Processing Queue Visualization (2 pts)
+  # Queue position, estimated wait time, queue summary
+  # Priority: P1 - user visibility
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.4-processing-queue-visualization.md
+  11-4-processing-queue-visualization: drafted
+  # Story 11.5: Error Handling & User Feedback (2 pts)
+  # Error classification, user-friendly messages, toast notifications
+  # Priority: P1 - user experience
+  # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.5-error-handling-user-feedback.md
+  11-5-error-handling-user-feedback: drafted

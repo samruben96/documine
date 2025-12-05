@@ -35,7 +35,9 @@ import {
 // Note: Using native button for dropdown trigger to avoid shadcn Button/Radix conflict
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
 import { DocumentTypeBadge } from './document-type-badge';
+import { ProcessingProgress } from './processing-progress';
 import type { DocumentType } from '@/types';
+import type { ProgressData } from '@/hooks/use-processing-progress';
 
 export interface DocumentTableRow {
   id: string;
@@ -55,6 +57,8 @@ export interface DocumentTableRow {
 
 interface DocumentTableProps {
   documents: DocumentTableRow[];
+  /** Story 11.2: Progress data map for processing documents (documentId -> ProgressData) */
+  progressMap?: Map<string, ProgressData>;
   onRename?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
@@ -71,7 +75,7 @@ interface DocumentTableProps {
  * - AC-F2-6.5: Row click navigates to viewer
  * - AC-F2-6.6: Sticky header
  */
-export function DocumentTable({ documents, onRename, onDelete }: DocumentTableProps) {
+export function DocumentTable({ documents, progressMap, onRename, onDelete }: DocumentTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_at', desc: true }, // Default: newest first
@@ -130,9 +134,17 @@ export function DocumentTable({ documents, onRename, onDelete }: DocumentTablePr
         header: ({ column }) => (
           <SortableHeader column={column} title="Status" />
         ),
-        cell: ({ row }) => (
-          <DocumentStatusBadge status={row.original.status as DocumentStatusType} />
-        ),
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const progressData = progressMap?.get(row.original.id);
+
+          // Story 11.2: Show detailed progress bar for processing documents
+          if (status === 'processing' && progressData) {
+            return <ProcessingProgress progressData={progressData} className="min-w-[140px]" />;
+          }
+
+          return <DocumentStatusBadge status={status as DocumentStatusType} />;
+        },
       },
       {
         accessorKey: 'ai_tags',
@@ -310,7 +322,7 @@ export function DocumentTable({ documents, onRename, onDelete }: DocumentTablePr
         },
       },
     ],
-    [hoveredRowId, router, onRename, onDelete]
+    [hoveredRowId, router, progressMap, onRename, onDelete]
   );
 
   const table = useReactTable({

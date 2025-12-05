@@ -17,6 +17,7 @@ import { DocumentTable, type DocumentTableRow } from '@/components/documents/doc
 import { UploadZone, type UploadingFile } from '@/components/documents/upload-zone';
 import { useDebouncedValue } from '@/hooks/use-debounce';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
+import { useProcessingProgress } from '@/hooks/use-processing-progress';
 import {
   getDocuments,
   getUserAgencyInfo,
@@ -63,6 +64,13 @@ export default function DocumentLibraryPage() {
   const { documents, setDocuments } = useDocumentStatus({
     agencyId: agencyId || '',
   });
+
+  // Story 11.2: Get processing progress for documents with status 'processing'
+  const processingDocumentIds = useMemo(
+    () => documents.filter((d) => d.status === 'processing').map((d) => d.id),
+    [documents]
+  );
+  const { progressMap } = useProcessingProgress(processingDocumentIds);
 
   // Load documents and user info on mount
   useEffect(() => {
@@ -348,6 +356,7 @@ export default function DocumentLibraryPage() {
           // Document table (AC-F2-6.1, 6.2, 6.3, 6.4, 6.5, 6.6)
           <div data-testid="document-table">
             <DocumentTable
+              progressMap={progressMap}
               documents={filteredDocuments.map((doc: DocumentWithLabels): DocumentTableRow => {
                 // Story 10.12: Extract carrier and premium from extraction_data JSONB
                 const extraction = doc.extraction_data as Record<string, unknown> | null;

@@ -74,7 +74,9 @@ const PROGRESS_THROTTLE_MS = 1000;
 let lastProgressUpdate = 0;
 
 // Types
+// Story 11.1: Added job_id for async processing via pg_cron
 interface ProcessingPayload {
+  job_id?: string;       // Story 11.1: Job ID from pg_cron trigger (optional for backward compat)
   documentId: string;
   storagePath: string;
   agencyId: string;
@@ -194,9 +196,13 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  const { documentId, storagePath, agencyId } = payload;
+  const { job_id, documentId, storagePath, agencyId } = payload;
 
-  log.info('Processing request received', { documentId, agencyId, storagePath });
+  log.info('Processing request received', { job_id, documentId, agencyId, storagePath });
+
+  // Story 11.1: If job_id is provided, this is from pg_cron - process directly
+  // Skip the active job check and FIFO selection since pg_cron already did that
+  const isFromPgCron = !!job_id;
 
   try {
     // Step 0: Mark stale jobs as failed (AC-4.7.5)
@@ -205,30 +211,42 @@ Deno.serve(async (req: Request) => {
       log.info('Marked stale jobs as failed', { count: staleCount });
     }
 
-    // Step 1: Check if agency already has an active processing job (AC-4.7.2)
-    const hasActiveJob = await hasActiveProcessingJob(supabase, agencyId);
-    if (hasActiveJob) {
-      log.info('Agency has active job, skipping', { documentId, agencyId });
-      return new Response(
-        JSON.stringify({ success: true, queued: true, message: 'Job queued, another job is processing' }),
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    let processingDocumentId: string;
+    let processingStoragePath: string | null;
 
-    // Step 2: Get next pending job in FIFO order (AC-4.7.1)
-    const nextJob = await getNextPendingJob(supabase, agencyId);
-    if (!nextJob) {
-      log.info('No pending jobs for agency', { agencyId });
-      return new Response(
-        JSON.stringify({ success: true, message: 'No pending jobs to process' }),
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    if (isFromPgCron) {
+      // Story 11.1: Job already selected by pg_cron - process directly
+      log.info('Processing from pg_cron trigger', { job_id, documentId });
+      processingDocumentId = documentId;
+      processingStoragePath = storagePath;
+    } else {
+      // Legacy flow: Check for active jobs and select next pending
 
-    // Check if the triggered document matches the FIFO order
-    // If not, we'll process the oldest one (FIFO) instead
-    const processingDocumentId = nextJob.document_id;
-    const processingStoragePath = await getDocumentStoragePath(supabase, processingDocumentId);
+      // Step 1: Check if agency already has an active processing job (AC-4.7.2)
+      const hasActiveJob = await hasActiveProcessingJob(supabase, agencyId);
+      if (hasActiveJob) {
+        log.info('Agency has active job, skipping', { documentId, agencyId });
+        return new Response(
+          JSON.stringify({ success: true, queued: true, message: 'Job queued, another job is processing' }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Step 2: Get next pending job in FIFO order (AC-4.7.1)
+      const nextJob = await getNextPendingJob(supabase, agencyId);
+      if (!nextJob) {
+        log.info('No pending jobs for agency', { agencyId });
+        return new Response(
+          JSON.stringify({ success: true, message: 'No pending jobs to process' }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if the triggered document matches the FIFO order
+      // If not, we'll process the oldest one (FIFO) instead
+      processingDocumentId = nextJob.document_id;
+      processingStoragePath = await getDocumentStoragePath(supabase, processingDocumentId);
+    }
 
     if (!processingStoragePath) {
       log.error('Document storage path not found', new Error('Storage path missing'), {
@@ -241,17 +259,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (processingDocumentId !== documentId) {
+    if (!isFromPgCron && processingDocumentId !== documentId) {
       log.info('Processing older queued document (FIFO)', {
         requestedDocumentId: documentId,
         processingDocumentId
       });
     }
 
-    log.info('Processing started', { documentId: processingDocumentId, agencyId });
+    log.info('Processing started', { documentId: processingDocumentId, agencyId, isFromPgCron });
 
-    // Step 3: Update job status to 'processing'
-    await updateJobStatus(supabase, processingDocumentId, 'processing');
+    // Step 3: Update job status to 'processing' (only for legacy flow - pg_cron already did this)
+    if (!isFromPgCron) {
+      await updateJobStatus(supabase, processingDocumentId, 'processing');
+    }
 
     // Story 5.12: Initialize progress reporting
     await updateJobProgress(
@@ -1977,6 +1997,7 @@ function extractDiagnosticInfo(
 /**
  * Update job progress data for real-time UI updates.
  * Story 5.12 (AC-5.12.1 through AC-5.12.4): Progress reporting
+ * Story 11.1 (AC-11.1.4): Also update stage and progress_percent columns directly
  *
  * @param supabase - Supabase client
  * @param documentId - Document being processed
@@ -2015,9 +2036,15 @@ async function updateJobProgress(
     updated_at: new Date().toISOString(),
   };
 
+  // Story 11.1 (AC-11.1.4): Update stage and progress_percent columns directly
+  // in addition to progress_data JSONB for backward compatibility
   const { error } = await supabase
     .from('processing_jobs')
-    .update({ progress_data: progressData })
+    .update({
+      progress_data: progressData,
+      stage: stage,                    // Story 11.1: Direct column update
+      progress_percent: totalProgress, // Story 11.1: Direct column update
+    })
     .eq('document_id', documentId);
 
   if (error) {

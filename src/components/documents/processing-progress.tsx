@@ -1,20 +1,24 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { Check, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ProgressData } from '@/hooks/use-processing-progress';
+import type { ProgressData, QueueInfo, JobMetadata } from '@/hooks/use-processing-progress';
+import { Button } from '@/components/ui/button';
 
 /**
  * Story 5.12: Stage configuration for step indicator
  * Per UX Design (Party Mode 2025-12-02):
  * - User-friendly labels: Load, Read, Prep, Index
  * - Technical names mapped to display text
+ * Story 11.2: Added 'queued' and 'analyzing' stages
  */
 const STAGES = [
+  { key: 'queued', label: 'Queue', display: 'Waiting in queue...' },
   { key: 'downloading', label: 'Load', display: 'Loading file...' },
   { key: 'parsing', label: 'Read', display: 'Reading document...' },
   { key: 'chunking', label: 'Prep', display: 'Preparing content...' },
   { key: 'embedding', label: 'Index', display: 'Indexing for search...' },
+  { key: 'analyzing', label: 'AI', display: 'Analyzing with AI...' },
 ] as const;
 
 type StageKey = (typeof STAGES)[number]['key'];
@@ -22,8 +26,39 @@ type StageKey = (typeof STAGES)[number]['key'];
 interface ProcessingProgressProps {
   /** Current progress data from processing_jobs */
   progressData: ProgressData | null;
+  /** Story 11.2: Job metadata for elapsed time */
+  jobMetadata?: JobMetadata | null;
+  /** Story 11.2: Queue info for pending jobs */
+  queueInfo?: QueueInfo | null;
+  /** Story 11.2: Error message for failed jobs */
+  errorMessage?: string | null;
+  /** Story 11.2: Callback to retry failed job */
+  onRetry?: () => void;
   /** Optional additional CSS classes */
   className?: string;
+}
+
+/**
+ * Story 11.2: Format elapsed time since job started
+ */
+function formatElapsedTime(startedAt: string | null, createdAt: string): string {
+  const startTime = startedAt ? new Date(startedAt) : new Date(createdAt);
+  const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
+
+  if (elapsed < 60) return `${elapsed}s`;
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  return `${mins}m ${secs}s`;
+}
+
+/**
+ * Story 11.2: Format estimated wait time
+ */
+function formatWaitTime(seconds: number | null): string | null {
+  if (seconds === null || seconds <= 0) return null;
+  if (seconds < 60) return '<1 min';
+  const mins = Math.ceil(seconds / 60);
+  return `~${mins} min`;
 }
 
 /**
@@ -97,14 +132,67 @@ function buildAriaLabel(
  */
 export function ProcessingProgress({
   progressData,
+  jobMetadata,
+  queueInfo,
+  errorMessage,
+  onRetry,
   className,
 }: ProcessingProgressProps) {
+  // Story 11.2: Handle failed state with error message
+  if (jobMetadata?.status === 'failed') {
+    return (
+      <div
+        className={cn('flex flex-col gap-2', className)}
+        data-testid="processing-progress-bar"
+        role="region"
+        aria-label="Document processing failed"
+      >
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-sm font-medium" data-testid="error-message">
+            {errorMessage || 'Processing failed'}
+          </span>
+        </div>
+        {onRetry && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="w-fit"
+            data-testid="retry-button"
+          >
+            <RefreshCw className="mr-1 h-3 w-3" />
+            Retry
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Story 11.2: Handle completed state
+  if (progressData?.stage === 'completed' || jobMetadata?.status === 'completed') {
+    return (
+      <div
+        className={cn('flex items-center gap-2', className)}
+        data-testid="processing-progress-bar"
+        role="region"
+        aria-label="Document processing complete"
+      >
+        <div className="flex items-center gap-1.5 text-emerald-600">
+          <Check className="h-4 w-4" strokeWidth={3} data-testid="success-indicator" />
+          <span className="text-sm font-medium">Complete!</span>
+        </div>
+      </div>
+    );
+  }
+
   // If no progress data, show fallback
   if (!progressData) {
     return (
       <div
         className={cn('flex items-center gap-2', className)}
         aria-label="Document processing in progress"
+        data-testid="processing-progress-bar"
       >
         <div className="relative overflow-hidden rounded-md bg-slate-100 px-2 py-1">
           <span className="relative z-10 text-xs font-medium text-slate-600">
@@ -116,10 +204,19 @@ export function ProcessingProgress({
     );
   }
 
-  const { stage, stage_progress, estimated_seconds_remaining } = progressData;
+  const { stage, stage_progress, total_progress, estimated_seconds_remaining } = progressData;
   const currentStageIndex = STAGES.findIndex((s) => s.key === stage);
   const currentStage =
     currentStageIndex >= 0 ? STAGES[currentStageIndex] : undefined;
+
+  // Story 11.2: Calculate elapsed time
+  const elapsedTime = jobMetadata
+    ? formatElapsedTime(jobMetadata.startedAt, jobMetadata.createdAt)
+    : null;
+
+  // Story 11.2: Queue position display
+  const isQueued = stage === 'queued' || jobMetadata?.status === 'pending';
+  const waitTimeDisplay = queueInfo ? formatWaitTime(queueInfo.estimatedWaitSeconds) : null;
 
   const ariaLabel = buildAriaLabel(
     currentStageIndex,
@@ -134,9 +231,19 @@ export function ProcessingProgress({
       role="region"
       aria-label={ariaLabel}
       aria-live="polite"
+      data-testid="processing-progress-bar"
     >
+      {/* Story 11.2: Queue position indicator */}
+      {isQueued && queueInfo && (
+        <div className="flex items-center gap-1.5 text-xs text-amber-600" data-testid="queue-position">
+          <Clock className="h-3 w-3" />
+          <span>Position {queueInfo.position} of {queueInfo.totalPending}</span>
+          {waitTimeDisplay && <span className="text-slate-400">| Est. wait: {waitTimeDisplay}</span>}
+        </div>
+      )}
+
       {/* Step Indicator Row */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5" data-testid="stage-timeline">
         {STAGES.map((s, index) => {
           const isCompleted = index < currentStageIndex;
           const isActive = index === currentStageIndex;
@@ -183,7 +290,7 @@ export function ProcessingProgress({
         })}
 
         {/* Mobile: inline stage text after dots */}
-        <span className="ml-2 truncate text-xs text-slate-600 sm:hidden">
+        <span className="ml-2 truncate text-xs text-slate-600 sm:hidden" data-testid="progress-stage">
           {currentStage?.display || 'Processing...'}
         </span>
       </div>
@@ -208,37 +315,43 @@ export function ProcessingProgress({
       </div>
 
       {/* Desktop: Current stage display text */}
-      <span className="hidden text-xs font-medium text-slate-600 sm:block">
+      <span className="hidden text-xs font-medium text-slate-600 sm:block" data-testid="progress-stage">
         {currentStage?.display || 'Processing...'}
       </span>
 
       {/* Progress bar row */}
       <div className="flex items-center gap-2">
         <div
-          className="h-1 w-20 overflow-hidden rounded-full bg-slate-100"
+          className="h-1 flex-1 max-w-[120px] overflow-hidden rounded-full bg-slate-100"
           role="progressbar"
-          aria-valuenow={stage_progress}
+          aria-valuenow={total_progress}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`Stage progress: ${stage_progress} percent`}
+          aria-label={`Total progress: ${total_progress} percent`}
         >
           <div
             className="h-full bg-slate-600 transition-all duration-300 ease-out"
-            style={{ width: `${stage_progress}%` }}
+            style={{ width: `${total_progress}%` }}
+            data-testid="progress-bar-fill"
           />
         </div>
-        <span className="min-w-[2rem] text-xs tabular-nums text-slate-500">
-          {stage_progress}%
+        <span className="min-w-[2rem] text-xs tabular-nums text-slate-500" data-testid="progress-percentage">
+          {total_progress}%
         </span>
       </div>
 
-      {/* Time remaining (ranges per UX decision) */}
-      {estimated_seconds_remaining !== null &&
-        estimated_seconds_remaining > 0 && (
-          <span className="text-[11px] text-slate-400">
-            ~{formatTimeRemainingRange(estimated_seconds_remaining)} remaining
-          </span>
+      {/* Story 11.2: Elapsed time and time remaining */}
+      <div className="flex items-center gap-2 text-[11px] text-slate-400">
+        {elapsedTime && !isQueued && (
+          <span data-testid="progress-elapsed">Elapsed: {elapsedTime}</span>
         )}
+        {elapsedTime && !isQueued && estimated_seconds_remaining !== null && estimated_seconds_remaining > 0 && (
+          <span>|</span>
+        )}
+        {estimated_seconds_remaining !== null && estimated_seconds_remaining > 0 && (
+          <span>~{formatTimeRemainingRange(estimated_seconds_remaining)} remaining</span>
+        )}
+      </div>
     </div>
   );
 }
