@@ -1,0 +1,145 @@
+<story-context id="11-3-reliable-job-recovery" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>3</storyId>
+    <title>Reliable Job Recovery</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-11.3-reliable-job-recovery.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user who uploaded a document that failed to process</asA>
+    <iWant>the system to automatically retry processing or let me manually retry</iWant>
+    <soThat>temporary failures don't require me to re-upload the document</soThat>
+    <tasks>
+      <task id="1" ac="11.3.1">Stuck Job Detector - pg_cron job every 5 minutes, detect stuck jobs > 10 min, reset to pending</task>
+      <task id="2" ac="11.3.2">Retry Limits - Check retry_count, mark failed after 3 attempts</task>
+      <task id="3" ac="11.3.3">Manual Retry API - POST /api/documents/[id]/retry endpoint</task>
+      <task id="4" ac="11.3.3">Retry Button UI - Add to failed document display with loading state</task>
+      <task id="5" ac="11.3.4">Error Classification - Define transient/recoverable/permanent categories</task>
+      <task id="6" ac="11.3.5">Logging - Structured logs for job state changes</task>
+      <task id="7" ac="all">E2E Testing - Document fail/retry flow, stuck job recovery</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="11.3.1" title="Stuck Job Detection">
+      <item>pg_cron job runs every 5 minutes to detect stuck jobs</item>
+      <item>Jobs in 'processing' status for > 10 minutes are considered stuck</item>
+      <item>Stuck jobs reset to 'pending' for automatic retry</item>
+      <item>retry_count incremented on each retry</item>
+    </criterion>
+    <criterion id="11.3.2" title="Retry Limits">
+      <item>Maximum 3 retry attempts per document</item>
+      <item>After 3 failures, job marked as 'failed' permanently</item>
+      <item>error_message set to describe the failure</item>
+      <item>Log all retry attempts for debugging</item>
+    </criterion>
+    <criterion id="11.3.3" title="Manual Retry">
+      <item>"Retry" button shown for failed documents in UI</item>
+      <item>Clicking retry creates new processing_job with retry_count from previous</item>
+      <item>Admin can retry any failed document in their agency</item>
+      <item>Retry resets document status to 'processing'</item>
+    </criterion>
+    <criterion id="11.3.4" title="Error Classification">
+      <item>Classify errors as transient, recoverable, or permanent</item>
+      <item>Transient errors: Auto-retry with exponential backoff</item>
+      <item>Recoverable errors: Clear message with suggested action</item>
+      <item>Permanent errors: "Contact support" with error ID</item>
+    </criterion>
+    <criterion id="11.3.5" title="Logging and Monitoring">
+      <item>Log all retry attempts with reason</item>
+      <item>Log job pickup and completion times</item>
+      <item>Error logs include document ID and job ID for debugging</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/epics/epic-11-processing-reliability-enhanced-progress.md" title="Epic 11" section="Story 11.3 ACs" snippet="Defines recovery logic: stuck detection > 10 min, max 3 retries, dead letter queue pattern for persistent failures." />
+      <doc path="docs/architecture/consistency-rules.md" title="Consistency Rules" section="Error Handling" snippet="Use custom error classes with code property. API routes catch errors, return { data, error: { code, message } } format." />
+      <doc path="docs/architecture/consistency-rules.md" title="Consistency Rules" section="Logging Strategy" snippet="Use structured JSON logging with level, message, timestamp. Include contextual data like documentId, agencyId." />
+      <doc path="docs/sprint-artifacts/story-11.2-enhanced-progress-bar-ui.md" title="Story 11.2" section="Dev Notes" snippet="ProcessingProgress component accepts onRetry callback. Failed state renders AlertCircle + error message + retry button placeholder." />
+      <doc path="docs/sprint-artifacts/story-11.1-async-processing-architecture.md" title="Story 11.1" section="Schema" snippet="processing_jobs table with status, stage, progress_percent, retry_count, error_message columns. pg_cron + pg_net enabled." />
+    </docs>
+    <code>
+      <file path="src/components/documents/processing-progress.tsx" kind="component" symbol="ProcessingProgress" reason="Has onRetry prop and failed state UI. Story 11.3 wires retry button to API." />
+      <file path="src/hooks/use-processing-progress.ts" kind="hook" symbol="useProcessingProgress" lines="1-100" reason="Exports JobMetadata with retryCount, status. Subscribe to processing_jobs Realtime updates." />
+      <file path="src/lib/documents/service.ts" kind="service" symbol="DocumentService" reason="Document upload creates processing_job. Retry logic may extend this." />
+      <file path="supabase/functions/process-document/index.ts" kind="edge-function" symbol="processDocument" reason="Main processing pipeline. Error classification logic goes here." />
+      <file path="src/app/api/documents/[id]/route.ts" kind="api-route" symbol="GET/PATCH/DELETE" reason="Document API. Add retry endpoint as sibling route." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="next" version="16.0.4" />
+        <package name="react" version="19.2.0" />
+        <package name="zod" version="^4.1.13" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="sonner" version="^2.0.7" />
+      </node>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14" />
+        <package name="@testing-library/react" version="^16.3.0" />
+        <package name="@playwright/test" version="^1.57.0" />
+      </devDependencies>
+      <supabase>
+        <extension name="pg_cron" status="enabled" />
+        <extension name="pg_net" status="enabled" />
+      </supabase>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="POST /api/documents/[id]/retry" kind="REST endpoint">
+      <signature>POST /api/documents/{documentId}/retry -> { success: boolean } | { error: string }</signature>
+      <path>src/app/api/documents/[id]/retry/route.ts (to create)</path>
+    </interface>
+    <interface name="reset_stuck_processing_jobs" kind="SQL function">
+      <signature>CREATE FUNCTION reset_stuck_processing_jobs() RETURNS void</signature>
+      <path>supabase/migrations/XXXXXX_stuck_job_detector.sql (to create)</path>
+    </interface>
+    <interface name="classifyError" kind="function signature">
+      <signature>classifyError(error: Error | string): ClassifiedError</signature>
+      <path>src/lib/documents/error-classification.ts (to create)</path>
+    </interface>
+    <interface name="ProcessingProgress.onRetry" kind="React prop">
+      <signature>onRetry?: () => void</signature>
+      <path>src/components/documents/processing-progress.tsx</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="Epic 11">Jobs stuck > 10 minutes are considered failed and reset</constraint>
+    <constraint source="Epic 11">Maximum 3 retry attempts before permanent failure</constraint>
+    <constraint source="Architecture">Use structured JSON logging with documentId, jobId, agencyId</constraint>
+    <constraint source="Architecture">API errors return { data: null, error: { code, message } } format</constraint>
+    <constraint source="Story 11.1">pg_cron scheduler runs every minute (cannot be more frequent)</constraint>
+    <constraint source="Story 11.2">Reuse existing ProcessingProgress component - don't create new UI</constraint>
+    <constraint source="Security">RLS policies require agency_id match for all processing_jobs operations</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E. Use @testing-library/react for component tests.
+      Mock Supabase client in unit tests. Use data-testid attributes for E2E selectors.
+      Follow existing patterns in __tests__/ directory structure.
+    </standards>
+    <locations>
+      <location>__tests__/lib/documents/error-classification.test.ts</location>
+      <location>__tests__/api/documents/retry.test.ts</location>
+      <location>__tests__/e2e/job-recovery.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="11.3.1">Test stuck job detection: create job stuck > 10 min, verify reset to pending</idea>
+      <idea ac="11.3.2">Test retry limits: 0, 1, 2, 3+ retries, verify failure at max</idea>
+      <idea ac="11.3.3">Test retry API: auth, success path, already processing, document not found</idea>
+      <idea ac="11.3.4">Test classifyError: timeout->transient, corrupt->recoverable, unknown->permanent</idea>
+      <idea ac="11.3.5">Test logging: verify structured output includes documentId, jobId, retry reason</idea>
+      <idea ac="all">E2E: Upload doc, simulate failure, verify retry button, click retry, verify success</idea>
+    </ideas>
+  </tests>
+</story-context>

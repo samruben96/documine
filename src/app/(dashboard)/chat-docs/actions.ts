@@ -366,8 +366,13 @@ export async function createDocumentFromUpload(input: {
 /**
  * Retry Document Processing Server Action
  *
- * Retries processing for a failed document by creating a new processing job.
+ * Retries processing for a failed document by resetting the existing failed job.
  * Validates document is in 'failed' status before allowing retry.
+ *
+ * Story 11.3 (AC-11.3.3): Manual retry for failed documents
+ * - Preserves retry_count from previous attempts
+ * - Resets existing failed job instead of creating new one
+ * - Sets status back to 'pending' for pg_cron to pick up
  *
  * Implements AC-4.7.6: Retry Mechanism
  */
@@ -402,11 +407,47 @@ export async function retryDocumentProcessing(documentId: string): Promise<{
       };
     }
 
+    // Story 11.3: Get existing failed job to reset it (preserves retry_count)
+    const { data: existingJob, error: jobError } = await supabase
+      .from('processing_jobs')
+      .select('id, retry_count')
+      .eq('document_id', documentId)
+      .eq('status', 'failed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (jobError) {
+      console.error('Failed to fetch existing job:', jobError);
+      return { success: false, error: 'Failed to check job status' };
+    }
+
+    if (existingJob) {
+      // Reset the existing failed job (preserves retry_count history)
+      const { error: resetError } = await supabase
+        .from('processing_jobs')
+        .update({
+          status: 'pending',
+          stage: 'queued',
+          progress_percent: 0,
+          error_message: null,
+          started_at: null,
+          completed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingJob.id);
+
+      if (resetError) {
+        console.error('Failed to reset job:', resetError);
+        return { success: false, error: 'Failed to reset processing job' };
+      }
+    } else {
+      // No existing job - create new one
+      await createProcessingJob(documentId);
+    }
+
     // Update document status back to processing
     await updateDocumentStatus(supabase, documentId, 'processing');
-
-    // Create new processing job (this triggers the Edge Function via database hook)
-    await createProcessingJob(documentId);
 
     // Revalidate documents page
     revalidatePath('/documents');

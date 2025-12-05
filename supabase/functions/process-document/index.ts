@@ -57,6 +57,58 @@ const USER_FRIENDLY_ERRORS: Record<string, string> = {
     'This file format is not supported. Please upload a PDF, DOCX, or image file.',
 };
 
+// Story 11.3 (AC-11.3.4): Error classification
+// PERMANENT errors should NOT be auto-retried (user action required)
+// TRANSIENT errors can be auto-retried by stuck job detector
+type ErrorType = 'permanent' | 'transient';
+
+/**
+ * Patterns indicating permanent errors (document issues, not infrastructure)
+ * These should NOT be auto-retried since re-processing won't help
+ */
+const PERMANENT_ERROR_PATTERNS = [
+  // PDF format issues
+  'page-dimensions',
+  'mediabox',
+  'libpdfium',
+  'invalid pdf',
+  'corrupt',
+  'corrupted',
+  'malformed',
+  'damaged',
+  // Unsupported formats
+  'unsupported format',
+  'not supported',
+  'file format',
+  'invalid file',
+  // Content issues
+  'empty document',
+  'no content',
+  'password protected',
+  'encrypted',
+  // Permanent service errors
+  '400 bad request',
+  '422',
+  '415 unsupported',
+] as const;
+
+/**
+ * Classify an error as permanent or transient
+ * Story 11.3 (AC-11.3.4): Error classification for smart retry behavior
+ */
+function classifyError(errorMessage: string): ErrorType {
+  const lowerMessage = errorMessage.toLowerCase();
+
+  for (const pattern of PERMANENT_ERROR_PATTERNS) {
+    if (lowerMessage.includes(pattern.toLowerCase())) {
+      return 'permanent';
+    }
+  }
+
+  // Default to transient (infrastructure issues, timeouts, etc. can be retried)
+  return 'transient';
+}
+
 // Story 5.12: Progress reporting configuration
 // Story 10.12: Updated weights to include 'analyzing' stage for quote extraction
 // Stage weights for total_progress calculation:
@@ -470,12 +522,21 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    log.error('Processing failed', err, { documentId, step: 'unknown' });
+    const errorType = classifyError(err.message);
 
-    // Update document and job status to failed
+    // Story 11.3 (AC-11.3.5): Structured logging with error classification
+    log.error('Processing failed', err, {
+      documentId,
+      agencyId,
+      errorType,
+      isRetryable: errorType === 'transient',
+      step: 'unknown',
+    });
+
+    // Update document and job status to failed with error classification
     try {
       await updateDocumentStatus(supabase, documentId, 'failed');
-      await updateJobStatus(supabase, documentId, 'failed', err.message);
+      await updateJobStatus(supabase, documentId, 'failed', err.message, errorType);
     } catch (updateError) {
       log.error('Failed to update failure status', updateError as Error, { documentId });
     }
@@ -491,7 +552,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: err.message, errorType }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -1236,7 +1297,8 @@ async function updateJobStatus(
   supabase: ReturnType<typeof createClient>,
   documentId: string,
   status: 'pending' | 'processing' | 'completed' | 'failed',
-  errorMessage?: string
+  errorMessage?: string,
+  errorType?: ErrorType
 ): Promise<void> {
   const updateData: Record<string, unknown> = { status };
 
@@ -1248,6 +1310,11 @@ async function updateJobStatus(
 
   if (errorMessage) {
     updateData.error_message = errorMessage;
+  }
+
+  // Story 11.3 (AC-11.3.4): Set error_type for classification
+  if (status === 'failed' && errorMessage) {
+    updateData.error_type = errorType || classifyError(errorMessage);
   }
 
   const { error } = await supabase

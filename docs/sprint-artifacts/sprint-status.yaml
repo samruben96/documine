@@ -726,7 +726,8 @@ development_status:
   # Stuck job detection, automatic retry, max retries, manual retry
   # Priority: P1 - reliability
   # DRAFTED 2025-12-04: Story file at docs/sprint-artifacts/story-11.3-reliable-job-recovery.md
-  11-3-reliable-job-recovery: drafted
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/11-3-reliable-job-recovery.context.xml
+  11-3-reliable-job-recovery: done
   # Story 11.4: Processing Queue Visualization (2 pts)
   # Queue position, estimated wait time, queue summary
   # Priority: P1 - user visibility
