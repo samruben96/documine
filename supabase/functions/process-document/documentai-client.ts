@@ -522,6 +522,16 @@ export function classifyDocumentAIError(error: Error | string): DocumentAIConnec
     };
   }
 
+  // Page limit exceeded (Document AI has a 30-page limit in imageless mode)
+  if (/page.*limit.*exceeded|pages.*exceed/i.test(lowerMessage)) {
+    return {
+      code: 'INVALID_DOCUMENT',
+      message: errorMessage,
+      userMessage: 'Document exceeds 30-page limit.',
+      suggestedAction: 'Split the document into smaller parts (30 pages max each).',
+    };
+  }
+
   // Invalid document
   if (/invalid.*document|unsupported|cannot process/i.test(lowerMessage)) {
     return {
@@ -550,6 +560,16 @@ const log = {
     console.log(
       JSON.stringify({
         level: 'info',
+        message,
+        ...data,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  },
+  warn: (message: string, data?: Record<string, unknown>): void => {
+    console.warn(
+      JSON.stringify({
+        level: 'warn',
         message,
         ...data,
         timestamp: new Date().toISOString(),
@@ -635,9 +655,11 @@ export async function parseDocumentWithDocumentAI(
   const startTime = Date.now();
 
   // Get configuration and auth token
+  log.info('Getting Document AI config and token');
   const config = getDocumentAIConfig();
   const serviceAccount = getServiceAccountKey();
   const accessToken = await getAccessToken(serviceAccount);
+  log.info('Got access token', { tokenLength: accessToken.length, projectId: config.projectId, processorId: config.processorId });
 
   // Build API endpoint
   const endpoint = `https://${config.location}-documentai.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/processors/${config.processorId}:process`;
@@ -645,8 +667,11 @@ export async function parseDocumentWithDocumentAI(
   // Encode PDF to base64 (AC-12.2.2)
   const base64Content = encodeToBase64(pdfBuffer);
 
-  // Construct request body
+  // Construct request body with imagelessMode to enable 30-page limit
+  // See: https://cloud.google.com/document-ai/docs/reference/rest/v1/projects.locations.processors/process
   const requestBody = {
+    // Enable imageless mode to increase page limit from 15 to 30 pages
+    imagelessMode: true,
     rawDocument: {
       content: base64Content,
       mimeType: 'application/pdf',
@@ -656,6 +681,13 @@ export async function parseDocumentWithDocumentAI(
   // Create AbortController with 60s timeout (AC-12.2.4)
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DOCUMENT_AI_TIMEOUT_MS);
+
+  // Log request details for debugging
+  log.info('Calling Document AI API', {
+    endpoint: endpoint.substring(0, 100), // Truncate for logging
+    contentLength: base64Content.length,
+    pdfSizeBytes: pdfBuffer.byteLength,
+  });
 
   try {
     const response = await fetch(endpoint, {
@@ -674,6 +706,13 @@ export async function parseDocumentWithDocumentAI(
     if (!response.ok) {
       const errorText = await response.text();
       let errorMessage = `Document AI API error: ${response.status}`;
+
+      // Log full error response for debugging
+      log.error('Document AI API error response', new Error(errorText), {
+        status: response.status,
+        statusText: response.statusText,
+        responseBody: errorText.substring(0, 1000), // Truncate for logging
+      });
 
       try {
         const errorJson = JSON.parse(errorText);
@@ -706,8 +745,17 @@ export async function parseDocumentWithDocumentAI(
     // Clear timeout on error
     clearTimeout(timeoutId);
 
+    const err = error instanceof Error ? error : new Error(String(error));
+
+    // Log catch block error for debugging
+    log.error('Document AI fetch error', err, {
+      errorName: err.name,
+      errorType: typeof error,
+      isAbortError: err.name === 'AbortError',
+    });
+
     // Handle abort/timeout error (AC-12.2.4)
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (err.name === 'AbortError') {
       throw new Error(`Document AI request timed out after ${DOCUMENT_AI_TIMEOUT_MS / 1000} seconds`);
     }
 
@@ -736,6 +784,14 @@ export async function parseDocumentWithRetry(
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       errors.push(err);
+
+      // Log raw error BEFORE classification for debugging
+      log.error('Document AI raw error', err, {
+        attempt: attempt + 1,
+        maxRetries,
+        errorName: err.name,
+        httpStatus: (err as Error & { status?: number }).status,
+      });
 
       // Classify the error
       const classified = classifyDocumentAIError(err);
@@ -770,6 +826,533 @@ export async function parseDocumentWithRetry(
 
   // Should never reach here, but TypeScript needs this
   throw new Error('Unexpected: retry loop completed without return or throw');
+}
+
+// ============================================================================
+// Story 12.6: Batch Processing for Large Documents
+// ============================================================================
+
+/** Threshold for batch processing - documents with more pages use batch mode */
+export const BATCH_PROCESSING_PAGE_THRESHOLD = 15;
+
+/** GCS bucket name for batch processing (from environment) */
+export function getGcsBucketName(): string {
+  const bucket = Deno.env.get('GCS_BUCKET_NAME');
+  if (!bucket) {
+    throw new Error(
+      'GCS_BUCKET_NAME not configured. Set bucket name as Edge Function secret.'
+    );
+  }
+  return bucket;
+}
+
+/**
+ * Processing mode for Document AI
+ * - 'online': Synchronous processing via process endpoint (≤15 pages)
+ * - 'batch': Asynchronous processing via batchProcess endpoint (>15 pages)
+ */
+export type ProcessingMode = 'online' | 'batch';
+
+/**
+ * Get page count from a PDF buffer.
+ * Uses PDF structure parsing to find /Count in the catalog.
+ * AC-12.6.1: Page count detection before processing
+ *
+ * @param pdfBuffer - PDF document as Uint8Array
+ * @returns Number of pages in the PDF, or null if detection fails
+ */
+export function getPageCount(pdfBuffer: Uint8Array): number | null {
+  try {
+    // Convert buffer to string for regex searching
+    // PDF structure is ASCII-based, so this is safe
+    const decoder = new TextDecoder('latin1');
+    const pdfContent = decoder.decode(pdfBuffer);
+
+    // Method 1: Look for /Type /Pages followed by /Count N
+    // This is the standard way PDFs store page count in the catalog
+    const pagesPattern = /\/Type\s*\/Pages[^>]*\/Count\s+(\d+)/;
+    const pagesMatch = pdfContent.match(pagesPattern);
+    if (pagesMatch && pagesMatch[1]) {
+      const count = parseInt(pagesMatch[1], 10);
+      if (count > 0 && count < 10000) { // Sanity check
+        log.info('Page count detected via /Pages /Count', { pageCount: count });
+        return count;
+      }
+    }
+
+    // Method 2: Look for /Count directly (some PDFs have different structure)
+    const countPattern = /\/Count\s+(\d+)/g;
+    let maxCount = 0;
+    let match;
+    while ((match = countPattern.exec(pdfContent)) !== null) {
+      const count = parseInt(match[1], 10);
+      if (count > maxCount && count < 10000) {
+        maxCount = count;
+      }
+    }
+    if (maxCount > 0) {
+      log.info('Page count detected via /Count', { pageCount: maxCount });
+      return maxCount;
+    }
+
+    // Method 3: Count /Type /Page occurrences (individual page objects)
+    // Note: This is slower but more reliable for malformed PDFs
+    const pageObjPattern = /\/Type\s*\/Page(?!\s*s)/g;
+    const pageMatches = pdfContent.match(pageObjPattern);
+    if (pageMatches && pageMatches.length > 0) {
+      log.info('Page count detected via /Type /Page objects', { pageCount: pageMatches.length });
+      return pageMatches.length;
+    }
+
+    log.warn('Could not detect page count from PDF structure');
+    return null;
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    log.warn('Page count detection failed', { error: err.message });
+    return null;
+  }
+}
+
+/**
+ * Determine processing mode based on page count.
+ * AC-12.6.2: Documents ≤15 pages use online processing
+ * AC-12.6.3: Documents >15 pages use batch processing
+ *
+ * @param pageCount - Number of pages (null defaults to batch for safety)
+ * @returns 'online' or 'batch'
+ */
+export function selectProcessingMode(pageCount: number | null): ProcessingMode {
+  // If page count unknown, default to batch (safer for large docs)
+  if (pageCount === null) {
+    log.info('Page count unknown, defaulting to batch processing');
+    return 'batch';
+  }
+
+  // Threshold: 15 pages (Document AI imagelessMode limit)
+  if (pageCount <= BATCH_PROCESSING_PAGE_THRESHOLD) {
+    log.info('Using online processing', { pageCount, threshold: BATCH_PROCESSING_PAGE_THRESHOLD });
+    return 'online';
+  }
+
+  log.info('Using batch processing', { pageCount, threshold: BATCH_PROCESSING_PAGE_THRESHOLD });
+  return 'batch';
+}
+
+// ============================================================================
+// Story 12.6: GCS Operations for Batch Processing
+// ============================================================================
+
+/**
+ * Upload a PDF to Google Cloud Storage.
+ * AC-12.6.4: Batch processing uploads PDF to GCS bucket
+ *
+ * @param bucket - GCS bucket name
+ * @param objectPath - Path within bucket (e.g., "{documentId}/input.pdf")
+ * @param pdfBuffer - PDF content
+ * @param accessToken - GCP access token
+ * @returns GCS URI (gs://bucket/path)
+ */
+export async function uploadToGCS(
+  bucket: string,
+  objectPath: string,
+  pdfBuffer: Uint8Array,
+  accessToken: string
+): Promise<string> {
+  const encodedPath = encodeURIComponent(objectPath);
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
+
+  log.info('Uploading to GCS', {
+    bucket,
+    objectPath,
+    sizeBytes: pdfBuffer.byteLength,
+  });
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/pdf',
+    },
+    body: pdfBuffer,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`GCS upload failed: ${response.status} - ${errorText}`);
+  }
+
+  const gcsUri = `gs://${bucket}/${objectPath}`;
+  log.info('GCS upload complete', { gcsUri });
+  return gcsUri;
+}
+
+/**
+ * Download a file from Google Cloud Storage.
+ * AC-12.6.6: Batch processing downloads results from GCS
+ *
+ * @param bucket - GCS bucket name
+ * @param objectPath - Path within bucket
+ * @param accessToken - GCP access token
+ * @returns File content as string (for JSON results)
+ */
+export async function downloadFromGCS(
+  bucket: string,
+  objectPath: string,
+  accessToken: string
+): Promise<string> {
+  const encodedPath = encodeURIComponent(objectPath);
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodedPath}?alt=media`;
+
+  log.info('Downloading from GCS', { bucket, objectPath });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`GCS download failed: ${response.status} - ${errorText}`);
+  }
+
+  const content = await response.text();
+  log.info('GCS download complete', { contentLength: content.length });
+  return content;
+}
+
+/**
+ * Delete a file from Google Cloud Storage.
+ * Cleanup after batch processing.
+ *
+ * @param bucket - GCS bucket name
+ * @param objectPath - Path within bucket
+ * @param accessToken - GCP access token
+ */
+export async function deleteFromGCS(
+  bucket: string,
+  objectPath: string,
+  accessToken: string
+): Promise<void> {
+  const encodedPath = encodeURIComponent(objectPath);
+  const url = `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodedPath}`;
+
+  log.info('Deleting from GCS', { bucket, objectPath });
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  // 404 is acceptable - file may already be deleted by lifecycle rule
+  if (!response.ok && response.status !== 404) {
+    const errorText = await response.text();
+    log.warn('GCS delete failed (non-blocking)', { status: response.status, error: errorText });
+  } else {
+    log.info('GCS delete complete');
+  }
+}
+
+/**
+ * List objects in a GCS bucket with a prefix.
+ * Used to find actual output files from batch processing.
+ */
+export async function listGCSObjects(
+  bucket: string,
+  prefix: string,
+  accessToken: string
+): Promise<string[]> {
+  const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o?prefix=${encodeURIComponent(prefix)}`;
+
+  log.info('Listing GCS objects', { bucket, prefix });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`GCS list failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const items = result.items || [];
+  const objectNames = items.map((item: { name: string }) => item.name);
+
+  log.info('GCS list complete', { count: objectNames.length, objects: objectNames });
+  return objectNames;
+}
+
+// ============================================================================
+// Story 12.6: Batch Processing API
+// ============================================================================
+
+/**
+ * Batch operation result from Document AI.
+ */
+export interface BatchOperationResult {
+  individualProcessStatuses: Array<{
+    inputGcsSource: string;
+    status: { code?: number; message?: string };
+    outputGcsDestination: string;
+  }>;
+}
+
+/** Polling configuration for batch operations */
+const BATCH_POLL_INTERVAL_MS = 5000; // 5 seconds
+const BATCH_MAX_ATTEMPTS = 60; // 5 minutes total
+
+/**
+ * Initiate batch processing via Document AI.
+ * AC-12.6.3: Documents >15 pages use batch processing
+ *
+ * @param inputGcsUri - GCS URI of input PDF
+ * @param outputGcsUri - GCS URI prefix for output
+ * @param accessToken - GCP access token
+ * @returns Operation name for polling
+ */
+export async function batchProcessDocument(
+  inputGcsUri: string,
+  outputGcsUri: string,
+  accessToken: string
+): Promise<string> {
+  const config = getDocumentAIConfig();
+  const endpoint = `https://${config.location}-documentai.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/processors/${config.processorId}:batchProcess`;
+
+  const requestBody = {
+    inputDocuments: {
+      gcsDocuments: {
+        documents: [{ gcsUri: inputGcsUri, mimeType: 'application/pdf' }]
+      }
+    },
+    documentOutputConfig: {
+      gcsOutputConfig: { gcsUri: outputGcsUri }
+    }
+  };
+
+  log.info('Initiating batch processing', {
+    inputGcsUri,
+    outputGcsUri,
+    endpoint: endpoint.substring(0, 100),
+  });
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Batch process initiation failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const operationName = result.name;
+
+  log.info('Batch processing initiated', { operationName });
+  return operationName;
+}
+
+/**
+ * Poll for batch operation completion.
+ * AC-12.6.5: Batch processing polls for completion (max 5 minutes)
+ *
+ * @param operationName - Operation name from batchProcessDocument
+ * @param accessToken - GCP access token
+ * @param onProgress - Optional callback for progress updates
+ * @returns Batch operation result with output location
+ */
+export async function pollBatchOperation(
+  operationName: string,
+  accessToken: string,
+  onProgress?: (attempt: number, maxAttempts: number) => Promise<void>
+): Promise<BatchOperationResult> {
+  for (let attempt = 1; attempt <= BATCH_MAX_ATTEMPTS; attempt++) {
+    // Use the correct endpoint - operationName includes the full path
+    const url = `https://documentai.googleapis.com/v1/${operationName}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Batch operation poll failed: ${response.status} - ${errorText}`);
+    }
+
+    const operation = await response.json();
+
+    // Report progress
+    if (onProgress) {
+      await onProgress(attempt, BATCH_MAX_ATTEMPTS);
+    }
+
+    if (operation.done) {
+      // Check for error
+      if (operation.error) {
+        throw new Error(`Batch processing failed: ${operation.error.message || JSON.stringify(operation.error)}`);
+      }
+
+      // Extract result from metadata (NOT response - Google's API puts results in metadata)
+      // The response field only contains @type, actual data is in metadata.individualProcessStatuses
+      const result = operation.metadata as BatchOperationResult;
+
+      log.info('Batch processing completed', {
+        operationName,
+        attemptCount: attempt,
+        state: (operation.metadata as Record<string, unknown>)?.state,
+        outputCount: result.individualProcessStatuses?.length || 0,
+        firstStatus: result.individualProcessStatuses?.[0] ? JSON.stringify(result.individualProcessStatuses[0]).substring(0, 500) : 'none',
+      });
+
+      // Check individual status
+      if (result.individualProcessStatuses?.[0]?.status?.code && result.individualProcessStatuses[0].status.code !== 0) {
+        throw new Error(`Batch item failed: ${result.individualProcessStatuses[0].status.message}`);
+      }
+
+      return result;
+    }
+
+    log.info('Batch processing in progress', {
+      operationName,
+      attempt,
+      maxAttempts: BATCH_MAX_ATTEMPTS,
+    });
+
+    await sleep(BATCH_POLL_INTERVAL_MS);
+  }
+
+  throw new Error(`Batch processing timed out after ${BATCH_MAX_ATTEMPTS * BATCH_POLL_INTERVAL_MS / 1000} seconds`);
+}
+
+/**
+ * Parse a large document using batch processing.
+ * Combines upload, process, poll, download, and cleanup.
+ *
+ * @param pdfBuffer - PDF document
+ * @param documentId - Document ID for GCS path
+ * @param onProgress - Progress callback
+ * @returns Document AI response
+ */
+export async function parseLargeDocumentWithBatch(
+  pdfBuffer: Uint8Array,
+  documentId: string,
+  onProgress?: (stage: 'uploading' | 'processing' | 'downloading', progress: number) => Promise<void>
+): Promise<DocumentAIProcessResponse> {
+  const startTime = Date.now();
+
+  // Get configuration and auth
+  const bucket = getGcsBucketName();
+  const serviceAccount = getServiceAccountKey();
+  const accessToken = await getAccessToken(serviceAccount);
+
+  // GCS paths
+  const inputPath = `${documentId}/input.pdf`;
+  const outputPath = `${documentId}/output/`;
+  const inputGcsUri = `gs://${bucket}/${inputPath}`;
+  const outputGcsUri = `gs://${bucket}/${outputPath}`;
+
+  try {
+    // Step 1: Upload to GCS
+    if (onProgress) await onProgress('uploading', 0);
+    await uploadToGCS(bucket, inputPath, pdfBuffer, accessToken);
+    if (onProgress) await onProgress('uploading', 100);
+
+    // Step 2: Initiate batch processing
+    if (onProgress) await onProgress('processing', 0);
+    const operationName = await batchProcessDocument(inputGcsUri, outputGcsUri, accessToken);
+
+    // Step 3: Poll for completion with progress
+    const result = await pollBatchOperation(
+      operationName,
+      accessToken,
+      async (attempt, maxAttempts) => {
+        if (onProgress) {
+          const progress = Math.round((attempt / maxAttempts) * 100);
+          await onProgress('processing', progress);
+        }
+      }
+    );
+
+    // Step 4: Download result
+    if (onProgress) await onProgress('downloading', 0);
+
+    // Extract output path from result
+    const outputGcsDestination = result.individualProcessStatuses?.[0]?.outputGcsDestination;
+    if (!outputGcsDestination) {
+      throw new Error('No output destination in batch result');
+    }
+
+    log.info('Batch output destination', { outputGcsDestination });
+
+    // Parse GCS URI to get bucket and object path
+    // Format: gs://bucket/path/
+    const gcsMatch = outputGcsDestination.match(/^gs:\/\/([^/]+)\/(.+)$/);
+    if (!gcsMatch) {
+      throw new Error(`Invalid GCS output URI: ${outputGcsDestination}`);
+    }
+
+    const outputBucket = gcsMatch[1];
+    const outputPrefix = gcsMatch[2];
+
+    // List objects to find the actual output file
+    // Document AI output naming varies: could be 0, 0.json, output-0.json, etc.
+    const outputObjects = await listGCSObjects(outputBucket, outputPrefix, accessToken);
+
+    if (outputObjects.length === 0) {
+      throw new Error(`No output files found at ${outputGcsDestination}`);
+    }
+
+    // Find the JSON output file - typically ends with .json or is the first sharded output
+    // Prefer files ending in .json, otherwise take the first file
+    let outputObjectPath = outputObjects.find(obj => obj.endsWith('.json'));
+    if (!outputObjectPath) {
+      // Document AI sometimes outputs without .json extension
+      outputObjectPath = outputObjects[0];
+    }
+
+    log.info('Found output file', { outputObjectPath, allObjects: outputObjects });
+
+    // Download the JSON output
+    const resultJson = await downloadFromGCS(outputBucket, outputObjectPath, accessToken);
+
+    if (onProgress) await onProgress('downloading', 100);
+
+    // Parse the result as Document AI response
+    const documentResponse = JSON.parse(resultJson) as DocumentAIProcessResponse;
+
+    const processingTime = Date.now() - startTime;
+    log.info('Batch parsing completed', {
+      documentId,
+      processingTimeMs: processingTime,
+      pageCount: documentResponse.document?.pages?.length || 0,
+    });
+
+    return documentResponse;
+
+  } finally {
+    // Cleanup: Delete input file (output files cleaned by lifecycle rule)
+    try {
+      await deleteFromGCS(bucket, inputPath, accessToken);
+    } catch (cleanupError) {
+      log.warn('GCS cleanup failed (non-blocking)', {
+        error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+      });
+    }
+  }
 }
 
 // ============================================================================

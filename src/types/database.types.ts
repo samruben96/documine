@@ -304,11 +304,13 @@ export type Database = {
           document_type: string | null
           extraction_data: Json | null
           extraction_error: string | null
+          extraction_status: string | null
           extraction_version: number | null
           filename: string
           id: string
           metadata: Json | null
           page_count: number | null
+          raw_text: string | null
           status: string
           storage_path: string
           updated_at: string
@@ -323,11 +325,13 @@ export type Database = {
           document_type?: string | null
           extraction_data?: Json | null
           extraction_error?: string | null
+          extraction_status?: string | null
           extraction_version?: number | null
           filename: string
           id?: string
           metadata?: Json | null
           page_count?: number | null
+          raw_text?: string | null
           status?: string
           storage_path: string
           updated_at?: string
@@ -342,11 +346,13 @@ export type Database = {
           document_type?: string | null
           extraction_data?: Json | null
           extraction_error?: string | null
+          extraction_status?: string | null
           extraction_version?: number | null
           filename?: string
           id?: string
           metadata?: Json | null
           page_count?: number | null
+          raw_text?: string | null
           status?: string
           storage_path?: string
           updated_at?: string

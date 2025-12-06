@@ -1,0 +1,418 @@
+<story-context id="12-4-response-parsing" v="1.0">
+  <metadata>
+    <epicId>12</epicId>
+    <storyId>4</storyId>
+    <title>Response Parsing</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-12/stories/12-4-response-parsing/12-4-response-parsing.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>document processing system</asA>
+    <iWant>to convert Document AI API responses into the existing DoclingResult format</iWant>
+    <soThat>downstream processing (chunking, embedding, extraction) continues to work unchanged</soThat>
+    <tasks>
+      <task id="1" name="Create convertDocumentAIToDoclingResult() Function">
+        <subtask>Create new function in documentai-client.ts</subtask>
+        <subtask>Accept DocumentAIProcessResponse as input</subtask>
+        <subtask>Return DoclingResult with markdown, pageMarkers, pageCount</subtask>
+        <subtask>Export function for use in index.ts</subtask>
+      </task>
+      <task id="2" name="Implement Text Extraction with Page Markers">
+        <subtask>Iterate through document.pages[] array</subtask>
+        <subtask>For each page, extract text using textAnchor startIndex/endIndex</subtask>
+        <subtask>Insert --- PAGE X --- marker between pages</subtask>
+        <subtask>Build complete markdown string with markers</subtask>
+      </task>
+      <task id="3" name="Implement PageMarkers Array Generation">
+        <subtask>Create PageMarker for each page</subtask>
+        <subtask>Calculate startIndex/endIndex based on position in final markdown</subtask>
+        <subtask>Account for page marker text length in indices</subtask>
+        <subtask>Validate indices are contiguous and complete</subtask>
+      </task>
+      <task id="4" name="Implement Table Extraction">
+        <subtask>Detect tables in document.pages[].tables</subtask>
+        <subtask>Extract cell text using textAnchor references</subtask>
+        <subtask>Format as markdown table with pipes</subtask>
+        <subtask>Insert tables at correct position in document flow</subtask>
+        <subtask>Handle headerRows vs bodyRows distinction</subtask>
+      </task>
+      <task id="5" name="Normalize and Clean Output">
+        <subtask>Normalize whitespace (collapse multiple blank lines)</subtask>
+        <subtask>Preserve paragraph structure</subtask>
+        <subtask>Ensure consistent line endings</subtask>
+        <subtask>Trim leading/trailing whitespace per page</subtask>
+      </task>
+      <task id="6" name="Unit Tests">
+        <subtask>Test: Simple single-page document</subtask>
+        <subtask>Test: Multi-page document with page markers</subtask>
+        <subtask>Test: Document with tables</subtask>
+        <subtask>Test: Page count accuracy</subtask>
+        <subtask>Test: PageMarker indices correctness</subtask>
+        <subtask>Test: Empty document handling</subtask>
+        <subtask>Test: Large document (50+ pages)</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-12.4.1" name="Document AI Text Extracted with Page Boundaries">
+      <check>document.text from Document AI response extracted</check>
+      <check>Page boundaries identified from document.pages[] array</check>
+      <check>Text segmented by page using textAnchor.textSegments indices</check>
+      <check>Full document text preserved without truncation</check>
+    </criterion>
+    <criterion id="AC-12.4.2" name="Markdown Output Compatible with Existing Chunker">
+      <check>Output format matches current DoclingResult.markdown structure</check>
+      <check>Paragraph breaks preserved as double newlines</check>
+      <check>Headings detected and formatted (if Document AI provides)</check>
+      <check>Whitespace normalized (no excessive blank lines)</check>
+    </criterion>
+    <criterion id="AC-12.4.3" name="Page Markers Format Preserved">
+      <check>Page markers format: --- PAGE X --- inserted between pages</check>
+      <check>Page markers match existing format exactly</check>
+      <check>First page starts without marker (content begins immediately)</check>
+      <check>Page numbers are 1-indexed (PAGE 1, PAGE 2, etc.)</check>
+    </criterion>
+    <criterion id="AC-12.4.4" name="Tables Converted to Markdown Format">
+      <check>Tables detected from document.pages[].tables array</check>
+      <check>Table cells extracted via textAnchor references to full text</check>
+      <check>Tables formatted as markdown pipes: | col1 | col2 |</check>
+      <check>Header rows distinguished with |---|---| separator</check>
+      <check>Tables embedded at correct position in document flow</check>
+    </criterion>
+    <criterion id="AC-12.4.5" name="Page Count Accurately Reported">
+      <check>pageCount matches document.pages.length</check>
+      <check>pageMarkers array has entry for each page</check>
+      <check>Each PageMarker has correct pageNumber, startIndex, endIndex</check>
+      <check>Page marker indices align with markdown output positions</check>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-12/tech-spec/tech-spec-epic-12.md" priority="high">
+        Epic 12 Technical Specification - Document AI Migration
+        - AC-12.4.1 to AC-12.4.5 defined
+        - DoclingResult interface: { markdown, pageMarkers, pageCount }
+        - Document AI response structure documented
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-12/stories/12-2-document-ai-parsing-service/12-2-document-ai-parsing-service.md" priority="high">
+        Story 12.2: Document AI Parsing Service (DONE)
+        - parseDocumentWithRetry() returns DocumentAIProcessResponse
+        - Response types already defined in documentai-client.ts
+        - Story 12.4 converts this response to DoclingResult
+      </doc>
+    </docs>
+    <code>
+      <file path="supabase/functions/process-document/documentai-client.ts" priority="critical" lines="774">
+        FILE TO MODIFY - Add convertDocumentAIToDoclingResult() function
+
+        Types already available (DO NOT recreate):
+        - DocumentAIProcessResponse (line 126-131):
+          ```typescript
+          interface DocumentAIProcessResponse {
+            document: {
+              text: string;
+              pages: DocumentAIPage[];
+            };
+          }
+          ```
+        - DocumentAIPage (line 114-120): { pageNumber, dimension, layout, paragraphs, tables }
+        - DocumentAITable (line 96-100): { layout, headerRows, bodyRows }
+        - DocumentAITableRow (line 89-91): { cells: DocumentAITableCell[] }
+        - DocumentAITableCell (line 79-84): { layout, rowSpan, colSpan }
+        - DocumentAITextAnchor (line 54-59): { textSegments: Array&lt;{ startIndex?, endIndex? }&gt; }
+        - DocumentAILayout (line 64-68): { textAnchor, boundingPoly, confidence }
+
+        NEW function to add at end of file:
+        ```typescript
+        export function convertDocumentAIToDoclingResult(
+          response: DocumentAIProcessResponse
+        ): DoclingResult {
+          // Implementation here
+        }
+        ```
+      </file>
+      <file path="supabase/functions/process-document/index.ts" priority="high" lines="2200">
+        REFERENCE ONLY - Contains DoclingResult and PageMarker interfaces
+
+        DoclingResult interface (line 616-620):
+        ```typescript
+        interface DoclingResult {
+          markdown: string;
+          pageMarkers: PageMarker[];
+          pageCount: number;
+        }
+        ```
+
+        PageMarker interface (referenced in DoclingResult):
+        ```typescript
+        interface PageMarker {
+          pageNumber: number;
+          startIndex: number;
+          endIndex: number;
+        }
+        ```
+
+        NOTE: Story 12.3 will modify index.ts to use the new conversion function.
+        Story 12.4 only modifies documentai-client.ts.
+      </file>
+    </code>
+    <dependencies>
+      <dependency name="Story 12.1 - Connect GCP Document AI" status="done">
+        Provides: Authentication, error classification
+      </dependency>
+      <dependency name="Story 12.2 - Document AI Parsing Service" status="done">
+        Provides: parseDocumentWithRetry() returning DocumentAIProcessResponse
+        Provides: All DocumentAI* type definitions
+      </dependency>
+      <blocks name="Story 12.3 - Edge Function Integration" status="drafted">
+        Story 12.3 depends on convertDocumentAIToDoclingResult() from this story
+        Complete 12.4 BEFORE starting 12.3
+      </blocks>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="compatibility">
+      Output MUST match DoclingResult interface exactly - downstream code depends on this shape
+    </constraint>
+    <constraint type="format">
+      Page markers MUST be exactly "--- PAGE X ---" with X being 1-indexed page number
+    </constraint>
+    <constraint type="format">
+      First page has no marker prefix - content starts immediately
+    </constraint>
+    <constraint type="format">
+      Tables MUST be markdown format with | pipes and |---|---| separator for headers
+    </constraint>
+    <constraint type="data">
+      Document AI text indices are STRING type - must parseInt() before using
+    </constraint>
+    <constraint type="data">
+      textSegments may have undefined startIndex (defaults to 0) or endIndex (defaults to text.length)
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="convertDocumentAIToDoclingResult (NEW - TO CREATE)">
+      Location: supabase/functions/process-document/documentai-client.ts (add at end)
+      Signature: (response: DocumentAIProcessResponse) => DoclingResult
+      Purpose: Convert Document AI API response to internal format for chunking/embedding
+
+      Input: DocumentAIProcessResponse
+      ```typescript
+      {
+        document: {
+          text: string;  // Full text, all pages concatenated
+          pages: Array&lt;{
+            pageNumber: number;
+            layout: { textAnchor: { textSegments: [...] } };
+            paragraphs: [...];
+            tables: [...];
+          }&gt;;
+        }
+      }
+      ```
+
+      Output: DoclingResult
+      ```typescript
+      {
+        markdown: string;       // Text with --- PAGE X --- markers
+        pageMarkers: Array&lt;{
+          pageNumber: number;
+          startIndex: number;   // Position in markdown string
+          endIndex: number;
+        }&gt;;
+        pageCount: number;
+      }
+      ```
+    </interface>
+    <interface name="DoclingResult">
+      Location: supabase/functions/process-document/index.ts:616-620
+      This is the TARGET interface - output must match exactly
+    </interface>
+    <interface name="PageMarker">
+      Location: supabase/functions/process-document/index.ts (near DoclingResult)
+      Used in DoclingResult.pageMarkers array
+    </interface>
+  </interfaces>
+
+  <examples>
+    <example name="Document AI Response (Input)">
+      <description>Sample 2-page document with one table</description>
+      <json><![CDATA[
+{
+  "document": {
+    "text": "ACME Insurance Policy\n\nPolicy Number: POL-2024-001\nEffective Date: January 1, 2024\n\nCoverage Summary\n\nGeneral Liability $1,000,000\nProperty $500,000\n\nThis policy provides coverage for...\n\nSection 2: Exclusions\n\nThe following are excluded from coverage:\n1. Intentional acts\n2. War and terrorism",
+    "pages": [
+      {
+        "pageNumber": 1,
+        "dimension": { "width": 612, "height": 792, "unit": "points" },
+        "layout": {
+          "textAnchor": {
+            "textSegments": [
+              { "startIndex": "0", "endIndex": "156" }
+            ]
+          },
+          "boundingPoly": { "normalizedVertices": [{"x": 0, "y": 0}, {"x": 1, "y": 1}] },
+          "confidence": 0.98
+        },
+        "paragraphs": [
+          {
+            "layout": {
+              "textAnchor": { "textSegments": [{ "startIndex": "0", "endIndex": "21" }] },
+              "boundingPoly": { "normalizedVertices": [] },
+              "confidence": 0.99
+            }
+          }
+        ],
+        "tables": [
+          {
+            "layout": {
+              "textAnchor": { "textSegments": [{ "startIndex": "75", "endIndex": "126" }] },
+              "boundingPoly": { "normalizedVertices": [] },
+              "confidence": 0.95
+            },
+            "headerRows": [
+              {
+                "cells": [
+                  { "layout": { "textAnchor": { "textSegments": [{ "startIndex": "75", "endIndex": "93" }] }, "boundingPoly": {}, "confidence": 0.95 } },
+                  { "layout": { "textAnchor": { "textSegments": [{ "startIndex": "94", "endIndex": "104" }] }, "boundingPoly": {}, "confidence": 0.95 } }
+                ]
+              }
+            ],
+            "bodyRows": [
+              {
+                "cells": [
+                  { "layout": { "textAnchor": { "textSegments": [{ "startIndex": "105", "endIndex": "122" }] }, "boundingPoly": {}, "confidence": 0.95 } },
+                  { "layout": { "textAnchor": { "textSegments": [{ "startIndex": "123", "endIndex": "131" }] }, "boundingPoly": {}, "confidence": 0.95 } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pageNumber": 2,
+        "dimension": { "width": 612, "height": 792, "unit": "points" },
+        "layout": {
+          "textAnchor": {
+            "textSegments": [
+              { "startIndex": "156", "endIndex": "270" }
+            ]
+          },
+          "boundingPoly": { "normalizedVertices": [] },
+          "confidence": 0.97
+        },
+        "paragraphs": [],
+        "tables": []
+      }
+    ]
+  }
+}
+      ]]></json>
+    </example>
+    <example name="DoclingResult (Expected Output)">
+      <description>Converted output matching internal format</description>
+      <json><![CDATA[
+{
+  "markdown": "ACME Insurance Policy\n\nPolicy Number: POL-2024-001\nEffective Date: January 1, 2024\n\nCoverage Summary\n\n| Coverage | Limit |\n|---|---|\n| General Liability | $1,000,000 |\n| Property | $500,000 |\n\nThis policy provides coverage for...\n\n--- PAGE 2 ---\n\nSection 2: Exclusions\n\nThe following are excluded from coverage:\n1. Intentional acts\n2. War and terrorism",
+  "pageMarkers": [
+    {
+      "pageNumber": 1,
+      "startIndex": 0,
+      "endIndex": 203
+    },
+    {
+      "pageNumber": 2,
+      "startIndex": 203,
+      "endIndex": 318
+    }
+  ],
+  "pageCount": 2
+}
+      ]]></json>
+      <notes>
+        - Page 1 content starts at index 0 (no marker prefix)
+        - Table converted to markdown pipe format with header separator
+        - "--- PAGE 2 ---" marker inserted before page 2 content
+        - pageMarkers[1].startIndex includes the marker text
+        - endIndex of page 1 equals startIndex of page 2 (contiguous)
+      </notes>
+    </example>
+  </examples>
+
+  <algorithm>
+    <step n="1" title="Initialize">
+      Extract document.text and document.pages from response
+      Initialize empty markdown string and pageMarkers array
+    </step>
+    <step n="2" title="Iterate Pages">
+      For each page in document.pages (already ordered by pageNumber):
+        1. Get page.layout.textAnchor.textSegments
+        2. For each segment, extract text using startIndex/endIndex from document.text
+        3. Concatenate segments to get page text
+    </step>
+    <step n="3" title="Add Page Markers">
+      For pages after first:
+        Insert "\n\n--- PAGE X ---\n\n" before page content
+      Track startIndex/endIndex in final markdown for each page
+    </step>
+    <step n="4" title="Handle Tables">
+      For each table in page.tables:
+        1. Find table position using table.layout.textAnchor
+        2. Extract cell text for each row (headerRows, then bodyRows)
+        3. Format as markdown: | cell1 | cell2 |
+        4. Add separator after headers: |---|---|
+        5. Insert formatted table at correct position
+    </step>
+    <step n="5" title="Build PageMarkers Array">
+      For each page:
+        Create PageMarker with:
+        - pageNumber: page.pageNumber (or index + 1)
+        - startIndex: position where page content starts in markdown
+        - endIndex: position where page content ends in markdown
+    </step>
+    <step n="6" title="Return Result">
+      Return DoclingResult:
+        - markdown: final concatenated string (trimmed)
+        - pageMarkers: array of PageMarker objects
+        - pageCount: document.pages.length
+    </step>
+  </algorithm>
+
+  <tests>
+    <standards>
+      - All 1514 existing tests must continue passing
+      - Build must succeed without errors
+      - New unit tests for conversion function
+    </standards>
+    <locations>
+      - __tests__/supabase/documentai-parsing.test.ts - Add new tests here
+    </locations>
+    <ideas>
+      <testCase priority="high" id="TC-12.4.1">
+        Single-page document: Verify markdown has no page markers, pageCount=1
+      </testCase>
+      <testCase priority="high" id="TC-12.4.2">
+        Multi-page document: Verify --- PAGE X --- markers between pages
+      </testCase>
+      <testCase priority="high" id="TC-12.4.3">
+        PageMarker indices: Verify startIndex/endIndex match actual positions in markdown
+      </testCase>
+      <testCase priority="medium" id="TC-12.4.4">
+        Table extraction: Verify markdown table format with | pipes
+      </testCase>
+      <testCase priority="medium" id="TC-12.4.5">
+        Empty document: Handle gracefully with empty markdown, pageCount=0
+      </testCase>
+      <testCase priority="low" id="TC-12.4.6">
+        Large document (50+ pages): Verify performance and correctness
+      </testCase>
+    </ideas>
+  </tests>
+</story-context>

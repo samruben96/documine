@@ -12,9 +12,10 @@ import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
 import { DocumentTypeToggle } from './document-type-toggle';
+import { ExtractionStatusBadge } from './extraction-status-badge';
 import { LabelPill } from './label-pill';
 import type { Label } from '@/app/(dashboard)/chat-docs/actions';
-import type { DocumentType } from '@/types';
+import type { DocumentType, ExtractionStatus } from '@/types';
 
 interface DocumentCardProps {
   id: string;
@@ -38,6 +39,12 @@ interface DocumentCardProps {
   carrierName?: string | null;
   /** Story 10.12: Annual premium from extraction_data */
   annualPremium?: number | null;
+  /** Story 11.8: Extraction status for quote analysis */
+  extractionStatus?: ExtractionStatus | null;
+  /** Story 11.8: Callback when extraction retry is requested */
+  onRetryExtraction?: (id: string) => void;
+  /** Story 11.8: Whether extraction retry is in progress */
+  isRetryingExtraction?: boolean;
   className?: string;
 }
 
@@ -64,6 +71,9 @@ export function DocumentCard({
   aiSummary,
   carrierName,
   annualPremium,
+  extractionStatus,
+  onRetryExtraction,
+  isRetryingExtraction = false,
   className,
 }: DocumentCardProps) {
   const router = useRouter();
@@ -100,7 +110,18 @@ export function DocumentCard({
       <CardContent className="p-4 space-y-3">
         {/* Status and Type badges */}
         <div className="flex items-center justify-between gap-2">
-          <DocumentStatusBadge status={status as DocumentStatusType} />
+          <div className="flex items-center gap-2">
+            <DocumentStatusBadge status={status as DocumentStatusType} />
+            {/* Story 11.8: Extraction status badge - only for ready quote documents */}
+            {status === 'ready' && documentType !== 'general' && (
+              <ExtractionStatusBadge
+                status={extractionStatus || null}
+                documentType={documentType}
+                onRetry={onRetryExtraction ? () => onRetryExtraction(id) : undefined}
+                isRetrying={isRetryingExtraction}
+              />
+            )}
+          </div>
           {/* Document type toggle - AC-F2-2.3: UI toggle/dropdown to change document type */}
           <div
             onClick={(e) => e.stopPropagation()}

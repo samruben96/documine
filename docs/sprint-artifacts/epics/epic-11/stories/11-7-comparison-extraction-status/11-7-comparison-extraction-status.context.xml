@@ -1,0 +1,189 @@
+<story-context id="11-7-comparison-extraction-status" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>7</storyId>
+    <title>Comparison Page - Extraction Status Handling</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-11/stories/11-7-comparison-extraction-status/11-7-comparison-extraction-status.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user comparing quotes</asA>
+    <iWant>to see clear status when extraction is in progress</iWant>
+    <soThat>I understand why comparison isn't available yet and can choose to wait or chat instead</soThat>
+    <tasks>
+      <task id="1" title="Extraction Status Check" ac="11.7.1">
+        <subtask>Add extraction_status to document query in compare page</subtask>
+        <subtask>Create getExtractionReadiness() utility function</subtask>
+        <subtask>Return { ready: boolean, pending: Document[], failed: Document[] }</subtask>
+        <subtask>Test: Correctly identifies mixed extraction states</subtask>
+      </task>
+      <task id="2" title="Create ExtractionPendingBanner Component" ac="11.7.2,11.7.3">
+        <subtask>Create src/components/compare/extraction-pending-banner.tsx</subtask>
+        <subtask>Accept pending documents array as prop</subtask>
+        <subtask>Show document names with spinner icons</subtask>
+        <subtask>Include "Chat while waiting" link</subtask>
+        <subtask>Show estimated time based on document page count</subtask>
+        <subtask>Test: Banner renders correctly with pending docs</subtask>
+      </task>
+      <task id="3" title="Realtime Subscription" ac="11.7.4">
+        <subtask>Subscribe to documents table for extraction_status changes</subtask>
+        <subtask>Filter subscription to selected document IDs only</subtask>
+        <subtask>Update local state when extraction completes</subtask>
+        <subtask>Clean up subscription on unmount</subtask>
+        <subtask>Test: State updates when extraction completes in another tab</subtask>
+      </task>
+      <task id="4" title="Mixed Readiness UI" ac="11.7.5">
+        <subtask>Update QuoteSelector to show extraction status per document</subtask>
+        <subtask>Add checkmark icon for complete, spinner for extracting</subtask>
+        <subtask>Update selection counter to show "X ready, Y analyzing"</subtask>
+        <subtask>Test: Mixed state displays correctly</subtask>
+      </task>
+      <task id="5" title="Failed Extraction Handling" ac="11.7.6">
+        <subtask>Show error icon and message for failed documents</subtask>
+        <subtask>Add retry button per failed document</subtask>
+        <subtask>Allow proceeding with partial data (with warning)</subtask>
+        <subtask>Test: Failed state displays correctly, retry works</subtask>
+      </task>
+      <task id="6" title="Integration Testing" ac="11.7.1-11.7.6">
+        <subtask>E2E test: Banner appears for pending extraction</subtask>
+        <subtask>E2E test: Banner disappears when extraction completes</subtask>
+        <subtask>E2E test: Chat link navigates correctly</subtask>
+        <subtask>E2E test: Retry button triggers extraction</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-11.7.1" title="Extraction Status Detection">
+      <check>Compare page checks extraction_status for all selected documents</check>
+      <check>Identifies documents that are pending or extracting</check>
+      <check>Blocks comparison creation if any document lacks extraction data</check>
+    </criterion>
+    <criterion id="AC-11.7.2" title="Pending Extraction Banner">
+      <check>Shows "Analyzing Quote Details" banner when extraction in progress</check>
+      <check>Displays which specific documents are still processing</check>
+      <check>Shows extraction progress if available (from processing_jobs)</check>
+      <check>Provides estimated time remaining based on document size</check>
+    </criterion>
+    <criterion id="AC-11.7.3" title="Alternative Actions">
+      <check>Banner suggests "Chat with these documents while we finish analysis"</check>
+      <check>Provides link to chat view with selected documents</check>
+      <check>User can proceed to chat without losing document selection</check>
+    </criterion>
+    <criterion id="AC-11.7.4" title="Realtime Status Updates">
+      <check>Page subscribes to extraction_status changes via Supabase Realtime</check>
+      <check>UI updates automatically when extraction completes</check>
+      <check>No manual refresh needed - comparison becomes available immediately</check>
+      <check>Smooth transition from "analyzing" to "ready" state</check>
+    </criterion>
+    <criterion id="AC-11.7.5" title="Partial Readiness Handling">
+      <check>When some docs ready and some extracting, show mixed state</check>
+      <check>Clear indicator per document (checkmark vs spinner)</check>
+      <check>"Waiting for X of Y documents" message</check>
+      <check>Comparison proceeds automatically when all documents ready</check>
+    </criterion>
+    <criterion id="AC-11.7.6" title="Failed Extraction Handling">
+      <check>If extraction failed, show error message for that document</check>
+      <check>Provide retry option for failed documents</check>
+      <check>Allow comparison to proceed with available data (graceful degradation)</check>
+      <check>Show warning that comparison may be incomplete</check>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-11/epic.md" title="Epic 11 Overview" section="Solution Architecture" snippet="Async processing with pg_cron, Realtime subscriptions for progress updates, phased processing for fast chat path." />
+      <doc path="docs/sprint-artifacts/epics/epic-11/tech-spec/index.md" title="Epic 11 Tech Spec" section="Phase 2: Phased Processing" snippet="extraction_status column: pending|extracting|complete|failed|skipped. New extract-quote-data edge function for Phase 2." />
+      <doc path="docs/sprint-artifacts/epics/epic-11/stories/11-6-phased-processing-fast-chat/11-6-phased-processing-fast-chat.md" title="Story 11.6" section="Dev Notes" snippet="Documents become 'ready' for chat before extraction completes. Phase 2 runs async via extract-quote-data Edge Function." />
+    </docs>
+    <code>
+      <file path="src/app/(dashboard)/compare/page.tsx" kind="page" symbol="ComparePageContent" lines="1-224" reason="Main compare page - needs extraction status check and banner integration" />
+      <file path="src/components/compare/quote-selector.tsx" kind="component" symbol="QuoteSelector, QuoteCard" lines="1-344" reason="Document selection UI - needs extraction status indicators per card" />
+      <file path="src/hooks/use-document-status.ts" kind="hook" symbol="useDocumentStatus" lines="1-339" reason="Realtime subscription pattern to reuse for extraction_status changes" />
+      <file path="src/types/index.ts" kind="types" symbol="ExtractionStatus" lines="17-18" reason="Defines ExtractionStatus type: pending|extracting|complete|failed|skipped" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Realtime subscriptions for extraction_status" />
+        <package name="sonner" version="^2.0.7" purpose="Toast notifications for status changes" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons: Loader2, Check, AlertCircle, MessageSquare, Clock" />
+        <package name="next" version="16.0.4" purpose="App Router, Link component for chat navigation" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Story 11.6">Phase 1 (parse/chunk/embed) sets status='ready'. Phase 2 (extraction) updates extraction_status separately. Documents can be chat-ready before extraction completes.</constraint>
+    <constraint source="Epic 11 Architecture">Realtime subscriptions should filter by agency_id for security. Use RealtimeChannel pattern from useDocumentStatus hook.</constraint>
+    <constraint source="Story Dev Notes">getExtractionReadiness() should consider extraction_data presence for legacy support (documents processed before Story 11.6).</constraint>
+    <constraint source="UX">Banner should not block page - users should see their selected documents while waiting. Chat alternative should be prominent.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ExtractionReadiness" kind="TypeScript interface" path="src/lib/compare/extraction-readiness.ts">
+      <signature>
+interface ExtractionReadiness {
+  allReady: boolean;
+  readyDocs: Document[];
+  pendingDocs: Document[];
+  failedDocs: Document[];
+  extractingDocs: Document[];
+}
+      </signature>
+    </interface>
+    <interface name="useExtractionStatus" kind="React hook" path="src/hooks/use-extraction-status.ts">
+      <signature>
+function useExtractionStatus(documentIds: string[]): Record&lt;string, ExtractionStatus&gt;
+// Returns { [docId]: 'pending' | 'extracting' | 'complete' | 'failed' | 'skipped' }
+// Subscribes to Realtime changes, updates on extraction_status change
+      </signature>
+    </interface>
+    <interface name="ExtractionPendingBanner" kind="React component" path="src/components/compare/extraction-pending-banner.tsx">
+      <signature>
+interface ExtractionPendingBannerProps {
+  pendingDocs: Document[];
+  extractingDocs: Document[];
+  selectedDocIds: string[];
+}
+// Renders analyzing banner with document list, estimated time, chat link
+      </signature>
+    </interface>
+    <interface name="Documents Query" kind="Supabase query">
+      <signature>
+// Fetch documents with extraction_status for comparison
+supabase
+  .from('documents')
+  .select('id, filename, display_name, status, extraction_status, extraction_data, page_count, created_at, document_type')
+  .or('document_type.eq.quote,document_type.is.null')
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Tests use Vitest with @testing-library/react for component tests. E2E tests use Playwright.
+      Mock Supabase client for unit tests. Use data-testid attributes for E2E selectors.
+      Follow existing patterns in __tests__/hooks/ and __tests__/components/compare/.
+    </standards>
+    <locations>
+      <location>__tests__/lib/compare/extraction-readiness.test.ts</location>
+      <location>__tests__/hooks/use-extraction-status.test.ts</location>
+      <location>__tests__/components/compare/extraction-pending-banner.test.tsx</location>
+      <location>__tests__/components/compare/quote-selector-extraction.test.tsx</location>
+      <location>__tests__/e2e/extraction-status-comparison.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-11.7.1">Test getExtractionReadiness() correctly categorizes docs by extraction_status</idea>
+      <idea ac="AC-11.7.1">Test legacy documents with extraction_data but no extraction_status are treated as 'complete'</idea>
+      <idea ac="AC-11.7.2">Test ExtractionPendingBanner renders with pending docs, shows names and estimated time</idea>
+      <idea ac="AC-11.7.3">Test chat link URL includes correct document ID</idea>
+      <idea ac="AC-11.7.4">Test Realtime subscription updates state when extraction_status changes</idea>
+      <idea ac="AC-11.7.5">Test QuoteSelector shows mixed indicators (checkmark/spinner) per document</idea>
+      <idea ac="AC-11.7.6">Test retry button calls retry API endpoint</idea>
+      <idea ac="AC-11.7.6">Test warning appears when proceeding with partial data</idea>
+    </ideas>
+  </tests>
+</story-context>

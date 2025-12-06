@@ -6,20 +6,32 @@
  * 2. Verify agency can process (no active job)
  * 3. Select next pending job in FIFO order
  * 4. Download document from Supabase Storage
- * 5. Extract text via Docling service (self-hosted)
+ * 5. Extract text via Google Document AI (Story 12.3)
  * 6. Chunk text into semantic segments
  * 7. Generate embeddings via OpenAI
  * 8. Store chunks in document_chunks table
  * 9. Update document status
  * 10. Trigger next pending job for agency
  *
- * Implements AC-4.6.1 through AC-4.6.11, AC-4.7.1 through AC-4.7.5, and AC-4.8.4
+ * Story 12.3: Migrated from Docling to Document AI for PDF parsing
  *
  * @module supabase/functions/process-document
  */
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import {
+  parseDocumentWithRetry as parseDocumentWithDocumentAI,
+  convertDocumentAIToDoclingResult,
+  classifyDocumentAIError,
+  isTransientError,
+  type DocumentAIErrorCode,
+  // Story 12.6: Batch processing imports
+  getPageCount,
+  selectProcessingMode,
+  parseLargeDocumentWithBatch,
+  type ProcessingMode,
+} from './documentai-client.ts';
 
 // Configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/embeddings';
@@ -30,32 +42,9 @@ const TARGET_TOKENS = 500;
 const OVERLAP_TOKENS = 50;
 const CHARS_PER_TOKEN = 4;
 
-// Story 5.8.1: Timeout approach optimized for Supabase paid tier (550s platform limit)
-// - Docling: 300s (5 min) - handles large/complex PDFs with extensive tables
-// - Total: 480s (8 min) - leaves 70s safety buffer before 550s platform timeout
-// - Allows processing of 50-100MB documents with complex content
-const DOCLING_TIMEOUT_MS = 300000; // 300s (5 min) - paid tier optimization
+// Story 12.3: Document AI timeout is handled in documentai-client.ts (60s)
+// Total processing timeout for the entire pipeline
 const TOTAL_PROCESSING_TIMEOUT_MS = 480000; // 480s (8 min) - ensures error handling runs before platform timeout
-
-// Story 5.13: PDF parsing robustness - error detection patterns
-// Known libpdfium errors that indicate PDF format issues (not corruption)
-const PAGE_DIMENSIONS_ERROR_PATTERNS = [
-  'could not find the page-dimensions',
-  'could not find page-dimensions',
-  'page-dimensions',
-  'MediaBox',
-  'libpdfium',
-] as const;
-
-// User-friendly error messages for specific error types
-const USER_FRIENDLY_ERRORS: Record<string, string> = {
-  'page-dimensions':
-    'This PDF has an unusual format that our system can\'t process. Try re-saving it with Adobe Acrobat or a PDF converter.',
-  'timeout':
-    'Processing timeout: document too large or complex. Try splitting into smaller files.',
-  'unsupported-format':
-    'This file format is not supported. Please upload a PDF, DOCX, or image file.',
-};
 
 // Story 11.3 (AC-11.3.4): Error classification
 // Story 11.5 (AC-11.5.1): Extended error classification with categories
@@ -133,15 +122,20 @@ function classifyError(errorMessage: string): ClassifiedError {
 }
 
 // Story 5.12: Progress reporting configuration
-// Story 10.12: Updated weights to include 'analyzing' stage for quote extraction
+// Story 11.6: Removed 'analyzing' stage - extraction now happens in Phase 2 (background)
+// Story 12.6: Added batch-specific stage weights
 // Stage weights for total_progress calculation:
-// downloading: 5%, parsing: 55%, chunking: 10%, embedding: 20%, analyzing: 10%
+// Online mode: downloading: 5%, parsing: 55%, chunking: 10%, embedding: 30%
+// Batch mode: downloading: 5%, uploading: 10%, batch_processing: 40%, downloading_results: 5%, chunking: 10%, embedding: 30%
 const STAGE_WEIGHTS = {
   downloading: { start: 0, weight: 5 },
   parsing: { start: 5, weight: 55 },
+  // Batch-specific stages (AC-12.6.7)
+  uploading: { start: 5, weight: 10 },
+  batch_processing: { start: 15, weight: 40 },
+  downloading_results: { start: 55, weight: 5 },
   chunking: { start: 60, weight: 10 },
-  embedding: { start: 70, weight: 20 },
-  analyzing: { start: 90, weight: 10 },
+  embedding: { start: 70, weight: 30 },
 } as const;
 
 // Progress update throttle (max once per second to avoid flooding Realtime)
@@ -177,9 +171,10 @@ interface LogData {
 }
 
 // Story 5.12: Progress data interface
-// Story 10.12: Added 'analyzing' stage for quote extraction
+// Story 11.6: Removed 'analyzing' stage - extraction now happens in Phase 2
+// Story 12.6: Added batch-specific stages (uploading, batch_processing, downloading_results)
 interface ProgressData {
-  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding' | 'analyzing';
+  stage: 'downloading' | 'parsing' | 'uploading' | 'batch_processing' | 'downloading_results' | 'chunking' | 'embedding';
   stage_progress: number; // 0-100
   stage_name: string; // User-friendly name
   estimated_seconds_remaining: number | null;
@@ -188,13 +183,16 @@ interface ProgressData {
 }
 
 // User-friendly stage names per UX design
-// Story 10.12: Added 'analyzing' stage
+// Story 11.6: Removed 'analyzing' stage
+// Story 12.6: Added batch-specific stage names (AC-12.6.7)
 const STAGE_DISPLAY_NAMES: Record<ProgressData['stage'], string> = {
   downloading: 'Loading file',
   parsing: 'Reading document',
+  uploading: 'Uploading to cloud',
+  batch_processing: 'Processing large document',
+  downloading_results: 'Downloading results',
   chunking: 'Preparing content',
   embedding: 'Indexing for search',
-  analyzing: 'Analyzing document...',
 };
 
 // Structured logging
@@ -249,9 +247,16 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
-  const doclingServiceUrl = Deno.env.get('DOCLING_SERVICE_URL');
 
-  if (!supabaseUrl || !supabaseServiceKey || !openaiKey || !doclingServiceUrl) {
+  // Story 12.3 (AC-12.3.5): DOCLING_SERVICE_URL deprecated, kept for backward compat
+  const doclingServiceUrl = Deno.env.get('DOCLING_SERVICE_URL');
+  if (doclingServiceUrl) {
+    log.warn('DOCLING_SERVICE_URL is deprecated', {
+      message: 'Docling has been replaced by Document AI. This env var can be removed.',
+    });
+  }
+
+  if (!supabaseUrl || !supabaseServiceKey || !openaiKey) {
     return new Response(
       JSON.stringify({ success: false, error: 'Missing required environment variables' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -373,31 +378,79 @@ Deno.serve(async (req: Request) => {
     );
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
-    // Step 5: Send to Docling service
-    // Story 5.12: Report parsing start (Docling doesn't report page-level progress, use time-based)
-    await updateJobProgress(
-      supabase,
-      processingDocumentId,
-      'parsing',
-      0,
-      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 0),
-      true
-    );
+    // Step 5: Parse document with Document AI
+    // Story 12.6: Detects page count and routes to online (≤15 pages) or batch (>15 pages) processing
+    // Story 5.12: Report parsing/batch start
+    const detectedPageCount = getPageCount(pdfBuffer);
+    const processingMode = selectProcessingMode(detectedPageCount);
+
+    // For online mode, report as 'parsing'; for batch mode, report as 'uploading' first
+    if (processingMode === 'online') {
+      await updateJobProgress(
+        supabase,
+        processingDocumentId,
+        'parsing',
+        0,
+        estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 0),
+        true
+      );
+    } else {
+      // AC-12.6.7: Batch processing progress starts with uploading stage
+      await updateJobProgress(
+        supabase,
+        processingDocumentId,
+        'uploading',
+        0,
+        estimateTimeRemaining(pdfBuffer.byteLength, 'uploading', 0),
+        true
+      );
+    }
 
     const parseStartTime = Date.now();
-    const parseResult = await parseDocumentWithRetry(pdfBuffer, processingStoragePath, doclingServiceUrl);
-
-    // Story 5.12: Report parsing complete
-    await updateJobProgress(
-      supabase,
+    // Story 12.3: Third param is deprecated (was Docling URL), now uses Document AI via env vars
+    // Story 12.6: Fourth param is documentId for batch processing GCS path
+    // Story 12.6: Fifth param is batch progress callback for AC-12.6.7
+    const parseResult = await parseDocumentWithRetry(
+      pdfBuffer,
+      processingStoragePath,
+      '',
       processingDocumentId,
-      'parsing',
-      100,
-      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 100),
-      true
+      // AC-12.6.7: Batch progress callback for real-time progress updates
+      async (stage, progress) => {
+        await updateJobProgress(
+          supabase,
+          processingDocumentId,
+          stage,
+          progress,
+          estimateTimeRemaining(pdfBuffer.byteLength, stage, progress),
+          progress === 0 || progress === 100 // Force update at stage transitions
+        );
+      }
     );
 
-    log.info('Docling parsing completed', {
+    // Story 5.12: Report parsing/batch complete
+    if (processingMode === 'online') {
+      await updateJobProgress(
+        supabase,
+        processingDocumentId,
+        'parsing',
+        100,
+        estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 100),
+        true
+      );
+    } else {
+      // Batch mode final stage is downloading_results
+      await updateJobProgress(
+        supabase,
+        processingDocumentId,
+        'downloading_results',
+        100,
+        estimateTimeRemaining(pdfBuffer.byteLength, 'downloading_results', 100),
+        true
+      );
+    }
+
+    log.info('Document AI parsing completed', {
       documentId: processingDocumentId,
       duration: Date.now() - parseStartTime,
       pageCount: parseResult.pageCount,
@@ -483,31 +536,54 @@ Deno.serve(async (req: Request) => {
     await insertChunks(supabase, processingDocumentId, agencyId, chunks, embeddings);
     log.info('Chunks inserted', { documentId: processingDocumentId, count: chunks.length });
 
-    // Step 9: Quote Extraction (Story 10.12)
-    // Only for document_type = 'quote' or null (default)
-    // AC-10.12.1: Extract structured quote data at upload time
-    await updateJobProgress(
-      supabase,
-      processingDocumentId,
-      'analyzing',
-      0,
-      estimateTimeRemaining(pdfBuffer.byteLength, 'analyzing', 0),
-      true
-    );
+    // Step 9: Store raw_text for Phase 2 extraction (Story 11.6)
+    // Save concatenated text so extract-quote-data doesn't need to re-parse
+    const rawText = chunks.map((c) => c.content).join('\n\n');
+    await supabase
+      .from('documents')
+      .update({ raw_text: rawText })
+      .eq('id', processingDocumentId);
 
-    await performQuoteExtraction(supabase, processingDocumentId, agencyId, chunks, openaiKey);
-
-    await updateJobProgress(
-      supabase,
-      processingDocumentId,
-      'analyzing',
-      100,
-      null,
-      true
-    );
-
-    // Step 10: Update document status to 'ready' with page count
+    // Step 10: Update document status to 'ready' with page count (AC-11.6.1)
+    // Document is now ready for chat - extraction happens in background
     await updateDocumentStatus(supabase, processingDocumentId, 'ready', parseResult.pageCount);
+
+    // Step 11: Set extraction_status and trigger Phase 2 (AC-11.6.2, AC-11.6.4)
+    // Get document type to determine if extraction is needed
+    const { data: docData } = await supabase
+      .from('documents')
+      .select('document_type')
+      .eq('id', processingDocumentId)
+      .single();
+
+    const documentType = docData?.document_type;
+    const needsExtraction = documentType !== 'general';
+
+    // Set extraction_status based on document type
+    await supabase
+      .from('documents')
+      .update({
+        extraction_status: needsExtraction ? 'pending' : 'skipped',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', processingDocumentId);
+
+    log.info('Phase 1 complete - document ready for chat', {
+      documentId: processingDocumentId,
+      extractionStatus: needsExtraction ? 'pending' : 'skipped',
+    });
+
+    // Trigger Phase 2 extraction async (AC-11.6.2: fire-and-forget)
+    if (needsExtraction) {
+      triggerPhase2Extraction(supabaseUrl, supabaseServiceKey, processingDocumentId, agencyId)
+        .catch((err) => {
+          // Non-blocking - document is still ready for chat
+          log.warn('Failed to trigger Phase 2 extraction', {
+            documentId: processingDocumentId,
+            error: err.message,
+          });
+        });
+    }
 
     // Step 11: Complete processing job
     await updateJobStatus(supabase, processingDocumentId, 'completed');
@@ -610,7 +686,7 @@ async function downloadFromStorage(
 }
 
 // ============================================================================
-// Docling Operations (AC-4.8.4)
+// Document AI Operations (Story 12.3)
 // ============================================================================
 
 interface DoclingResult {
@@ -619,197 +695,110 @@ interface DoclingResult {
   pageCount: number;
 }
 
-interface DoclingApiResponse {
-  markdown: string;
-  page_markers: Array<{
-    page_number: number;
-    start_index: number;
-    end_index: number;
-  }>;
-  page_count: number;
-  processing_time_ms: number;
-}
-
 /**
- * Parse document with retry logic and fallback options.
- * Implements:
- * - AC-4.8.8: Retry logic (2 attempts with exponential backoff)
- * - AC-5.13.2: Retry with disable_cell_matching on page-dimensions error
- * - AC-5.13.3: Diagnostic logging for PDF failures
+ * Parse document using Document AI with automatic routing based on page count.
+ * Story 12.3: Replaces Docling with Document AI for PDF parsing.
+ * Story 12.6: Routes to batch processing for large documents (>15 pages).
+ *
+ * AC-12.3.1: parseDocument() replaced with Document AI call
+ * AC-12.3.2: Maintains same return signature (DoclingResult)
+ * AC-12.6.1: Page count detection before processing
+ * AC-12.6.2: Documents ≤15 pages use online processing
+ * AC-12.6.3: Documents >15 pages use batch processing via GCS
+ *
+ * @param docBuffer - PDF document as Uint8Array
+ * @param filename - Original filename (for logging, ignored by Document AI)
+ * @param _serviceUrl - DEPRECATED: Docling service URL, ignored (Document AI uses env vars)
+ * @param documentId - Optional document ID for batch processing GCS path
+ * @param onBatchProgress - Optional callback for batch processing progress updates
+ * @returns DoclingResult with markdown, pageMarkers, and pageCount
  */
 async function parseDocumentWithRetry(
   docBuffer: Uint8Array,
   filename: string,
-  serviceUrl: string
+  _serviceUrl: string, // AC-12.3.1: serviceUrl parameter ignored, kept for backward compat
+  documentId?: string,
+  onBatchProgress?: (stage: 'uploading' | 'batch_processing' | 'downloading_results', progress: number) => Promise<void>
 ): Promise<DoclingResult> {
-  let lastError: Error | null = null;
   const fileSizeBytes = docBuffer.byteLength;
 
-  // First attempt: Normal parsing
+  // Story 12.6 (AC-12.6.1): Detect page count
+  const pageCount = getPageCount(docBuffer);
+  const processingMode = selectProcessingMode(pageCount);
+
+  log.info('Starting Document AI parsing', {
+    filename,
+    fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
+    detectedPageCount: pageCount,
+    processingMode,
+  });
+
   try {
-    return await parseDocument(docBuffer, filename, serviceUrl, false);
-  } catch (error) {
-    lastError = error instanceof Error ? error : new Error(String(error));
+    let documentAIResponse;
 
-    // Story 5.13 (AC-5.13.3): Log diagnostic info for parse failures
-    const diagnostics = extractDiagnosticInfo(lastError.message, fileSizeBytes, filename);
-    log.warn('Docling parse failed (attempt 1)', {
-      ...diagnostics,
-      willRetry: true,
-    });
-
-    // Story 5.13 (AC-5.13.2): Check if this is a page-dimensions error
-    // If so, retry with disable_cell_matching=true
-    if (isPageDimensionsError(lastError.message)) {
-      log.info('Detected page-dimensions error, retrying with disable_cell_matching', {
+    if (processingMode === 'batch' && documentId) {
+      // AC-12.6.3: Use batch processing for large documents
+      log.info('Using batch processing for large document', {
         filename,
-        fileSizeMB: diagnostics.fileSizeMB,
+        pageCount,
+        documentId,
       });
 
-      try {
-        await sleep(2000); // Brief delay before retry
-        return await parseDocument(docBuffer, filename, serviceUrl, true);
-      } catch (retryError) {
-        const retryErr = retryError instanceof Error ? retryError : new Error(String(retryError));
-
-        // Story 5.13 (AC-5.13.3): Log final failure with diagnostics
-        log.error('Docling parse failed with fallback option', retryErr, {
-          ...diagnostics,
-          fallbackAttempted: true,
-          finalError: retryErr.message,
-        });
-
-        // Return user-friendly error message (AC-5.13.1)
-        throw new Error(getUserFriendlyError(retryErr.message));
-      }
-    }
-
-    // Standard retry for non-page-dimensions errors (AC-4.8.8)
-    await sleep(2000);
-
-    try {
-      return await parseDocument(docBuffer, filename, serviceUrl, false);
-    } catch (retryError) {
-      const retryErr = retryError instanceof Error ? retryError : new Error(String(retryError));
-
-      // Story 5.13 (AC-5.13.3): Log final failure with diagnostics
-      log.error('Docling parse failed after retry', retryErr, {
-        ...diagnostics,
-        retriesAttempted: 2,
-        finalError: retryErr.message,
+      documentAIResponse = await parseLargeDocumentWithBatch(
+        docBuffer,
+        documentId,
+        onBatchProgress ? async (stage, progress) => {
+          // Map internal batch stages to progress callback
+          const stageMap: Record<string, 'uploading' | 'batch_processing' | 'downloading_results'> = {
+            'uploading': 'uploading',
+            'processing': 'batch_processing',
+            'downloading': 'downloading_results',
+          };
+          await onBatchProgress(stageMap[stage] || 'batch_processing', progress);
+        } : undefined
+      );
+    } else {
+      // AC-12.6.2: Use online processing for small documents (≤15 pages)
+      log.info('Using online processing', {
+        filename,
+        pageCount,
       });
 
-      // Return user-friendly error message (AC-5.13.1)
-      throw new Error(getUserFriendlyError(retryErr.message));
+      // AC-12.3.1: Call Document AI (with built-in retry from documentai-client.ts)
+      documentAIResponse = await parseDocumentWithDocumentAI(docBuffer);
     }
-  }
-}
 
-/**
- * Parse document using Docling service.
- * Implements AC-4.8.4: Edge Function calls Docling service instead of LlamaParse
- * Story 5.13 (AC-5.13.2): Added disableCellMatching parameter for fallback parsing
- */
-async function parseDocument(
-  docBuffer: Uint8Array,
-  filename: string,
-  serviceUrl: string,
-  disableCellMatching: boolean = false
-): Promise<DoclingResult> {
-  // Determine MIME type from filename
-  const ext = filename.toLowerCase().split('.').pop() || 'pdf';
-  const mimeTypes: Record<string, string> = {
-    pdf: 'application/pdf',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    tiff: 'image/tiff',
-    tif: 'image/tiff',
-  };
-  const mimeType = mimeTypes[ext] || 'application/octet-stream';
+    // AC-12.3.2: Convert to DoclingResult format using Story 12.4 converter
+    const result = convertDocumentAIToDoclingResult(documentAIResponse);
 
-  // Create form data with file
-  const formData = new FormData();
-  const blob = new Blob([docBuffer], { type: mimeType });
-  formData.append('file', blob, filename.split('/').pop() || 'document');
-
-  // Send to Docling service with timeout
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DOCLING_TIMEOUT_MS); // 300s timeout (AC-5.8.1.4)
-
-  // Story 5.13 (AC-5.13.2): Build URL with optional disable_cell_matching param
-  const parseUrl = new URL(`${serviceUrl}/parse`);
-  if (disableCellMatching) {
-    parseUrl.searchParams.set('disable_cell_matching', 'true');
-  }
-
-  try {
-    const response = await fetch(parseUrl.toString(), {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
+    log.info('Document AI parsing successful', {
+      filename,
+      pageCount: result.pageCount,
+      markdownLength: result.markdown.length,
+      processingMode,
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Docling parse failed: ${response.status} - ${errorText}`);
-    }
-
-    const data = (await response.json()) as DoclingApiResponse;
-
-    // Transform response to match expected interface
-    return {
-      markdown: data.markdown,
-      pageMarkers: data.page_markers.map((pm) => ({
-        pageNumber: pm.page_number,
-        startIndex: pm.start_index,
-        endIndex: pm.end_index,
-      })),
-      pageCount: data.page_count,
-    };
+    return result;
   } catch (error) {
-    clearTimeout(timeoutId);
+    const err = error instanceof Error ? error : new Error(String(error));
 
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Docling parse timed out after 300 seconds. Document may be too large or complex.');
-    }
+    // AC-12.3.4: Classify Document AI errors for proper handling
+    const classification = classifyDocumentAIError(err);
 
-    throw error;
-  }
-}
-
-/**
- * Extract page information from markdown content.
- * The regex pattern matches: --- PAGE X ---
- * This is compatible with the existing chunking service.
- */
-function extractPageInfo(markdown: string): { pageMarkers: PageMarker[]; pageCount: number } {
-  const pageMarkers: PageMarker[] = [];
-  const pagePattern = /---\s*PAGE\s+(\d+)\s*---/gi;
-
-  let maxPage = 1;
-  let match;
-
-  while ((match = pagePattern.exec(markdown)) !== null) {
-    const pageNumber = parseInt(match[1], 10);
-    pageMarkers.push({
-      pageNumber,
-      startIndex: match.index,
-      endIndex: pagePattern.lastIndex,
+    log.error('Document AI parsing failed', err, {
+      filename,
+      fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
+      errorCode: classification.code,
+      userMessage: classification.userMessage,
+      suggestedAction: classification.suggestedAction,
+      processingMode,
     });
-    maxPage = Math.max(maxPage, pageNumber);
-  }
 
-  if (pageMarkers.length === 0) {
-    pageMarkers.push({ pageNumber: 1, startIndex: 0, endIndex: 0 });
+    // Throw with user-friendly message
+    throw new Error(classification.userMessage);
   }
-
-  return { pageMarkers, pageCount: maxPage };
 }
+
 
 // ============================================================================
 // Chunking Operations (Story 5.9: Table-Aware Chunking)
@@ -1319,6 +1308,38 @@ async function triggerNextJob(
     const errorText = await response.text();
     throw new Error(`Failed to trigger next job: ${response.status} - ${errorText}`);
   }
+}
+
+/**
+ * Trigger Phase 2 extraction via the extract-quote-data Edge Function.
+ * Story 11.6 (AC-11.6.2): Fire-and-forget async call - doesn't block Phase 1 completion.
+ */
+async function triggerPhase2Extraction(
+  supabaseUrl: string,
+  serviceKey: string,
+  documentId: string,
+  agencyId: string
+): Promise<void> {
+  log.info('Triggering Phase 2 extraction', { documentId, agencyId });
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/extract-quote-data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      documentId,
+      agencyId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to trigger Phase 2 extraction: ${response.status} - ${errorText}`);
+  }
+
+  log.info('Phase 2 extraction triggered successfully', { documentId });
 }
 
 // ============================================================================
@@ -2042,58 +2063,6 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ============================================================================
-// Story 5.13: PDF Parsing Robustness Helpers
-// ============================================================================
-
-/**
- * Check if error is a page-dimensions/libpdfium error.
- * Story 5.13 (AC-5.13.1): Detect specific PDF format errors
- */
-function isPageDimensionsError(errorMessage: string): boolean {
-  const lowerMessage = errorMessage.toLowerCase();
-  return PAGE_DIMENSIONS_ERROR_PATTERNS.some((pattern) =>
-    lowerMessage.includes(pattern.toLowerCase())
-  );
-}
-
-/**
- * Get user-friendly error message for PDF parsing errors.
- * Story 5.13 (AC-5.13.1): Return helpful messages instead of technical errors
- */
-function getUserFriendlyError(errorMessage: string): string {
-  if (isPageDimensionsError(errorMessage)) {
-    return USER_FRIENDLY_ERRORS['page-dimensions'];
-  }
-  if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
-    return USER_FRIENDLY_ERRORS['timeout'];
-  }
-  if (errorMessage.includes('unsupported') || errorMessage.includes('not supported')) {
-    return USER_FRIENDLY_ERRORS['unsupported-format'];
-  }
-  // Return original message if no specific handler
-  return errorMessage;
-}
-
-/**
- * Extract diagnostic info from error for logging.
- * Story 5.13 (AC-5.13.3): Log PDF metadata for analysis
- */
-function extractDiagnosticInfo(
-  errorMessage: string,
-  fileSizeBytes: number,
-  filename: string
-): Record<string, unknown> {
-  return {
-    errorType: isPageDimensionsError(errorMessage) ? 'page-dimensions' : 'other',
-    originalError: errorMessage,
-    fileSizeBytes,
-    fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
-    filename,
-    fileExtension: filename.split('.').pop()?.toLowerCase() || 'unknown',
-  };
-}
-
-// ============================================================================
 // Story 5.12: Progress Reporting
 // ============================================================================
 
@@ -2169,13 +2138,16 @@ function estimateTimeRemaining(
   const sizeMB = fileSizeBytes / MB;
 
   // Base estimates per stage (in seconds) for ~10MB file
-  // Story 10.12: Added 'analyzing' stage for quote extraction
+  // Story 11.6: Removed 'analyzing' - extraction now in Phase 2
+  // Story 12.6: Added batch processing stages (uploading, batch_processing, downloading_results)
   const baseEstimates: Record<ProgressData['stage'], number> = {
     downloading: 10,
-    parsing: 120, // 2 min base for parsing
+    parsing: 120, // 2 min base for online parsing
+    uploading: 15, // AC-12.6.7: Upload to GCS
+    batch_processing: 180, // AC-12.6.7: 3 min base for batch processing
+    downloading_results: 10, // AC-12.6.7: Download results from GCS
     chunking: 15,
     embedding: 60, // 1 min base for embeddings
-    analyzing: 30, // 30s base for GPT extraction
   };
 
   // Scale by file size (larger files take proportionally longer)
@@ -2186,8 +2158,13 @@ function estimateTimeRemaining(
   const remainingTime = baseTime * ((100 - stageProgress) / 100);
 
   // Add estimates for remaining stages
-  // Story 10.12: Added 'analyzing' stage
-  const stageOrder: ProgressData['stage'][] = ['downloading', 'parsing', 'chunking', 'embedding', 'analyzing'];
+  // Story 11.6: Removed 'analyzing' - extraction now in Phase 2
+  // Story 12.6: Two stage orders - online mode and batch mode
+  // Determine which stage order to use based on current stage
+  const isBatchMode = ['uploading', 'batch_processing', 'downloading_results'].includes(stage);
+  const stageOrder: ProgressData['stage'][] = isBatchMode
+    ? ['downloading', 'uploading', 'batch_processing', 'downloading_results', 'chunking', 'embedding']
+    : ['downloading', 'parsing', 'chunking', 'embedding'];
   const currentIndex = stageOrder.indexOf(stage);
   let additionalTime = 0;
 

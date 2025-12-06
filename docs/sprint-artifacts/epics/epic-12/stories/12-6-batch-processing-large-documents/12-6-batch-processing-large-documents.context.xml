@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 12-6 Batch Processing for Large Documents
+  Epic: 12 - Google Cloud Document AI Migration
+  Generated: 2025-12-05
+  Purpose: Provide comprehensive context for implementing batch processing for documents >15 pages
+-->
+<story-context>
+  <metadata>
+    <story-id>12.6</story-id>
+    <story-key>12-6-batch-processing-large-documents</story-key>
+    <story-title>Batch Processing for Large Documents</story-title>
+    <epic>Epic 12: Google Cloud Document AI Migration</epic>
+    <status>todo</status>
+    <generated-at>2025-12-05</generated-at>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Implement batch processing for large documents (>15 pages) using Google Cloud Storage (GCS)
+      and Document AI's batchProcess API. This addresses Document AI's 15-page online processing
+      limit by uploading large PDFs to GCS and using async batch processing.
+    </description>
+    <business-value>
+      Insurance policy documents often exceed 15 pages. Without batch processing, these documents
+      would fail to process, preventing users from analyzing their most important documents.
+    </business-value>
+  </story-summary>
+
+  <acceptance-criteria>
+    <criterion id="AC-12.6.1">Page count detection before processing (count pages in PDF)</criterion>
+    <criterion id="AC-12.6.2">Documents ≤15 pages use online/sync processing (existing flow)</criterion>
+    <criterion id="AC-12.6.3">Documents >15 pages use batch processing via GCS</criterion>
+    <criterion id="AC-12.6.4">Batch processing uploads PDF to GCS bucket</criterion>
+    <criterion id="AC-12.6.5">Batch processing polls for completion (max 5 minutes)</criterion>
+    <criterion id="AC-12.6.6">Batch processing downloads results from GCS</criterion>
+    <criterion id="AC-12.6.7">Progress updates reflect batch processing stages</criterion>
+    <criterion id="AC-12.6.8">GCS bucket configured with auto-delete (24h TTL)</criterion>
+  </acceptance-criteria>
+
+  <technical-specification>
+    <source>docs/sprint-artifacts/epics/epic-12/tech-spec/tech-spec-epic-12.md</source>
+    <key-decisions>
+      <decision id="1">
+        <topic>Processing Mode Selection</topic>
+        <description>
+          Documents with ≤15 pages use the existing synchronous `process` endpoint.
+          Documents with >15 pages use the asynchronous `batchProcess` endpoint via GCS.
+          Note: Document AI's imagelessMode already allows 30 pages online, but batch provides
+          reliability for very large documents and handles edge cases.
+        </description>
+      </decision>
+      <decision id="2">
+        <topic>GCS Bucket Structure</topic>
+        <description>
+          Bucket name: `documine-batch-processing` (or configured via env var)
+          Path format: `{documentId}/input.pdf` for upload
+          Output path: `{documentId}/output/` for results
+          24-hour lifecycle rule for automatic cleanup
+        </description>
+      </decision>
+      <decision id="3">
+        <topic>Polling Strategy</topic>
+        <description>
+          Poll every 5 seconds for up to 5 minutes (60 attempts).
+          Use Operation.done field to detect completion.
+          Handle both success and error states from the operation.
+        </description>
+      </decision>
+    </key-decisions>
+  </technical-specification>
+
+  <existing-implementation>
+    <file path="supabase/functions/process-document/documentai-client.ts">
+      <description>
+        Google Cloud Document AI client with JWT-based authentication for Deno.
+        Currently implements synchronous `process` endpoint. Story 12.6 will add:
+        - getPageCount() function to count PDF pages
+        - uploadToGCS() function for batch input
+        - batchProcessDocument() function for async processing
+        - downloadFromGCS() function for results
+        - pollBatchOperation() function for completion polling
+      </description>
+      <key-functions>
+        <function name="getAccessToken">Gets GCP access token using service account JWT</function>
+        <function name="parseDocumentWithDocumentAI">Synchronous parsing (≤15 pages)</function>
+        <function name="parseDocumentWithRetry">Retry wrapper with exponential backoff</function>
+        <function name="convertDocumentAIToDoclingResult">Converts API response to internal format</function>
+        <function name="classifyDocumentAIError">Error classification for user messaging</function>
+        <function name="encodeToBase64">Base64 encoding for large files (chunk-based)</function>
+      </key-functions>
+      <lines-of-code>~1160</lines-of-code>
+    </file>
+
+    <file path="supabase/functions/process-document/index.ts">
+      <description>
+        Main Edge Function orchestrating document processing pipeline.
+        Handles job queue, progress reporting, chunking, embeddings, and extraction.
+        Story 12.6 will modify parseDocumentWithRetry() to:
+        1. Detect page count first
+        2. Route to sync or batch based on count
+        3. Update progress stages for batch mode
+      </description>
+      <key-functions>
+        <function name="parseDocumentWithRetry">Entry point for parsing - will add routing logic</function>
+        <function name="updateJobProgress">Progress reporting via Realtime</function>
+        <function name="downloadFromStorage">Downloads PDF from Supabase Storage</function>
+        <function name="chunkMarkdown">Chunks parsed content for embeddings</function>
+      </key-functions>
+      <stage-weights>
+        downloading: 5%, parsing: 55%, chunking: 10%, embedding: 30%
+      </stage-weights>
+      <lines-of-code>~2058</lines-of-code>
+    </file>
+  </existing-implementation>
+
+  <api-documentation>
+    <endpoint name="Document AI batchProcess">
+      <url>POST https://{location}-documentai.googleapis.com/v1/projects/{projectId}/locations/{location}/processors/{processorId}:batchProcess</url>
+      <description>
+        Initiates batch processing for large documents. Returns a long-running operation.
+      </description>
+      <request-body><![CDATA[
+{
+  "inputDocuments": {
+    "gcsDocuments": {
+      "documents": [
+        {
+          "gcsUri": "gs://bucket-name/path/to/document.pdf",
+          "mimeType": "application/pdf"
+        }
+      ]
+    }
+  },
+  "documentOutputConfig": {
+    "gcsOutputConfig": {
+      "gcsUri": "gs://bucket-name/output/path/"
+    }
+  }
+}
+      ]]></request-body>
+      <response><![CDATA[
+{
+  "name": "projects/{project}/locations/{location}/operations/{operation-id}",
+  "metadata": {...}
+}
+      ]]></response>
+    </endpoint>
+
+    <endpoint name="Operations.get">
+      <url>GET https://{location}-documentai.googleapis.com/v1/{operation-name}</url>
+      <description>Polls for operation completion status.</description>
+      <response><![CDATA[
+{
+  "name": "...",
+  "done": true,
+  "response": {
+    "individualProcessStatuses": [
+      {
+        "inputGcsSource": "gs://...",
+        "status": {...},
+        "outputGcsDestination": "gs://bucket/output/0/"
+      }
+    ]
+  }
+}
+      ]]></response>
+    </endpoint>
+
+    <endpoint name="GCS JSON API - Upload">
+      <url>POST https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={objectPath}</url>
+      <description>Uploads file to GCS bucket.</description>
+      <headers>
+        Authorization: Bearer {accessToken}
+        Content-Type: application/pdf
+      </headers>
+    </endpoint>
+
+    <endpoint name="GCS JSON API - Download">
+      <url>GET https://storage.googleapis.com/storage/v1/b/{bucket}/o/{objectPath}?alt=media</url>
+      <description>Downloads file from GCS bucket.</description>
+      <headers>
+        Authorization: Bearer {accessToken}
+      </headers>
+    </endpoint>
+
+    <endpoint name="GCS JSON API - Delete">
+      <url>DELETE https://storage.googleapis.com/storage/v1/b/{bucket}/o/{objectPath}</url>
+      <description>Deletes file from GCS bucket.</description>
+      <headers>
+        Authorization: Bearer {accessToken}
+      </headers>
+    </endpoint>
+  </api-documentation>
+
+  <environment-variables>
+    <variable name="GOOGLE_SERVICE_ACCOUNT_KEY" required="true">
+      JSON service account credentials (already configured)
+    </variable>
+    <variable name="DOCUMENT_AI_PROCESSOR_ID" required="true">
+      Document AI processor ID (already configured)
+    </variable>
+    <variable name="DOCUMENT_AI_LOCATION" default="us">
+      GCP region for Document AI
+    </variable>
+    <variable name="GCS_BUCKET_NAME" required="true" new="true">
+      GCS bucket for batch processing files (e.g., "documine-batch-processing")
+    </variable>
+  </environment-variables>
+
+  <implementation-tasks>
+    <task id="1" priority="high">
+      <title>Create getPageCount() Function</title>
+      <description>
+        Implement PDF page count detection using PDF header parsing.
+        Can use simple regex on PDF structure or load first few KB to find /Count.
+      </description>
+      <acceptance>AC-12.6.1</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+      <approach>
+        Parse PDF trailer to find /Count in catalog, or use pdf-lib if needed.
+        For Edge Function, prefer lightweight parsing to avoid dependencies.
+      </approach>
+    </task>
+
+    <task id="2" priority="high">
+      <title>Create selectProcessingMode() Function</title>
+      <description>
+        Decision function that returns 'online' or 'batch' based on page count.
+        Threshold: 15 pages (matches Document AI's imagelessMode limit).
+      </description>
+      <acceptance>AC-12.6.2, AC-12.6.3</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+    </task>
+
+    <task id="3" priority="high">
+      <title>Implement GCS Upload Function</title>
+      <description>
+        uploadToGCS(bucket, objectPath, pdfBuffer) - Uploads PDF to GCS bucket.
+        Uses GCS JSON API with service account auth token.
+      </description>
+      <acceptance>AC-12.6.4</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+      <code-snippet><![CDATA[
+async function uploadToGCS(
+  bucket: string,
+  objectPath: string,
+  pdfBuffer: Uint8Array,
+  accessToken: string
+): Promise<string> {
+  const encodedPath = encodeURIComponent(objectPath);
+  const url = `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encodedPath}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/pdf',
+    },
+    body: pdfBuffer,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`GCS upload failed: ${response.status} - ${error}`);
+  }
+
+  return `gs://${bucket}/${objectPath}`;
+}
+      ]]></code-snippet>
+    </task>
+
+    <task id="4" priority="high">
+      <title>Implement batchProcessDocument() Function</title>
+      <description>
+        Initiates batch processing via Document AI API.
+        Returns operation name for polling.
+      </description>
+      <acceptance>AC-12.6.3</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+      <code-snippet><![CDATA[
+async function batchProcessDocument(
+  inputGcsUri: string,
+  outputGcsUri: string,
+  accessToken: string
+): Promise<string> {
+  const config = getDocumentAIConfig();
+  const endpoint = `https://${config.location}-documentai.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/processors/${config.processorId}:batchProcess`;
+
+  const requestBody = {
+    inputDocuments: {
+      gcsDocuments: {
+        documents: [{ gcsUri: inputGcsUri, mimeType: 'application/pdf' }]
+      }
+    },
+    documentOutputConfig: {
+      gcsOutputConfig: { gcsUri: outputGcsUri }
+    }
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Batch process initiation failed: ${response.status} - ${error}`);
+  }
+
+  const result = await response.json();
+  return result.name; // Operation name for polling
+}
+      ]]></code-snippet>
+    </task>
+
+    <task id="5" priority="high">
+      <title>Implement pollBatchOperation() Function</title>
+      <description>
+        Polls operation status until done or timeout.
+        5-second intervals, 5-minute max (60 attempts).
+      </description>
+      <acceptance>AC-12.6.5</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+      <code-snippet><![CDATA[
+async function pollBatchOperation(
+  operationName: string,
+  accessToken: string,
+  onProgress?: (attempt: number, maxAttempts: number) => Promise<void>
+): Promise<BatchOperationResult> {
+  const maxAttempts = 60; // 5 minutes at 5-second intervals
+  const pollIntervalMs = 5000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await fetch(
+      `https://documentai.googleapis.com/v1/${operationName}`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Poll failed: ${response.status}`);
+    }
+
+    const operation = await response.json();
+
+    if (onProgress) {
+      await onProgress(attempt, maxAttempts);
+    }
+
+    if (operation.done) {
+      if (operation.error) {
+        throw new Error(`Batch processing failed: ${operation.error.message}`);
+      }
+      return operation.response;
+    }
+
+    await sleep(pollIntervalMs);
+  }
+
+  throw new Error('Batch processing timed out after 5 minutes');
+}
+      ]]></code-snippet>
+    </task>
+
+    <task id="6" priority="high">
+      <title>Implement downloadFromGCS() Function</title>
+      <description>
+        Downloads batch processing results from GCS.
+        Result path format: {outputGcsUri}0/output.json
+      </description>
+      <acceptance>AC-12.6.6</acceptance>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+    </task>
+
+    <task id="7" priority="medium">
+      <title>Implement deleteFromGCS() Function</title>
+      <description>
+        Cleans up input file after processing.
+        Output files are cleaned by lifecycle rule.
+      </description>
+      <file>supabase/functions/process-document/documentai-client.ts</file>
+    </task>
+
+    <task id="8" priority="high">
+      <title>Update parseDocumentWithRetry() Routing Logic</title>
+      <description>
+        Modify main parsing function to:
+        1. Count pages first
+        2. Route to sync or batch based on count
+        3. Handle results from either path
+      </description>
+      <acceptance>AC-12.6.2, AC-12.6.3</acceptance>
+      <file>supabase/functions/process-document/index.ts</file>
+    </task>
+
+    <task id="9" priority="medium">
+      <title>Add Batch Progress Reporting</title>
+      <description>
+        Update progress messages for batch processing stages:
+        - "Uploading to cloud..." (during GCS upload)
+        - "Processing large document..." (during batch)
+        - "Downloading results..." (during result fetch)
+      </description>
+      <acceptance>AC-12.6.7</acceptance>
+      <file>supabase/functions/process-document/index.ts</file>
+    </task>
+
+    <task id="10" priority="low">
+      <title>Configure GCS Bucket Lifecycle</title>
+      <description>
+        Set up 24-hour auto-delete lifecycle rule on GCS bucket.
+        This is infrastructure configuration, not code.
+      </description>
+      <acceptance>AC-12.6.8</acceptance>
+      <type>manual-setup</type>
+      <gcloud-command><![CDATA[
+gsutil lifecycle set lifecycle.json gs://documine-batch-processing
+
+# lifecycle.json:
+{
+  "rule": [
+    {
+      "action": {"type": "Delete"},
+      "condition": {"age": 1}
+    }
+  ]
+}
+      ]]></gcloud-command>
+    </task>
+
+    <task id="11" priority="medium">
+      <title>Write Unit Tests</title>
+      <description>
+        Add tests for:
+        - getPageCount() with various PDFs
+        - selectProcessingMode() threshold logic
+        - GCS operations (mocked)
+        - Polling logic with mock responses
+      </description>
+      <file>__tests__/supabase/batch-processing.test.ts</file>
+    </task>
+
+    <task id="12" priority="medium">
+      <title>Write E2E Test</title>
+      <description>
+        Test upload of a large (>15 page) document and verify:
+        - Batch processing is triggered
+        - Progress updates are shown
+        - Document reaches ready state
+      </description>
+      <file>__tests__/e2e/batch-processing.spec.ts</file>
+    </task>
+  </implementation-tasks>
+
+  <testing-strategy>
+    <unit-tests>
+      <test name="getPageCount returns correct count">
+        Mock PDF buffer with known page count, verify detection accuracy
+      </test>
+      <test name="selectProcessingMode routes correctly">
+        14 pages → 'online', 15 pages → 'online', 16 pages → 'batch'
+      </test>
+      <test name="uploadToGCS handles large files">
+        Verify chunked upload for files >10MB
+      </test>
+      <test name="pollBatchOperation respects timeout">
+        Mock slow operation, verify 5-minute timeout
+      </test>
+      <test name="pollBatchOperation handles errors">
+        Mock operation.error, verify proper error propagation
+      </test>
+    </unit-tests>
+    <integration-tests>
+      <test name="Full batch processing flow">
+        Upload 20-page PDF, verify batch path, check result
+      </test>
+    </integration-tests>
+    <e2e-tests>
+      <test name="Large document upload to ready">
+        Use 20+ page test PDF, verify UI shows batch progress, document becomes ready
+      </test>
+    </e2e-tests>
+  </testing-strategy>
+
+  <dependencies>
+    <dependency type="story">
+      <id>12.1</id>
+      <title>Connect GCP Document AI</title>
+      <status>completed</status>
+      <provides>GCP authentication, service account integration</provides>
+    </dependency>
+    <dependency type="story">
+      <id>12.2</id>
+      <title>Create Document AI Parsing Service</title>
+      <status>completed</status>
+      <provides>Base Document AI client, error handling patterns</provides>
+    </dependency>
+    <dependency type="story">
+      <id>12.3</id>
+      <title>Integrate into Edge Function</title>
+      <status>completed</status>
+      <provides>Edge Function structure, progress reporting</provides>
+    </dependency>
+    <dependency type="story">
+      <id>12.4</id>
+      <title>Response Parsing</title>
+      <status>completed</status>
+      <provides>convertDocumentAIToDoclingResult() for batch results</provides>
+    </dependency>
+    <dependency type="infrastructure">
+      <name>GCS Bucket</name>
+      <status>required</status>
+      <description>
+        Sam needs to create a GCS bucket and configure:
+        1. Bucket name (add to Edge Function secrets as GCS_BUCKET_NAME)
+        2. Service account permission: storage.objectAdmin
+        3. Lifecycle rule: 24-hour auto-delete
+      </description>
+    </dependency>
+  </dependencies>
+
+  <risk-assessment>
+    <risk level="medium">
+      <description>GCS bucket permissions may need adjustment</description>
+      <mitigation>
+        Test with minimal permissions first, add as needed.
+        Service account needs: storage.objects.create, storage.objects.get, storage.objects.delete
+      </mitigation>
+    </risk>
+    <risk level="low">
+      <description>Batch processing may take longer than expected</description>
+      <mitigation>
+        5-minute timeout is generous. Document AI batch typically completes in 1-2 minutes.
+        Progress updates keep user informed.
+      </mitigation>
+    </risk>
+    <risk level="low">
+      <description>PDF page count detection accuracy</description>
+      <mitigation>
+        Use PDF-native page count from trailer/catalog.
+        If detection fails, default to batch mode (safer).
+      </mitigation>
+    </risk>
+  </risk-assessment>
+
+  <code-patterns>
+    <pattern name="GCS URI Format">
+      <description>Consistent GCS URI formatting for bucket operations</description>
+      <example>gs://documine-batch-processing/{documentId}/input.pdf</example>
+    </pattern>
+    <pattern name="Progress Callback">
+      <description>Consistent progress reporting via callback functions</description>
+      <example>onProgress?: (attempt: number, maxAttempts: number) => Promise&lt;void&gt;</example>
+    </pattern>
+    <pattern name="Error Classification">
+      <description>Reuse existing classifyDocumentAIError for GCS errors</description>
+      <example>Add GCS_UPLOAD_FAILED, GCS_DOWNLOAD_FAILED, BATCH_TIMEOUT codes</example>
+    </pattern>
+  </code-patterns>
+
+  <related-documentation>
+    <doc path="docs/claude-md/epic-12-document-ai-migration-2025-12-05.md">
+      High-level Epic 12 overview and migration context
+    </doc>
+    <doc path="docs/architecture/data-architecture.md">
+      Database schema including documents and processing_jobs tables
+    </doc>
+    <doc url="https://cloud.google.com/document-ai/docs/process-documents-batch">
+      Google Cloud Document AI Batch Processing documentation
+    </doc>
+    <doc url="https://cloud.google.com/storage/docs/json_api/v1">
+      Google Cloud Storage JSON API reference
+    </doc>
+  </related-documentation>
+</story-context>

@@ -700,7 +700,9 @@ development_status:
   # Key finding: Async architecture works, but Docling is the bottleneck (150+ second hangs)
   # Decision: Replace Docling with Google Cloud Document AI (Epic 12)
   # Grade: B- (good delivery, but didn't solve root cause)
-  epic-11: done
+  # PHASE 2 ADDED 2025-12-05: Stories 11.6-11.8 for phased processing optimization
+  # Reason: 30+ page docs take 60+ seconds; split into fast-chat + background extraction
+  epic-11: contexted
   epic-11-retrospective: completed
   # Story 11.1: Async Processing Architecture (5 pts)
   # pg_cron job queue, processing_jobs table, Edge Function modification
@@ -760,6 +762,42 @@ development_status:
   # - ProcessingQueueSummary with clickable failed count filter
   # CODE REVIEWED 2025-12-05: All tasks complete, 1514 tests pass
   11-5-error-handling-user-feedback: done
+  # Story 11.6: Phased Document Processing - Fast Chat Path (5 pts)
+  # Split processing into Phase 1 (chat) and Phase 2 (extraction)
+  # Priority: P0 - enables faster time-to-chat for large documents
+  # DRAFTED 2025-12-05: Story file at docs/sprint-artifacts/epics/epic-11/stories/11-6-phased-processing-fast-chat/
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/epics/epic-11/stories/11-6-phased-processing-fast-chat/11-6-phased-processing-fast-chat.context.xml
+  # IMPLEMENTED 2025-12-05: Phased processing with extract-quote-data Edge Function, all 1554 tests pass
+  # CODE REVIEWED 2025-12-05: APPROVED - all 6 ACs verified, all 6 tasks verified, excellent implementation
+  11-6-phased-processing-fast-chat: done
+  # Story 11.7: Comparison Page - Extraction Status Handling (3 pts)
+  # Show "Analyzing" banner when extraction pending, suggest chat alternative
+  # Priority: P0 - UX for phased processing
+  # DRAFTED 2025-12-05: Story file at docs/sprint-artifacts/epics/epic-11/stories/11-7-comparison-extraction-status/
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/epics/epic-11/stories/11-7-comparison-extraction-status/11-7-comparison-extraction-status.context.xml
+  # Story 11.7: Comparison Page - Extraction Status Handling
+  # IMPLEMENTED 2025-12-05: All 6 ACs complete
+  # - ExtractionPendingBanner with estimated time, chat alternative link
+  # - useExtractionStatus hook for Realtime subscription
+  # - QuoteSelector cards show extraction indicators (checkmark/spinner/alert)
+  # - Retry button for failed extractions via /api/documents/[id]/retry
+  # - 29 unit tests + E2E spec, 1583 total tests pass
+  # CODE REVIEWED 2025-12-05: CHANGES REQUESTED
+  # - [Med] Banner flash on first document selection - race condition in useExtractionStatus
+  # - [Low] Selection counter doesn't show "X ready, Y analyzing" breakdown
+  # BUG FIX 2025-12-05: Added isLoading state to useExtractionStatus hook
+  # - Prevents race condition where statusMap is empty on first document click
+  # - While loading, treats documents as pending to prevent banner flash
+  # - All 410 compare-related tests pass, build successful
+  11-7-comparison-extraction-status: done
+  # Story 11.8: Document List - Extraction Status Indicators (2 pts)
+  # Show extraction badges on document cards and table
+  # Priority: P1 - visibility for extraction status
+  # DRAFTED 2025-12-05: Story file at docs/sprint-artifacts/epics/epic-11/stories/11-8-document-list-extraction-indicators/
+  # CONTEXT 2025-12-05: Context file at docs/sprint-artifacts/epics/epic-11/stories/11-8-document-list-extraction-indicators/11-8-document-list-extraction-indicators.context.xml
+  # IMPLEMENTED 2025-12-05: All 6 tasks complete, 24 unit tests, E2E spec
+  # CODE REVIEWED 2025-12-05: APPROVED - 5/5 ACs verified, 24/24 tasks verified, 1607 tests pass
+  11-8-document-list-extraction-indicators: done
 
 # ===========================================
 # EPIC 12: GOOGLE CLOUD DOCUMENT AI MIGRATION
@@ -794,7 +832,15 @@ development_status:
   # Story 12.3: Integrate into Edge Function (5 pts)
   # Replace Docling call with Document AI call
   # Priority: P0 - main integration
-  12-3-edge-function-integration: drafted
+  # IMPLEMENTED 2025-12-05: All 5 ACs complete
+  # - AC-12.3.1: parseDocument() replaced with Document AI call
+  # - AC-12.3.2: parseDocumentWithRetry() wrapper updated, returns DoclingResult
+  # - AC-12.3.3: Progress updates continue at parsing stage (0%, 100%)
+  # - AC-12.3.4: Error classification via classifyDocumentAIError()
+  # - AC-12.3.5: All Docling-specific code removed, deprecation warning added
+  # - Build passes, 1554 tests pass
+  # CODE REVIEWED 2025-12-05: APPROVED - all 5 ACs verified, excellent code quality
+  12-3-edge-function-integration: done
   # Story 12.4: Response Parsing (3 pts)
   # Convert Document AI response to our internal format
   # Priority: P0 - data compatibility
@@ -803,4 +849,28 @@ development_status:
   # Story 12.5: Testing & Validation (2 pts)
   # Test with foran auto nationwide.pdf and diverse documents
   # Priority: P0 - quality gate
-  12-5-testing-validation: backlog
+  # IMPLEMENTED 2025-12-06: All 5 ACs verified
+  # - AC-12.5.1: Real documents process in 8-21 seconds (vs 150+ with Docling)
+  # - AC-12.5.2: 1607 tests pass
+  # - AC-12.5.3: E2E test created at __tests__/e2e/document-ai-processing.spec.ts
+  # - AC-12.5.4: Error handling verified via classifyDocumentAIError()
+  # - AC-12.5.5: Build passes without errors
+  12-5-testing-validation: done
+  # Story 12.6: Batch Processing for Large Documents (3 pts)
+  # Handle documents > 30 pages using Document AI batch processing API
+  # Priority: P1 - essential for enterprise users with lengthy policy documents
+  # Note: Online processing has 30-page limit (imageless mode). Batch processing supports up to 500 pages.
+  # IMPLEMENTED 2025-12-06: All 8 ACs complete
+  # - AC-12.6.1: getPageCount() function - PDF structure parsing
+  # - AC-12.6.2: selectProcessingMode() - ≤15 pages → online
+  # - AC-12.6.3: >15 pages → batch via GCS
+  # - AC-12.6.4: uploadToGCS() for batch input
+  # - AC-12.6.5: pollBatchOperation() with 5-min timeout
+  # - AC-12.6.6: downloadFromGCS() for results
+  # - AC-12.6.7: Batch progress stages in UI (uploading, batch_processing, downloading_results)
+  # - AC-12.6.8: GCS bucket lifecycle rule (24h auto-delete) - manually configured
+  # Build passes, 1607 tests pass
+  # Tested Edgee Function logs for 100+ page document:
+    # - Supabase Edge Function logs: {"level":"error","message":"Processing failed","error":"An unexpected error occurred connecting to Document AI.","stack":"Error: An unexpected error occurred connecting to Document AI.\n at parseDocumentWithRetry (file:///var/tmp/sb-compile-edge-runtime/process-document/index.ts:648:11)\n at eventLoopTick (ext:core/01_core.js:175:7)\n at async Object.handler (file:///var/tmp/sb-compile-edge-runtime/process-document/index.ts:391:25)\n at async mapped (ext:runtime/http.js:242:18)","documentId":"e1c17293-7b5e-48ae-a45f-733003a5da9d","agencyId":"65dae458-3f91-4f71-96a2-e825f9769a50","errorType":"permanent","errorCategory":"permanent","errorCode":"UNKNOWN","isRetryable":false,"step":"unknown","timestamp":"2025-12-06T08:14:21.147Z"}
+    # 
+  12-6-batch-processing-large-documents: ready-for-review

@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   useReactTable,
   type ColumnDef,
   type SortingState,
+  type RowSelectionState,
 } from '@tanstack/react-table';
 import { FileText, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { formatRelativeDate } from '@/lib/utils/date';
 import {
@@ -35,8 +38,9 @@ import {
 // Note: Using native button for dropdown trigger to avoid shadcn Button/Radix conflict
 import { DocumentStatusBadge, type DocumentStatusType } from './document-status';
 import { DocumentTypeBadge } from './document-type-badge';
+import { ExtractionStatusBadge } from './extraction-status-badge';
 import { ProcessingProgress } from './processing-progress';
-import type { DocumentType } from '@/types';
+import type { DocumentType, ExtractionStatus } from '@/types';
 import type { ProgressData } from '@/hooks/use-processing-progress';
 
 export interface DocumentTableRow {
@@ -55,6 +59,8 @@ export interface DocumentTableRow {
   annual_premium: number | null;
   /** Story 11.5: Error message for failed documents */
   error_message?: string | null;
+  /** Story 11.8: Extraction status for quote analysis */
+  extraction_status?: ExtractionStatus | null;
 }
 
 interface DocumentTableProps {
@@ -63,6 +69,14 @@ interface DocumentTableProps {
   progressMap?: Map<string, ProgressData>;
   onRename?: (id: string) => void;
   onDelete?: (id: string) => void;
+  /** Story 11.8: Retry extraction for failed documents */
+  onRetryExtraction?: (id: string) => void;
+  /** Story 11.8: Set of document IDs currently retrying extraction */
+  retryingExtractionIds?: Set<string>;
+  /** Enable row selection with checkboxes */
+  enableSelection?: boolean;
+  /** Callback when selected rows change (provides array of selected document IDs) */
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
 /**
@@ -77,15 +91,56 @@ interface DocumentTableProps {
  * - AC-F2-6.5: Row click navigates to viewer
  * - AC-F2-6.6: Sticky header
  */
-export function DocumentTable({ documents, progressMap, onRename, onDelete }: DocumentTableProps) {
+export function DocumentTable({
+  documents,
+  progressMap,
+  onRename,
+  onDelete,
+  onRetryExtraction,
+  retryingExtractionIds,
+  enableSelection = false,
+  onSelectionChange,
+}: DocumentTableProps) {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'created_at', desc: true }, // Default: newest first
   ]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const columns = useMemo<ColumnDef<DocumentTableRow>[]>(
     () => [
+      // Checkbox column for row selection
+      ...(enableSelection
+        ? [
+            {
+              id: 'select',
+              header: ({ table }: { table: ReturnType<typeof useReactTable<DocumentTableRow>> }) => (
+                <Checkbox
+                  checked={
+                    table.getIsAllPageRowsSelected() ||
+                    (table.getIsSomePageRowsSelected() && 'indeterminate')
+                  }
+                  onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                  aria-label="Select all"
+                  className="translate-y-[2px]"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ),
+              cell: ({ row }: { row: { getIsSelected: () => boolean; toggleSelected: (value?: boolean) => void } }) => (
+                <Checkbox
+                  checked={row.getIsSelected()}
+                  onCheckedChange={(value) => row.toggleSelected(!!value)}
+                  aria-label="Select row"
+                  className="translate-y-[2px]"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ),
+              enableSorting: false,
+              enableHiding: false,
+            } as ColumnDef<DocumentTableRow>,
+          ]
+        : []),
       {
         accessorKey: 'filename',
         header: ({ column }) => (
@@ -152,6 +207,45 @@ export function DocumentTable({ documents, progressMap, onRename, onDelete }: Do
               errorMessage={row.original.error_message || undefined}
             />
           );
+        },
+      },
+      // Story 11.8: Analysis column for extraction status (AC-11.8.5)
+      {
+        accessorKey: 'extraction_status',
+        header: ({ column }) => (
+          <SortableHeader column={column} title="Analysis" />
+        ),
+        cell: ({ row }) => {
+          const doc = row.original;
+          // Only show for ready quote documents
+          if (doc.status !== 'ready' || doc.document_type === 'general') {
+            return <span className="text-slate-400 text-xs">—</span>;
+          }
+          const isRetrying = retryingExtractionIds?.has(doc.id) ?? false;
+          return (
+            <ExtractionStatusBadge
+              status={doc.extraction_status || null}
+              documentType={doc.document_type}
+              onRetry={onRetryExtraction ? () => onRetryExtraction(doc.id) : undefined}
+              isRetrying={isRetrying}
+            />
+          );
+        },
+        sortingFn: (rowA, rowB) => {
+          // Sort order: complete/skipped first, extracting, pending, failed last
+          const order: Record<ExtractionStatus | 'null', number> = {
+            complete: 0,
+            skipped: 0,
+            extracting: 1,
+            pending: 2,
+            failed: 3,
+            null: 2, // Treat null as pending
+          };
+          const statusA = rowA.original.extraction_status || 'null';
+          const statusB = rowB.original.extraction_status || 'null';
+          const a = order[statusA as keyof typeof order] ?? 2;
+          const b = order[statusB as keyof typeof order] ?? 2;
+          return a - b;
         },
       },
       {
@@ -330,17 +424,47 @@ export function DocumentTable({ documents, progressMap, onRename, onDelete }: Do
         },
       },
     ],
-    [hoveredRowId, router, progressMap, onRename, onDelete]
+    [hoveredRowId, router, progressMap, onRename, onDelete, onRetryExtraction, retryingExtractionIds, enableSelection]
   );
 
   const table = useReactTable({
     data: documents,
     columns,
-    state: { sorting },
+    state: { sorting, rowSelection },
+    enableRowSelection: enableSelection,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getRowId: (row) => row.id, // Use document ID as row ID
   });
+
+  // Track previous selection to avoid infinite loops
+  const prevSelectedIdsRef = useRef<string[]>([]);
+
+  // Notify parent when selection changes
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedIds = useMemo(
+    () => selectedRows.map((row) => row.original.id),
+    [selectedRows]
+  );
+
+  // Notify parent when selection changes (after render, not during)
+  // Only call if selection actually changed to avoid infinite loops
+  useEffect(() => {
+    if (!enableSelection || !onSelectionChange) return;
+
+    const prev = prevSelectedIdsRef.current;
+    const hasChanged =
+      prev.length !== selectedIds.length ||
+      prev.some((id, i) => id !== selectedIds[i]);
+
+    if (hasChanged) {
+      prevSelectedIdsRef.current = selectedIds;
+      onSelectionChange(selectedIds);
+    }
+  }, [enableSelection, onSelectionChange, selectedIds]);
 
   const handleRowClick = (documentId: string) => {
     router.push(`/chat-docs/${documentId}`);

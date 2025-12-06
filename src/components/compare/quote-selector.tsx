@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, FileText, Check, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import { UploadZone } from '@/components/documents/upload-zone';
 import { formatRelativeDate } from '@/lib/utils/date';
 import { SelectionCounter } from './selection-counter';
 import { toast } from 'sonner';
+import type { ExtractionStatus } from '@/types';
 
 interface Document {
   id: string;
@@ -29,6 +30,8 @@ interface Document {
   status: string;
   created_at: string;
   document_type?: 'quote' | 'general' | null;
+  extraction_status?: ExtractionStatus | null;
+  extraction_data?: unknown | null;
 }
 
 interface QuoteSelectorProps {
@@ -225,10 +228,59 @@ interface QuoteCardProps {
 }
 
 /**
+ * Helper to determine extraction readiness for a document
+ * Story 11.7: AC-11.7.5 - Partial Readiness Handling
+ */
+function getDocExtractionReadiness(doc: Document): {
+  isReady: boolean;
+  isPending: boolean;
+  isExtracting: boolean;
+  isFailed: boolean;
+} {
+  const status = doc.extraction_status;
+
+  // Complete status or has extraction data
+  if (status === 'complete' || (status === null && doc.extraction_data !== null)) {
+    return { isReady: true, isPending: false, isExtracting: false, isFailed: false };
+  }
+
+  // Skipped (non-quote docs) are ready
+  if (status === 'skipped') {
+    return { isReady: true, isPending: false, isExtracting: false, isFailed: false };
+  }
+
+  // Pending status - may have legacy data
+  if (status === 'pending') {
+    if (doc.extraction_data !== null) {
+      return { isReady: true, isPending: false, isExtracting: false, isFailed: false };
+    }
+    return { isReady: false, isPending: true, isExtracting: false, isFailed: false };
+  }
+
+  // Extracting
+  if (status === 'extracting') {
+    return { isReady: false, isPending: false, isExtracting: true, isFailed: false };
+  }
+
+  // Failed
+  if (status === 'failed' && doc.extraction_data === null) {
+    return { isReady: false, isPending: false, isExtracting: false, isFailed: true };
+  }
+
+  // Null status without data - treat as pending
+  if (status === null && doc.extraction_data === null) {
+    return { isReady: false, isPending: true, isExtracting: false, isFailed: false };
+  }
+
+  // Default: ready
+  return { isReady: true, isPending: false, isExtracting: false, isFailed: false };
+}
+
+/**
  * Quote Card Component
  *
  * Individual document card with checkbox for selection.
- * Follows UX Design Guidance from Story Context.
+ * Story 11.7: AC-11.7.5 - Shows extraction status indicators
  */
 function QuoteCard({
   document,
@@ -239,6 +291,7 @@ function QuoteCard({
   onToggle,
 }: QuoteCardProps) {
   const name = document.display_name || document.filename;
+  const extraction = getDocExtractionReadiness(document);
 
   const card = (
     <Card
@@ -300,6 +353,48 @@ function QuoteCard({
             )}
             {isFailed && (
               <p className="text-xs text-red-600 mt-1">Processing failed</p>
+            )}
+
+            {/* Story 11.7: Extraction Status Indicator (AC-11.7.5) */}
+            {!isProcessing && !isFailed && (
+              <div className="flex items-center gap-1.5 mt-2">
+                {extraction.isReady && (
+                  <div
+                    data-testid="extraction-complete-indicator"
+                    className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Ready for comparison</span>
+                  </div>
+                )}
+                {extraction.isExtracting && (
+                  <div
+                    data-testid="extraction-in-progress-indicator"
+                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400"
+                  >
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Analyzing...</span>
+                  </div>
+                )}
+                {extraction.isPending && (
+                  <div
+                    data-testid="extraction-pending-indicator"
+                    className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400"
+                  >
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Queued for analysis</span>
+                  </div>
+                )}
+                {extraction.isFailed && (
+                  <div
+                    data-testid="extraction-failed-indicator"
+                    className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400"
+                  >
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>Analysis failed</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

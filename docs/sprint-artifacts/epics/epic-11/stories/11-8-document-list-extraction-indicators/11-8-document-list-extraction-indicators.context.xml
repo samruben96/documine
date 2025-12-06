@@ -1,0 +1,265 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>8</storyId>
+    <title>Document List - Extraction Status Indicators</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-11/stories/11-8-document-list-extraction-indicators/11-8-document-list-extraction-indicators.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user viewing my documents</asA>
+    <iWant>to see which documents are fully processed vs. still extracting</iWant>
+    <soThat>I know what's ready for comparison before navigating there</soThat>
+    <tasks>
+      <task id="1" ac="11.8.1, 11.8.2">
+        Create ExtractionStatusBadge Component
+        - Create src/components/documents/extraction-status-badge.tsx
+        - Accept extraction_status and documentType props
+        - Render appropriate icon and label for each status
+        - Style with appropriate colors (blue=analyzing, green=complete, red=failed)
+        - Test: All status states render correctly
+      </task>
+      <task id="2" ac="11.8.1">
+        Integrate with DocumentCard
+        - Add extraction_status to document query
+        - Render ExtractionStatusBadge in card
+        - Position below/alongside document type badge
+        - Only show for quote documents with ready status
+        - Test: Badge appears on document cards
+      </task>
+      <task id="3" ac="11.8.4">
+        Add Tooltips
+        - Add Tooltip wrapper to ExtractionStatusBadge
+        - Define tooltip content for each status
+        - Ensure tooltip works on mobile (tap to show)
+        - Test: Tooltips display correct messages
+      </task>
+      <task id="4" ac="11.8.3">
+        Realtime Subscription
+        - Extend existing document list subscription for extraction_status
+        - Update badge when status changes
+        - Add subtle animation for status transitions
+        - Test: Badge updates without page refresh
+      </task>
+      <task id="5" ac="11.8.5">
+        Table View Column
+        - Add "Analysis" column to DocumentTable
+        - Use same ExtractionStatusBadge component
+        - Make column sortable
+        - Test: Column renders and sorts correctly
+      </task>
+      <task id="6" ac="11.8.2">
+        Retry Action
+        - Add onClick handler for failed status
+        - Call extraction retry API (/api/documents/[id]/retry)
+        - Show loading state during retry
+        - Test: Retry triggers new extraction
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-11.8.1" title="Extraction Status Badge">
+      - Document cards show extraction status badge
+      - Badge appears below or alongside existing document type badge
+      - Visual distinction between chat-ready and comparison-ready states
+    </criterion>
+    <criterion id="AC-11.8.2" title="Status States Display">
+      - "Ready for chat" - checkmark icon, document status is 'ready'
+      - "Analyzing for comparison" - spinner icon, extraction in progress
+      - "Ready for comparison" - double checkmark, extraction complete
+      - "Extraction failed" - warning icon with retry option
+    </criterion>
+    <criterion id="AC-11.8.3" title="Realtime Updates">
+      - Badge updates in realtime as extraction completes
+      - No page refresh needed
+      - Smooth transition animation
+    </criterion>
+    <criterion id="AC-11.8.4" title="Tooltip Explanations">
+      - Hover/tap on badge shows tooltip explaining state
+      - Tooltip text examples:
+        - "This document is ready for chat. Quote analysis is still processing."
+        - "This document is fully analyzed and ready for comparison."
+        - "Quote extraction failed. Click to retry."
+    </criterion>
+    <criterion id="AC-11.8.5" title="Table View Support">
+      - Document table (F2.6) shows extraction status column
+      - Sortable by extraction status
+      - Consistent iconography with card view
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-11/epic.md" title="Epic 11 Overview" section="Story 11.8 Definition">
+        Story 11.8 shows extraction readiness status on document cards and table with states: Analyzing, Fully Analyzed, Analysis Failed. Badge updates in realtime.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-11/tech-spec/index.md" title="Epic 11 Tech Spec" section="Phase 2: Phased Processing">
+        Stories 11.6-11.8 optimize processing by splitting into fast path (chat) and background (extraction). Document cards/table show extraction status badges with realtime updates.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-11/stories/11-6-phased-processing-fast-chat/11-6-phased-processing-fast-chat.md" title="Story 11.6" section="Extraction Status Column">
+        Adds extraction_status column to documents table with values: pending | extracting | complete | failed | skipped. Used by Story 11.8 for badge display.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-11/stories/11-7-comparison-extraction-status/11-7-comparison-extraction-status.md" title="Story 11.7" section="Component Patterns">
+        Implemented ExtractionPendingBanner and useExtractionStatus hook for realtime extraction status monitoring. Story 11.8 can reuse these patterns.
+      </doc>
+    </docs>
+    <code>
+      <file path="src/components/documents/document-card.tsx" kind="component" reason="Primary integration point - add ExtractionStatusBadge alongside DocumentTypeBadge">
+        <symbol>DocumentCard</symbol>
+        <lines>1-226</lines>
+        <note>Shows document type, status, tags, carrier info. Add extraction status badge in the status/type section (lines 101-116).</note>
+      </file>
+      <file path="src/components/documents/document-table.tsx" kind="component" reason="Add Analysis column for table view support">
+        <symbol>DocumentTable</symbol>
+        <lines>1-437</lines>
+        <note>Uses @tanstack/react-table with sortable columns. Add Analysis column after status column (around line 133). Reuse ExtractionStatusBadge component.</note>
+      </file>
+      <file path="src/components/documents/document-type-badge.tsx" kind="component" reason="Pattern reference for badge styling">
+        <symbol>DocumentTypeBadge</symbol>
+        <note>Follow similar badge styling patterns with appropriate colors for extraction states.</note>
+      </file>
+      <file path="src/components/documents/document-status.tsx" kind="component" reason="Pattern reference for status badge with tooltips">
+        <symbol>DocumentStatusBadge</symbol>
+        <note>Shows processing/ready/failed with error message tooltip. Similar pattern for extraction status.</note>
+      </file>
+      <file path="src/hooks/use-extraction-status.ts" kind="hook" reason="Reusable realtime subscription for extraction_status">
+        <symbol>useExtractionStatus</symbol>
+        <symbol>useExtractionRetry</symbol>
+        <lines>1-209</lines>
+        <note>Story 11.7 implementation. Subscribes to extraction_status changes via Supabase Realtime. Provides statusMap, isLoading, isConnected, refresh, retry functions.</note>
+      </file>
+      <file path="src/components/compare/extraction-pending-banner.tsx" kind="component" reason="Pattern reference for extraction status UI">
+        <symbol>ExtractionPendingBanner</symbol>
+        <symbol>ExtractionFailedBanner</symbol>
+        <lines>1-271</lines>
+        <note>Shows pending/failed extraction states with retry buttons. Reuse iconography and color patterns.</note>
+      </file>
+      <file path="src/lib/compare/extraction-readiness.ts" kind="service" reason="Extraction status classification logic">
+        <symbol>DocumentWithExtraction</symbol>
+        <symbol>getExtractionReadiness</symbol>
+        <symbol>estimateExtractionTime</symbol>
+        <lines>1-195</lines>
+        <note>Categorizes documents by extraction_status: complete, pending, extracting, failed, skipped. Handles legacy null status with extraction_data check.</note>
+      </file>
+      <file path="src/types/index.ts" kind="types" reason="ExtractionStatus type definition">
+        <symbol>ExtractionStatus</symbol>
+        <lines>17-18</lines>
+        <note>ExtractionStatus = 'pending' | 'extracting' | 'complete' | 'failed' | 'skipped'</note>
+      </file>
+      <file path="src/types/database.types.ts" kind="types" reason="Documents table schema">
+        <symbol>documents</symbol>
+        <lines>297-377</lines>
+        <note>Documents table includes: extraction_status (string | null), extraction_data (Json | null), extraction_error (string | null)</note>
+      </file>
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" reason="Document library page - may need subscription updates">
+        <note>Main documents listing page. May need to include extraction_status in document queries and pass to components.</note>
+      </file>
+    </code>
+    <dependencies>
+      <npm>
+        <package name="lucide-react" version="^0.554.0" use="Icons: Check, CheckCheck, Loader2, AlertTriangle, RefreshCcw" />
+        <package name="@radix-ui/react-tooltip" version="^1.2.8" use="Tooltip, TooltipContent, TooltipTrigger" />
+        <package name="@supabase/supabase-js" version="^2.84.0" use="Realtime subscription for extraction_status changes" />
+        <package name="@tanstack/react-table" version="^8.21.3" use="Table sorting for Analysis column" />
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Dev Notes">Only show extraction status for quote documents with ready status. General documents don't require extraction.</constraint>
+    <constraint source="Architecture">Use existing useExtractionStatus hook from Story 11.7 for realtime updates. Follow established Supabase Realtime patterns.</constraint>
+    <constraint source="Story 11.7">ExtractionStatus type already defined: 'pending' | 'extracting' | 'complete' | 'failed' | 'skipped'.</constraint>
+    <constraint source="UX Consistency">Match badge styling from DocumentTypeBadge and DocumentStatusBadge components.</constraint>
+    <constraint source="Performance">Reuse existing Realtime channel if documents page already subscribes to documents table.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ExtractionStatusBadgeProps" kind="component props">
+      <signature>
+interface ExtractionStatusBadgeProps {
+  status: ExtractionStatus;
+  documentType?: 'quote' | 'general' | null;
+  onRetry?: () => void;
+  isRetrying?: boolean;
+  className?: string;
+}
+      </signature>
+      <path>src/components/documents/extraction-status-badge.tsx</path>
+    </interface>
+    <interface name="useExtractionStatus" kind="hook">
+      <signature>
+function useExtractionStatus(documentIds: string[]): {
+  statusMap: Record&lt;string, { status: ExtractionStatus | null; hasData: boolean }&gt;;
+  isLoading: boolean;
+  isConnected: boolean;
+  refresh: () => Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/hooks/use-extraction-status.ts</path>
+    </interface>
+    <interface name="useExtractionRetry" kind="hook">
+      <signature>
+function useExtractionRetry(): {
+  retry: (documentId: string) => Promise&lt;void&gt;;
+  isRetrying: boolean;
+  error: string | null;
+}
+      </signature>
+      <path>src/hooks/use-extraction-status.ts</path>
+    </interface>
+    <interface name="DocumentTableRow" kind="type">
+      <signature>
+interface DocumentTableRow {
+  id: string;
+  filename: string;
+  display_name: string | null;
+  status: string;
+  page_count: number | null;
+  created_at: string;
+  document_type: DocumentType | null;
+  ai_tags: string[] | null;
+  ai_summary: string | null;
+  carrier_name: string | null;
+  annual_premium: number | null;
+  error_message?: string | null;
+  // Story 11.8: Add extraction_status
+  extraction_status?: ExtractionStatus | null;
+}
+      </signature>
+      <path>src/components/documents/document-table.tsx</path>
+    </interface>
+    <interface name="Extraction Retry API" kind="REST endpoint">
+      <signature>POST /api/documents/{id}/retry</signature>
+      <note>Existing endpoint from Story 11.3 - triggers extraction retry</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with @testing-library/react for component tests. Use Playwright for E2E tests.
+      Mock Supabase client for unit tests. Test all status states independently.
+      Follow existing test patterns in __tests__/components/documents/.
+    </standards>
+    <locations>
+      <location>__tests__/components/documents/extraction-status-badge.test.tsx</location>
+      <location>__tests__/components/documents/document-card.test.tsx (update existing)</location>
+      <location>__tests__/components/documents/document-table.test.tsx (update existing)</location>
+      <location>__tests__/e2e/document-library-extraction-status.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="11.8.1">Test ExtractionStatusBadge renders all 5 status states with correct icons/labels</idea>
+      <idea ac="11.8.2">Test status config maps to correct icons: pending→Loader2, extracting→Loader2(spinning), complete→CheckCheck, failed→AlertTriangle, skipped→Check</idea>
+      <idea ac="11.8.3">Test realtime subscription updates statusMap when extraction_status changes</idea>
+      <idea ac="11.8.4">Test tooltip content matches status (test each state's tooltip text)</idea>
+      <idea ac="11.8.5">Test Analysis column renders in DocumentTable and is sortable</idea>
+      <idea ac="11.8.2">Test retry button calls onRetry callback and shows loading state</idea>
+      <idea>Test general documents (documentType='general') don't show extraction badge</idea>
+      <idea>Test documents not in 'ready' status don't show extraction badge</idea>
+      <idea>E2E: Upload document, verify badge shows "Analyzing", wait for completion, verify "Fully Analyzed"</idea>
+    </ideas>
+  </tests>
+</story-context>

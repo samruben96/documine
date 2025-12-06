@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, X, Upload, FolderOpen } from 'lucide-react';
+import { Search, X, Upload, FolderOpen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { DocumentType } from '@/types';
+import type { DocumentType, ExtractionStatus } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,14 +21,27 @@ import { useDebouncedValue } from '@/hooks/use-debounce';
 import { useDocumentStatus, useAgencyId } from '@/hooks/use-document-status';
 import { useProcessingProgress } from '@/hooks/use-processing-progress';
 import { useFailureNotifications } from '@/hooks/use-failure-notifications';
+import { useExtractionRetry } from '@/hooks/use-extraction-status';
 import {
   getDocuments,
   getUserAgencyInfo,
   createDocumentFromUpload,
+  deleteDocumentAction,
+  bulkDeleteDocumentsAction,
   type Document,
   type UserAgencyInfo,
   type Label,
 } from '@/app/(dashboard)/chat-docs/actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { createClient } from '@/lib/supabase/client';
 import { uploadDocumentToStorage, deleteDocumentFromStorage, sanitizeFilename } from '@/lib/documents/upload';
 
@@ -59,6 +72,13 @@ export default function DocumentLibraryPage() {
   const [userAgencyInfo, setUserAgencyInfo] = useState<UserAgencyInfo | null>(null);
   // Story 11.5 (AC-11.5.4): Filter for failed documents
   const [statusFilter, setStatusFilter] = useState<'all' | 'failed'>('all');
+  // Story 11.8: Track document IDs currently retrying extraction
+  const [retryingExtractionIds, setRetryingExtractionIds] = useState<Set<string>>(new Set());
+  // Story 11.8: Track selected document IDs for bulk operations
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  // Story 11.8: Bulk delete confirmation dialog
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const userAgencyInfoRef = useRef<UserAgencyInfo | null>(null);
@@ -67,7 +87,7 @@ export default function DocumentLibraryPage() {
   const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   const { agencyId } = useAgencyId();
-  const { documents, setDocuments } = useDocumentStatus({
+  const { documents, setDocuments, registerOptimisticInsert } = useDocumentStatus({
     agencyId: agencyId || '',
   });
 
@@ -87,6 +107,74 @@ export default function DocumentLibraryPage() {
     [documents]
   );
   const { progressMap, errorMap } = useProcessingProgress(trackedDocumentIds);
+
+  // Story 11.8: Extraction retry hook
+  const { retry: retryExtraction } = useExtractionRetry();
+
+  // Story 11.8: Handle extraction retry with tracking
+  const handleRetryExtraction = useCallback(async (documentId: string) => {
+    setRetryingExtractionIds((prev) => new Set(prev).add(documentId));
+    try {
+      await retryExtraction(documentId);
+      toast.success('Extraction retry started');
+    } catch {
+      toast.error('Failed to retry extraction');
+    } finally {
+      setRetryingExtractionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(documentId);
+        return next;
+      });
+    }
+  }, [retryExtraction]);
+
+  // Story 11.8: Handle bulk delete
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedDocumentIds.length === 0) return;
+
+    setIsDeleting(true);
+    try {
+      // Optimistic: remove from UI immediately
+      const idsToDelete = new Set(selectedDocumentIds);
+      setDocuments((prev) => prev.filter((doc) => !idsToDelete.has(doc.id)));
+      setSelectedDocumentIds([]);
+      setBulkDeleteDialogOpen(false);
+
+      const result = await bulkDeleteDocumentsAction(selectedDocumentIds);
+
+      if (result.success) {
+        toast.success(`Deleted ${result.deleted} document${result.deleted !== 1 ? 's' : ''}`);
+      } else if (result.deleted > 0) {
+        toast.warning(`Deleted ${result.deleted} document(s), ${result.failed} failed`);
+        // Reload to get accurate state
+        loadDocuments();
+      } else {
+        toast.error(result.error || 'Delete failed');
+        // Reload to restore state
+        loadDocuments();
+      }
+    } catch (error) {
+      toast.error('Delete failed');
+      loadDocuments(); // Restore state
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedDocumentIds, setDocuments]);
+
+  // Story 11.8: Handle single delete from row action
+  const handleDeleteDocument = useCallback(async (documentId: string) => {
+    // Optimistic: remove from UI immediately
+    setDocuments((prev) => prev.filter((doc) => doc.id !== documentId));
+
+    const result = await deleteDocumentAction(documentId);
+
+    if (result.success) {
+      toast.success('Document deleted');
+    } else {
+      toast.error(result.error || 'Delete failed');
+      loadDocuments(); // Restore state
+    }
+  }, [setDocuments]);
 
   // Load documents and user info on mount
   useEffect(() => {
@@ -202,6 +290,9 @@ export default function DocumentLibraryPage() {
       });
 
       if (result.success && result.document) {
+        // Story 11.8: Register ID before optimistic update to prevent duplicate rows
+        // when the realtime INSERT event races with this state update
+        registerOptimisticInsert(result.document.id);
         setDocuments((prev: DocumentWithLabels[]) => [result.document!, ...prev]);
         toast.success(`${file.name} uploaded successfully`);
         setTimeout(() => {
@@ -405,8 +496,39 @@ export default function DocumentLibraryPage() {
         ) : (
           // Document table (AC-F2-6.1, 6.2, 6.3, 6.4, 6.5, 6.6)
           <div data-testid="document-table">
+            {/* Story 11.8: Selection action bar */}
+            {selectedDocumentIds.length > 0 && (
+              <div className="mb-4 flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {selectedDocumentIds.length} document{selectedDocumentIds.length !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex-1" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDocumentIds([])}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-800"
+                >
+                  Clear selection
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete selected
+                </Button>
+              </div>
+            )}
             <DocumentTable
               progressMap={progressMap}
+              onRetryExtraction={handleRetryExtraction}
+              retryingExtractionIds={retryingExtractionIds}
+              enableSelection
+              onSelectionChange={setSelectedDocumentIds}
+              onDelete={handleDeleteDocument}
               documents={filteredDocuments.map((doc: DocumentWithLabels): DocumentTableRow => {
                 // Story 10.12: Extract carrier and premium from extraction_data JSONB
                 const extraction = doc.extraction_data as Record<string, unknown> | null;
@@ -424,6 +546,8 @@ export default function DocumentLibraryPage() {
                   annual_premium: (extraction?.annualPremium as number) ?? null,
                   // Story 11.5: Include error message for failed documents
                   error_message: errorMap.get(doc.id) ?? null,
+                  // Story 11.8: Include extraction status
+                  extraction_status: doc.extraction_status as ExtractionStatus | null,
                 };
               })}
             />
@@ -442,6 +566,28 @@ export default function DocumentLibraryPage() {
           />
         </div>
       )}
+
+      {/* Story 11.8: Bulk delete confirmation dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedDocumentIds.length} document{selectedDocumentIds.length !== 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected document{selectedDocumentIds.length !== 1 ? 's' : ''} and all associated conversations. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

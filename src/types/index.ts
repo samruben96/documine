@@ -14,6 +14,9 @@ export type DocumentStatus = 'processing' | 'ready' | 'failed';
 
 export type DocumentType = 'quote' | 'general';
 
+// Story 11.6: Extraction status tracks quote extraction separately from document ready status
+export type ExtractionStatus = 'pending' | 'extracting' | 'complete' | 'failed' | 'skipped';
+
 export type Confidence = 'high' | 'needs_review' | 'not_found';
 
 export type SubscriptionTier = 'starter' | 'professional' | 'enterprise';

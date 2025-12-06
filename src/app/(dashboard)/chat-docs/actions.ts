@@ -172,6 +172,74 @@ export async function deleteDocumentAction(documentId: string): Promise<{
 }
 
 /**
+ * Bulk Delete Documents Server Action
+ *
+ * Story 11.8: Allows deleting multiple documents at once from the document library.
+ * Deletes document records (cascades to chunks, conversations) and storage files.
+ */
+export async function bulkDeleteDocumentsAction(documentIds: string[]): Promise<{
+  success: boolean;
+  deleted: number;
+  failed: number;
+  error?: string;
+}> {
+  if (documentIds.length === 0) {
+    return { success: true, deleted: 0, failed: 0 };
+  }
+
+  // Limit bulk delete to 50 documents at a time
+  if (documentIds.length > 50) {
+    return {
+      success: false,
+      deleted: 0,
+      failed: documentIds.length,
+      error: 'Cannot delete more than 50 documents at once',
+    };
+  }
+
+  try {
+    // 1. Get authenticated user
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, deleted: 0, failed: documentIds.length, error: 'Not authenticated' };
+    }
+
+    // 2. Delete each document (in parallel with limited concurrency)
+    const results = await Promise.allSettled(
+      documentIds.map(async (documentId) => {
+        const storagePath = await deleteDocumentService(supabase, documentId);
+        await deleteDocumentFromStorage(supabase, storagePath);
+        return documentId;
+      })
+    );
+
+    // 3. Count successes and failures
+    const deleted = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
+
+    // 4. Revalidate documents page
+    revalidatePath('/documents');
+
+    return {
+      success: failed === 0,
+      deleted,
+      failed,
+      error: failed > 0 ? `Failed to delete ${failed} document(s)` : undefined,
+    };
+  } catch (error) {
+    console.error('Bulk delete documents failed:', error);
+    return {
+      success: false,
+      deleted: 0,
+      failed: documentIds.length,
+      error: error instanceof Error ? error.message : 'Bulk delete failed',
+    };
+  }
+}
+
+/**
  * Get Rate Limit Info Server Action
  *
  * Returns current rate limit status for the user's agency.

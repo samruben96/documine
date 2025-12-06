@@ -1,0 +1,314 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>11</epicId>
+    <storyId>6</storyId>
+    <title>Phased Document Processing - Fast Chat Path</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-05</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-11/stories/11-6-phased-processing-fast-chat/11-6-phased-processing-fast-chat.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user uploading large documents</asA>
+    <iWant>chat to be available as soon as parsing and embedding complete</iWant>
+    <soThat>I don't have to wait for full structured extraction before I can start asking questions</soThat>
+    <tasks>
+      <task id="1" status="pending">
+        <title>Database Migration</title>
+        <ac>11.6.4</ac>
+        <subtasks>
+          <subtask>Add `extraction_status` column to documents table with CHECK constraint</subtask>
+          <subtask>Set default value to 'pending' for quote documents, 'skipped' for others</subtask>
+          <subtask>Backfill existing documents based on extraction_data presence</subtask>
+          <subtask>Test: Migration runs cleanly, rollback works</subtask>
+        </subtasks>
+      </task>
+      <task id="2" status="pending">
+        <title>Modify process-document Edge Function</title>
+        <ac>11.6.1, 11.6.2</ac>
+        <subtasks>
+          <subtask>End processing after embedding stage</subtask>
+          <subtask>Set document status to 'ready' after embedding</subtask>
+          <subtask>Set extraction_status to 'pending' for quote documents</subtask>
+          <subtask>Trigger Phase 2 via database trigger or direct HTTP call</subtask>
+          <subtask>Test: Processing completes in &lt;30s for test document</subtask>
+        </subtasks>
+      </task>
+      <task id="3" status="pending">
+        <title>Create extract-quote-data Edge Function</title>
+        <ac>11.6.3</ac>
+        <subtasks>
+          <subtask>Create new function in supabase/functions/extract-quote-data/</subtask>
+          <subtask>Implement document_id parameter validation</subtask>
+          <subtask>Read raw_text from documents table</subtask>
+          <subtask>Run existing extraction logic (GPT-5.1 structured outputs)</subtask>
+          <subtask>Update extraction_data, extraction_version, extraction_status</subtask>
+          <subtask>Set 120s timeout with AbortController</subtask>
+          <subtask>Test: Extraction completes successfully, data matches expected format</subtask>
+        </subtasks>
+      </task>
+      <task id="4" status="pending">
+        <title>Phase 2 Trigger Mechanism</title>
+        <ac>11.6.2</ac>
+        <subtasks>
+          <subtask>Option A: Database trigger on documents status change to 'ready'</subtask>
+          <subtask>Option B: Direct HTTP call from process-document before returning</subtask>
+          <subtask>Ensure trigger is async (doesn't block Phase 1 completion)</subtask>
+          <subtask>Handle document_type check (only trigger for quote documents)</subtask>
+          <subtask>Test: Phase 2 starts within 5s of Phase 1 completion</subtask>
+        </subtasks>
+      </task>
+      <task id="5" status="pending">
+        <title>Error Handling &amp; Retry</title>
+        <ac>11.6.5</ac>
+        <subtasks>
+          <subtask>Extend classifyError() to handle extraction-specific errors</subtask>
+          <subtask>Update retry API to support extraction-only retry</subtask>
+          <subtask>Log extraction failures with document_id and error details</subtask>
+          <subtask>Test: Failed extraction doesn't affect chat availability</subtask>
+        </subtasks>
+      </task>
+      <task id="6" status="pending">
+        <title>Integration Testing</title>
+        <ac>11.6.1-11.6.6</ac>
+        <subtasks>
+          <subtask>E2E test: Upload → chat available in &lt;30s</subtask>
+          <subtask>E2E test: Extraction completes in background</subtask>
+          <subtask>E2E test: Extraction failure doesn't break chat</subtask>
+          <subtask>E2E test: Existing documents still work</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-11.6.1" priority="P0">
+      <title>Phase 1 Completion Speed</title>
+      <checks>
+        <check>Phase 1 (parse → chunk → embed) completes in &lt;30s for 30-page document</check>
+        <check>Document status shows 'ready' immediately after Phase 1</check>
+        <check>Chat functionality works as soon as status is 'ready'</check>
+      </checks>
+    </criterion>
+    <criterion id="AC-11.6.2" priority="P0">
+      <title>Phase 2 Background Trigger</title>
+      <checks>
+        <check>Phase 2 (structured extraction) triggers automatically after Phase 1 completes</check>
+        <check>Phase 2 runs asynchronously without blocking Phase 1 completion</check>
+        <check>Uses existing `raw_text` from documents table - no re-parsing needed</check>
+      </checks>
+    </criterion>
+    <criterion id="AC-11.6.3" priority="P0">
+      <title>New Edge Function for Extraction</title>
+      <checks>
+        <check>Create `extract-quote-data` edge function for Phase 2 processing</check>
+        <check>Function accepts document_id and reads raw_text from database</check>
+        <check>Function updates `extraction_data`, `extraction_version`, `extraction_status` columns</check>
+        <check>Function has 120s timeout (extraction can take 30-60s for complex quotes)</check>
+      </checks>
+    </criterion>
+    <criterion id="AC-11.6.4" priority="P0">
+      <title>Extraction Status Tracking</title>
+      <checks>
+        <check>Add `extraction_status` column to documents table</check>
+        <check>Valid values: `pending`, `extracting`, `complete`, `failed`, `skipped`</check>
+        <check>Status updates trigger Realtime notifications to UI</check>
+        <check>`skipped` status used for non-quote documents</check>
+      </checks>
+    </criterion>
+    <criterion id="AC-11.6.5" priority="P1">
+      <title>Error Handling</title>
+      <checks>
+        <check>Extraction failures don't affect document's 'ready' status</check>
+        <check>Failed extractions can be retried via existing retry mechanism</check>
+        <check>Error classification (transient/recoverable/permanent) applies to extraction</check>
+      </checks>
+    </criterion>
+    <criterion id="AC-11.6.6" priority="P1">
+      <title>Backward Compatibility</title>
+      <checks>
+        <check>Documents processed before this change continue to work</check>
+        <check>Existing extraction_data is preserved</check>
+        <check>No breaking changes to API responses</check>
+      </checks>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-11/epic.md</path>
+        <title>Epic 11: Processing Reliability &amp; Enhanced Progress Visualization</title>
+        <section>Solution Architecture - Async Processing Pattern</section>
+        <snippet>Transform document processing from synchronous to asynchronous architecture. Phase 1 (Fast Path): Parse → Chunk → Embed → Status: 'ready'. Phase 2 (Background): Structured Extraction → Status: 'complete'.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-11/tech-spec/index.md</path>
+        <title>Epic 11: Tech Spec</title>
+        <section>Phase 2: Phased Processing</section>
+        <snippet>extraction_status column: pending | extracting | complete | failed | skipped. New extract-quote-data edge function for Phase 2 processing. Users can start chatting immediately while extraction continues in background.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/data-architecture.md</path>
+        <title>Data Architecture</title>
+        <section>Documents Table</section>
+        <snippet>Documents table with status ('processing'|'ready'|'failed'), extraction_data JSONB, extraction_version, extraction_error columns already exist. Need to add extraction_status column.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>performQuoteExtraction</symbol>
+        <lines>1707-1892</lines>
+        <reason>Current quote extraction implementation - needs to be extracted to separate edge function. Uses GPT-5.1 structured outputs with EXTRACTION_JSON_SCHEMA.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>EXTRACTION_SYSTEM_PROMPT</symbol>
+        <lines>1508-1548</lines>
+        <reason>System prompt for extraction - will be reused in new extract-quote-data function.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>EXTRACTION_JSON_SCHEMA</symbol>
+        <lines>1554-1695</lines>
+        <reason>JSON schema for structured output - will be reused in new extract-quote-data function.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>classifyError</symbol>
+        <lines>100-117</lines>
+        <reason>Error classification function - needs extension for extraction-specific errors.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>updateDocumentStatus</symbol>
+        <lines>1224-1247</lines>
+        <reason>Function to update document status - will be modified to set 'ready' after Phase 1.</reason>
+      </file>
+      <file>
+        <path>src/lib/compare/extraction.ts</path>
+        <kind>service</kind>
+        <symbol>extractQuoteData</symbol>
+        <lines>1-150</lines>
+        <reason>Client-side extraction service using zodResponseFormat - reference for extraction logic.</reason>
+      </file>
+      <file>
+        <path>src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database['public']['Tables']['documents']</symbol>
+        <lines>297-350</lines>
+        <reason>Current documents table types - needs extraction_status column added after migration.</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/documents/processing.test.ts</path>
+        <kind>test</kind>
+        <symbol>processing tests</symbol>
+        <reason>Existing processing tests - need to extend for phased processing.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Supabase client for database operations and Realtime subscriptions</usage>
+      </node>
+      <node>
+        <package>openai</package>
+        <version>^6.9.1</version>
+        <usage>OpenAI SDK for GPT-5.1 structured outputs in extraction</usage>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Schema validation for extraction results</usage>
+      </node>
+      <deno>
+        <package>jsr:@supabase/supabase-js@2</package>
+        <usage>Supabase client in Edge Functions</usage>
+      </deno>
+      <deno>
+        <package>jsr:@supabase/functions-js/edge-runtime.d.ts</package>
+        <usage>Edge runtime types for Deno.serve</usage>
+      </deno>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="architecture">
+      <rule>Use existing async processing architecture from Story 11.1 (pg_cron, processing_jobs table)</rule>
+      <rule>Extraction must not block Phase 1 completion - use fire-and-forget HTTP call</rule>
+      <rule>Documents table already has extraction_data, extraction_version, extraction_error columns</rule>
+    </constraint>
+    <constraint category="performance">
+      <rule>Phase 1 must complete in &lt;30s for 30-page documents</rule>
+      <rule>New extraction edge function has 120s timeout</rule>
+      <rule>Use existing raw_text from documents - no re-parsing</rule>
+    </constraint>
+    <constraint category="data-integrity">
+      <rule>Extraction failures must not affect document 'ready' status</rule>
+      <rule>Backward compatibility: existing documents with extraction_data continue to work</rule>
+      <rule>Realtime must trigger on extraction_status changes for UI updates</rule>
+    </constraint>
+    <constraint category="testing">
+      <rule>Run `npm run test` - all 1554+ tests must pass</rule>
+      <rule>Run `npm run build` - build must succeed</rule>
+      <rule>Test with foran auto nationwide.pdf (complex 31-page document)</rule>
+    </constraint>
+    <constraint category="supabase">
+      <rule>Deploy new edge function: `npx supabase functions deploy extract-quote-data`</rule>
+      <rule>Verify Realtime enabled on documents table for extraction_status</rule>
+      <rule>MCP tool: mcp__supabase__apply_migration for schema changes</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>extract-quote-data Edge Function</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /functions/v1/extract-quote-data { document_id: string }</signature>
+      <path>supabase/functions/extract-quote-data/index.ts (new)</path>
+    </interface>
+    <interface>
+      <name>Documents Table - extraction_status</name>
+      <kind>Database column</kind>
+      <signature>extraction_status varchar(20) CHECK (IN ('pending','extracting','complete','failed','skipped'))</signature>
+      <path>migrations/xxx_add_extraction_status.sql</path>
+    </interface>
+    <interface>
+      <name>Phase 2 Trigger</name>
+      <kind>HTTP call (async)</kind>
+      <signature>fetch(`${SUPABASE_URL}/functions/v1/extract-quote-data`, { method: 'POST', body: { document_id } })</signature>
+      <path>supabase/functions/process-document/index.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E tests. Tests in __tests__ directory mirror src structure.
+      Edge function testing via manual deployment and log inspection.
+      Use data-testid attributes for E2E element selection.
+    </standards>
+    <locations>
+      <location>__tests__/lib/documents/</location>
+      <location>__tests__/e2e/</location>
+      <location>__tests__/components/documents/</location>
+    </locations>
+    <ideas>
+      <idea ac="11.6.1">Unit test: process-document sets status to 'ready' after embedding stage</idea>
+      <idea ac="11.6.2">Unit test: Phase 2 trigger is non-blocking (doesn't await response)</idea>
+      <idea ac="11.6.3">E2E test: Upload document → verify extraction completes in background</idea>
+      <idea ac="11.6.4">Unit test: extraction_status column values are valid enum</idea>
+      <idea ac="11.6.5">Unit test: Extraction failure preserves document 'ready' status</idea>
+      <idea ac="11.6.6">E2E test: Existing documents with extraction_data work correctly</idea>
+    </ideas>
+  </tests>
+</story-context>

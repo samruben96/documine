@@ -33,6 +33,12 @@ interface UseDocumentStatusResult {
   isConnected: boolean;
   /** Story 6.6: Granular connection state for UI indicator */
   connectionState: ConnectionState;
+  /**
+   * Story 11.8: Register a document ID that is being added optimistically.
+   * This prevents the realtime INSERT handler from creating a duplicate row
+   * when the upload response and realtime event race with each other.
+   */
+  registerOptimisticInsert: (documentId: string) => void;
 }
 
 /**
@@ -66,6 +72,10 @@ export function useDocumentStatus({
   // Track consecutive fetch errors to implement backoff
   const consecutiveErrorsRef = useRef(0);
 
+  // Story 11.8: Track document IDs that are being added optimistically
+  // This prevents duplicate rows when realtime INSERT races with optimistic update
+  const optimisticInsertIdsRef = useRef<Set<string>>(new Set());
+
   // Update previous status map when documents change
   useEffect(() => {
     const statusMap = new Map<string, string>();
@@ -74,6 +84,16 @@ export function useDocumentStatus({
     });
     previousStatusRef.current = statusMap;
   }, [documents]);
+
+  // Story 11.8: Register a document ID that is being added optimistically
+  // The INSERT handler will skip these IDs to prevent duplicates
+  const registerOptimisticInsert = useCallback((documentId: string) => {
+    optimisticInsertIdsRef.current.add(documentId);
+    // Clean up after 10 seconds to prevent memory leaks
+    setTimeout(() => {
+      optimisticInsertIdsRef.current.delete(documentId);
+    }, 10000);
+  }, []);
 
   // Fetch latest document statuses from database
   const fetchDocumentStatuses = useCallback(async () => {
@@ -166,6 +186,11 @@ export function useDocumentStatus({
 
       if (eventType === 'INSERT') {
         const newDoc = payload.new as Document;
+        // Story 11.8: Skip if this document is being added optimistically
+        // This prevents duplicate rows when realtime INSERT races with optimistic update
+        if (optimisticInsertIdsRef.current.has(newDoc.id)) {
+          return;
+        }
         setDocuments((prev) => {
           // Only add if not already in list
           if (prev.some((doc) => doc.id === newDoc.id)) {
@@ -294,6 +319,7 @@ export function useDocumentStatus({
     setDocuments,
     isConnected: connectionState === 'connected',
     connectionState,
+    registerOptimisticInsert,
   };
 }
 
