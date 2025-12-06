@@ -303,11 +303,133 @@ const resultJson = await downloadFromGCS(outputBucket, outputObjectPath, accessT
 
 ---
 
+### Bug 4: Batch Output Format Mismatch (2025-12-06)
+
+**Issue:** Batch processing returned 200 OK but `page_count=0`, `raw_text_length=0`, `chunk_count=0`. Phase 2 extraction failed with "No raw_text available for extraction".
+
+**Root Cause:** Document AI batch API output files contain the **Document object directly** (`{ text, pages }`), NOT wrapped in a response object (`{ document: { text, pages } }`). The code assumed the same format as online processing.
+
+**Investigation:**
+- Database showed document with `status=ready`, `job_status=completed`, but all content fields were 0/empty
+- Google Document AI documentation confirms batch output files are the Document object directly
+- Code at line 1335 was casting directly to `DocumentAIProcessResponse` which expected a `document` wrapper
+
+**Fix:** Added format detection and normalization in `parseLargeDocumentWithBatch()`:
+```typescript
+// Parse the result - batch output can be in two formats:
+// 1. Online format: { document: { text, pages } }
+// 2. Batch file format: { text, pages } (Document object directly)
+const parsed = JSON.parse(resultJson);
+
+let documentResponse: DocumentAIProcessResponse;
+if (parsed.document && parsed.document.text !== undefined) {
+  // Already in response format (has document wrapper)
+  documentResponse = parsed as DocumentAIProcessResponse;
+} else if (parsed.text !== undefined || parsed.pages !== undefined) {
+  // Batch file format - Document object directly, wrap it
+  documentResponse = { document: parsed };
+} else {
+  throw new Error('Batch processing returned unrecognized output format');
+}
+```
+
+**File:** `documentai-client.ts:1334-1369`
+
+---
+
+### Bug 5: Sharded Output Not Merged (2025-12-06)
+
+**Issue:** 126-page document only extracted 10 pages. Logs showed `pageCount: 10` despite full document upload.
+
+**Root Cause:** Document AI shards large documents into multiple JSON files (~20 pages per shard by default). For 126 pages = 7 shard files. Code was only downloading the FIRST shard file.
+
+**Investigation:**
+- Search revealed Document AI has `shardingConfig` with `pagesPerShard` setting
+- Default is ~20 pages per shard, max is 500 pages
+- Code at line 1321 used `.find()` which returns only the first match
+
+**Fix (Two-pronged):**
+
+1. **Configure `shardingConfig`** to request 500 pages/shard (eliminates sharding for docs < 500 pages):
+```typescript
+gcsOutputConfig: {
+  gcsUri: outputGcsUri,
+  shardingConfig: {
+    pagesPerShard: 500,  // Max supported
+    pagesOverlap: 0
+  }
+}
+```
+
+2. **Download and merge ALL shards** (fallback for docs > 500 pages):
+```typescript
+const jsonFiles = outputObjects
+  .filter(obj => obj.endsWith('.json'))
+  .sort((a, b) => /* numeric sort by shard index */);
+
+let mergedText = '';
+let mergedPages: DocumentAIPage[] = [];
+
+for (const shardPath of jsonFiles) {
+  const shardJson = await downloadFromGCS(outputBucket, shardPath, accessToken);
+  const shardDoc = JSON.parse(shardJson).document || JSON.parse(shardJson);
+  mergedText += shardDoc.text;
+  mergedPages.push(...shardDoc.pages);
+}
+```
+
+**Files:**
+- `documentai-client.ts:1128-1146` - Added shardingConfig to batch request
+- `documentai-client.ts:1320-1398` - Multi-shard download and merge logic
+
+---
+
+### Bug 6: Memory Limit Exceeded (2025-12-06)
+
+**Issue:** "Memory limit exceeded" error when processing 126-page document. Supabase Edge Functions have ~150MB heap limit.
+
+**Root Cause:** Storing full Document AI JSON response in memory for large documents exceeds 150MB limit. The response includes bounding boxes, layouts, paragraphs, tables, images, etc.
+
+**Fix (Three-pronged memory optimization):**
+
+1. **Added `fieldMask`** to only request essential fields from Document AI:
+```typescript
+fieldMask: 'text,pages.pageNumber,pages.layout.textAnchor'
+// Excludes: bounding boxes, paragraphs, tables, images (~10x smaller)
+```
+
+2. **Extract-and-discard pattern** - process each shard then release:
+```typescript
+for (const shardPath of jsonFiles) {
+  const shardJson = await downloadFromGCS(...);
+  const parsed = JSON.parse(shardJson);
+  // Extract ONLY: text + page text bounds (just indices)
+  mergedText += shardDoc.text;
+  pageTextBounds.push({ pageNumber, startIndex, endIndex });
+  // parsed and shardJson go out of scope → eligible for GC
+}
+```
+
+3. **Build minimal page structures** - only include text anchors:
+```typescript
+const syntheticPages = pageTextBounds.map(ptb => ({
+  pageNumber: ptb.pageNumber,
+  layout: { textAnchor: { textSegments: [{ startIndex, endIndex }] } },
+  // No paragraphs, tables, bounding boxes
+}));
+```
+
+**Files:**
+- `documentai-client.ts:1128-1134` - fieldMask in batch request
+- `documentai-client.ts:1352-1465` - Memory-optimized shard processing
+
+---
+
 ### Testing Status
 
 - [x] Build passes
 - [x] Unit tests pass (1607 tests)
-- [ ] E2E testing with real large documents - **PENDING** (awaiting user test tomorrow)
+- [ ] E2E testing with real large documents - **RE-TEST REQUIRED** after Bug 6 fix
 
 ---
 
@@ -318,6 +440,9 @@ const resultJson = await downloadFromGCS(outputBucket, outputObjectPath, accessT
 | 2025-12-05 | Story drafted | Claude |
 | 2025-12-06 | Implementation complete - all ACs satisfied, build & tests pass | Dev Agent |
 | 2025-12-06 | Bug fixes: metadata vs response field, log.warn method, GCS output file discovery | Dev Agent |
+| 2025-12-06 | Bug fix: Batch output format mismatch - normalize Document vs Response wrapper | Dev Agent |
+| 2025-12-06 | Bug fix: Sharded output not merged - add shardingConfig + multi-shard merge | Dev Agent |
+| 2025-12-06 | Bug fix: Memory limit exceeded - fieldMask + extract-and-discard pattern | Dev Agent |
 
 ---
 

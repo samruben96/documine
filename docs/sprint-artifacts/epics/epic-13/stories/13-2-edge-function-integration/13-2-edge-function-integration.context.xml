@@ -1,0 +1,241 @@
+<story-context id="13-2-edge-function-integration" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>13.2</storyId>
+    <title>Edge Function Integration</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-13/stories/13-2-edge-function-integration/13-2-edge-function-integration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user uploading documents</asA>
+    <iWant>my PDFs processed by LlamaParse</iWant>
+    <soThat>I get reliable document parsing without timeouts or failures</soThat>
+    <tasks>
+      <task id="1">Import parseDocumentWithLlamaParse from llamaparse-client</task>
+      <task id="2">Replace parseDocumentWithRetry() implementation</task>
+      <task id="3">Pass file buffer and filename to LlamaParse client</task>
+      <task id="4">Convert result to DoclingResult format</task>
+      <task id="5">Wire progress callback to updateJobProgress</task>
+      <task id="6">Map LlamaParse errors to existing error categories</task>
+      <task id="7">Verify LLAMA_CLOUD_API_KEY environment variable</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-13.2.1" title="Replace Parser Call">
+      <item>Import parseDocumentWithLlamaParse from llamaparse-client</item>
+      <item>Replace parseDocumentWithRetry() implementation</item>
+      <item>Pass file buffer and filename to LlamaParse client</item>
+      <item>Convert result to DoclingResult format</item>
+    </criterion>
+    <criterion id="AC-13.2.2" title="Progress Reporting">
+      <item>Report 'parsing' stage during upload</item>
+      <item>Report 'parsing' progress during polling (0-90%)</item>
+      <item>Report 'parsing' complete at 100%</item>
+      <item>Maintain existing progress callback interface</item>
+    </criterion>
+    <criterion id="AC-13.2.3" title="Error Handling">
+      <item>Catch LlamaParse errors</item>
+      <item>Map to existing error categories (transient, permanent)</item>
+      <item>Update processing_jobs with appropriate error info</item>
+      <item>Return user-friendly error messages</item>
+    </criterion>
+    <criterion id="AC-13.2.4" title="Backward Compatibility">
+      <item>Output same DoclingResult format</item>
+      <item>Existing chunking pipeline works unchanged</item>
+      <item>Existing embedding pipeline works unchanged</item>
+      <item>Page markers work for citations</item>
+    </criterion>
+    <criterion id="AC-13.2.5" title="Environment Configuration">
+      <item>Read LLAMA_CLOUD_API_KEY from environment</item>
+      <item>Fail fast if API key not configured</item>
+      <item>Log configuration on startup (without exposing key)</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/tech-spec/tech-spec-epic-13.md</path>
+        <title>Tech Spec: Epic 13 - LlamaParse Migration</title>
+        <section>Architecture Overview, LlamaParse API Integration</section>
+        <snippet>Replace document parsing infrastructure with LlamaParse. Simple REST API with upload → poll → result flow. API key via Bearer token authentication.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/epic.md</path>
+        <title>Epic 13: LlamaParse Migration</title>
+        <section>Stories, Technical Notes</section>
+        <snippet>Story 13.2 replaces Docling/Document AI calls in process-document edge function. Maintains existing chunking pipeline, updates progress reporting.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/stories/13-1-llamaparse-api-client/13-1-llamaparse-api-client.md</path>
+        <title>Story 13.1: LlamaParse API Client</title>
+        <section>Technical Design, Implementation</section>
+        <snippet>Client module exports parseDocumentWithLlamaParse() and convertToDoclingResult(). Uses page_prefix="--- PAGE {pageNumber} ---\n" for citation compatibility.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/architecture-decision-records-adrs.md</path>
+        <title>Architecture Decision Records</title>
+        <section>ADR-009</section>
+        <snippet>Document AI (Epic 12) abandoned due to Edge Function memory limits. LlamaParse selected as simpler REST-based alternative.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>Edge Function</kind>
+        <symbol>parseDocumentWithRetry</symbol>
+        <lines>716-800</lines>
+        <reason>Function to be replaced - currently calls Document AI</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>interface</kind>
+        <symbol>DoclingResult</symbol>
+        <lines>692-696</lines>
+        <reason>Return type that LlamaParse must match</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>interface</kind>
+        <symbol>PageMarker</symbol>
+        <lines>154-158</lines>
+        <reason>Page marker structure with pageNumber, startIndex, endIndex</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>function</kind>
+        <symbol>updateJobProgress</symbol>
+        <lines>2081-2126</lines>
+        <reason>Progress reporting function to call from LlamaParse callback</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>const</kind>
+        <symbol>STAGE_WEIGHTS</symbol>
+        <lines>130-139</lines>
+        <reason>Progress stage weights - parsing stage is 55% of total</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/llamaparse-client.ts</path>
+        <kind>module</kind>
+        <symbol>parseDocumentWithLlamaParse, convertToDoclingResult</symbol>
+        <lines>583-655, 550-562</lines>
+        <reason>Story 13.1 client to import and use</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/llamaparse-client.ts</path>
+        <kind>class</kind>
+        <symbol>LlamaParseError, UploadError, PollingError, TimeoutError, ResultError</symbol>
+        <lines>147-197</lines>
+        <reason>Error classes to catch and map to existing categories</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/documentai-client.ts</path>
+        <kind>module</kind>
+        <symbol>parseDocumentWithRetry, classifyDocumentAIError, isTransientError</symbol>
+        <lines>774+</lines>
+        <reason>Current import to remove - replace with LlamaParse client</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/llamaparse/client.test.ts</path>
+        <kind>test</kind>
+        <symbol>extractPageMarkersWithIndices tests</symbol>
+        <lines>1-100</lines>
+        <reason>Existing tests for LlamaParse client - extend for integration</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/functions-js</package>
+        <version>edge-runtime</version>
+        <note>Deno Edge Function runtime</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Story 13.1">
+      <description>LlamaParse client already implements page_prefix="--- PAGE {pageNumber} ---\n" for citation compatibility</description>
+    </constraint>
+    <constraint source="Tech Spec">
+      <description>Must maintain DoclingResult interface: { markdown: string, pageMarkers: PageMarker[], pageCount: number }</description>
+    </constraint>
+    <constraint source="Architecture">
+      <description>Edge Function timeout ~600s - LlamaParse polling timeout is 5 minutes (300s)</description>
+    </constraint>
+    <constraint source="Epic 11">
+      <description>Async processing via pg_cron - Edge Function called with job_id parameter</description>
+    </constraint>
+    <constraint source="Error Classification">
+      <description>Must map to existing ErrorCategory: 'transient' | 'recoverable' | 'permanent'</description>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>parseDocumentWithLlamaParse</name>
+      <kind>function</kind>
+      <signature>async function parseDocumentWithLlamaParse(fileBuffer: ArrayBuffer, filename: string, config: LlamaParseConfig, onProgress?: (stage: string, percent: number) => Promise&lt;void&gt;): Promise&lt;LlamaParseResult&gt;</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:583</path>
+    </interface>
+    <interface>
+      <name>convertToDoclingResult</name>
+      <kind>function</kind>
+      <signature>function convertToDoclingResult(llamaResult: LlamaParseResult): DoclingResult</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:550</path>
+    </interface>
+    <interface>
+      <name>LlamaParseConfig</name>
+      <kind>interface</kind>
+      <signature>{ apiKey: string, baseUrl?: string, pollingIntervalMs?: number, maxWaitTimeMs?: number }</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:22-31</path>
+    </interface>
+    <interface>
+      <name>LlamaParseResult</name>
+      <kind>interface</kind>
+      <signature>{ markdown: string, pageCount: number, jobId: string, processingTimeMs: number }</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:37-46</path>
+    </interface>
+    <interface>
+      <name>ProgressData</name>
+      <kind>interface</kind>
+      <signature>{ stage: 'downloading' | 'parsing' | 'chunking' | 'embedding' | ..., stage_progress: number, stage_name: string, estimated_seconds_remaining: number | null, total_progress: number, updated_at: string }</signature>
+      <path>supabase/functions/process-document/index.ts:176-183</path>
+    </interface>
+    <interface>
+      <name>DoclingResult</name>
+      <kind>interface</kind>
+      <signature>{ markdown: string, pageMarkers: PageMarker[], pageCount: number }</signature>
+      <path>supabase/functions/process-document/index.ts:692-696</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for unit tests. Mock fetch for HTTP layer testing. Tests in __tests__/lib/ directory.
+      Integration tests verify full pipeline: upload → parse → chunk → embed.
+      E2E tests use Playwright at __tests__/e2e/ directory.
+    </standards>
+    <locations>
+      <location>__tests__/lib/llamaparse/</location>
+      <location>__tests__/e2e/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-13.2.1">Unit test: Verify parseDocumentWithLlamaParse is called when processing documents</idea>
+      <idea ac="AC-13.2.1">Unit test: Verify convertToDoclingResult produces correct DoclingResult structure</idea>
+      <idea ac="AC-13.2.2">Unit test: Verify progress callback is invoked with correct stage/percent values</idea>
+      <idea ac="AC-13.2.3">Unit test: Verify LlamaParseError types map to correct error categories</idea>
+      <idea ac="AC-13.2.3">Unit test: Verify UploadError/PollingError map to 'transient', TimeoutError maps to 'transient'</idea>
+      <idea ac="AC-13.2.4">Integration test: Upload document, verify DoclingResult has markdown + pageMarkers</idea>
+      <idea ac="AC-13.2.4">Integration test: Verify existing chunking pipeline processes LlamaParse output</idea>
+      <idea ac="AC-13.2.4">E2E test: Upload document → verify chat source citations link to correct pages</idea>
+      <idea ac="AC-13.2.5">Unit test: Verify function fails fast when LLAMA_CLOUD_API_KEY not set</idea>
+    </ideas>
+  </tests>
+</story-context>

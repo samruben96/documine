@@ -1,12 +1,54 @@
 # Epic 12: Google Cloud Document AI Migration
 
-**Status:** In Progress
+**Status:** ❌ ABANDONED
 **Priority:** P0 - Critical Infrastructure
 **Created:** 2025-12-05
+**Closed:** 2025-12-06
+**Outcome:** Failed - Too complex for serverless environment
 
 ---
 
-## Goal
+## Retrospective: Why This Epic Failed
+
+### Summary
+After 6 bug fixes in Story 12.6 alone, we determined that Google Document AI's batch processing is **fundamentally incompatible** with Supabase Edge Functions for large documents (100+ pages).
+
+### Issues Encountered
+
+| Bug | Issue | Root Cause |
+|-----|-------|------------|
+| Bug 1 | `metadata` vs `response` field mismatch | API version inconsistency |
+| Bug 2 | `log.warn` method missing | Deno runtime differences |
+| Bug 3 | GCS output file not found | Async naming conventions |
+| Bug 4 | Empty document (0 pages, 0 text) | Batch output format differs from online |
+| Bug 5 | Only 10/126 pages processed | Sharded output files not merged |
+| Bug 6 | Memory limit exceeded | 150MB heap limit in Edge Functions |
+| Bug 7 | "Failed to process all documents" | Unknown - final failure |
+
+### Technical Barriers
+
+1. **GCS Dependency**: Batch processing requires GCS upload/download workflow
+2. **Output Sharding**: Large documents split across multiple JSON files
+3. **Memory Limits**: Edge Functions have ~150MB heap limit
+4. **Complex Polling**: Long-running operations require polling infrastructure
+5. **Format Inconsistency**: Batch vs online output formats differ
+
+### Decision
+Abandon Document AI migration. Proceed with **LlamaParse** (Epic 13) which offers:
+- Simple REST API (no GCS required)
+- 10,000 FREE pages/month
+- Works directly in Edge Functions
+- No sharding complexity
+
+### Lessons Learned
+- Enterprise cloud services often have hidden complexity
+- Batch processing APIs aren't designed for serverless
+- Validate large document processing EARLY in migration
+- Sometimes simpler solutions (LlamaParse) beat "enterprise" ones
+
+---
+
+## Original Goal
 
 Replace the self-hosted Docling document parsing service with Google Cloud Document AI to solve critical reliability issues.
 

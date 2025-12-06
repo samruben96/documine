@@ -6,32 +6,33 @@
  * 2. Verify agency can process (no active job)
  * 3. Select next pending job in FIFO order
  * 4. Download document from Supabase Storage
- * 5. Extract text via Google Document AI (Story 12.3)
+ * 5. Extract text via LlamaParse (Story 13.2)
  * 6. Chunk text into semantic segments
  * 7. Generate embeddings via OpenAI
  * 8. Store chunks in document_chunks table
  * 9. Update document status
  * 10. Trigger next pending job for agency
  *
- * Story 12.3: Migrated from Docling to Document AI for PDF parsing
+ * Story 13.2: Migrated from Document AI to LlamaParse for PDF parsing
+ * - Simple REST API with upload → poll → result flow
+ * - 10,000 free pages/month
+ * - No GCS dependency (unlike Document AI batch processing)
  *
  * @module supabase/functions/process-document
  */
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+// Story 13.2: LlamaParse replaces Document AI
 import {
-  parseDocumentWithRetry as parseDocumentWithDocumentAI,
-  convertDocumentAIToDoclingResult,
-  classifyDocumentAIError,
-  isTransientError,
-  type DocumentAIErrorCode,
-  // Story 12.6: Batch processing imports
-  getPageCount,
-  selectProcessingMode,
-  parseLargeDocumentWithBatch,
-  type ProcessingMode,
-} from './documentai-client.ts';
+  parseDocumentWithLlamaParse,
+  convertToDoclingResult,
+  LlamaParseError,
+  UploadError,
+  PollingError,
+  TimeoutError,
+  ResultError,
+} from './llamaparse-client.ts';
 
 // Configuration
 const OPENAI_API_URL = 'https://api.openai.com/v1/embeddings';
@@ -42,7 +43,7 @@ const TARGET_TOKENS = 500;
 const OVERLAP_TOKENS = 50;
 const CHARS_PER_TOKEN = 4;
 
-// Story 12.3: Document AI timeout is handled in documentai-client.ts (60s)
+// Story 13.2: LlamaParse timeout is handled in llamaparse-client.ts (5 min max wait)
 // Total processing timeout for the entire pipeline
 const TOTAL_PROCESSING_TIMEOUT_MS = 480000; // 480s (8 min) - ensures error handling runs before platform timeout
 
@@ -121,19 +122,70 @@ function classifyError(errorMessage: string): ClassifiedError {
   };
 }
 
+/**
+ * Classify LlamaParse errors to existing error categories.
+ * Story 13.2 (AC-13.2.3): Map LlamaParse error types to ClassifiedError
+ */
+function classifyLlamaParseError(error: Error): ClassifiedError {
+  // First, check if it's a known LlamaParse error type
+  if (error.name === 'UploadError') {
+    return {
+      errorType: 'transient',
+      category: 'transient',
+      code: 'UPLOAD_ERROR',
+      shouldAutoRetry: true,
+    };
+  }
+
+  if (error.name === 'TimeoutError') {
+    return {
+      errorType: 'transient',
+      category: 'transient',
+      code: 'TIMEOUT',
+      shouldAutoRetry: true,
+    };
+  }
+
+  if (error.name === 'PollingError') {
+    // Check if it's a non-retryable polling error (job failed)
+    const isRetryable = error instanceof LlamaParseError ? error.isRetryable : true;
+    if (!isRetryable) {
+      return {
+        errorType: 'permanent',
+        category: 'recoverable',
+        code: 'PDF_FORMAT_ERROR',
+        shouldAutoRetry: false,
+      };
+    }
+    return {
+      errorType: 'transient',
+      category: 'transient',
+      code: 'CONNECTION_ERROR',
+      shouldAutoRetry: true,
+    };
+  }
+
+  if (error.name === 'ResultError') {
+    return {
+      errorType: 'transient',
+      category: 'transient',
+      code: 'CONNECTION_ERROR',
+      shouldAutoRetry: true,
+    };
+  }
+
+  // Fall back to generic classifyError for unknown errors
+  return classifyError(error.message);
+}
+
 // Story 5.12: Progress reporting configuration
 // Story 11.6: Removed 'analyzing' stage - extraction now happens in Phase 2 (background)
-// Story 12.6: Added batch-specific stage weights
+// Story 13.2: Simplified stages - LlamaParse handles all parsing internally
 // Stage weights for total_progress calculation:
-// Online mode: downloading: 5%, parsing: 55%, chunking: 10%, embedding: 30%
-// Batch mode: downloading: 5%, uploading: 10%, batch_processing: 40%, downloading_results: 5%, chunking: 10%, embedding: 30%
+// downloading: 5%, parsing: 55%, chunking: 10%, embedding: 30%
 const STAGE_WEIGHTS = {
   downloading: { start: 0, weight: 5 },
   parsing: { start: 5, weight: 55 },
-  // Batch-specific stages (AC-12.6.7)
-  uploading: { start: 5, weight: 10 },
-  batch_processing: { start: 15, weight: 40 },
-  downloading_results: { start: 55, weight: 5 },
   chunking: { start: 60, weight: 10 },
   embedding: { start: 70, weight: 30 },
 } as const;
@@ -172,9 +224,9 @@ interface LogData {
 
 // Story 5.12: Progress data interface
 // Story 11.6: Removed 'analyzing' stage - extraction now happens in Phase 2
-// Story 12.6: Added batch-specific stages (uploading, batch_processing, downloading_results)
+// Story 13.2: Simplified stages - LlamaParse handles all parsing internally
 interface ProgressData {
-  stage: 'downloading' | 'parsing' | 'uploading' | 'batch_processing' | 'downloading_results' | 'chunking' | 'embedding';
+  stage: 'downloading' | 'parsing' | 'chunking' | 'embedding';
   stage_progress: number; // 0-100
   stage_name: string; // User-friendly name
   estimated_seconds_remaining: number | null;
@@ -184,13 +236,10 @@ interface ProgressData {
 
 // User-friendly stage names per UX design
 // Story 11.6: Removed 'analyzing' stage
-// Story 12.6: Added batch-specific stage names (AC-12.6.7)
+// Story 13.2: Simplified stages - LlamaParse handles all parsing internally
 const STAGE_DISPLAY_NAMES: Record<ProgressData['stage'], string> = {
   downloading: 'Loading file',
   parsing: 'Reading document',
-  uploading: 'Uploading to cloud',
-  batch_processing: 'Processing large document',
-  downloading_results: 'Downloading results',
   chunking: 'Preparing content',
   embedding: 'Indexing for search',
 };
@@ -248,17 +297,30 @@ Deno.serve(async (req: Request) => {
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
-  // Story 12.3 (AC-12.3.5): DOCLING_SERVICE_URL deprecated, kept for backward compat
-  const doclingServiceUrl = Deno.env.get('DOCLING_SERVICE_URL');
-  if (doclingServiceUrl) {
-    log.warn('DOCLING_SERVICE_URL is deprecated', {
-      message: 'Docling has been replaced by Document AI. This env var can be removed.',
-    });
-  }
+  // Story 13.2 (AC-13.2.5): LLAMA_CLOUD_API_KEY required for LlamaParse
+  const llamaCloudApiKey = Deno.env.get('LLAMA_CLOUD_API_KEY');
 
-  if (!supabaseUrl || !supabaseServiceKey || !openaiKey) {
+  // AC-13.2.5: Log configuration on startup (without exposing key)
+  log.info('Edge Function configuration', {
+    hasLlamaCloudApiKey: !!llamaCloudApiKey,
+    hasOpenaiKey: !!openaiKey,
+  });
+
+  // AC-13.2.5: Fail fast if API key not configured
+  if (!supabaseUrl || !supabaseServiceKey || !openaiKey || !llamaCloudApiKey) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('SUPABASE_URL');
+    if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    if (!openaiKey) missing.push('OPENAI_API_KEY');
+    if (!llamaCloudApiKey) missing.push('LLAMA_CLOUD_API_KEY');
+
+    log.error('Missing environment variables', { missing });
+
     return new Response(
-      JSON.stringify({ success: false, error: 'Missing required environment variables' }),
+      JSON.stringify({
+        success: false,
+        error: `Missing required environment variables: ${missing.join(', ')}`,
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -378,82 +440,57 @@ Deno.serve(async (req: Request) => {
     );
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
-    // Step 5: Parse document with Document AI
-    // Story 12.6: Detects page count and routes to online (≤15 pages) or batch (>15 pages) processing
-    // Story 5.12: Report parsing/batch start
-    const detectedPageCount = getPageCount(pdfBuffer);
-    const processingMode = selectProcessingMode(detectedPageCount);
-
-    // For online mode, report as 'parsing'; for batch mode, report as 'uploading' first
-    if (processingMode === 'online') {
-      await updateJobProgress(
-        supabase,
-        processingDocumentId,
-        'parsing',
-        0,
-        estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 0),
-        true
-      );
-    } else {
-      // AC-12.6.7: Batch processing progress starts with uploading stage
-      await updateJobProgress(
-        supabase,
-        processingDocumentId,
-        'uploading',
-        0,
-        estimateTimeRemaining(pdfBuffer.byteLength, 'uploading', 0),
-        true
-      );
-    }
+    // Step 5: Parse document with LlamaParse (Story 13.2)
+    // AC-13.2.1: Import and call parseDocumentWithLlamaParse
+    // AC-13.2.2: Report 'parsing' progress during polling
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'parsing',
+      0,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 0),
+      true
+    );
 
     const parseStartTime = Date.now();
-    // Story 12.3: Third param is deprecated (was Docling URL), now uses Document AI via env vars
-    // Story 12.6: Fourth param is documentId for batch processing GCS path
-    // Story 12.6: Fifth param is batch progress callback for AC-12.6.7
-    const parseResult = await parseDocumentWithRetry(
-      pdfBuffer,
+
+    // AC-13.2.1: Call LlamaParse with progress callback
+    // Convert Uint8Array to ArrayBuffer for LlamaParse client
+    const llamaParseResult = await parseDocumentWithLlamaParse(
+      pdfBuffer.buffer as ArrayBuffer,
       processingStoragePath,
-      '',
-      processingDocumentId,
-      // AC-12.6.7: Batch progress callback for real-time progress updates
-      async (stage, progress) => {
+      { apiKey: llamaCloudApiKey },
+      // AC-13.2.2: Progress callback for real-time updates
+      async (_stage, percent) => {
         await updateJobProgress(
           supabase,
           processingDocumentId,
-          stage,
-          progress,
-          estimateTimeRemaining(pdfBuffer.byteLength, stage, progress),
-          progress === 0 || progress === 100 // Force update at stage transitions
+          'parsing',
+          percent,
+          estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', percent),
+          percent === 0 || percent === 100 // Force update at stage transitions
         );
       }
     );
 
-    // Story 5.12: Report parsing/batch complete
-    if (processingMode === 'online') {
-      await updateJobProgress(
-        supabase,
-        processingDocumentId,
-        'parsing',
-        100,
-        estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 100),
-        true
-      );
-    } else {
-      // Batch mode final stage is downloading_results
-      await updateJobProgress(
-        supabase,
-        processingDocumentId,
-        'downloading_results',
-        100,
-        estimateTimeRemaining(pdfBuffer.byteLength, 'downloading_results', 100),
-        true
-      );
-    }
+    // AC-13.2.4: Convert to DoclingResult format for existing pipeline
+    const parseResult = convertToDoclingResult(llamaParseResult);
 
-    log.info('Document AI parsing completed', {
+    // AC-13.2.2: Report parsing complete at 100%
+    await updateJobProgress(
+      supabase,
+      processingDocumentId,
+      'parsing',
+      100,
+      estimateTimeRemaining(pdfBuffer.byteLength, 'parsing', 100),
+      true
+    );
+
+    log.info('LlamaParse parsing completed', {
       documentId: processingDocumentId,
       duration: Date.now() - parseStartTime,
       pageCount: parseResult.pageCount,
+      jobId: llamaParseResult.jobId,
     });
     checkProcessingTimeout(startTime); // AC-5.8.1.5
 
@@ -621,7 +658,11 @@ Deno.serve(async (req: Request) => {
     );
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    const classification = classifyError(err.message);
+
+    // Story 13.2 (AC-13.2.3): Use LlamaParse-specific error classification when applicable
+    const classification = err instanceof LlamaParseError
+      ? classifyLlamaParseError(err)
+      : classifyError(err.message);
 
     // Story 11.3 (AC-11.3.5): Structured logging with error classification
     // Story 11.5 (AC-11.5.1): Extended logging with category and code
@@ -633,6 +674,7 @@ Deno.serve(async (req: Request) => {
       errorCode: classification.code,
       isRetryable: classification.shouldAutoRetry,
       step: 'unknown',
+      errorName: err.name, // Story 13.2: Include error class name for debugging
     });
 
     // Update document and job status to failed with error classification
@@ -686,117 +728,17 @@ async function downloadFromStorage(
 }
 
 // ============================================================================
-// Document AI Operations (Story 12.3)
+// LlamaParse Types (Story 13.2 - AC-13.2.4: Backward Compatibility)
 // ============================================================================
 
+/**
+ * DoclingResult interface - matches historical format for chunking pipeline compatibility.
+ * Story 13.2: LlamaParse convertToDoclingResult() produces this format.
+ */
 interface DoclingResult {
   markdown: string;
   pageMarkers: PageMarker[];
   pageCount: number;
-}
-
-/**
- * Parse document using Document AI with automatic routing based on page count.
- * Story 12.3: Replaces Docling with Document AI for PDF parsing.
- * Story 12.6: Routes to batch processing for large documents (>15 pages).
- *
- * AC-12.3.1: parseDocument() replaced with Document AI call
- * AC-12.3.2: Maintains same return signature (DoclingResult)
- * AC-12.6.1: Page count detection before processing
- * AC-12.6.2: Documents ≤15 pages use online processing
- * AC-12.6.3: Documents >15 pages use batch processing via GCS
- *
- * @param docBuffer - PDF document as Uint8Array
- * @param filename - Original filename (for logging, ignored by Document AI)
- * @param _serviceUrl - DEPRECATED: Docling service URL, ignored (Document AI uses env vars)
- * @param documentId - Optional document ID for batch processing GCS path
- * @param onBatchProgress - Optional callback for batch processing progress updates
- * @returns DoclingResult with markdown, pageMarkers, and pageCount
- */
-async function parseDocumentWithRetry(
-  docBuffer: Uint8Array,
-  filename: string,
-  _serviceUrl: string, // AC-12.3.1: serviceUrl parameter ignored, kept for backward compat
-  documentId?: string,
-  onBatchProgress?: (stage: 'uploading' | 'batch_processing' | 'downloading_results', progress: number) => Promise<void>
-): Promise<DoclingResult> {
-  const fileSizeBytes = docBuffer.byteLength;
-
-  // Story 12.6 (AC-12.6.1): Detect page count
-  const pageCount = getPageCount(docBuffer);
-  const processingMode = selectProcessingMode(pageCount);
-
-  log.info('Starting Document AI parsing', {
-    filename,
-    fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
-    detectedPageCount: pageCount,
-    processingMode,
-  });
-
-  try {
-    let documentAIResponse;
-
-    if (processingMode === 'batch' && documentId) {
-      // AC-12.6.3: Use batch processing for large documents
-      log.info('Using batch processing for large document', {
-        filename,
-        pageCount,
-        documentId,
-      });
-
-      documentAIResponse = await parseLargeDocumentWithBatch(
-        docBuffer,
-        documentId,
-        onBatchProgress ? async (stage, progress) => {
-          // Map internal batch stages to progress callback
-          const stageMap: Record<string, 'uploading' | 'batch_processing' | 'downloading_results'> = {
-            'uploading': 'uploading',
-            'processing': 'batch_processing',
-            'downloading': 'downloading_results',
-          };
-          await onBatchProgress(stageMap[stage] || 'batch_processing', progress);
-        } : undefined
-      );
-    } else {
-      // AC-12.6.2: Use online processing for small documents (≤15 pages)
-      log.info('Using online processing', {
-        filename,
-        pageCount,
-      });
-
-      // AC-12.3.1: Call Document AI (with built-in retry from documentai-client.ts)
-      documentAIResponse = await parseDocumentWithDocumentAI(docBuffer);
-    }
-
-    // AC-12.3.2: Convert to DoclingResult format using Story 12.4 converter
-    const result = convertDocumentAIToDoclingResult(documentAIResponse);
-
-    log.info('Document AI parsing successful', {
-      filename,
-      pageCount: result.pageCount,
-      markdownLength: result.markdown.length,
-      processingMode,
-    });
-
-    return result;
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-
-    // AC-12.3.4: Classify Document AI errors for proper handling
-    const classification = classifyDocumentAIError(err);
-
-    log.error('Document AI parsing failed', err, {
-      filename,
-      fileSizeMB: (fileSizeBytes / (1024 * 1024)).toFixed(2),
-      errorCode: classification.code,
-      userMessage: classification.userMessage,
-      suggestedAction: classification.suggestedAction,
-      processingMode,
-    });
-
-    // Throw with user-friendly message
-    throw new Error(classification.userMessage);
-  }
 }
 
 
@@ -2128,6 +2070,7 @@ async function updateJobProgress(
 /**
  * Estimate time remaining based on file size and stage.
  * Returns seconds.
+ * Story 13.2: Simplified for LlamaParse (no batch mode stages)
  */
 function estimateTimeRemaining(
   fileSizeBytes: number,
@@ -2139,13 +2082,10 @@ function estimateTimeRemaining(
 
   // Base estimates per stage (in seconds) for ~10MB file
   // Story 11.6: Removed 'analyzing' - extraction now in Phase 2
-  // Story 12.6: Added batch processing stages (uploading, batch_processing, downloading_results)
+  // Story 13.2: Simplified for LlamaParse (no batch processing stages)
   const baseEstimates: Record<ProgressData['stage'], number> = {
     downloading: 10,
-    parsing: 120, // 2 min base for online parsing
-    uploading: 15, // AC-12.6.7: Upload to GCS
-    batch_processing: 180, // AC-12.6.7: 3 min base for batch processing
-    downloading_results: 10, // AC-12.6.7: Download results from GCS
+    parsing: 60, // LlamaParse is typically 30-60s for most documents
     chunking: 15,
     embedding: 60, // 1 min base for embeddings
   };
@@ -2158,13 +2098,8 @@ function estimateTimeRemaining(
   const remainingTime = baseTime * ((100 - stageProgress) / 100);
 
   // Add estimates for remaining stages
-  // Story 11.6: Removed 'analyzing' - extraction now in Phase 2
-  // Story 12.6: Two stage orders - online mode and batch mode
-  // Determine which stage order to use based on current stage
-  const isBatchMode = ['uploading', 'batch_processing', 'downloading_results'].includes(stage);
-  const stageOrder: ProgressData['stage'][] = isBatchMode
-    ? ['downloading', 'uploading', 'batch_processing', 'downloading_results', 'chunking', 'embedding']
-    : ['downloading', 'parsing', 'chunking', 'embedding'];
+  // Story 13.2: Single stage order for LlamaParse
+  const stageOrder: ProgressData['stage'][] = ['downloading', 'parsing', 'chunking', 'embedding'];
   const currentIndex = stageOrder.indexOf(stage);
   let additionalTime = 0;
 

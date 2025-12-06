@@ -911,7 +911,15 @@ development_status:
   # Replace Docling/Document AI calls with LlamaParse
   # Priority: P0 - core integration
   # DRAFTED 2025-12-06: Story file at docs/sprint-artifacts/epics/epic-13/stories/13-2-edge-function-integration/
-  13-2-edge-function-integration: drafted
+  # CONTEXT 2025-12-06: Context file at docs/sprint-artifacts/epics/epic-13/stories/13-2-edge-function-integration/13-2-edge-function-integration.context.xml
+  # IMPLEMENTED 2025-12-06: All 5 ACs complete
+  # - AC-13.2.1: parseDocumentWithLlamaParse imported and called
+  # - AC-13.2.2: Progress callback at 0-100% during parsing stage
+  # - AC-13.2.3: classifyLlamaParseError() maps to existing categories
+  # - AC-13.2.4: convertToDoclingResult() maintains backward compatibility
+  # - AC-13.2.5: LLAMA_CLOUD_API_KEY validated at startup
+  # CODE REVIEWED 2025-12-06: APPROVED - all 5 ACs verified, 1631 tests pass
+  13-2-edge-function-integration: done
   # Story 13.3: Remove Document AI Code (2 pts)
   # Clean up abandoned Epic 12 code
   # Priority: P1 - technical debt

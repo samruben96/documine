@@ -1125,6 +1125,13 @@ export async function batchProcessDocument(
   const config = getDocumentAIConfig();
   const endpoint = `https://${config.location}-documentai.googleapis.com/v1/projects/${config.projectId}/locations/${config.location}/processors/${config.processorId}:batchProcess`;
 
+  // Configure batch request with:
+  // 1. shardingConfig to minimize output files (500 pages max per shard)
+  // 2. fieldMask to only request essential fields (reduces memory ~10x)
+  //    - text: full document text (for chunking/RAG)
+  //    - pages.pageNumber: for page markers
+  //    - pages.layout.textAnchor: for page text boundaries
+  //    Excludes: bounding boxes, paragraphs, tables, images, etc. which bloat memory
   const requestBody = {
     inputDocuments: {
       gcsDocuments: {
@@ -1132,7 +1139,14 @@ export async function batchProcessDocument(
       }
     },
     documentOutputConfig: {
-      gcsOutputConfig: { gcsUri: outputGcsUri }
+      gcsOutputConfig: {
+        gcsUri: outputGcsUri,
+        fieldMask: 'text,pages.pageNumber,pages.layout.textAnchor',
+        shardingConfig: {
+          pagesPerShard: 500,  // Max pages per shard (avoids splitting most documents)
+          pagesOverlap: 0      // No overlap needed for our use case
+        }
+      }
     }
   };
 
@@ -1308,37 +1322,143 @@ export async function parseLargeDocumentWithBatch(
     const outputBucket = gcsMatch[1];
     const outputPrefix = gcsMatch[2];
 
-    // List objects to find the actual output file
-    // Document AI output naming varies: could be 0, 0.json, output-0.json, etc.
+    // List objects to find ALL output files (may be sharded for large documents)
     const outputObjects = await listGCSObjects(outputBucket, outputPrefix, accessToken);
 
     if (outputObjects.length === 0) {
       throw new Error(`No output files found at ${outputGcsDestination}`);
     }
 
-    // Find the JSON output file - typically ends with .json or is the first sharded output
-    // Prefer files ending in .json, otherwise take the first file
-    let outputObjectPath = outputObjects.find(obj => obj.endsWith('.json'));
-    if (!outputObjectPath) {
-      // Document AI sometimes outputs without .json extension
-      outputObjectPath = outputObjects[0];
+    // Filter to only JSON files and sort them (shards are numbered: 0.json, 1.json, etc.)
+    const jsonFiles = outputObjects
+      .filter(obj => obj.endsWith('.json') || !obj.includes('.'))
+      .sort((a, b) => {
+        // Extract shard number from filename for proper ordering
+        const numA = parseInt(a.match(/(\d+)(?:\.json)?$/)?.[1] || '0', 10);
+        const numB = parseInt(b.match(/(\d+)(?:\.json)?$/)?.[1] || '0', 10);
+        return numA - numB;
+      });
+
+    if (jsonFiles.length === 0) {
+      throw new Error(`No JSON output files found at ${outputGcsDestination}`);
     }
 
-    log.info('Found output file', { outputObjectPath, allObjects: outputObjects });
+    log.info('Found output files', {
+      shardCount: jsonFiles.length,
+      files: jsonFiles,
+    });
 
-    // Download the JSON output
-    const resultJson = await downloadFromGCS(outputBucket, outputObjectPath, accessToken);
+    // MEMORY-OPTIMIZED: Download and merge shards one at a time
+    // Only keep essential data (text + page text bounds) to stay under 150MB heap limit
+    let mergedText = '';
+    let textOffset = 0; // Track offset as we merge shards
+    const pageTextBounds: Array<{ pageNumber: number; startIndex: number; endIndex: number }> = [];
+    let totalPageCount = 0;
+
+    for (let i = 0; i < jsonFiles.length; i++) {
+      const shardPath = jsonFiles[i];
+      if (onProgress) {
+        const downloadProgress = Math.round((i / jsonFiles.length) * 100);
+        await onProgress('downloading', downloadProgress);
+      }
+
+      // Download shard
+      const shardJson = await downloadFromGCS(outputBucket, shardPath, accessToken);
+
+      // Parse and extract ONLY what we need, then let GC reclaim the rest
+      let shardText = '';
+      let shardPageCount = 0;
+
+      try {
+        const parsed = JSON.parse(shardJson);
+        const shardDoc = parsed.document || parsed;
+
+        // Extract text
+        if (shardDoc.text) {
+          shardText = shardDoc.text;
+        }
+
+        // Extract page text bounds (minimal memory: just indices)
+        if (shardDoc.pages && Array.isArray(shardDoc.pages)) {
+          shardPageCount = shardDoc.pages.length;
+          for (const page of shardDoc.pages) {
+            // Extract text anchor bounds from page layout
+            let pageStart = 0;
+            let pageEnd = shardText.length;
+
+            if (page.layout?.textAnchor?.textSegments?.length > 0) {
+              const segments = page.layout.textAnchor.textSegments;
+              pageStart = parseInt(String(segments[0]?.startIndex || 0), 10);
+              pageEnd = parseInt(String(segments[segments.length - 1]?.endIndex || shardText.length), 10);
+            }
+
+            // Adjust for merged text offset
+            pageTextBounds.push({
+              pageNumber: page.pageNumber || (totalPageCount + pageTextBounds.length + 1),
+              startIndex: textOffset + pageStart,
+              endIndex: textOffset + pageEnd,
+            });
+          }
+        }
+      } catch (parseError) {
+        log.error('Failed to parse shard', parseError as Error, { shardPath, shardIndex: i });
+        throw parseError;
+      }
+
+      // Update offset before appending
+      textOffset += shardText.length;
+
+      // Append text (this is the main data we need)
+      mergedText += shardText;
+      totalPageCount += shardPageCount;
+
+      log.info('Processed shard', {
+        shardIndex: i,
+        shardPath,
+        shardPages: shardPageCount,
+        shardTextLength: shardText.length,
+        totalPagesAccum: totalPageCount,
+        totalTextAccum: mergedText.length,
+      });
+
+      // shardJson and parsed are now out of scope and eligible for GC
+    }
 
     if (onProgress) await onProgress('downloading', 100);
 
-    // Parse the result as Document AI response
-    const documentResponse = JSON.parse(resultJson) as DocumentAIProcessResponse;
+    // Build minimal page objects with text anchors (needed for convertDocumentAIToDoclingResult)
+    const syntheticPages: DocumentAIPage[] = pageTextBounds.map((ptb) => ({
+      pageNumber: ptb.pageNumber,
+      dimension: { width: 0, height: 0, unit: 'inch' },
+      layout: {
+        textAnchor: {
+          textSegments: [{
+            startIndex: String(ptb.startIndex),
+            endIndex: String(ptb.endIndex),
+          }],
+        },
+        boundingPoly: { normalizedVertices: [] },
+        confidence: 1,
+      },
+      paragraphs: [],
+      tables: [],
+    }));
+
+    const documentResponse: DocumentAIProcessResponse = {
+      document: {
+        text: mergedText,
+        pages: syntheticPages,
+      },
+    };
 
     const processingTime = Date.now() - startTime;
     log.info('Batch parsing completed', {
       documentId,
       processingTimeMs: processingTime,
-      pageCount: documentResponse.document?.pages?.length || 0,
+      shardCount: jsonFiles.length,
+      pageCount: totalPageCount,
+      textLength: mergedText.length,
+      memoryOptimized: true,
     });
 
     return documentResponse;

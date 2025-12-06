@@ -290,7 +290,7 @@ return ragPipeline(query, chunks);
 
 ## ADR-009: Google Cloud Document AI for PDF Processing (Epic 12)
 
-**Status:** In Progress (2025-12-05)
+**Status:** ~~In Progress~~ **ABANDONED (2025-12-06) - Superseded by ADR-010**
 
 **Context:** Docling (ADR-002) proved unreliable for production insurance documents. Evidence:
 - `foran auto nationwide.pdf` (1.3MB) stuck at 5% for 10+ minutes
@@ -367,5 +367,125 @@ DOCUMENT_AI_LOCATION        # "us" or "eu"
 - 12.5: Testing & Validation
 
 **Tech Spec Reference:** `docs/sprint-artifacts/epics/epic-12/tech-spec/`
+
+**Abandonment Note (2025-12-06):** Epic 12 abandoned after Story 12.6 (Batch Processing) encountered 7 critical bugs:
+- Memory limits in Edge Functions (~150MB heap)
+- GCS upload/download complexity for batch processing
+- Output format inconsistencies between online and batch modes
+- Sharding logic failures for large documents
+- "Failed to process all documents" errors
+
+See ADR-010 for the replacement solution (LlamaParse).
+
+---
+
+## ADR-010: LlamaParse for PDF Processing (Epic 13)
+
+**Status:** In Progress (2025-12-06)
+
+**Context:** Google Document AI (ADR-009) was abandoned after batch processing proved fundamentally incompatible with Supabase Edge Functions. Story 12.6 encountered 7 critical bugs related to memory limits, GCS dependencies, and output format mismatches.
+
+The core problem remains: need reliable PDF parsing for insurance documents of any size.
+
+**Decision:** Migrate to LlamaParse for all PDF processing.
+
+**Why LlamaParse:**
+
+| Feature | Document AI | LlamaParse |
+|---------|-------------|------------|
+| API Complexity | GCS + batch + polling + sharding | Simple REST |
+| Edge Function Compatible | No (memory issues) | Yes |
+| Free Tier | None | 10,000 pages/month |
+| Page Limit | 200 (batch) | Unlimited |
+| Cost After Free | $10/1000 pages | $3/1000 pages |
+
+**Architecture:**
+
+```
+BEFORE (Document AI - Epic 12):
+Upload → Edge Function → GCS → Document AI Batch → GCS → Download → Parse
+       [Memory issues]  [Complex]              [Sharding bugs]
+
+AFTER (LlamaParse - Epic 13):
+Upload → Edge Function → LlamaParse API → Markdown → Existing Pipeline
+       [Simple]         [REST call]       [Direct response]
+```
+
+**API Flow:**
+```typescript
+// 1. Upload PDF
+const { id: jobId } = await fetch('https://api.cloud.llamaindex.ai/api/parsing/upload', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` },
+  body: formData,
+}).then(r => r.json());
+
+// 2. Poll for completion
+let status = 'PENDING';
+while (status === 'PENDING') {
+  await delay(2000);
+  const job = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`).then(r => r.json());
+  status = job.status;
+}
+
+// 3. Get markdown result
+const markdown = await fetch(
+  `https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`
+).then(r => r.text());
+```
+
+**Page Marker Handling:**
+
+LlamaParse outputs markdown with page markers in a different format than Docling:
+- **Docling format:** `<!-- page: N -->`
+- **LlamaParse format:** `---\n\n# Page N\n\n` or configurable via API
+
+The `convertToDoclingResult()` function must:
+1. Detect LlamaParse page markers (regex: `/^# Page (\d+)/m` or `---` separators)
+2. Convert to internal `pageMarkers: number[]` array format
+3. Preserve compatibility with existing chunking and citation systems
+
+**Implementation Notes:**
+- The existing `extractPageMarkers()` function in the Edge Function expects Docling's HTML comment format
+- Story 13.1 must implement format detection or request Docling-compatible output from LlamaParse
+- LlamaParse API supports `page_separator` option - evaluate using `<!-- page: {page_number} -->` format
+
+**Environment Variables:**
+```bash
+LLAMA_CLOUD_API_KEY  # LlamaIndex Cloud API key (llx-...)
+```
+
+**Removed (Post-Migration):**
+```bash
+GCP_PROJECT_ID           # Document AI removed
+GCP_LOCATION             # Document AI removed
+GCP_PROCESSOR_ID         # Document AI removed
+GCP_SERVICE_ACCOUNT_KEY  # Document AI removed
+GCS_BUCKET               # Document AI removed
+```
+
+**Consequences:**
+- (+) Simple REST API - no GCS, no batch, no sharding
+- (+) Edge Function compatible (no memory issues)
+- (+) 10K free pages/month (typical usage covered)
+- (+) Lower cost after free tier ($3 vs $10 per 1000 pages)
+- (+) No GCP credential management
+- (-) New vendor dependency (LlamaIndex Cloud)
+- (-) Page marker format differs (requires conversion)
+- (-) Less control over OCR options
+
+**Rollback Plan:**
+If LlamaParse fails in production:
+1. **Immediate:** Revert to Docling (Railway service still running)
+2. **Short-term:** Investigate LlamaParse issues
+3. **Long-term:** Consider Azure Document Intelligence as backup
+
+**Stories:**
+- 13.1: LlamaParse API Client
+- 13.2: Edge Function Integration
+- 13.3: Remove Document AI Code
+- 13.4: Testing & Validation
+
+**Tech Spec Reference:** `docs/sprint-artifacts/epics/epic-13/tech-spec/tech-spec-epic-13.md`
 
 ---
