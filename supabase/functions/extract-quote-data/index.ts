@@ -19,8 +19,24 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Configuration
-const QUOTE_EXTRACTION_TIMEOUT_MS = 60000; // 60 seconds (AC-10.12.8)
+// Dynamic timeout based on document size - base 90s + 3s per page, max 240s
+// Supabase Edge Functions support 150s request timeout and 400s wall clock for paid plans
+const BASE_TIMEOUT_MS = 90000; // 90 seconds base
+const PER_PAGE_TIMEOUT_MS = 3000; // 3 seconds per page
+const MAX_TIMEOUT_MS = 240000; // 240 seconds max (well under 400s wall clock)
 const EXTRACTION_VERSION = 3; // Must match src/types/compare.ts
+
+/**
+ * Calculate dynamic timeout based on page count.
+ * Larger documents need more time for OpenAI to process.
+ */
+function calculateTimeout(pageCount: number | null): number {
+  if (!pageCount || pageCount <= 0) {
+    return BASE_TIMEOUT_MS;
+  }
+  const calculatedTimeout = BASE_TIMEOUT_MS + (pageCount * PER_PAGE_TIMEOUT_MS);
+  return Math.min(calculatedTimeout, MAX_TIMEOUT_MS);
+}
 
 // Types
 interface ExtractionPayload {
@@ -338,8 +354,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // Step 3: Perform extraction with OpenAI
+    // Calculate dynamic timeout based on document size
+    const timeoutMs = calculateTimeout(docData.page_count);
+    log.info('Extraction timeout calculated', { documentId, pageCount: docData.page_count, timeoutMs });
+
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), QUOTE_EXTRACTION_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const requestBody = {
