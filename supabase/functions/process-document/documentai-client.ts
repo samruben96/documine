@@ -771,3 +771,343 @@ export async function parseDocumentWithRetry(
   // Should never reach here, but TypeScript needs this
   throw new Error('Unexpected: retry loop completed without return or throw');
 }
+
+// ============================================================================
+// Story 12.4: Response Parsing - Convert Document AI to DoclingResult
+// ============================================================================
+
+/**
+ * PageMarker interface for tracking page boundaries in markdown output.
+ * Must match the PageMarker interface in index.ts.
+ */
+interface PageMarker {
+  pageNumber: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+/**
+ * DoclingResult interface matching the expected output format.
+ * Must match DoclingResult in index.ts for compatibility.
+ */
+interface DoclingResult {
+  markdown: string;
+  pageMarkers: PageMarker[];
+  pageCount: number;
+}
+
+/**
+ * Extract text for a given text anchor from the full document text.
+ * Handles the case where startIndex/endIndex are strings (Document AI API quirk).
+ * AC-12.4.1: Extract text using textAnchor.textSegments indices
+ */
+function extractTextFromAnchor(
+  fullText: string,
+  textAnchor: DocumentAITextAnchor | undefined
+): string {
+  if (!textAnchor || !textAnchor.textSegments || textAnchor.textSegments.length === 0) {
+    return '';
+  }
+
+  let result = '';
+  for (const segment of textAnchor.textSegments) {
+    // Document AI returns indices as strings - must parseInt
+    const startIndex = segment.startIndex ? parseInt(String(segment.startIndex), 10) : 0;
+    const endIndex = segment.endIndex ? parseInt(String(segment.endIndex), 10) : fullText.length;
+    result += fullText.slice(startIndex, endIndex);
+  }
+  return result;
+}
+
+/**
+ * Get the start and end indices for a page from Document AI response.
+ * Returns [startIndex, endIndex] in the original document text.
+ */
+function getPageTextBounds(
+  page: DocumentAIPage,
+  fullTextLength: number
+): [number, number] {
+  if (!page.layout?.textAnchor?.textSegments?.length) {
+    return [0, fullTextLength];
+  }
+
+  const segments = page.layout.textAnchor.textSegments;
+  let minStart = fullTextLength;
+  let maxEnd = 0;
+
+  for (const segment of segments) {
+    const start = segment.startIndex ? parseInt(String(segment.startIndex), 10) : 0;
+    const end = segment.endIndex ? parseInt(String(segment.endIndex), 10) : fullTextLength;
+    minStart = Math.min(minStart, start);
+    maxEnd = Math.max(maxEnd, end);
+  }
+
+  return [minStart, maxEnd];
+}
+
+/**
+ * Format a Document AI table as markdown.
+ * AC-12.4.4: Tables converted to markdown format with | pipes
+ */
+function formatTableAsMarkdown(
+  table: DocumentAITable,
+  fullText: string
+): string {
+  const rows: string[][] = [];
+
+  // Extract header rows
+  if (table.headerRows) {
+    for (const row of table.headerRows) {
+      const cells = row.cells.map((cell) => {
+        const text = extractTextFromAnchor(fullText, cell.layout?.textAnchor);
+        return text.trim().replace(/\n/g, ' ').replace(/\|/g, '\\|');
+      });
+      rows.push(cells);
+    }
+  }
+
+  // Extract body rows
+  if (table.bodyRows) {
+    for (const row of table.bodyRows) {
+      const cells = row.cells.map((cell) => {
+        const text = extractTextFromAnchor(fullText, cell.layout?.textAnchor);
+        return text.trim().replace(/\n/g, ' ').replace(/\|/g, '\\|');
+      });
+      rows.push(cells);
+    }
+  }
+
+  if (rows.length === 0) {
+    return '';
+  }
+
+  // Determine column count from max row length
+  const colCount = Math.max(...rows.map((r) => r.length));
+
+  // Pad rows to have consistent column count
+  const paddedRows = rows.map((row) => {
+    while (row.length < colCount) {
+      row.push('');
+    }
+    return row;
+  });
+
+  // Build markdown table
+  const lines: string[] = [];
+
+  // First row (header or first data row)
+  lines.push('| ' + paddedRows[0].join(' | ') + ' |');
+
+  // Separator after first row (AC-12.4.4: |---|---| separator)
+  lines.push('|' + paddedRows[0].map(() => '---').join('|') + '|');
+
+  // Remaining rows
+  for (let i = 1; i < paddedRows.length; i++) {
+    lines.push('| ' + paddedRows[i].join(' | ') + ' |');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Normalize whitespace in text while preserving paragraph structure.
+ * AC-12.4.2: Paragraph breaks preserved as double newlines
+ * Task 5: Normalize whitespace
+ */
+function normalizeWhitespace(text: string): string {
+  return text
+    // Normalize line endings
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    // Collapse more than 2 consecutive newlines to exactly 2 (paragraph break)
+    .replace(/\n{3,}/g, '\n\n')
+    // Collapse multiple spaces to single space
+    .replace(/[ \t]+/g, ' ')
+    // Trim each line
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    // Final trim
+    .trim();
+}
+
+/**
+ * Convert Document AI API response to DoclingResult format.
+ *
+ * Story 12.4: Response Parsing
+ * AC-12.4.1: Document AI text extracted with page boundaries
+ * AC-12.4.2: Markdown output compatible with existing chunker
+ * AC-12.4.3: Page markers format: --- PAGE X --- preserved
+ * AC-12.4.4: Tables converted to markdown table format
+ * AC-12.4.5: Page count accurately reported
+ *
+ * @param response - Document AI API ProcessResponse
+ * @returns DoclingResult with markdown, pageMarkers, and pageCount
+ */
+export function convertDocumentAIToDoclingResult(
+  response: DocumentAIProcessResponse
+): DoclingResult {
+  // Handle empty/null document
+  if (!response?.document || !response.document.pages || response.document.pages.length === 0) {
+    return {
+      markdown: '',
+      pageMarkers: [],
+      pageCount: 0,
+    };
+  }
+
+  const { document } = response;
+  const fullText = document.text || '';
+  const pages = document.pages;
+  const pageCount = pages.length;
+
+  // Sort pages by pageNumber to ensure correct order
+  const sortedPages = [...pages].sort((a, b) => (a.pageNumber || 0) - (b.pageNumber || 0));
+
+  // Build markdown with page markers and track page positions
+  const markdownParts: string[] = [];
+  const pageMarkers: PageMarker[] = [];
+  let currentPosition = 0;
+
+  for (let i = 0; i < sortedPages.length; i++) {
+    const page = sortedPages[i];
+    const pageNumber = page.pageNumber || (i + 1);
+
+    // Get text bounds for this page
+    const [pageStart, pageEnd] = getPageTextBounds(page, fullText.length);
+    let pageText = fullText.slice(pageStart, pageEnd);
+
+    // Check if page has tables and format them
+    if (page.tables && page.tables.length > 0) {
+      // For each table, replace its text region with formatted markdown table
+      // Sort tables by their position in the text (descending) to replace from end to start
+      const tablesWithPositions = page.tables
+        .map((table) => {
+          const [tStart, tEnd] = getPageTextBounds(
+            { layout: table.layout } as DocumentAIPage,
+            fullText.length
+          );
+          return { table, start: tStart - pageStart, end: tEnd - pageStart };
+        })
+        .filter((t) => t.start >= 0 && t.end <= pageText.length)
+        .sort((a, b) => b.start - a.start); // Descending order
+
+      for (const { table, start, end } of tablesWithPositions) {
+        const markdownTable = formatTableAsMarkdown(table, fullText);
+        if (markdownTable) {
+          pageText = pageText.slice(0, start) + '\n\n' + markdownTable + '\n\n' + pageText.slice(end);
+        }
+      }
+    }
+
+    // Normalize whitespace for this page
+    pageText = normalizeWhitespace(pageText);
+
+    // Record start position for this page
+    const pageStartIndex = currentPosition;
+
+    // AC-12.4.3: First page has no marker prefix - content starts immediately
+    // Subsequent pages get --- PAGE X --- marker
+    if (i > 0) {
+      // Add page marker for pages after the first
+      const marker = `\n\n--- PAGE ${pageNumber} ---\n\n`;
+      markdownParts.push(marker);
+      currentPosition += marker.length;
+    }
+
+    // Add page content
+    markdownParts.push(pageText);
+    currentPosition += pageText.length;
+
+    // Record page marker with indices in final markdown
+    pageMarkers.push({
+      pageNumber,
+      startIndex: pageStartIndex,
+      endIndex: currentPosition,
+    });
+  }
+
+  // Combine all parts into final markdown
+  let markdown = markdownParts.join('');
+
+  // Final cleanup
+  markdown = normalizeWhitespace(markdown);
+
+  // Recalculate page markers after final normalization
+  // Since normalization might slightly change positions, we recalculate
+  const finalPageMarkers: PageMarker[] = [];
+  let searchStart = 0;
+
+  for (let i = 0; i < sortedPages.length; i++) {
+    const pageNumber = sortedPages[i].pageNumber || (i + 1);
+
+    let pageStartIndex: number;
+    let pageEndIndex: number;
+
+    if (i === 0) {
+      // First page starts at 0
+      pageStartIndex = 0;
+
+      // Find where next page marker starts (or end of document)
+      if (sortedPages.length > 1) {
+        const nextPageNum = sortedPages[1].pageNumber || 2;
+        const nextMarker = `--- PAGE ${nextPageNum} ---`;
+        const nextMarkerIdx = markdown.indexOf(nextMarker, searchStart);
+        // End just before the newlines preceding the marker
+        pageEndIndex = nextMarkerIdx > 0 ? nextMarkerIdx - 2 : markdown.length;
+      } else {
+        pageEndIndex = markdown.length;
+      }
+    } else {
+      // Subsequent pages: find the marker
+      const marker = `--- PAGE ${pageNumber} ---`;
+      const markerIdx = markdown.indexOf(marker, searchStart);
+
+      if (markerIdx >= 0) {
+        // Page starts at the marker (including leading newlines)
+        pageStartIndex = markerIdx > 0 ? markerIdx - 2 : markerIdx; // Include \n\n before marker
+
+        // Find next page marker or end of document
+        const nextPageIdx = i + 1;
+        if (nextPageIdx < sortedPages.length) {
+          const nextPageNum = sortedPages[nextPageIdx].pageNumber || (nextPageIdx + 1);
+          const nextMarker = `--- PAGE ${nextPageNum} ---`;
+          const nextMarkerIdx = markdown.indexOf(nextMarker, markerIdx + marker.length);
+          pageEndIndex = nextMarkerIdx > 0 ? nextMarkerIdx - 2 : markdown.length;
+        } else {
+          pageEndIndex = markdown.length;
+        }
+
+        searchStart = markerIdx + marker.length;
+      } else {
+        // Marker not found - shouldn't happen, but handle gracefully
+        pageStartIndex = searchStart;
+        pageEndIndex = markdown.length;
+      }
+    }
+
+    finalPageMarkers.push({
+      pageNumber,
+      startIndex: pageStartIndex,
+      endIndex: pageEndIndex,
+    });
+  }
+
+  // AC-12.4.5: Verify page markers are contiguous (for validation)
+  // Adjust indices to be truly contiguous
+  for (let i = 1; i < finalPageMarkers.length; i++) {
+    // Each page starts where the previous one ends
+    finalPageMarkers[i].startIndex = finalPageMarkers[i - 1].endIndex;
+  }
+
+  // Ensure last page ends at document end
+  if (finalPageMarkers.length > 0) {
+    finalPageMarkers[finalPageMarkers.length - 1].endIndex = markdown.length;
+  }
+
+  return {
+    markdown,
+    pageMarkers: finalPageMarkers,
+    pageCount,
+  };
+}

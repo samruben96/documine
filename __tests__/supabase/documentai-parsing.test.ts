@@ -396,6 +396,630 @@ describe('Document AI Parsing Service', () => {
   });
 });
 
+// ============================================================================
+// Story 12.4: Response Parsing Tests
+// ============================================================================
+
+describe('convertDocumentAIToDoclingResult (Story 12.4)', () => {
+  describe('TC-12.4.1: Single-page document', () => {
+    it('outputs markdown with no page markers and pageCount=1', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'This is a single page document.\n\nWith some content.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '51' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      expect(result.pageCount).toBe(1);
+      expect(result.markdown).not.toContain('--- PAGE');
+      expect(result.pageMarkers).toHaveLength(1);
+      expect(result.pageMarkers[0].pageNumber).toBe(1);
+      expect(result.pageMarkers[0].startIndex).toBe(0);
+    });
+  });
+
+  describe('TC-12.4.2: Multi-page document', () => {
+    it('inserts --- PAGE X --- markers between pages', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'Page 1 content here.Page 2 content here.Page 3 content here.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '20' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 2,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '20', endIndex: '40' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 3,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '40', endIndex: '60' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.97,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // AC-12.4.3: First page starts without marker
+      expect(result.markdown.startsWith('Page 1 content here.')).toBe(true);
+
+      // AC-12.4.3: Page markers format preserved
+      expect(result.markdown).toContain('--- PAGE 2 ---');
+      expect(result.markdown).toContain('--- PAGE 3 ---');
+      expect(result.markdown).not.toContain('--- PAGE 1 ---');
+
+      expect(result.pageCount).toBe(3);
+      expect(result.pageMarkers).toHaveLength(3);
+    });
+  });
+
+  describe('TC-12.4.3: PageMarker indices correctness', () => {
+    it('produces contiguous startIndex/endIndex values', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'First page.Second page.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '11' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 2,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '11', endIndex: '23' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // AC-12.4.5: Indices are contiguous
+      expect(result.pageMarkers[0].startIndex).toBe(0);
+      expect(result.pageMarkers[1].startIndex).toBe(result.pageMarkers[0].endIndex);
+      expect(result.pageMarkers[1].endIndex).toBe(result.markdown.length);
+
+      // Verify content at indices
+      const page1Text = result.markdown.slice(
+        result.pageMarkers[0].startIndex,
+        result.pageMarkers[0].endIndex
+      );
+      const page2Text = result.markdown.slice(
+        result.pageMarkers[1].startIndex,
+        result.pageMarkers[1].endIndex
+      );
+
+      expect(page1Text).toContain('First page');
+      expect(page2Text).toContain('Second page');
+    });
+  });
+
+  describe('TC-12.4.4: Table extraction', () => {
+    it('formats tables as markdown with pipes', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const fullText = 'Coverage Summary\nGeneral Liability $1,000,000\nProperty $500,000\nEnd of doc';
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: fullText,
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: String(fullText.length) }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [
+                {
+                  layout: {
+                    textAnchor: { textSegments: [{ startIndex: '17', endIndex: '62' }] },
+                    boundingPoly: { normalizedVertices: [] },
+                    confidence: 0.95,
+                  },
+                  headerRows: [
+                    {
+                      cells: [
+                        {
+                          layout: {
+                            textAnchor: { textSegments: [{ startIndex: '17', endIndex: '34' }] },
+                            boundingPoly: { normalizedVertices: [] },
+                            confidence: 0.95,
+                          },
+                        },
+                        {
+                          layout: {
+                            textAnchor: { textSegments: [{ startIndex: '35', endIndex: '45' }] },
+                            boundingPoly: { normalizedVertices: [] },
+                            confidence: 0.95,
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                  bodyRows: [
+                    {
+                      cells: [
+                        {
+                          layout: {
+                            textAnchor: { textSegments: [{ startIndex: '46', endIndex: '54' }] },
+                            boundingPoly: { normalizedVertices: [] },
+                            confidence: 0.95,
+                          },
+                        },
+                        {
+                          layout: {
+                            textAnchor: { textSegments: [{ startIndex: '55', endIndex: '63' }] },
+                            boundingPoly: { normalizedVertices: [] },
+                            confidence: 0.95,
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // AC-12.4.4: Tables formatted as markdown pipes
+      expect(result.markdown).toContain('|');
+      // AC-12.4.4: Header separator
+      expect(result.markdown).toContain('|---|');
+    });
+  });
+
+  describe('TC-12.4.5: Empty document handling', () => {
+    it('handles empty document gracefully', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const emptyResponse: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: '',
+          pages: [],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(emptyResponse);
+
+      expect(result.markdown).toBe('');
+      expect(result.pageCount).toBe(0);
+      expect(result.pageMarkers).toHaveLength(0);
+    });
+
+    it('handles null/undefined document', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const nullResponse = { document: null } as unknown as import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse;
+
+      const result = convertDocumentAIToDoclingResult(nullResponse);
+
+      expect(result.markdown).toBe('');
+      expect(result.pageCount).toBe(0);
+      expect(result.pageMarkers).toHaveLength(0);
+    });
+  });
+
+  describe('TC-12.4.6: Large document performance', () => {
+    it('handles 50+ page document correctly', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      // Generate 50-page document
+      const pageCount = 50;
+      const pageTexts = Array.from({ length: pageCount }, (_, i) => `Content for page ${i + 1}.`);
+      const fullText = pageTexts.join('');
+
+      const pages: import('../../supabase/functions/process-document/documentai-client').DocumentAIPage[] = [];
+      let offset = 0;
+
+      for (let i = 0; i < pageCount; i++) {
+        const pageText = pageTexts[i];
+        pages.push({
+          pageNumber: i + 1,
+          dimension: { width: 612, height: 792, unit: 'POINT' },
+          layout: {
+            textAnchor: { textSegments: [{ startIndex: String(offset), endIndex: String(offset + pageText.length) }] },
+            boundingPoly: { normalizedVertices: [] },
+            confidence: 0.99,
+          },
+          paragraphs: [],
+          tables: [],
+        });
+        offset += pageText.length;
+      }
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: { text: fullText, pages },
+      };
+
+      const startTime = Date.now();
+      const result = convertDocumentAIToDoclingResult(response);
+      const duration = Date.now() - startTime;
+
+      // Verify correctness
+      expect(result.pageCount).toBe(50);
+      expect(result.pageMarkers).toHaveLength(50);
+
+      // Check page markers are in order
+      for (let i = 0; i < 50; i++) {
+        expect(result.pageMarkers[i].pageNumber).toBe(i + 1);
+      }
+
+      // Verify first page has no marker prefix
+      expect(result.markdown.startsWith('Content for page 1.')).toBe(true);
+
+      // Verify other pages have markers
+      for (let i = 2; i <= 50; i++) {
+        expect(result.markdown).toContain(`--- PAGE ${i} ---`);
+      }
+
+      // Performance check: should complete in reasonable time (< 1 second)
+      expect(duration).toBeLessThan(1000);
+    });
+  });
+
+  describe('AC-12.4.2: Markdown output compatibility', () => {
+    it('normalizes whitespace correctly', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'First paragraph.\n\n\n\n\nSecond paragraph.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '38' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // AC-12.4.2: Multiple newlines collapsed to exactly 2
+      expect(result.markdown).not.toContain('\n\n\n');
+      expect(result.markdown).toContain('First paragraph.\n\nSecond paragraph.');
+    });
+
+    it('preserves paragraph structure', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'Paragraph one.\n\nParagraph two.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '30' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // AC-12.4.2: Paragraph breaks preserved
+      expect(result.markdown).toContain('Paragraph one.\n\nParagraph two.');
+    });
+  });
+
+  describe('AC-12.4.3: Page markers format', () => {
+    it('uses exact format: --- PAGE X ---', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'Page one.Page two.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '9' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 2,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '9', endIndex: '18' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // Exact format check
+      expect(result.markdown).toMatch(/--- PAGE 2 ---/);
+    });
+
+    it('page numbers are 1-indexed', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'A.B.C.',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '2' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 2,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '2', endIndex: '4' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 3,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '4', endIndex: '6' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.97,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // Page numbers are 1-indexed
+      expect(result.pageMarkers[0].pageNumber).toBe(1);
+      expect(result.pageMarkers[1].pageNumber).toBe(2);
+      expect(result.pageMarkers[2].pageNumber).toBe(3);
+
+      // No PAGE 0
+      expect(result.markdown).not.toContain('PAGE 0');
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('handles pages out of order', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      // Pages received in wrong order
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'OneTwo',
+          pages: [
+            {
+              pageNumber: 2,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '3', endIndex: '6' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '3' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // Should be sorted by pageNumber
+      expect(result.pageMarkers[0].pageNumber).toBe(1);
+      expect(result.pageMarkers[1].pageNumber).toBe(2);
+    });
+
+    it('handles missing pageNumber (defaults to index+1)', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'ContentA.ContentB.',
+          pages: [
+            {
+              pageNumber: 0, // Invalid - will use index + 1
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '0', endIndex: '9' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+            {
+              pageNumber: 0, // Invalid - will use index + 1
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: { textSegments: [{ startIndex: '9', endIndex: '18' }] },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.98,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      // Pages should get sequential numbers
+      expect(result.pageCount).toBe(2);
+    });
+
+    it('handles textAnchor with string indices (Document AI quirk)', async () => {
+      const { convertDocumentAIToDoclingResult } = await import(
+        '../../supabase/functions/process-document/documentai-client'
+      );
+
+      // Document AI returns indices as strings
+      const response: import('../../supabase/functions/process-document/documentai-client').DocumentAIProcessResponse = {
+        document: {
+          text: 'String indices test',
+          pages: [
+            {
+              pageNumber: 1,
+              dimension: { width: 612, height: 792, unit: 'POINT' },
+              layout: {
+                textAnchor: {
+                  textSegments: [
+                    { startIndex: '0', endIndex: '19' }, // Strings, not numbers
+                  ],
+                },
+                boundingPoly: { normalizedVertices: [] },
+                confidence: 0.99,
+              },
+              paragraphs: [],
+              tables: [],
+            },
+          ],
+        },
+      };
+
+      const result = convertDocumentAIToDoclingResult(response);
+
+      expect(result.markdown).toBe('String indices test');
+      expect(result.pageCount).toBe(1);
+    });
+  });
+});
+
 // Integration tests that require mocking the full request flow
 // These are marked as skip since they require valid GCP credentials
 describe.skip('Document AI Integration Tests (requires GCP credentials)', () => {
