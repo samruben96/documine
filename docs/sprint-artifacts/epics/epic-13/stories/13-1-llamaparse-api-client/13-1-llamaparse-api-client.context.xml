@@ -1,0 +1,176 @@
+<story-context id="13-1-llamaparse-api-client" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>1</storyId>
+    <title>LlamaParse API Client</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-06</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-13/stories/13-1-llamaparse-api-client/13-1-llamaparse-api-client.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>a TypeScript client for LlamaParse API</iWant>
+    <soThat>I can parse PDF documents reliably in the Edge Function</soThat>
+    <tasks>
+      <task id="1">Create llamaparse-client.ts in supabase/functions/process-document/</task>
+      <task id="2">Implement parseDocumentWithLlamaParse() with file upload, page_prefix config, polling</task>
+      <task id="3">Implement convertToDoclingResult() with PageMarker index computation</task>
+      <task id="4">Add extractPageMarkersWithIndices() with fallback for {pageNumber} bug</task>
+      <task id="5">Add retry logic with exponential backoff (1s, 2s, 4s)</task>
+      <task id="6">Add structured error logging</task>
+      <task id="7">Write unit tests for all functions</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="13.1.1" title="Client Module Structure">
+      <item>Create supabase/functions/process-document/llamaparse-client.ts</item>
+      <item>Export parseDocumentWithLlamaParse() function</item>
+      <item>Export LlamaParseConfig and LlamaParseResult types</item>
+    </ac>
+    <ac id="13.1.2" title="File Upload with Page Marker Configuration">
+      <item>Accept ArrayBuffer file content and filename</item>
+      <item>Send multipart/form-data to upload endpoint</item>
+      <item>Configure page_prefix="--- PAGE {pageNumber} ---\n" to match existing parser pattern</item>
+      <item>Set resultType="markdown" for markdown output</item>
+      <item>Return job ID on success</item>
+      <item>Handle upload errors with clear messages</item>
+    </ac>
+    <ac id="13.1.3" title="Job Polling">
+      <item>Poll job status every 2 seconds (configurable)</item>
+      <item>Support progress callback for UI updates</item>
+      <item>Timeout after 5 minutes (configurable)</item>
+      <item>Handle PENDING, SUCCESS, ERROR states</item>
+    </ac>
+    <ac id="13.1.4" title="Result Retrieval">
+      <item>Fetch markdown result on SUCCESS</item>
+      <item>Parse page count from result</item>
+      <item>Return structured LlamaParseResult</item>
+    </ac>
+    <ac id="13.1.5" title="DoclingResult Conversion with PageMarker Indices">
+      <item>Convert LlamaParse output to DoclingResult format</item>
+      <item>Extract page markers using /---\s*PAGE\s+(\d+)\s*---/gi pattern</item>
+      <item>Compute startIndex and endIndex for each PageMarker</item>
+      <item>Handle empty pageMarkers case (treat as page 1)</item>
+      <item>Maintain compatibility with existing chunkMarkdown() pipeline</item>
+    </ac>
+    <ac id="13.1.6" title="Error Handling">
+      <item>Retry failed requests (max 3 attempts)</item>
+      <item>Exponential backoff (1s, 2s, 4s)</item>
+      <item>Structured error logging</item>
+      <item>User-friendly error messages</item>
+    </ac>
+    <ac id="13.1.7" title="Page Marker Fallback Handling">
+      <item>If {pageNumber} placeholder not replaced, detect and use sequential numbering</item>
+      <item>Log warning when page markers extraction fails</item>
+      <item>Graceful degradation: no markers = single-page document</item>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/tech-spec/tech-spec-epic-13.md</path>
+        <title>Epic 13 Tech Spec</title>
+        <section>LlamaParse Client Design</section>
+        <snippet>Defines interfaces (LlamaParseConfig, LlamaParseResult), API endpoints, page marker handling requirements, and conversion to DoclingResult format.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/epic.md</path>
+        <title>Epic 13: LlamaParse Migration</title>
+        <section>Technical Notes</section>
+        <snippet>Provides LlamaParse API overview with upload endpoint, polling pattern, and environment variable requirements (LLAMA_CLOUD_API_KEY).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/rag-pipeline-architecture-implemented.md</path>
+        <title>RAG Pipeline Architecture</title>
+        <section>Chunking Strategy</section>
+        <snippet>Documents the current production chunking strategy: recursive text splitter, 500 tokens, 50 overlap, table-aware chunking. LlamaParse output must be compatible.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>PageMarker, DoclingResult, chunkMarkdown, splitByPages</symbol>
+        <lines>154-158, 692-696, 939-994</lines>
+        <reason>Contains PageMarker interface (pageNumber, startIndex, endIndex), DoclingResult interface, and splitByPages() which uses /---\s*PAGE\s+(\d+)\s*---/gi pattern. LlamaParse client output MUST match these interfaces.</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/documentai-client.ts</path>
+        <kind>client</kind>
+        <symbol>convertDocumentAIToDoclingResult</symbol>
+        <lines>1650-1816</lines>
+        <reason>Example of converting external parser output to DoclingResult format. Shows how to compute pageMarkers with startIndex/endIndex. To be replaced by LlamaParse client.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>openai</package>
+        <version>^6.9.1</version>
+        <relevance>Not directly used by LlamaParse client, but chat/extraction pipeline uses OpenAI</relevance>
+      </node>
+      <runtime>Deno (Supabase Edge Functions)</runtime>
+      <notes>LlamaParse client runs in Deno Edge Function environment. Use fetch() for HTTP requests. No npm packages available - must use Deno-compatible code.</notes>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint id="1" type="interface">PageMarker MUST include pageNumber, startIndex, endIndex (not just pageNumber)</constraint>
+    <constraint id="2" type="pattern">Page marker regex MUST be /---\s*PAGE\s+(\d+)\s*---/gi to match existing splitByPages()</constraint>
+    <constraint id="3" type="api">LlamaParse upload MUST set page_prefix="--- PAGE {pageNumber} ---\n"</constraint>
+    <constraint id="4" type="runtime">Code MUST work in Deno runtime (Supabase Edge Functions)</constraint>
+    <constraint id="5" type="timeout">Polling timeout: 5 minutes (300000ms) max</constraint>
+    <constraint id="6" type="retry">Retry: max 3 attempts with exponential backoff (1s, 2s, 4s)</constraint>
+    <constraint id="7" type="fallback">MUST handle {pageNumber} placeholder bug - fallback to sequential numbering</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="PageMarker">
+      <kind>TypeScript interface</kind>
+      <signature>interface PageMarker { pageNumber: number; startIndex: number; endIndex: number; }</signature>
+      <path>supabase/functions/process-document/index.ts:154-158</path>
+    </interface>
+    <interface name="DoclingResult">
+      <kind>TypeScript interface</kind>
+      <signature>interface DoclingResult { markdown: string; pageMarkers: PageMarker[]; pageCount: number; }</signature>
+      <path>supabase/functions/process-document/index.ts:692-696</path>
+    </interface>
+    <interface name="LlamaParse Upload API">
+      <kind>REST endpoint</kind>
+      <signature>POST https://api.cloud.llamaindex.ai/api/parsing/upload (multipart/form-data)</signature>
+      <path>External API</path>
+    </interface>
+    <interface name="LlamaParse Status API">
+      <kind>REST endpoint</kind>
+      <signature>GET https://api.cloud.llamaindex.ai/api/parsing/job/{id}</signature>
+      <path>External API</path>
+    </interface>
+    <interface name="LlamaParse Result API">
+      <kind>REST endpoint</kind>
+      <signature>GET https://api.cloud.llamaindex.ai/api/parsing/job/{id}/result/markdown</signature>
+      <path>External API</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest framework with happy-dom environment. Tests live in __tests__/ directory mirroring src/ structure. Mock external APIs using vi.fn() and vi.mock(). Test files follow pattern *.test.ts or *.test.tsx.
+    </standards>
+    <locations>
+      <location>__tests__/lib/llamaparse/client.test.ts (to be created)</location>
+      <location>__tests__/lib/documents/processing.test.ts (existing - can add integration tests)</location>
+    </locations>
+    <ideas>
+      <idea ac="13.1.1">Test that module exports all required types and functions</idea>
+      <idea ac="13.1.2">Mock upload endpoint - test form data construction, page_prefix parameter, job ID extraction</idea>
+      <idea ac="13.1.3">Mock polling - test PENDING->SUCCESS flow, PENDING->ERROR flow, timeout after 5 min</idea>
+      <idea ac="13.1.4">Test result parsing - valid markdown, page count extraction</idea>
+      <idea ac="13.1.5">Test convertToDoclingResult - page marker extraction, startIndex/endIndex computation, empty markdown handling</idea>
+      <idea ac="13.1.6">Test retry logic - verify 3 attempts with exponential backoff timings</idea>
+      <idea ac="13.1.7">Test fallback - when {pageNumber} literal appears in output, verify sequential numbering applied</idea>
+    </ideas>
+  </tests>
+</story-context>
