@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<story-context>
+  <metadata>
+    <story-id>14.5</story-id>
+    <title>Component Scaffolding</title>
+    <epic>14 - AI Buddy Foundation</epic>
+    <generated>2025-12-07</generated>
+  </metadata>
+
+  <scope>
+    <description>
+      Create all AI Buddy component files with proper TypeScript interfaces
+      and stub implementations. This enables parallel development in
+      subsequent epics (15-20).
+    </description>
+    <components-to-create>
+      <category name="chat" epic="15">
+        <component>chat-message.tsx</component>
+        <component>chat-message-list.tsx</component>
+        <component>chat-input.tsx</component>
+        <component>streaming-indicator.tsx</component>
+        <component>source-citation.tsx</component>
+        <component>confidence-badge.tsx</component>
+      </category>
+      <category name="project" epic="16">
+        <component>project-sidebar.tsx</component>
+        <component>project-card.tsx</component>
+        <component>project-create-dialog.tsx</component>
+      </category>
+      <category name="document" epic="17">
+        <component>chat-history-item.tsx</component>
+        <component>document-panel.tsx</component>
+        <component>document-card.tsx</component>
+        <component>document-upload-zone.tsx</component>
+      </category>
+      <category name="admin" epic="19-20">
+        <component>guardrail-toggle.tsx</component>
+        <component>topic-tag-list.tsx</component>
+        <component>audit-log-table.tsx</component>
+        <component>usage-stat-card.tsx</component>
+      </category>
+      <category name="onboarding" epic="18">
+        <component>onboarding-flow.tsx</component>
+        <component>chip-select.tsx</component>
+        <component>progress-steps.tsx</component>
+      </category>
+    </components-to-create>
+    <hooks-to-create>
+      <hook epic="15">use-chat.ts</hook>
+      <hook epic="16">use-projects.ts</hook>
+      <hook epic="18">use-preferences.ts</hook>
+      <hook epic="19">use-guardrails.ts</hook>
+      <hook epic="20">use-audit-logs.ts</hook>
+    </hooks-to-create>
+  </scope>
+
+  <acceptance-criteria>
+    <criterion id="14.5.1">All 20 component files created in src/components/ai-buddy/</criterion>
+    <criterion id="14.5.2">Each component exports proper TypeScript interfaces/props</criterion>
+    <criterion id="14.5.3">Components are stub implementations with correct signatures</criterion>
+    <criterion id="14.5.4">Barrel export file (index.ts) exports all components</criterion>
+    <criterion id="14.5.5">All custom hooks created in src/hooks/ai-buddy/</criterion>
+    <criterion id="14.5.6">TypeScript compilation passes</criterion>
+    <criterion id="14.5.7">Build passes</criterion>
+  </acceptance-criteria>
+
+  <technical-context>
+    <file-structure>
+      <path>src/components/ai-buddy/</path>
+      <path>src/hooks/ai-buddy/</path>
+    </file-structure>
+    <dependencies>
+      <dependency>@radix-ui/react-switch</dependency>
+    </dependencies>
+    <patterns>
+      <pattern name="component-structure">
+        TypeScript interface for props, export component and props type,
+        stub implementation with placeholder, JSDoc indicating target Epic
+      </pattern>
+      <pattern name="hook-structure">
+        TypeScript interfaces for options and return type, useState for
+        state management, useCallback for operations, error/loading handling
+      </pattern>
+    </patterns>
+  </technical-context>
+
+  <related-files>
+    <file purpose="barrel-export">src/components/ai-buddy/index.ts</file>
+    <file purpose="hooks-barrel">src/hooks/ai-buddy/index.ts</file>
+    <file purpose="types">src/types/ai-buddy.ts</file>
+    <file purpose="tech-spec">docs/sprint-artifacts/epics/epic-14/tech-spec/index.md</file>
+  </related-files>
+</story-context>

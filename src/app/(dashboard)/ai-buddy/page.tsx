@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
  *
  * AC 14.4.5: Empty state displayed with welcome message and CTAs.
  * Shows when no conversation is active.
+ * Light theme consistent with rest of docuMINE.
  */
 
 const quickActions = [
@@ -31,16 +32,16 @@ const quickActions = [
 
 export default function AiBuddyPage() {
   return (
-    <div className="flex flex-col items-center justify-center h-full px-4 py-8">
+    <div className="flex flex-col items-center justify-center h-full px-4 py-8 bg-slate-50">
       {/* Welcome section */}
       <div className="text-center max-w-xl mx-auto mb-12">
-        <div className="w-16 h-16 rounded-full bg-[var(--chat-surface)] flex items-center justify-center mx-auto mb-6">
-          <Bot className="h-8 w-8 text-emerald-500" />
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+          <Bot className="h-8 w-8 text-emerald-600" />
         </div>
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)] mb-3">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-3">
           Welcome to AI Buddy
         </h1>
-        <p className="text-[var(--text-muted)] text-base">
+        <p className="text-slate-600 text-base">
           Your knowledgeable insurance colleague. Ask questions about policies,
           get coverage analysis, or help comparing quotes for your clients.
         </p>
@@ -53,13 +54,13 @@ export default function AiBuddyPage() {
           return (
             <button
               key={action.title}
-              className="p-4 rounded-lg border border-[var(--chat-border)] bg-[var(--chat-surface)] text-left hover:bg-[var(--sidebar-hover)] transition-colors group"
+              className="p-4 rounded-lg border border-slate-200 bg-white text-left hover:border-emerald-300 hover:bg-emerald-50 transition-colors group shadow-sm"
             >
-              <Icon className="h-5 w-5 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] mb-2" />
-              <h3 className="font-medium text-[var(--text-primary)] text-sm mb-1">
+              <Icon className="h-5 w-5 text-slate-500 group-hover:text-emerald-600 mb-2" />
+              <h3 className="font-medium text-slate-900 text-sm mb-1">
                 {action.title}
               </h3>
-              <p className="text-xs text-[var(--text-muted)]">
+              <p className="text-xs text-slate-500">
                 {action.description}
               </p>
             </button>
@@ -74,7 +75,7 @@ export default function AiBuddyPage() {
             type="text"
             placeholder="Message AI Buddy..."
             disabled
-            className="w-full px-4 py-3 pr-12 rounded-xl border border-[var(--chat-border)] bg-[var(--chat-surface)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50"
+            className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-300 disabled:opacity-50 shadow-sm"
           />
           <Button
             size="icon"
@@ -96,7 +97,7 @@ export default function AiBuddyPage() {
             </svg>
           </Button>
         </div>
-        <p className="text-xs text-[var(--text-muted)] text-center mt-3">
+        <p className="text-xs text-slate-500 text-center mt-3">
           AI Buddy is your insurance assistant. Verify important details with source documents.
         </p>
       </div>

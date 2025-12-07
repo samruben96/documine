@@ -955,7 +955,9 @@ development_status:
   # Goal: Database schema, API routes, navigation integration
   # FRs: FR63
   # Tech Spec: docs/sprint-artifacts/epics/epic-14/tech-spec.md
-  epic-14-ai-buddy-foundation: contexted
+  # COMPLETE 2025-12-07: All 5 stories done (14.1-14.5)
+  # Note: Story 14.4 changed from dark to light theme per user request
+  epic-14-ai-buddy-foundation: done
   # Story 14.1: AI Buddy Database Schema
   # Create 8 tables, indexes, RLS policies, enums for AI Buddy feature
   # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.md
@@ -963,8 +965,11 @@ development_status:
   14-1-database-schema: done
   14-2-api-route-structure: done
   14-3-navigation-integration: done
+  # Story 14.4: Changed from dark to light theme per user request
   14-4-page-layout-shell: done
-  14-5-component-scaffolding: backlog
+  # Story 14.5: 21 components + 5 hooks created with TypeScript interfaces
+  # Build passes, TypeScript passes, shadcn switch component added
+  14-5-component-scaffolding: done
 
   # Epic 15: AI Buddy Core Chat
   # Goal: Conversational AI with streaming, citations, confidence
