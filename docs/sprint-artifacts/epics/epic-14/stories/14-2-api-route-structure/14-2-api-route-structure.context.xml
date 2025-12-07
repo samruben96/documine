@@ -1,0 +1,190 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>2</storyId>
+    <title>AI Buddy API Route Structure</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-14/stories/14-2-api-route-structure/14-2-api-route-structure.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the AI Buddy API route structure and shared utilities to be created</iWant>
+    <soThat>subsequent AI Buddy features have a consistent API layer to build upon</soThat>
+    <tasks>
+      <task id="1" name="Create TypeScript types" ac="14.2.3">
+        <subtask id="1.1">Create src/types/ai-buddy.ts with all entity interfaces</subtask>
+        <subtask id="1.2">Add MessageRole, ConfidenceLevel, Permission type aliases</subtask>
+        <subtask id="1.3">Add ApiResponse&lt;T&gt; and ApiError interfaces</subtask>
+        <subtask id="1.4">Add ChatRequest, StreamChunk, and other API request/response types</subtask>
+        <subtask id="1.5">Export all types from file</subtask>
+      </task>
+      <task id="2" name="Create shared utilities" ac="14.2.2, 14.2.5">
+        <subtask id="2.1">Create src/lib/ai-buddy/ directory</subtask>
+        <subtask id="2.2">Create errors.ts with AIB_XXX error codes and helper functions</subtask>
+        <subtask id="2.3">Create ai-client.ts stub with type signatures</subtask>
+        <subtask id="2.4">Create guardrails.ts stub with type signatures</subtask>
+        <subtask id="2.5">Create prompt-builder.ts stub with type signatures</subtask>
+        <subtask id="2.6">Create audit-logger.ts stub with type signatures</subtask>
+        <subtask id="2.7">Create rate-limiter.ts stub with type signatures</subtask>
+        <subtask id="2.8">Create index.ts barrel export</subtask>
+      </task>
+      <task id="3" name="Create API route stubs" ac="14.2.1, 14.2.4">
+        <subtask id="3.1">Create src/app/api/ai-buddy/ directory structure</subtask>
+        <subtask id="3.2">Create chat/route.ts with POST stub returning standard format</subtask>
+        <subtask id="3.3">Create projects/route.ts with GET/POST stubs</subtask>
+        <subtask id="3.4">Create conversations/route.ts with GET stub</subtask>
+        <subtask id="3.5">Create preferences/route.ts with GET/PATCH stubs</subtask>
+        <subtask id="3.6">Create admin/guardrails/route.ts with GET/PATCH stubs</subtask>
+        <subtask id="3.7">Create admin/audit-logs/route.ts with GET stub</subtask>
+        <subtask id="3.8">Create admin/users/route.ts with GET/POST/DELETE stubs</subtask>
+      </task>
+      <task id="4" name="Verify implementation" ac="All">
+        <subtask id="4.1">Run TypeScript compilation to verify types</subtask>
+        <subtask id="4.2">Run build to ensure routes compile</subtask>
+        <subtask id="4.3">Verify all files exist in correct locations</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="14.2.1" name="Route Structure Matches Spec">
+      All API route directories and stub files created:
+      - src/app/api/ai-buddy/chat/route.ts - Chat endpoint stub
+      - src/app/api/ai-buddy/projects/route.ts - Projects CRUD stub
+      - src/app/api/ai-buddy/conversations/route.ts - Conversations listing stub
+      - src/app/api/ai-buddy/preferences/route.ts - User preferences stub
+      - src/app/api/ai-buddy/admin/guardrails/route.ts - Admin guardrails stub
+      - src/app/api/ai-buddy/admin/audit-logs/route.ts - Admin audit logs stub
+      - src/app/api/ai-buddy/admin/users/route.ts - Admin users stub
+    </criterion>
+    <criterion id="14.2.2" name="Shared Utilities Created">
+      All utility modules exist in src/lib/ai-buddy/:
+      - ai-client.ts - OpenAI client wrapper (stub with types)
+      - guardrails.ts - Guardrail checking functions (stub)
+      - prompt-builder.ts - System prompt construction (stub)
+      - audit-logger.ts - Audit log creation via service role (stub)
+      - rate-limiter.ts - Rate limit checking (stub)
+      - index.ts - Barrel export for all utilities
+    </criterion>
+    <criterion id="14.2.3" name="Types Defined">
+      All TypeScript interfaces from tech-spec section 6 exist in src/types/ai-buddy.ts:
+      - Entity types: Project, Conversation, Message, Citation, GuardrailConfig, etc.
+      - Enum types: MessageRole, ConfidenceLevel, Permission
+      - API types: ApiResponse, ApiError, ChatRequest, StreamChunk, etc.
+      - Request/Response types for all endpoints
+    </criterion>
+    <criterion id="14.2.4" name="Consistent Response Format">
+      All route stubs use the standard response format:
+      - Success: { data: T, error: null }
+      - Error: { data: null, error: { code: string, message: string, details?: unknown } }
+    </criterion>
+    <criterion id="14.2.5" name="Error Codes Follow Pattern">
+      Error codes utility exports all AIB_XXX codes:
+      - AIB_001: Unauthorized (401)
+      - AIB_002: Forbidden (403)
+      - AIB_003: Rate limit exceeded (429)
+      - AIB_004: Invalid request body (400)
+      - AIB_005: Resource not found (404)
+      - AIB_006: Internal server error (500)
+      - AIB_007: AI service unavailable (503)
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-14/tech-spec.md" title="Epic 14 Tech Spec" section="3.3, 5, 6" snippet="Directory structure for API routes, components, hooks. API response format and error codes. Full TypeScript interfaces for all entities." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Database Schema, API Layer" snippet="Entity relationships and database design for AI Buddy feature." />
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="Functional Requirements" snippet="FR63: AI Buddy accessible from main docuMINE dashboard." />
+      <doc path="docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.md" title="Story 14.1 Database Schema" section="Learnings" snippet="User-level isolation via auth.uid(), agency scoping via get_user_agency_id()." />
+    </docs>
+    <code>
+      <file path="src/app/api/chat/route.ts" kind="route" symbol="POST" lines="55-312" reason="Existing chat API pattern - streaming SSE, Zod validation, auth checks, rate limiting" />
+      <file path="src/lib/rate-limit.ts" kind="service" symbol="checkRateLimit, rateLimitExceededResponse" lines="1-137" reason="Existing rate limit implementation to follow for AI Buddy rate-limiter.ts" />
+      <file path="src/lib/utils/api-response.ts" kind="utility" symbol="errorResponse" reason="Existing error response helper - AI Buddy will use similar pattern" />
+      <file path="src/lib/supabase/server.ts" kind="client" symbol="createClient" reason="Server-side Supabase client creation for API routes" />
+      <file path="src/types/index.ts" kind="types" lines="1-67" reason="Existing type patterns - will add ai-buddy.ts alongside" />
+      <file path="src/lib/errors.ts" kind="errors" reason="Existing error class definitions - AI Buddy errors follow same pattern" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.7">App Router, API routes</package>
+        <package name="zod" version="^4.1.13">Request validation schemas</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Database client</package>
+        <package name="openai" version="^6.9.1">AI client for chat (future epic)</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Route stubs return "not implemented" (501) with standard response format</constraint>
+    <constraint type="pattern">Utilities export function signatures with placeholder implementations throwing "Not implemented"</constraint>
+    <constraint type="pattern">Types use camelCase for properties (database uses snake_case, transform at boundary)</constraint>
+    <constraint type="pattern">All routes async, use NextRequest/NextResponse from next/server</constraint>
+    <constraint type="pattern">Error helper functions construct ApiError objects with AIB_XXX codes</constraint>
+    <constraint type="pattern">Route handlers export named functions: GET, POST, PATCH, DELETE</constraint>
+    <constraint type="architecture">API routes in src/app/api/ai-buddy/ per Next.js 15 App Router</constraint>
+    <constraint type="architecture">Shared utilities in src/lib/ai-buddy/ matching existing lib structure</constraint>
+    <constraint type="architecture">Types in separate src/types/ai-buddy.ts file</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="AI Buddy Response Format" kind="API pattern">
+      <signature>
+        Success: { data: T, error: null }
+        Error: { data: null, error: { code: string, message: string, details?: unknown } }
+      </signature>
+      <path>src/lib/ai-buddy/errors.ts</path>
+    </interface>
+    <interface name="AI Buddy Error Codes" kind="Error codes">
+      <signature>
+        AIB_001: Unauthorized (401)
+        AIB_002: Forbidden (403)
+        AIB_003: Rate limit exceeded (429)
+        AIB_004: Invalid request body (400)
+        AIB_005: Resource not found (404)
+        AIB_006: Internal server error (500)
+        AIB_007: AI service unavailable (503)
+      </signature>
+      <path>src/lib/ai-buddy/errors.ts</path>
+    </interface>
+    <interface name="POST /api/ai-buddy/chat" kind="REST endpoint">
+      <signature>
+        Request: { conversationId?: string, projectId?: string, message: string, attachments?: { documentId: string, type: 'pdf' | 'image' }[] }
+        Response: SSE Stream with { type: 'chunk' | 'sources' | 'confidence' | 'done', ... }
+      </signature>
+      <path>src/app/api/ai-buddy/chat/route.ts</path>
+    </interface>
+    <interface name="GET/POST /api/ai-buddy/projects" kind="REST endpoint">
+      <signature>
+        GET Response: { data: { projects: Project[], total: number } }
+        POST Request: { name: string, description?: string }
+        POST Response: { data: { project: Project } }
+      </signature>
+      <path>src/app/api/ai-buddy/projects/route.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      This story creates stub implementations that return 501 Not Implemented.
+      Testing standards: TypeScript compilation must pass. Build must complete without errors.
+      File existence verification for all required paths.
+      No functional tests required since all endpoints return "not implemented".
+      Future stories will add actual implementation and corresponding tests.
+    </standards>
+    <locations>
+      __tests__/lib/ai-buddy/ - Unit tests for utilities (future)
+      __tests__/app/api/ai-buddy/ - API route tests (future)
+    </locations>
+    <ideas>
+      <idea ac="14.2.1">Verify all 7 route files exist in correct directories</idea>
+      <idea ac="14.2.2">Verify all 6 utility files exist in src/lib/ai-buddy/</idea>
+      <idea ac="14.2.3">TypeScript compiles without errors (tsc --noEmit)</idea>
+      <idea ac="14.2.4">Route stubs return { data: null, error: { code: 'AIB_NOT_IMPLEMENTED', message: 'Not implemented' } }</idea>
+      <idea ac="14.2.5">AIB_ERROR_CODES constant exports all 7 error codes</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -891,7 +891,12 @@ development_status:
 # Total Points: 10 (4 stories)
 
   # Epic 13: LlamaParse Migration
-  epic-13: contexted
+  # COMPLETE 2025-12-07: All 4 stories done (13.1, 13.2, 13.3, 13.4), migration validated
+  # RETROSPECTIVE 2025-12-07: docs/sprint-artifacts/retrospectives/epic-13-retrospective.md
+  # Key learnings: "Juice vs squeeze" pivot decision, simple > enterprise for serverless
+  # Grade: A - Successful pivot from failed Epic 12, clean delivery
+  epic-13: done
+  epic-13-retrospective: completed
   # Story 13.1: LlamaParse API Client (3 pts)
   # Create TypeScript client for LlamaParse API
   # Priority: P0 - foundation
@@ -932,4 +937,111 @@ development_status:
   # End-to-end testing with 126-page PDF and other documents
   # Priority: P0 - quality gate
   # DRAFTED 2025-12-06: Story file at docs/sprint-artifacts/epics/epic-13/stories/13-4-testing-validation/
-  13-4-testing-validation: drafted
+  # CONTEXT 2025-12-07: Context file at docs/sprint-artifacts/epics/epic-13/stories/13-4-testing-validation/13-4-testing-validation.context.xml
+  # DONE 2025-12-07: Manual testing completed by Sam - all ACs verified, LlamaParse migration validated
+  13-4-testing-validation: done
+
+# ===========================================
+# EPIC 14-20: AI BUDDY FEATURE
+# ===========================================
+# Source: AI Buddy PRD + Architecture + UX Design - 2025-12-07
+# Reason: Personalized AI assistant for independent insurance agents
+# Planning Docs: docs/features/ai-buddy/
+
+# Total: 7 Epics, 55 Stories, 64 FRs covered
+# FR33-34 (carrier restrictions) deferred to Quoting feature
+
+  # Epic 14: AI Buddy Foundation
+  # Goal: Database schema, API routes, navigation integration
+  # FRs: FR63
+  # Tech Spec: docs/sprint-artifacts/epics/epic-14/tech-spec.md
+  epic-14-ai-buddy-foundation: contexted
+  # Story 14.1: AI Buddy Database Schema
+  # Create 8 tables, indexes, RLS policies, enums for AI Buddy feature
+  # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.md
+  # CONTEXT 2025-12-07: Context file at docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.context.xml
+  14-1-database-schema: done
+  14-2-api-route-structure: done
+  14-3-navigation-integration: backlog
+  14-4-page-layout-shell: backlog
+  14-5-component-scaffolding: backlog
+
+  # Epic 15: AI Buddy Core Chat
+  # Goal: Conversational AI with streaming, citations, confidence
+  # FRs: FR1, FR2, FR5, FR7, FR8, FR9, FR10
+  epic-15-ai-buddy-core-chat: backlog
+  15-1-chat-input-component: backlog
+  15-2-message-display: backlog
+  15-3-streaming-chat-api: backlog
+  15-4-conversation-persistence: backlog
+  15-5-source-citations: backlog
+  15-6-confidence-indicators: backlog
+  15-7-guardrail-aware-responses: backlog
+
+  # Epic 16: AI Buddy Projects
+  # Goal: Organize work by client accounts with persistent document context
+  # FRs: FR3, FR4, FR6, FR11-19
+  epic-16-ai-buddy-projects: backlog
+  16-1-create-project: backlog
+  16-2-project-sidebar: backlog
+  16-3-project-context: backlog
+  16-4-rename-archive-projects: backlog
+  16-5-conversation-history: backlog
+  16-6-search-conversations: backlog
+  16-7-delete-conversations: backlog
+  16-8-general-chat: backlog
+  16-9-move-conversation-to-project: backlog
+
+  # Epic 17: AI Buddy Document Intelligence
+  # Goal: Document upload, processing, AI-powered context
+  # FRs: FR20-25, FR65, FR66
+  epic-17-ai-buddy-document-intelligence: backlog
+  17-1-document-upload-conversation: backlog
+  17-2-document-upload-project: backlog
+  17-3-document-processing-status: backlog
+  17-4-document-preview: backlog
+  17-5-multi-document-context: backlog
+  17-6-remove-project-documents: backlog
+  17-7-documine-document-integration: backlog
+
+  # Epic 18: AI Buddy Personalization & Onboarding
+  # Goal: Personalized AI experience from first interaction
+  # FRs: FR26-32, FR57-62
+  epic-18-ai-buddy-personalization-onboarding: backlog
+  18-1-onboarding-flow: backlog
+  18-2-skip-onboarding: backlog
+  18-3-user-preferences-management: backlog
+  18-4-agency-information: backlog
+  18-5-preference-aware-responses: backlog
+  18-6-reset-preferences: backlog
+  18-7-guided-first-conversation: backlog
+  18-8-admin-onboarding-status: backlog
+
+  # Epic 19: AI Buddy Guardrails & Compliance
+  # Goal: Admin-controlled guardrails for E&O protection
+  # FRs: FR35-41
+  epic-19-ai-buddy-guardrails-compliance: backlog
+  19-1-restricted-topics-configuration: backlog
+  19-2-guardrail-rules-toggle: backlog
+  19-3-immediate-guardrail-effect: backlog
+  19-4-guardrail-enforcement-logging: backlog
+  19-5-invisible-guardrail-responses: backlog
+  19-6-ai-disclosure-message: backlog
+
+  # Epic 20: AI Buddy Admin & Audit
+  # Goal: User management, analytics, audit trail for compliance
+  # FRs: FR42-56, FR64
+  epic-20-ai-buddy-admin-audit: backlog
+  20-1-admin-user-list: backlog
+  20-2-invite-users: backlog
+  20-3-remove-users: backlog
+  20-4-change-user-roles: backlog
+  20-5-usage-analytics: backlog
+  20-6-usage-dashboard-trends: backlog
+  20-7-audit-log-view: backlog
+  20-8-audit-log-transcript-view: backlog
+  20-9-audit-log-export: backlog
+  20-10-audit-log-immutability: backlog
+  20-11-owner-billing-management: backlog
+  20-12-transfer-ownership: backlog
+  20-13-feature-navigation-polish: backlog
