@@ -2,7 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
-import { Menu, X, PanelLeft } from 'lucide-react';
+import { Menu, X, PanelLeft, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -152,6 +152,7 @@ export function SidebarToggle() {
  * Mobile Bottom Navigation Component
  *
  * Shown only on mobile (<640px) per AC-4.3.10
+ * AC-14.3.2: Includes AI Buddy navigation item
  */
 export function MobileBottomNav() {
   return (
@@ -174,7 +175,7 @@ export function MobileBottomNav() {
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <span className="text-xs mt-0.5">Documents</span>
+          <span className="text-xs mt-0.5">Docs</span>
         </Link>
         <Link
           href="/compare"
@@ -194,6 +195,13 @@ export function MobileBottomNav() {
             />
           </svg>
           <span className="text-xs mt-0.5">Compare</span>
+        </Link>
+        <Link
+          href="/ai-buddy"
+          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800"
+        >
+          <Bot className="h-5 w-5" />
+          <span className="text-xs mt-0.5">AI Buddy</span>
         </Link>
         <Link
           href="/settings"

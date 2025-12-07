@@ -962,7 +962,7 @@ development_status:
   # CONTEXT 2025-12-07: Context file at docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.context.xml
   14-1-database-schema: done
   14-2-api-route-structure: done
-  14-3-navigation-integration: backlog
+  14-3-navigation-integration: done
   14-4-page-layout-shell: backlog
   14-5-component-scaffolding: backlog
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Loader2, Menu } from 'lucide-react';
+import { LogOut, Loader2, Menu, Bot } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/documents', label: 'Documents' },
   { href: '/compare', label: 'Compare' },
+  { href: '/ai-buddy', label: 'AI Buddy', icon: Bot },
   { href: '/settings', label: 'Settings' },
 ];
 
@@ -41,27 +42,34 @@ function NavLinks({
     if (href === '/documents') {
       return pathname === '/documents' || pathname.startsWith('/documents/');
     }
+    if (href === '/ai-buddy') {
+      return pathname === '/ai-buddy' || pathname.startsWith('/ai-buddy/');
+    }
     return pathname.startsWith(href);
   };
 
   return (
     <>
-      {navItems.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={onNavigate}
-          className={cn(
-            'text-sm transition-colors',
-            mobile ? 'block py-2' : '',
-            isActive(item.href)
-              ? 'text-primary font-medium border-b-2 border-primary pb-0.5'
-              : 'text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary'
-          )}
-        >
-          {item.label}
-        </Link>
-      ))}
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={cn(
+              'text-sm transition-colors flex items-center gap-1.5',
+              mobile ? 'py-2' : '',
+              isActive(item.href)
+                ? 'text-primary font-medium border-b-2 border-primary pb-0.5'
+                : 'text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary'
+            )}
+          >
+            {Icon && <Icon className="h-4 w-4" />}
+            {item.label}
+          </Link>
+        );
+      })}
     </>
   );
 }
