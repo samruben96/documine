@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MessageSquare, GitCompare, FileText, type LucideIcon } from 'lucide-react';
+import { MessageSquare, GitCompare, FileText, Bot, FolderOpen, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,8 @@ const iconMap: Record<string, LucideIcon> = {
   MessageSquare,
   GitCompare,
   FileText,
+  Bot,
+  FolderOpen,
 };
 
 interface ToolCardProps {
@@ -24,7 +26,7 @@ interface ToolCardProps {
   title: string;
   description: string;
   href: string;
-  color?: 'blue' | 'green' | 'purple';
+  color?: 'blue' | 'green' | 'purple' | 'emerald' | 'slate';
 }
 
 const colorVariants = {
@@ -42,6 +44,16 @@ const colorVariants = {
     icon: 'text-violet-600',
     bg: 'bg-violet-50',
     border: 'group-hover:border-violet-300',
+  },
+  emerald: {
+    icon: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    border: 'group-hover:border-emerald-300',
+  },
+  slate: {
+    icon: 'text-slate-600',
+    bg: 'bg-slate-100',
+    border: 'group-hover:border-slate-300',
   },
 };
 

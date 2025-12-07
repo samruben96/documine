@@ -14,10 +14,24 @@ import { ToolCard } from '@/components/dashboard/tool-card';
 
 const TOOLS = [
   {
+    icon: 'Bot', // AI Buddy
+    title: 'AI Buddy',
+    description: 'Your knowledgeable insurance assistant for policy questions',
+    href: '/ai-buddy',
+    color: 'emerald' as const,
+  },
+  {
+    icon: 'FolderOpen', // Documents library
+    title: 'Documents',
+    description: 'Upload, organize, and manage your insurance documents',
+    href: '/documents',
+    color: 'slate' as const,
+  },
+  {
     icon: 'MessageSquare', // Icon name as string - resolved in client component
     title: 'Chat with Docs',
     description: 'Ask questions about your documents and get AI-powered answers',
-    href: '/documents',
+    href: '/chat-docs',
     color: 'blue' as const,
   },
   {
@@ -77,7 +91,7 @@ export default async function DashboardPage() {
 
         {/* Tool Cards Grid (AC-9.2.3, AC-9.2.5, AC-9.2.6) */}
         <div
-          className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3"
+          className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           data-testid="tool-cards-grid"
         >
           {TOOLS.map((tool) => (
