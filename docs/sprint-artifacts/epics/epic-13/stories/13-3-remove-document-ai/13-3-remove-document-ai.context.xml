@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story 13-3 Context: Remove Document AI & Docling Code
+  Generated: 2025-12-06
+  Epic: 13 - LlamaParse Integration
+
+  PURPOSE: Complete code cleanup and architecture simplification after LlamaParse migration
+-->
+<story-context version="1.0">
+
+  <story-metadata>
+    <id>13-3</id>
+    <title>Remove Document AI &amp; Docling Code</title>
+    <epic>13 - LlamaParse Integration</epic>
+    <status>drafted</status>
+    <priority>P1 - Essential</priority>
+    <story-points>3</story-points>
+    <dependencies>
+      <dependency status="completed">13-1: LlamaParse API Client</dependency>
+      <dependency status="completed">13-2: Edge Function Integration</dependency>
+    </dependencies>
+    <goal>
+      Remove all deprecated Document AI and Docling code, infrastructure, and documentation
+      to complete the LlamaParse migration and simplify the codebase.
+    </goal>
+  </story-metadata>
+
+  <acceptance-criteria>
+    <criterion id="AC-13.3.1" priority="must">
+      Document AI client file (documentai-client.ts) completely deleted
+    </criterion>
+    <criterion id="AC-13.3.2" priority="must">
+      Docling client module (src/lib/docling/*) completely deleted
+    </criterion>
+    <criterion id="AC-13.3.3" priority="must">
+      DoclingError and LlamaParseError classes removed from errors.ts
+    </criterion>
+    <criterion id="AC-13.3.4" priority="must">
+      All test files for removed modules deleted (__tests__/unit/lib/docling/*, __tests__/supabase/documentai-parsing.test.ts)
+    </criterion>
+    <criterion id="AC-13.3.5" priority="must">
+      docker-compose.yml removed (no longer needed - Docling service deprecated)
+    </criterion>
+    <criterion id="AC-13.3.6" priority="must">
+      CLAUDE.md documentation updated to remove Docling references
+    </criterion>
+    <criterion id="AC-13.3.7" priority="must">
+      Environment variable documentation cleaned (GCS_BUCKET_NAME, GOOGLE_SERVICE_ACCOUNT_KEY, DOCUMENT_AI_* variables)
+    </criterion>
+    <criterion id="AC-13.3.8" priority="must">
+      Build passes with no TypeScript errors (npm run build)
+    </criterion>
+    <criterion id="AC-13.3.9" priority="must">
+      All existing tests pass (npm run test)
+    </criterion>
+    <criterion id="AC-13.3.10" priority="should">
+      deployments.md updated to remove Docling Railway deployment reference
+    </criterion>
+  </acceptance-criteria>
+
+  <files-to-delete>
+    <file-group name="Document AI">
+      <file path="supabase/functions/process-document/documentai-client.ts" reason="Document AI replaced by LlamaParse" lines="1817"/>
+    </file-group>
+
+    <file-group name="Docling Client">
+      <file path="src/lib/docling/client.ts" reason="Docling replaced by LlamaParse" lines="268"/>
+      <file path="src/lib/docling/index.ts" reason="Docling module export file" lines="22"/>
+    </file-group>
+
+    <file-group name="Test Files">
+      <file path="__tests__/unit/lib/docling/client.test.ts" reason="Tests for deleted Docling client"/>
+      <file path="__tests__/supabase/documentai-parsing.test.ts" reason="Tests for deleted Document AI client"/>
+    </file-group>
+
+    <file-group name="Infrastructure">
+      <file path="docker-compose.yml" reason="Only contained Docling service config" lines="38"/>
+    </file-group>
+  </files-to-delete>
+
+  <files-to-modify>
+    <file-group name="Error Classes">
+      <file path="src/lib/errors.ts">
+        <changes>
+          <remove>LlamaParseError class (lines 72-79) - FRONTEND ONLY, unused</remove>
+          <remove>DoclingError class (lines 85-92)</remove>
+          <remove>'LLAMAPARSE_ERROR' and 'DOCLING_ERROR' from ErrorCode union (lines 12-13)</remove>
+        </changes>
+        <note>Keep all other error classes - they are still in use</note>
+        <warning>
+          DO NOT confuse with Edge Function LlamaParseError!
+          - REMOVE: src/lib/errors.ts LlamaParseError (unused frontend class, marked @deprecated)
+          - KEEP: supabase/functions/process-document/llamaparse-client.ts LlamaParseError (actively used)
+          These are two SEPARATE classes. The Edge Function defines its own error hierarchy.
+        </warning>
+      </file>
+    </file-group>
+
+    <file-group name="Chunking Import Update">
+      <file path="src/lib/documents/chunking.ts">
+        <changes>
+          <update line="16">Change import from '@/lib/docling/client' to local type definition or '@/types'</update>
+        </changes>
+        <current-import>import type { PageMarker, BoundingBox } from '@/lib/docling/client';</current-import>
+        <note>PageMarker and BoundingBox types need to be preserved - move to @/types/index.ts or define locally</note>
+      </file>
+    </file-group>
+
+    <file-group name="Chunking Test Update">
+      <file path="__tests__/unit/lib/documents/chunking.test.ts">
+        <changes>
+          <update line="10">Update import source for PageMarker type after relocation</update>
+        </changes>
+      </file>
+    </file-group>
+
+    <file-group name="Documentation">
+      <file path="CLAUDE.md">
+        <changes>
+          <update>Remove Docling Service URL reference from Essential Info section</update>
+        </changes>
+      </file>
+
+      <file path="docs/claude-md/deployments.md">
+        <changes>
+          <remove>Docling Service Railway deployment entry from table</remove>
+        </changes>
+        <current-content>
+          | Docling Service | Railway | https://docling-for-documine-production.up.railway.app |
+        </current-content>
+      </file>
+    </file-group>
+  </files-to-modify>
+
+  <type-preservation>
+    <description>
+      PageMarker and BoundingBox types from Docling client are used by chunking module.
+      These types must be preserved - either move to @/types or define locally.
+    </description>
+    <type name="PageMarker">
+      <definition>
+        interface PageMarker {
+          pageNumber: number;
+          startIndex: number;
+          endIndex: number;
+        }
+      </definition>
+      <used-by>
+        <file>src/lib/documents/chunking.ts</file>
+        <file>__tests__/unit/lib/documents/chunking.test.ts</file>
+      </used-by>
+    </type>
+    <type name="BoundingBox">
+      <definition>
+        interface BoundingBox {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        }
+      </definition>
+      <note>May not be actively used - verify before removing or keeping</note>
+    </type>
+    <recommendation>
+      Add PageMarker and BoundingBox to src/types/index.ts since they are generic document types
+      used across the codebase (chunking, Edge Function, etc.)
+    </recommendation>
+  </type-preservation>
+
+  <environment-variables-cleanup>
+    <description>
+      Document AI and Docling required specific environment variables that are no longer needed.
+      These should be documented as deprecated and eventually removed from Supabase secrets.
+    </description>
+    <variable name="GOOGLE_SERVICE_ACCOUNT_KEY" status="remove">
+      GCP service account JSON for Document AI authentication
+    </variable>
+    <variable name="DOCUMENT_AI_PROCESSOR_ID" status="remove">
+      GCP Document AI processor ID
+    </variable>
+    <variable name="DOCUMENT_AI_LOCATION" status="remove">
+      GCP region for Document AI (default: us)
+    </variable>
+    <variable name="GCS_BUCKET_NAME" status="remove">
+      GCS bucket for Document AI batch processing
+    </variable>
+    <variable name="DOCLING_SERVICE_URL" status="remove">
+      Railway-hosted Docling service URL
+    </variable>
+    <variable name="LLAMA_CLOUD_API_KEY" status="keep">
+      Required for LlamaParse - this is now the only parsing API key needed
+    </variable>
+  </environment-variables-cleanup>
+
+  <implementation-sequence>
+    <phase number="1" name="Type Preservation">
+      <step>Create/update src/types/index.ts with PageMarker and BoundingBox interfaces</step>
+      <step>Update src/lib/documents/chunking.ts import to use new location</step>
+      <step>Update __tests__/unit/lib/documents/chunking.test.ts import</step>
+      <step>Verify build passes</step>
+    </phase>
+
+    <phase number="2" name="Delete Deprecated Modules">
+      <step>Delete src/lib/docling/client.ts</step>
+      <step>Delete src/lib/docling/index.ts</step>
+      <step>Delete src/lib/docling/ directory</step>
+      <step>Delete supabase/functions/process-document/documentai-client.ts</step>
+    </phase>
+
+    <phase number="3" name="Delete Test Files">
+      <step>Delete __tests__/unit/lib/docling/client.test.ts</step>
+      <step>Delete __tests__/unit/lib/docling/ directory</step>
+      <step>Delete __tests__/supabase/documentai-parsing.test.ts</step>
+    </phase>
+
+    <phase number="4" name="Update Error Classes">
+      <step>Remove LlamaParseError class from src/lib/errors.ts</step>
+      <step>Remove DoclingError class from src/lib/errors.ts</step>
+      <step>Remove 'LLAMAPARSE_ERROR' and 'DOCLING_ERROR' from ErrorCode union type</step>
+    </phase>
+
+    <phase number="5" name="Delete Infrastructure">
+      <step>Delete docker-compose.yml</step>
+    </phase>
+
+    <phase number="6" name="Documentation Cleanup">
+      <step>Update CLAUDE.md - remove Docling Service URL</step>
+      <step>Update docs/claude-md/deployments.md - remove Docling entry</step>
+    </phase>
+
+    <phase number="7" name="Validation">
+      <step>Run npm run build - verify no TypeScript errors</step>
+      <step>Run npm run test - verify all tests pass</step>
+      <step>Run npm run lint - verify no new lint errors</step>
+    </phase>
+  </implementation-sequence>
+
+  <existing-code-references>
+    <reference name="LlamaParse Client (Keep)">
+      <file>supabase/functions/process-document/llamaparse-client.ts</file>
+      <description>New PDF parsing client - this is the replacement and should be kept</description>
+    </reference>
+
+    <reference name="Edge Function LlamaParseError (KEEP - Different from src/lib/errors.ts)">
+      <file>supabase/functions/process-document/llamaparse-client.ts</file>
+      <lines>147-192</lines>
+      <description>
+        The Edge Function has its OWN LlamaParseError class hierarchy defined locally:
+        - LlamaParseError (base class, line 147)
+        - UploadError extends LlamaParseError (line 162)
+        - PollingError extends LlamaParseError (line 172)
+        - TimeoutError extends LlamaParseError (line 182)
+        - ResultError extends LlamaParseError (line 192)
+
+        This is ACTIVELY USED by index.ts (imports at line 30, used at lines 129, 151, 663-664).
+        DO NOT remove this - only remove the unused src/lib/errors.ts version.
+      </description>
+    </reference>
+
+    <reference name="Edge Function Index (Modified in 13-2)">
+      <file>supabase/functions/process-document/index.ts</file>
+      <description>
+        Already updated in Story 13-2 to use LlamaParse.
+        No longer imports documentai-client.ts.
+        Deletion of documentai-client.ts will have no impact.
+      </description>
+    </reference>
+
+    <reference name="Error Classification Patterns">
+      <file>supabase/functions/process-document/index.ts</file>
+      <lines>77-99</lines>
+      <description>
+        ERROR_CLASSIFICATION_PATTERNS array in index.ts does NOT reference
+        Document AI or Docling errors. Safe to delete client files.
+      </description>
+    </reference>
+  </existing-code-references>
+
+  <testing-requirements>
+    <test-type name="Build Verification">
+      <command>npm run build</command>
+      <expectation>No TypeScript compilation errors</expectation>
+    </test-type>
+
+    <test-type name="Unit Tests">
+      <command>npm run test</command>
+      <expectation>All tests pass (excluding deleted test files)</expectation>
+      <note>Deleted test files will naturally be excluded</note>
+    </test-type>
+
+    <test-type name="Type Check">
+      <command>npx tsc --noEmit</command>
+      <expectation>No type errors after import updates</expectation>
+    </test-type>
+
+    <test-type name="Lint Check">
+      <command>npm run lint</command>
+      <expectation>No new lint errors</expectation>
+    </test-type>
+
+    <manual-verification>
+      <item>Verify src/lib/docling/ directory no longer exists</item>
+      <item>Verify __tests__/unit/lib/docling/ directory no longer exists</item>
+      <item>Verify docker-compose.yml no longer exists at project root</item>
+      <item>Verify no remaining imports from '@/lib/docling' in codebase</item>
+    </manual-verification>
+  </testing-requirements>
+
+  <risk-assessment>
+    <risk level="low">
+      <description>Breaking chunking module imports</description>
+      <mitigation>Phase 1 ensures types are preserved before deletion</mitigation>
+    </risk>
+    <risk level="low">
+      <description>Missing error handling after error class removal</description>
+      <mitigation>
+        DoclingError (src/lib/errors.ts) is only used in deleted files (src/lib/docling/client.ts).
+        LlamaParseError in src/lib/errors.ts is marked @deprecated and unused.
+        Edge Function has its OWN LlamaParseError in llamaparse-client.ts - this stays untouched.
+      </mitigation>
+    </risk>
+    <risk level="none">
+      <description>Accidentally removing Edge Function LlamaParseError</description>
+      <mitigation>
+        Two separate files with same class name:
+        - src/lib/errors.ts (REMOVE) - unused frontend class
+        - supabase/functions/process-document/llamaparse-client.ts (KEEP) - active Edge Function class
+        Only modify src/lib/errors.ts. Edge Function files are NOT in the files-to-modify list.
+      </mitigation>
+    </risk>
+    <risk level="none">
+      <description>Breaking Edge Function</description>
+      <mitigation>
+        index.ts already imports from llamaparse-client.ts (not documentai-client.ts).
+        Story 13-2 completed this migration.
+      </mitigation>
+    </risk>
+  </risk-assessment>
+
+  <code-patterns>
+    <pattern name="Safe File Deletion">
+      <description>Use git rm for tracked files to ensure clean removal</description>
+      <example>git rm src/lib/docling/client.ts src/lib/docling/index.ts</example>
+    </pattern>
+
+    <pattern name="Type Export Pattern">
+      <description>Export shared types from central location</description>
+      <example>
+        // src/types/index.ts
+        export interface PageMarker {
+          pageNumber: number;
+          startIndex: number;
+          endIndex: number;
+        }
+      </example>
+    </pattern>
+  </code-patterns>
+
+  <verification-checklist>
+    <item id="1">PageMarker type accessible from @/types after relocation</item>
+    <item id="2">No imports from '@/lib/docling' anywhere in codebase</item>
+    <item id="3">No references to DoclingError in codebase (except historical docs)</item>
+    <item id="4">No references to documentai-client in codebase</item>
+    <item id="5">docker-compose.yml deleted</item>
+    <item id="6">CLAUDE.md no longer mentions Docling Service URL</item>
+    <item id="7">deployments.md no longer has Docling entry</item>
+    <item id="8">npm run build succeeds</item>
+    <item id="9">npm run test passes</item>
+    <item id="10">Git status shows clean deletions</item>
+    <item id="11">Edge Function LlamaParseError STILL EXISTS in llamaparse-client.ts (verify NOT removed)</item>
+    <item id="12">Edge Function deploys successfully: npx supabase functions deploy process-document</item>
+  </verification-checklist>
+
+</story-context>

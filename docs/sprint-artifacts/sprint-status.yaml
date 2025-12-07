@@ -921,10 +921,13 @@ development_status:
   # CODE REVIEWED 2025-12-06: APPROVED - all 5 ACs verified, 1631 tests pass
   13-2-edge-function-integration: done
   # Story 13.3: Remove Document AI Code (2 pts)
-  # Clean up abandoned Epic 12 code
+  # Clean up abandoned Epic 12 code + Docling code
   # Priority: P1 - technical debt
   # DRAFTED 2025-12-06: Story file at docs/sprint-artifacts/epics/epic-13/stories/13-3-remove-document-ai/
-  13-3-remove-document-ai: drafted
+  # CONTEXT 2025-12-06: Context file at docs/sprint-artifacts/epics/epic-13/stories/13-3-remove-document-ai/13-3-remove-document-ai.context.xml
+  # IMPLEMENTED 2025-12-06: All code removed, build+tests pass (1564 tests)
+  # CODE REVIEWED 2025-12-06: APPROVED - 10/10 ACs verified, 13/13 tasks verified, 1564 tests pass
+  13-3-remove-document-ai: done
   # Story 13.4: Testing & Validation (2 pts)
   # End-to-end testing with 126-page PDF and other documents
   # Priority: P0 - quality gate

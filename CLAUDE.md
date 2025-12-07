@@ -18,7 +18,6 @@
 ## Essential Info
 
 - **Supabase Project ID:** `nxuzurxiaismssiiydst`
-- **Docling Service:** https://docling-for-documine-production.up.railway.app
 - **Run tests:** `npm run test`
 - **Run build:** `npm run build`
 

@@ -9,8 +9,6 @@ export type ErrorCode =
   | 'UNAUTHORIZED'
   | 'PROCESSING_ERROR'
   | 'VALIDATION_ERROR'
-  | 'LLAMAPARSE_ERROR'
-  | 'DOCLING_ERROR'
   | 'EMBEDDING_ERROR'
   | 'CHAT_ERROR'
   | 'EXTRACTION_ERROR'
@@ -62,32 +60,6 @@ export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
-  }
-}
-
-/**
- * Error thrown when LlamaParse API call fails.
- * @deprecated Use DoclingError instead - LlamaParse replaced by Docling in Story 4.8
- */
-export class LlamaParseError extends Error {
-  readonly code = 'LLAMAPARSE_ERROR' as const;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'LlamaParseError';
-  }
-}
-
-/**
- * Error thrown when Docling document parsing service fails.
- * Replaces LlamaParseError for self-hosted document parsing.
- */
-export class DoclingError extends Error {
-  readonly code = 'DOCLING_ERROR' as const;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'DoclingError';
   }
 }
 

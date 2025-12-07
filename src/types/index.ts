@@ -41,3 +41,26 @@ export interface AITagResult {
   summary: string;
   documentType: DocumentType;
 }
+
+/**
+ * Page marker with position information.
+ * Used by chunking module for page boundary tracking.
+ * Story 13.3: Relocated from @/lib/docling/client.ts
+ */
+export interface PageMarker {
+  pageNumber: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+/**
+ * Bounding box for content positioning.
+ * Used for document element positioning (tables, images).
+ * Story 13.3: Relocated from @/lib/docling/client.ts
+ */
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}

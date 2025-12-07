@@ -13,7 +13,7 @@
  * @module @/lib/documents/chunking
  */
 
-import type { PageMarker, BoundingBox } from '@/lib/docling/client';
+import type { PageMarker, BoundingBox } from '@/types';
 
 // Configuration constants
 const DEFAULT_TARGET_TOKENS = 500;

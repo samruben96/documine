@@ -7,7 +7,7 @@ import {
   recursiveCharacterTextSplitter,
   type DocumentChunk,
 } from '@/lib/documents/chunking';
-import type { PageMarker } from '@/lib/docling/client';
+import type { PageMarker } from '@/types';
 
 describe('chunkMarkdown', () => {
   describe('basic chunking', () => {
