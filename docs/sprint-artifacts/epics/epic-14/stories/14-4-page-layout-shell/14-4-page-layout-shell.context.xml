@@ -1,0 +1,171 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>4</storyId>
+    <title>AI Buddy Page Layout Shell</title>
+    <status>in-progress</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-14/stories/14-4-page-layout-shell/14-4-page-layout-shell.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>AI Buddy to have a ChatGPT-style dark interface</iWant>
+    <soThat>the chat experience feels familiar and optimized for focus</soThat>
+    <tasks>
+      - Task 1: Create layout.tsx (AC: 14.4.1, 14.4.2, 14.4.3)
+        - 1.1 Create src/app/(dashboard)/ai-buddy/layout.tsx
+        - 1.2 Define CSS variables for dark theme
+        - 1.3 Create sidebar area (260px, #171717)
+        - 1.4 Create main chat area (#212121)
+        - 1.5 Ensure theme is scoped to layout only
+      - Task 2: Create page.tsx (AC: 14.4.5)
+        - 2.1 Create src/app/(dashboard)/ai-buddy/page.tsx
+        - 2.2 Add empty state component
+        - 2.3 Include welcome message and CTA
+      - Task 3: Implement responsive breakpoints (AC: 14.4.4)
+        - 3.1 Desktop layout with visible sidebar
+        - 3.2 Tablet layout with collapsible sidebar
+        - 3.3 Mobile layout with hidden sidebar
+      - Task 4: Verify implementation (AC: All)
+        - 4.1 Run TypeScript compilation
+        - 4.2 Run build
+        - 4.3 Visual verification of dark theme
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="14.4.1" title="Dark Theme Layout">
+      AI Buddy route uses dark theme scoped to /ai-buddy routes only.
+      CSS variables defined per tech-spec Appendix A.
+    </ac>
+    <ac id="14.4.2" title="Sidebar 260px with Dark Bg">
+      Left sidebar area styled with --sidebar-bg (#171717).
+      Width 260px on desktop.
+    </ac>
+    <ac id="14.4.3" title="Main Chat Area with #212121 Bg">
+      Main content area uses --chat-bg (#212121).
+      Flex layout fills remaining width.
+    </ac>
+    <ac id="14.4.4" title="Responsive Breakpoints">
+      Desktop (>1024px): Sidebar visible.
+      Tablet (768-1024px): Collapsible sidebar.
+      Mobile (<768px): Sidebar hidden, full-width chat.
+    </ac>
+    <ac id="14.4.5" title="Empty State Displayed">
+      Empty state message when no conversation active.
+      Welcome message and quick action suggestions.
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-14/tech-spec.md</path>
+        <title>Epic 14 Tech Spec</title>
+        <section>Appendix A: CSS Variables for Dark Theme</section>
+        <snippet>Defines --sidebar-bg (#171717), --chat-bg (#212121), --text-primary (#ececec), etc.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/ux-design/ux-design-specification.md</path>
+        <title>AI Buddy UX Design Specification</title>
+        <section>3.1 ChatGPT-Style Interface</section>
+        <snippet>Layout structure with sidebar 260px for projects, main chat area 60% width.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/ux-design/ux-design-specification.md</path>
+        <title>AI Buddy UX Design Specification</title>
+        <section>1.2 Color System - ChatGPT-Style Dark Theme</section>
+        <snippet>Token values for sidebar-bg, chat-bg, chat-surface, text colors.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/app/(dashboard)/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>DashboardLayout</symbol>
+        <reason>Parent layout that wraps all dashboard pages including AI Buddy</reason>
+      </file>
+      <file>
+        <path>src/components/layout/header.tsx</path>
+        <kind>component</kind>
+        <symbol>Header, NavLinks</symbol>
+        <reason>Navigation header with AI Buddy nav item (Story 14.3)</reason>
+      </file>
+      <file>
+        <path>src/components/layout/sidebar.tsx</path>
+        <kind>component</kind>
+        <symbol>MobileBottomNav</symbol>
+        <reason>Mobile navigation with AI Buddy item (Story 14.3)</reason>
+      </file>
+      <file>
+        <path>src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>Button</symbol>
+        <reason>shadcn/ui Button for New Chat and menu toggle</reason>
+      </file>
+      <file>
+        <path>src/lib/utils.ts</path>
+        <kind>utility</kind>
+        <symbol>cn</symbol>
+        <reason>Class name utility for conditional styling</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>lucide-react</package>
+        <usage>Icons: Menu, X, Plus, MessageSquare, Bot, FileText, HelpCircle, Sparkles</usage>
+      </node>
+      <node>
+        <package>tailwindcss</package>
+        <usage>Dark theme styling with CSS variables</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-*</package>
+        <usage>shadcn/ui components (Button, etc.)</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Dark theme must be scoped to /ai-buddy routes only - not affect rest of docuMINE</constraint>
+    <constraint>Use CSS variables for theming to allow future customization</constraint>
+    <constraint>Follow existing dashboard layout patterns</constraint>
+    <constraint>Responsive design mobile-first approach</constraint>
+    <constraint>Use Next.js App Router conventions</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>AiBuddyLayout</name>
+      <kind>React Component</kind>
+      <signature>export default function AiBuddyLayout({ children }: { children: React.ReactNode })</signature>
+      <path>src/app/(dashboard)/ai-buddy/layout.tsx</path>
+    </interface>
+    <interface>
+      <name>AiBuddyPage</name>
+      <kind>React Component</kind>
+      <signature>export default function AiBuddyPage()</signature>
+      <path>src/app/(dashboard)/ai-buddy/page.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Visual testing for dark theme rendering. Build verification for TypeScript compilation.
+      E2E tests with Playwright for navigation and responsive behavior.
+      Component tests with Vitest and React Testing Library.
+    </standards>
+    <locations>
+      __tests__/e2e/
+      __tests__/components/
+    </locations>
+    <ideas>
+      <idea ac="14.4.1">E2E test: Verify /ai-buddy page has dark background (#212121)</idea>
+      <idea ac="14.4.2">Visual test: Sidebar renders at 260px width on desktop</idea>
+      <idea ac="14.4.4">Responsive test: Sidebar hidden on mobile viewport</idea>
+      <idea ac="14.4.5">E2E test: Empty state shows "Welcome to AI Buddy" message</idea>
+    </ideas>
+  </tests>
+</story-context>

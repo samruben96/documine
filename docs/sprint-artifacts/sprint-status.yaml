@@ -963,7 +963,7 @@ development_status:
   14-1-database-schema: done
   14-2-api-route-structure: done
   14-3-navigation-integration: done
-  14-4-page-layout-shell: backlog
+  14-4-page-layout-shell: done
   14-5-component-scaffolding: backlog
 
   # Epic 15: AI Buddy Core Chat
