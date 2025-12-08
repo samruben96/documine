@@ -983,7 +983,7 @@ development_status:
   # CONTEXTED 2025-12-07: Tech spec complete with story breakdown
   epic-15-ai-buddy-core-chat: contexted
   15-1-chat-input-component: done
-  15-2-message-display: backlog
+  15-2-message-display: done
   15-3-streaming-chat-api: backlog
   15-4-conversation-persistence: backlog
   15-5-source-citations: backlog

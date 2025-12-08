@@ -1,0 +1,163 @@
+<story-context id="15-2-message-display" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>2</storyId>
+    <title>Message Display Component</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-15/stories/15-2-message-display/15-2-message-display.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to see my messages and AI responses in a chat format</iWant>
+    <soThat>I can follow the conversation flow</soThat>
+    <tasks>
+      <task id="1" ac="15.2.1,15.2.2,15.2.5">Create ChatMessage component with role-based styling, avatar, alignment, and hover timestamps</task>
+      <task id="2" ac="15.2.3,15.2.4,15.2.8">Create ChatMessageList container with chronological order, auto-scroll, and empty state</task>
+      <task id="3" ac="15.2.7">Create StreamingIndicator component with animated dots and AI avatar</task>
+      <task id="4" ac="15.2.6">Implement markdown rendering with react-markdown and remark-gfm</task>
+      <task id="5" ac="15.2.1-15.2.8">Write comprehensive unit tests for all acceptance criteria</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="15.2.1">User messages are right-aligned with blue avatar (user initials)</ac>
+    <ac id="15.2.2">AI messages are left-aligned with green avatar (AI icon)</ac>
+    <ac id="15.2.3">Messages display in chronological order (oldest at top)</ac>
+    <ac id="15.2.4">Auto-scroll to newest message when new messages arrive</ac>
+    <ac id="15.2.5">Timestamps shown on hover (relative format, e.g., "2 min ago")</ac>
+    <ac id="15.2.6">Markdown rendering works (bold, italic, lists, code blocks, links)</ac>
+    <ac id="15.2.7">Typing indicator (animated dots) shown during AI response streaming</ac>
+    <ac id="15.2.8">Empty state shown when no messages in conversation</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-15/tech-spec.md" title="Epic 15 Tech Spec" section="Story 15.2: Message Display Component">
+        Defines ChatMessage and ChatMessageList component props, behavior, and visual specs. User messages blue/right-aligned, AI messages green/left-aligned. 32px avatars, 80% max width bubbles, markdown rendering with react-markdown.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Project Structure">
+        Component file organization: src/components/ai-buddy/chat/* for chat components. Message interface with role, content, sources, confidence, createdAt.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-15/stories/15-1-chat-input-component/15-1-chat-input-component.md" title="Story 15.1" section="Dev Agent Record">
+        Established patterns: forwardRef with imperative handle, emerald accent colors (emerald-500, emerald-600), CSS variables (--chat-border, --chat-surface, --text-primary, --text-muted), test organization by AC ID.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/components/ai-buddy/chat-message.tsx" kind="component" symbol="ChatMessage" reason="Existing scaffold to upgrade - has basic structure but needs markdown, hover timestamps, user initials avatar">
+        <interface>interface ChatMessageProps { role: 'user' | 'assistant'; content: string; timestamp?: Date; className?: string; }</interface>
+      </file>
+      <file path="src/components/ai-buddy/chat-message-list.tsx" kind="component" symbol="ChatMessageList" reason="Existing scaffold to upgrade - needs auto-scroll, empty state, streaming indicator integration">
+        <interface>interface ChatMessageListProps { messages: ChatMessageProps[]; className?: string; }</interface>
+      </file>
+      <file path="src/components/ai-buddy/streaming-indicator.tsx" kind="component" symbol="StreamingIndicator" reason="Existing scaffold - has animated dots, needs AI avatar wrapper for chat context">
+        <interface>interface StreamingIndicatorProps { className?: string; }</interface>
+      </file>
+      <file path="src/components/ai-buddy/chat-input.tsx" kind="component" symbol="ChatInput" reason="Pattern reference - forwardRef, emerald styling, comprehensive test organization by AC">
+        <interface>interface ChatInputProps { onSend: (message: string) => void; onAttach?: () => void; disabled?: boolean; placeholder?: string; maxLength?: number; className?: string; autoFocus?: boolean; isLoading?: boolean; }</interface>
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="Message, Citation, ConfidenceLevel" reason="Type definitions for message data structure">
+        <interface>interface Message { id: string; conversationId: string; agencyId: string; role: MessageRole; content: string; sources: Citation[] | null; confidence: ConfidenceLevel | null; createdAt: string; }</interface>
+      </file>
+      <file path="__tests__/components/ai-buddy/chat-input.test.tsx" kind="test" symbol="ChatInput tests" reason="Test pattern reference - organized by AC ID, uses vitest + happy-dom + @testing-library/react">
+      </file>
+      <file path="src/lib/utils.ts" kind="utility" symbol="cn" reason="Tailwind class merge utility used across all components">
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="react-markdown" version="^10.1.0" purpose="Markdown rendering in messages - AC-15.2.6" />
+        <package name="remark-gfm" version="^4.0.1" purpose="GitHub Flavored Markdown (tables, strikethrough, autolinks) - AC-15.2.6" />
+        <package name="date-fns" version="^4.1.0" purpose="Relative timestamp formatting (formatDistanceToNow) - AC-15.2.5" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons (Bot, User) for avatars" />
+        <package name="tailwind-merge" version="^3.4.0" purpose="Class merging via cn() utility" />
+      </npm>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14" purpose="Unit test runner" />
+        <package name="@testing-library/react" version="^16.3.0" purpose="React component testing" />
+        <package name="@testing-library/user-event" version="^14.6.1" purpose="User interaction simulation" />
+        <package name="happy-dom" version="^20.0.10" purpose="DOM environment for tests" />
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use forwardRef with useImperativeHandle for external component control (established in Story 15.1)</constraint>
+    <constraint type="styling">Light theme with emerald accents - emerald-500, emerald-600 for AI elements, blue-500 for user elements</constraint>
+    <constraint type="styling">CSS variables: --chat-border, --chat-surface, --text-primary, --text-muted</constraint>
+    <constraint type="testing">Organize tests by AC ID for traceability (e.g., describe('AC-15.2.1: User messages right-aligned'))</constraint>
+    <constraint type="accessibility">Include aria-label, aria-live for dynamic content, proper semantic HTML</constraint>
+    <constraint type="layer">Components are presentational - no direct API calls, data passed via props</constraint>
+    <constraint type="files">Place components in src/components/ai-buddy/ (upgrade existing scaffolds, don't create new files in chat/ subdirectory)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ChatMessageProps (upgraded)" kind="component-props" path="src/components/ai-buddy/chat-message.tsx">
+      <signature>
+interface ChatMessageProps {
+  message: Message;           // Full message object from types
+  isStreaming?: boolean;      // Whether this message is currently streaming
+  onCitationClick?: (citation: Citation) => void;  // Future: citation handling
+  className?: string;
+}
+      </signature>
+    </interface>
+    <interface name="ChatMessageListProps (upgraded)" kind="component-props" path="src/components/ai-buddy/chat-message-list.tsx">
+      <signature>
+interface ChatMessageListProps {
+  messages: Message[];        // Array of messages to display
+  isLoading?: boolean;        // Show streaming indicator
+  streamingContent?: string;  // Partial content while streaming
+  onCitationClick?: (citation: Citation) => void;
+  className?: string;
+}
+      </signature>
+    </interface>
+    <interface name="StreamingIndicatorProps (upgraded)" kind="component-props" path="src/components/ai-buddy/streaming-indicator.tsx">
+      <signature>
+interface StreamingIndicatorProps {
+  isVisible: boolean;         // Control visibility
+  className?: string;
+}
+      </signature>
+    </interface>
+    <interface name="Message" kind="type" path="src/types/ai-buddy.ts">
+      <signature>
+interface Message {
+  id: string;
+  conversationId: string;
+  agencyId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  sources: Citation[] | null;
+  confidence: 'high' | 'medium' | 'low' | null;
+  createdAt: string;  // ISO timestamp
+}
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with happy-dom environment. Components tested with @testing-library/react. Use userEvent for user interactions (typing, clicking), fireEvent for programmatic events. Tests organized by AC ID with clear describe/it blocks. Assertions use @testing-library/jest-dom matchers (toBeInTheDocument, toHaveClass, etc.). Mock callbacks with vi.fn() and verify calls.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/chat-message.test.tsx</location>
+      <location>__tests__/components/ai-buddy/chat-message-list.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="15.2.1">Test user message has flex-row-reverse, blue avatar with initials, right-side positioning</idea>
+      <idea ac="15.2.2">Test AI message has normal flex, green avatar with Bot icon, left-side positioning</idea>
+      <idea ac="15.2.3">Test messages array renders in order, first message at top</idea>
+      <idea ac="15.2.4">Test scrollIntoView called when messages array length changes, mock useRef</idea>
+      <idea ac="15.2.5">Test timestamp hidden by default, visible on hover, uses formatDistanceToNow</idea>
+      <idea ac="15.2.6">Test markdown renders: **bold**, *italic*, - list, ```code```, [link](url)</idea>
+      <idea ac="15.2.7">Test StreamingIndicator renders when isLoading=true, hidden when false</idea>
+      <idea ac="15.2.8">Test empty state message shown when messages array empty</idea>
+    </ideas>
+  </tests>
+</story-context>
