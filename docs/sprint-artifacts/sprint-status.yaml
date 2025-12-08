@@ -1009,12 +1009,18 @@ development_status:
   # READY-FOR-DEV 2025-12-07: Context generated at 16-1-project-creation-sidebar.context.xml
   16-1-project-creation-sidebar: done
   # Story 16.2: Project Context Switching (FR16)
-  16-2-project-context-switching: backlog
+  # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-2-project-context-switching/16-2-project-context-switching.md
+  # READY-FOR-DEV 2025-12-07: Context generated at 16-2-project-context-switching.context.xml
+  16-2-project-context-switching: done
   # Story 16.3: Project Management - Rename & Archive (FR12)
-  16-3-project-management: backlog
+  # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-3-project-management/16-3-project-management.md
+  # READY-FOR-DEV 2025-12-07: Context generated at 16-3-project-management.context.xml
+  16-3-project-management: ready-for-dev
   # Story 16.4: Conversation History & General Chat (FR3, FR18)
   # Merged from: Conversation History + General Chat
-  16-4-conversation-history-general-chat: backlog
+  # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-4-conversation-history-general-chat/16-4-conversation-history-general-chat.md
+  # READY-FOR-DEV 2025-12-07: Context generated at 16-4-conversation-history-general-chat.context.xml
+  16-4-conversation-history-general-chat: ready-for-dev
   # Story 16.5: Conversation Search (FR4)
   16-5-conversation-search: backlog
   # Story 16.6: Conversation Management - Delete & Move (FR6, FR19)

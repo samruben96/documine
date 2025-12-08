@@ -67,9 +67,15 @@ interface AiBuddyProviderProps {
 }
 
 export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
-  const conversationsHook = useConversations({ autoFetch: true });
   const projectsHook = useProjects({ autoFetch: true });
   const activeProjectHook = useActiveProject();
+
+  // Story 16.2: Pass activeProjectId to useConversations (AC-16.2.6)
+  // This enables project-scoped conversation filtering and automatic refresh on project switch
+  const conversationsHook = useConversations({
+    autoFetch: true,
+    projectId: activeProjectHook.activeProjectId ?? undefined,
+  });
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
@@ -107,13 +113,16 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
   }, [conversationsHook]);
 
   // AC-16.1.11: Clicking project switches context
+  // Story 16.2: Clear conversation selection when switching projects (AC-16.2.6)
   const selectProject = useCallback(
     (project: Project | null) => {
       activeProjectHook.setActiveProject(project);
-      // Optionally clear conversation when switching projects
-      // startNewConversation();
+      // Clear conversation selection when switching projects
+      // useConversations will automatically re-fetch with new projectId
+      setSelectedConversationId(null);
+      conversationsHook.clearActiveConversation();
     },
-    [activeProjectHook]
+    [activeProjectHook, conversationsHook]
   );
 
   // AC-16.1.4: Create project and select as active

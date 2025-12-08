@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, MessageSquare } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ProjectSidebar } from '@/components/ai-buddy/project-sidebar';
 import { ProjectCreateDialog } from '@/components/ai-buddy/project-create-dialog';
+import { ProjectContextHeader } from '@/components/ai-buddy/project-context-header';
 import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
 
 /**
@@ -43,6 +44,7 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
     // Projects
     projects,
     isLoadingProjects,
+    activeProject,
     activeProjectId,
     selectProject,
     archiveProject,
@@ -110,7 +112,7 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
 
       {/* Main content area - AC 14.4.3 */}
       <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        {/* Mobile header with menu toggle */}
+        {/* Mobile header with menu toggle - Story 16.2: AC-16.2.1, AC-16.2.2 */}
         <div className="flex h-14 items-center px-4 border-b border-slate-200 bg-white lg:hidden">
           <Button
             variant="ghost"
@@ -121,10 +123,12 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="ml-3 text-slate-900 font-medium flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            AI Buddy
-          </span>
+          <div className="ml-3">
+            <ProjectContextHeader
+              projectName={activeProject?.name}
+              isLoading={isLoadingProjects && !activeProject}
+            />
+          </div>
         </div>
 
         {/* Page content */}

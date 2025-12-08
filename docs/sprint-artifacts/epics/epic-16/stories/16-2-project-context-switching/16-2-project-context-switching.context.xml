@@ -1,0 +1,253 @@
+<story-context id="16-2-project-context-switching" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>2</storyId>
+    <title>Project Context Switching</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-2-project-context-switching/16-2-project-context-switching.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to see which project I'm working in and have my conversations automatically scoped to that project</iWant>
+    <soThat>I can stay focused on one client's context without confusion</soThat>
+    <tasks>
+      <task id="T1">Create src/components/ai-buddy/project-context-header.tsx with "AI Buddy" base text, conditional project name suffix, truncation at 30 chars with tooltip</task>
+      <task id="T2">Unit tests for ProjectContextHeader (AC-16.2.1, AC-16.2.2)</task>
+      <task id="T3">Update src/app/(dashboard)/ai-buddy/page.tsx to import useActiveProject, render ProjectContextHeader, pass activeProjectId to useConversations and useChat</task>
+      <task id="T4">Ensure useConversations re-fetches when projectId prop changes - add projectId to useEffect dependency array, reset hasFetchedRef</task>
+      <task id="T5">Verify useChat passes projectId to POST /api/ai-buddy/chat</task>
+      <task id="T6">Implement conversation history refresh on project switch - clear activeConversation, call fetchConversations()</task>
+      <task id="T7">Test switching projects loads correct conversation list</task>
+      <task id="T8">Performance test: Context switch perceived latency under 200ms</task>
+      <task id="T9">E2E test: Full context switch flow</task>
+      <task id="T10">E2E test: General chat mode (no project)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-16.2.1">Header shows "AI Buddy · [Project Name]" when project selected</criterion>
+    <criterion id="AC-16.2.2">Header shows "AI Buddy" when no project selected (general chat mode)</criterion>
+    <criterion id="AC-16.2.3">Chat API receives projectId parameter for project conversations</criterion>
+    <criterion id="AC-16.2.4">Context switch completes in under 200ms (perceived) - header updates immediately, conversations load in background</criterion>
+    <criterion id="AC-16.2.5">Conversations in project automatically have document context (verified via prompt inspection or response quality)</criterion>
+    <criterion id="AC-16.2.6">Switching projects loads that project's conversation history (useConversations re-fetches with new projectId)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/tech-spec.md</path>
+        <title>Epic 16 Tech Spec</title>
+        <section>Story 16.2: Project Context Switching</section>
+        <snippet>Implements header display and projectId passing to Chat API. Performance target: context switch under 200ms perceived.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>API Contracts, Performance Considerations</section>
+        <snippet>Chat API accepts projectId parameter. Project switching target: under 200ms. Uses React Query for caching.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/ux-design/ux-design-specification.md</path>
+        <title>AI Buddy UX Design</title>
+        <section>Visual Foundation, ChatGPT-Style Interface</section>
+        <snippet>Header shows "AI Buddy · [Project Name]" when project selected. Uses light divider dot (·) between sections.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/stories/16-1-project-creation-sidebar/16-1-project-creation-sidebar.md</path>
+        <title>Story 16.1: Project Creation and Sidebar</title>
+        <section>Learnings, Dev Notes</section>
+        <snippet>useActiveProject pattern with localStorage persistence. Service Client Pattern for mutations. Optimistic updates via React Query.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-active-project.ts</path>
+        <kind>hook</kind>
+        <symbol>useActiveProject</symbol>
+        <lines>1-114</lines>
+        <reason>CORE: Manages active project state and localStorage persistence. Returns activeProject, activeProjectId, setActiveProject, clearActiveProject. USE for context display.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-conversations.ts</path>
+        <kind>hook</kind>
+        <symbol>useConversations</symbol>
+        <lines>1-365</lines>
+        <reason>MODIFY: Already accepts projectId in options. Need to ensure re-fetch when projectId changes by adding to useEffect deps.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-chat.ts</path>
+        <kind>hook</kind>
+        <symbol>useChat</symbol>
+        <lines>76-347</lines>
+        <reason>VERIFY: Already accepts projectId in options and passes to API (line 144). Confirm integration in page.tsx.</reason>
+      </artifact>
+      <artifact>
+        <path>src/contexts/ai-buddy-context.tsx</path>
+        <kind>context</kind>
+        <symbol>AiBuddyContext, AiBuddyProvider, useAiBuddyContext</symbol>
+        <lines>1-186</lines>
+        <reason>MODIFY: Orchestrates project and conversation state. Already exposes activeProject/activeProjectId. May need to trigger conversation refresh on project change.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/ai-buddy/layout.tsx</path>
+        <kind>layout</kind>
+        <symbol>AiBuddyLayout</symbol>
+        <lines>1-155</lines>
+        <reason>MODIFY: Mobile header shows "AI Buddy" (line 125-127). Need to add project name display using activeProject from context.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/ai-buddy/page.tsx</path>
+        <kind>page</kind>
+        <symbol>AiBuddyPage</symbol>
+        <lines>1-173</lines>
+        <reason>MODIFY: Main chat page. Uses useAiBuddyContext. Need to pass activeProjectId to useChat and ensure conversations refresh on switch.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/project-sidebar.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectSidebar</symbol>
+        <reason>REFERENCE: Handles project selection via onSelectProject callback. Verify integration with context switching.</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>Project, Conversation</symbol>
+        <reason>REFERENCE: Type definitions for Project (name field needed for header display) and Conversation.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+      </node>
+      <node>
+        <package>next</package>
+        <version>^16.0.7</version>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+      </node>
+      <node>
+        <package>@radix-ui/react-tooltip</package>
+        <version>^1.2.8</version>
+        <note>Use for full project name tooltip on truncated names</note>
+      </node>
+      <devDependencies>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+      </devDependencies>
+      <devDependencies>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+      </devDependencies>
+      <devDependencies>
+        <package>@playwright/test</package>
+        <version>^1.57.0</version>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Use shadcn/ui components (Tooltip for truncated names). Follow existing component patterns in src/components/ai-buddy/.</constraint>
+    <constraint type="architecture">State updates must be immediate (React state), API calls background. Target: header update under 50ms, full switch under 200ms perceived.</constraint>
+    <constraint type="architecture">Use AiBuddyContext for shared state between layout and page. Do not bypass context with direct hook calls that could cause sync issues.</constraint>
+    <constraint type="pattern">Follow existing naming: kebab-case files, PascalCase components, camelCase hooks with "use" prefix.</constraint>
+    <constraint type="testing">Unit tests in __tests__/components/ai-buddy/. E2E tests in __tests__/e2e/. Use vitest for unit, Playwright for E2E.</constraint>
+    <constraint type="api">Chat API POST /api/ai-buddy/chat already accepts projectId. Ensure projectId is always passed from active project context.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>useActiveProject return</name>
+      <kind>hook return type</kind>
+      <signature>
+{
+  activeProject: Project | null;
+  activeProjectId: string | null;
+  setActiveProject: (project: Project | null) => void;
+  setActiveProjectId: (id: string | null) => void;
+  clearActiveProject: () => void;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-active-project.ts</path>
+    </interface>
+    <interface>
+      <name>useConversations options</name>
+      <kind>hook options</kind>
+      <signature>
+interface UseConversationsOptions {
+  projectId?: string;
+  autoFetch?: boolean;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-conversations.ts</path>
+    </interface>
+    <interface>
+      <name>useChat options</name>
+      <kind>hook options</kind>
+      <signature>
+interface UseChatOptions {
+  conversationId?: string;
+  projectId?: string;
+  onError?: (error: Error) => void;
+  onConversationCreated?: (conversation: Conversation) => void;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-chat.ts</path>
+    </interface>
+    <interface>
+      <name>Chat API request body</name>
+      <kind>REST endpoint</kind>
+      <signature>
+POST /api/ai-buddy/chat
+{
+  conversationId?: string;
+  projectId?: string;  // &lt;-- Must be passed from activeProjectId
+  message: string;
+  attachments?: Array&lt;{ documentId: string; type: string }&gt;;
+}
+      </signature>
+      <path>src/app/api/ai-buddy/chat/route.ts</path>
+    </interface>
+    <interface>
+      <name>ProjectContextHeader props</name>
+      <kind>component props (NEW)</kind>
+      <signature>
+interface ProjectContextHeaderProps {
+  projectName?: string | null;
+  isLoading?: boolean;
+  className?: string;
+}
+      </signature>
+      <path>src/components/ai-buddy/project-context-header.tsx (CREATE)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses vitest for unit tests and @testing-library/react for component tests. E2E uses Playwright. Component tests mock hooks and verify render behavior. Follow existing test patterns in __tests__/components/ai-buddy/*.test.tsx. Use data-testid attributes for E2E selectors. Performance tests use performance.now() for timing assertions.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/project-context-header.test.tsx (CREATE)</location>
+      <location>__tests__/hooks/ai-buddy/use-conversations.test.ts (UPDATE if exists)</location>
+      <location>__tests__/e2e/ai-buddy-context-switching.spec.ts (CREATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-16.2.1">Test ProjectContextHeader renders "AI Buddy · Johnson Family" when project prop is "Johnson Family"</idea>
+      <idea ac="AC-16.2.2">Test ProjectContextHeader renders "AI Buddy" when project prop is null</idea>
+      <idea ac="AC-16.2.1">Test 35-char project name truncates to 30 chars with "..." and full name in title attribute</idea>
+      <idea ac="AC-16.2.3">Integration test: sendMessage includes projectId in fetch body when activeProjectId set</idea>
+      <idea ac="AC-16.2.4">Performance test: Measure time from project click to header update, assert under 50ms</idea>
+      <idea ac="AC-16.2.6">Test useConversations fetchConversations called when projectId changes</idea>
+      <idea ac="AC-16.2.6">E2E: Click project A, verify conversations list updates to project A's conversations</idea>
+      <idea ac="AC-16.2.2">E2E: Click "clear project" or general chat, verify header shows "AI Buddy" without project name</idea>
+    </ideas>
+  </tests>
+</story-context>

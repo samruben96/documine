@@ -89,6 +89,8 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
 
   // Track if initial fetch has happened
   const hasFetchedRef = useRef(false);
+  // Track previous projectId to detect changes
+  const prevProjectIdRef = useRef<string | undefined>(projectId);
 
   /**
    * Fetch conversations list with optional pagination and search
@@ -344,6 +346,26 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
       fetchConversations();
     }
   }, [autoFetch, fetchConversations]);
+
+  /**
+   * Story 16.2: Re-fetch conversations when projectId changes (AC-16.2.6)
+   * Also clears activeConversation to prevent showing wrong project's conversation
+   */
+  useEffect(() => {
+    // Skip initial render
+    if (prevProjectIdRef.current === undefined && projectId === undefined) {
+      return;
+    }
+
+    // Detect actual change
+    if (prevProjectIdRef.current !== projectId) {
+      prevProjectIdRef.current = projectId;
+      // Clear active conversation when switching projects
+      setActiveConversation(null);
+      // Re-fetch conversations for new project
+      fetchConversations();
+    }
+  }, [projectId, fetchConversations]);
 
   return {
     conversations,

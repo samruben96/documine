@@ -46,9 +46,12 @@ export default function AiBuddyPage() {
     addConversation,
     refresh,
     selectConversation,
+    // Story 16.2: Get activeProjectId for chat API (AC-16.2.3)
+    activeProjectId,
   } = useAiBuddyContext();
 
-  // useChat with conversation ID from context
+  // useChat with conversation ID and project ID from context
+  // Story 16.2: Pass activeProjectId so new conversations are scoped to project (AC-16.2.3, AC-16.2.5)
   const {
     messages: chatMessages,
     isLoading: isSending,
@@ -58,6 +61,7 @@ export default function AiBuddyPage() {
     clearMessages,
   } = useChat({
     conversationId: selectedConversationId ?? undefined,
+    projectId: activeProjectId ?? undefined,
     onConversationCreated: (conv) => {
       // Add to sidebar list and select it
       addConversation(conv);
@@ -77,6 +81,13 @@ export default function AiBuddyPage() {
       clearMessages();
     }
   }, [selectedConversationId, clearMessages]);
+
+  // Story 16.2: Clear messages when switching projects (AC-16.2.6)
+  // This ensures we don't show stale messages from another project
+  useEffect(() => {
+    clearMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProjectId]);
 
   // Refresh conversations list after sending a message (to update order)
   useEffect(() => {
