@@ -1,0 +1,304 @@
+<story-context id="15-1-chat-input-component" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>1</storyId>
+    <title>Chat Input Component</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-15/stories/15-1-chat-input-component/15-1-chat-input-component.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>to type messages in a chat input box</iWant>
+    <soThat>I can communicate with AI Buddy</soThat>
+    <tasks>
+      <task id="1" ac="15.1.1,15.1.5">Replace input element with auto-expanding textarea
+        <subtask>1.1: Change input to textarea with controlled height</subtask>
+        <subtask>1.2: Implement auto-resize logic using ref and scrollHeight</subtask>
+        <subtask>1.3: Cap height at 4 lines (~96px), enable scroll overflow beyond</subtask>
+        <subtask>1.4: Style with rounded corners matching UX spec</subtask>
+      </task>
+      <task id="2" ac="15.1.4">Implement keyboard handling
+        <subtask>2.1: Add onKeyDown handler for Enter vs Shift+Enter</subtask>
+        <subtask>2.2: Prevent form submission on Shift+Enter</subtask>
+        <subtask>2.3: Call onSend on Enter when input is non-empty</subtask>
+      </task>
+      <task id="3" ac="15.1.6,15.1.8">Add character counter
+        <subtask>3.1: Add max-length validation (4000 chars)</subtask>
+        <subtask>3.2: Show character count when > 3500 chars</subtask>
+        <subtask>3.3: Show warning color when approaching limit</subtask>
+      </task>
+      <task id="4" ac="15.1.7">Implement focus management
+        <subtask>4.1: Clear input value after successful send</subtask>
+        <subtask>4.2: Return focus to textarea after send</subtask>
+        <subtask>4.3: Use useRef for focus management</subtask>
+      </task>
+      <task id="5">Add attach button for document attachment
+        <subtask>5.1: Add optional onAttach prop to interface</subtask>
+        <subtask>5.2: Render attach button (paperclip icon) when onAttach provided</subtask>
+      </task>
+      <task id="6">Write unit tests
+        <subtask>6.1: Test send button disabled when empty</subtask>
+        <subtask>6.2: Test Enter key sends message</subtask>
+        <subtask>6.3: Test Shift+Enter creates newline</subtask>
+        <subtask>6.4: Test auto-expand up to 4 lines</subtask>
+        <subtask>6.5: Test character count visibility threshold</subtask>
+        <subtask>6.6: Test max character limit</subtask>
+        <subtask>6.7: Test focus after send</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-15.1.1" verification="visual">Rounded input box at bottom of chat area</criterion>
+    <criterion id="AC-15.1.2" verification="visual">Placeholder text "Message AI Buddy..."</criterion>
+    <criterion id="AC-15.1.3" verification="unit-test">Send button (arrow icon) disabled when input is empty</criterion>
+    <criterion id="AC-15.1.4" verification="unit-test,e2e">Enter key sends message, Shift+Enter inserts newline</criterion>
+    <criterion id="AC-15.1.5" verification="unit-test">Textarea auto-expands up to 4 lines, then scrolls</criterion>
+    <criterion id="AC-15.1.6" verification="unit-test">Character count shown when > 3500 characters</criterion>
+    <criterion id="AC-15.1.7" verification="unit-test">Input clears and refocuses after successful send</criterion>
+    <criterion id="AC-15.1.8" verification="unit-test">Maximum 4000 character limit enforced</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-15/tech-spec.md" title="Epic 15 Tech Spec" section="Story 15.1: Chat Input Component">
+        Defines ChatInputProps interface with onSend, onAttach, disabled, placeholder, maxLength props. Specifies auto-expand to 4 lines, Enter sends, Shift+Enter newline, character count at 3500+.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Project Structure">
+        Component location: src/components/ai-buddy/chat-input.tsx. Light theme with emerald accents. API response pattern for streaming.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-14/stories/14-5-component-scaffolding/14-5-component-scaffolding.md" title="Story 14.5" section="Components Created">
+        Scaffolded chat-input.tsx exists with basic ChatInputProps interface (onSend, disabled, placeholder, className).
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/components/ai-buddy/chat-input.tsx" kind="component" symbol="ChatInput" reason="MODIFY: Existing scaffold to upgrade with full functionality">
+        <snippet><![CDATA[
+/**
+ * Chat Input Component
+ * Story 14.5: Component Scaffolding
+ *
+ * Text input for sending messages to AI Buddy.
+ * Stub implementation - full functionality in Epic 15.
+ */
+
+'use client';
+
+import { useState } from 'react';
+import { Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+export interface ChatInputProps {
+  onSend?: (message: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+}
+
+export function ChatInput({
+  onSend,
+  disabled = false,
+  placeholder = 'Message AI Buddy...',
+  className,
+}: ChatInputProps) {
+  const [value, setValue] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (value.trim() && onSend) {
+      onSend(value.trim());
+      setValue('');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className={cn('relative', className)}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="w-full px-4 py-3 pr-12 rounded-xl border border-[var(--chat-border)] bg-[var(--chat-surface)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50"
+      />
+      <Button
+        type="submit"
+        size="icon"
+        disabled={disabled || !value.trim()}
+        className="absolute right-2 top-1/2 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+      >
+        <Send className="h-4 w-4" />
+      </Button>
+    </form>
+  );
+}
+        ]]></snippet>
+      </file>
+
+      <file path="src/components/chat/chat-input.tsx" kind="component" symbol="ChatInput" lines="1-224" reason="REFERENCE: Existing docuMINE chat input with auto-expand, keyboard handling, character count - USE AS PATTERN">
+        <snippet><![CDATA[
+// Key patterns to reuse:
+const MAX_CHARACTER_LIMIT = 1000;  // Change to 4000 for AI Buddy
+const CHARACTER_COUNT_THRESHOLD = 900;  // Change to 3500 for AI Buddy
+
+export interface ChatInputRef {
+  focus: () => void;
+  setValue: (value: string) => void;
+}
+
+// Auto-resize logic:
+const adjustHeight = useCallback(() => {
+  const textarea = textareaRef.current;
+  if (textarea) {
+    textarea.style.height = 'auto';
+    const maxHeight = 96;  // 4 lines
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  }
+}, []);
+
+// Keyboard handling:
+const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!isLoading && !isOverLimit) {
+      handleSend();
+    }
+  }
+  // Shift+Enter inserts newline (default behavior)
+};
+        ]]></snippet>
+      </file>
+
+      <file path="__tests__/components/chat/chat-input.test.tsx" kind="test" symbol="describe('ChatInput')" reason="REFERENCE: Test patterns for keyboard, character count, disabled state - ADAPT FOR AI BUDDY">
+        <snippet><![CDATA[
+// Test patterns to reuse:
+describe('AC-5.1.5: Keyboard shortcuts', () => {
+  it('Enter key sends message', async () => {
+    const user = userEvent.setup();
+    render(<ChatInput onSend={mockOnSend} />);
+    const textarea = screen.getByRole('textbox', { name: /message input/i });
+    await user.type(textarea, 'Hello world{Enter}');
+    expect(mockOnSend).toHaveBeenCalledWith('Hello world');
+  });
+
+  it('Shift+Enter inserts newline instead of sending', async () => {
+    const user = userEvent.setup();
+    render(<ChatInput onSend={mockOnSend} />);
+    const textarea = screen.getByRole('textbox', { name: /message input/i });
+    await user.type(textarea, 'Line 1{Shift>}{Enter}{/Shift}Line 2');
+    expect(mockOnSend).not.toHaveBeenCalled();
+    expect(textarea).toHaveValue('Line 1\nLine 2');
+  });
+});
+
+describe('AC-5.2.3: Character count display', () => {
+  it('shows character count at threshold', async () => {
+    const user = userEvent.setup();
+    render(<ChatInput onSend={mockOnSend} />);
+    const textarea = screen.getByRole('textbox', { name: /message input/i });
+    await user.type(textarea, 'a'.repeat(900));
+    expect(screen.getByText('900/1000')).toBeInTheDocument();
+  });
+});
+        ]]></snippet>
+      </file>
+
+      <file path="src/app/(dashboard)/ai-buddy/page.tsx" kind="page" symbol="AiBuddyPage" reason="CONTEXT: Page where ChatInput will be integrated - shows current placeholder">
+        <snippet><![CDATA[
+{/* Chat input placeholder - to be replaced with actual ChatInput component */}
+<div className="w-full max-w-2xl">
+  <div className="relative">
+    <input
+      type="text"
+      placeholder="Message AI Buddy..."
+      disabled
+      className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-300 disabled:opacity-50 shadow-sm"
+    />
+    <Button ... />
+  </div>
+</div>
+        ]]></snippet>
+      </file>
+
+      <file path="src/components/ui/button.tsx" kind="component" symbol="Button" reason="REUSE: shadcn/ui Button component already imported in scaffold"/>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="react" version="19.2.0"/>
+        <package name="lucide-react" version="^0.554.0" note="Send, Paperclip icons"/>
+        <package name="@radix-ui/react-slot" version="^1.2.4" note="Button component"/>
+        <package name="clsx" version="^2.1.1" note="cn utility"/>
+        <package name="tailwind-merge" version="^3.4.0" note="cn utility"/>
+      </node>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14"/>
+        <package name="@testing-library/react" version="^16.3.0"/>
+        <package name="@testing-library/user-event" version="^14.6.1"/>
+        <package name="happy-dom" version="^20.0.10"/>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use forwardRef pattern to expose focus() and setValue() methods via ChatInputRef interface (matches existing chat-input.tsx pattern)</constraint>
+    <constraint type="pattern">Light theme: slate colors (slate-200 borders, slate-500 placeholder), emerald accents (emerald-600 button, emerald-500 focus ring)</constraint>
+    <constraint type="styling">Tailwind CSS only - no inline styles except dynamic height calculation</constraint>
+    <constraint type="testing">Unit tests required for all ACs - follow existing test patterns in __tests__/components/chat/</constraint>
+    <constraint type="accessibility">aria-label on textarea, aria-describedby for error states, keyboard navigation</constraint>
+    <constraint type="limit">Max 4000 characters (AI Buddy), show count at 3500+ (different from docuMINE's 1000/900)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ChatInputProps" kind="TypeScript interface" path="src/components/ai-buddy/chat-input.tsx">
+      <signature><![CDATA[
+export interface ChatInputProps {
+  onSend: (message: string) => void;
+  onAttach?: () => void;          // Optional document attachment callback
+  disabled?: boolean;
+  placeholder?: string;           // Default: "Message AI Buddy..."
+  maxLength?: number;             // Default: 4000
+  className?: string;
+  autoFocus?: boolean;
+  isLoading?: boolean;
+}
+      ]]></signature>
+    </interface>
+    <interface name="ChatInputRef" kind="TypeScript interface" path="src/components/ai-buddy/chat-input.tsx">
+      <signature><![CDATA[
+export interface ChatInputRef {
+  focus: () => void;
+  setValue: (value: string) => void;
+}
+      ]]></signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with happy-dom. Tests in __tests__/components/ai-buddy/chat-input.test.tsx.
+      Follow existing patterns in __tests__/components/chat/chat-input.test.tsx.
+      Use @testing-library/react for rendering and userEvent for interactions.
+      Test each AC explicitly with descriptive test names referencing AC IDs.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/chat-input.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-15.1.1">Visual test: verify rounded-xl class on container</idea>
+      <idea ac="AC-15.1.2">Test placeholder attribute equals "Message AI Buddy..."</idea>
+      <idea ac="AC-15.1.3">Test send button disabled when value is empty or whitespace only</idea>
+      <idea ac="AC-15.1.4">Test Enter key calls onSend, Shift+Enter does not and adds newline</idea>
+      <idea ac="AC-15.1.5">Test textarea height increases with content up to maxHeight 96px</idea>
+      <idea ac="AC-15.1.6">Test character count appears at 3500, not at 3499</idea>
+      <idea ac="AC-15.1.7">Test value clears after send, textarea has focus</idea>
+      <idea ac="AC-15.1.8">Test send button disabled at 4001 chars, enabled at 4000</idea>
+    </ideas>
+  </tests>
+</story-context>

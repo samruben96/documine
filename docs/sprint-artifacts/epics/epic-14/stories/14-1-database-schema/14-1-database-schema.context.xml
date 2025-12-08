@@ -1,0 +1,182 @@
+<story-context id="14-1-database-schema" v="1.0">
+  <metadata>
+    <epicId>14</epicId>
+    <storyId>14.1</storyId>
+    <title>AI Buddy Database Schema</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-14/stories/14-1-database-schema/14-1-database-schema.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the AI Buddy database schema to be created with all required tables, indexes, and RLS policies</iWant>
+    <soThat>subsequent AI Buddy features have a secure, performant data layer to build upon</soThat>
+    <tasks>
+      <task id="1" status="pending">Create migration file (AC: 14.1.1, 14.1.3, 14.1.5, 14.1.6, 14.1.7)
+        <subtask>1.1 Create migration file with timestamp naming convention</subtask>
+        <subtask>1.2 Add CREATE TYPE statements for all 3 enums</subtask>
+        <subtask>1.3 Add CREATE TABLE for ai_buddy_projects with indexes</subtask>
+        <subtask>1.4 Add CREATE TABLE for ai_buddy_project_documents with index</subtask>
+        <subtask>1.5 Add CREATE TABLE for ai_buddy_conversations with indexes</subtask>
+        <subtask>1.6 Add CREATE TABLE for ai_buddy_messages with indexes (including FTS GIN)</subtask>
+        <subtask>1.7 Add CREATE TABLE for ai_buddy_guardrails</subtask>
+        <subtask>1.8 Add CREATE TABLE for ai_buddy_permissions with index</subtask>
+        <subtask>1.9 Add CREATE TABLE for ai_buddy_audit_logs with indexes</subtask>
+        <subtask>1.10 Add CREATE TABLE for ai_buddy_rate_limits with default data</subtask>
+        <subtask>1.11 Add ALTER TABLE users for ai_buddy_preferences column</subtask>
+      </task>
+      <task id="2" status="pending">Implement RLS policies (AC: 14.1.2, 14.1.4)
+        <subtask>2.1 Enable RLS on all 8 tables</subtask>
+        <subtask>2.2 Add SELECT/INSERT/UPDATE/DELETE policies for ai_buddy_projects</subtask>
+        <subtask>2.3 Add SELECT/INSERT/UPDATE policies for ai_buddy_conversations</subtask>
+        <subtask>2.4 Add SELECT/INSERT policies for ai_buddy_messages</subtask>
+        <subtask>2.5 Add SELECT policy (all users) and UPDATE policy (admins) for ai_buddy_guardrails</subtask>
+        <subtask>2.6 Add INSERT policy (service) and SELECT policy (admins) for ai_buddy_audit_logs</subtask>
+        <subtask>2.7 Verify NO update/delete policies on audit_logs</subtask>
+      </task>
+      <task id="3" status="pending">Test migration locally (AC: All)
+        <subtask>3.1 Apply migration to local Supabase</subtask>
+        <subtask>3.2 Verify all tables exist with correct columns</subtask>
+        <subtask>3.3 Verify indexes exist (use pg_indexes view)</subtask>
+        <subtask>3.4 Verify enums exist (use pg_type)</subtask>
+        <subtask>3.5 Test RLS policies with different user contexts</subtask>
+      </task>
+      <task id="4" status="pending">Apply migration to production (AC: All)
+        <subtask>4.1 Run migration via Supabase MCP</subtask>
+        <subtask>4.2 Verify migration applied successfully</subtask>
+        <subtask>4.3 Run list_tables to confirm all tables exist</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="14.1.1" priority="P0">Tables Created: All 8 AI Buddy tables created with correct schema - ai_buddy_projects, ai_buddy_project_documents, ai_buddy_conversations, ai_buddy_messages, ai_buddy_guardrails, ai_buddy_permissions, ai_buddy_audit_logs, ai_buddy_rate_limits</criterion>
+    <criterion id="14.1.2" priority="P0">RLS Policies Enforce User Isolation: Users can only CRUD their own projects/conversations/messages; admins manage guardrails; audit logs append-only</criterion>
+    <criterion id="14.1.3" priority="P1">Indexes Created for Performance: 12 indexes including idx_projects_user, idx_conversations_user, idx_messages_conversation, idx_messages_content_fts (GIN), idx_audit_logs_agency_date</criterion>
+    <criterion id="14.1.4" priority="P0">Audit Logs Are Append-Only: No UPDATE or DELETE policies exist on ai_buddy_audit_logs; INSERT via service role only</criterion>
+    <criterion id="14.1.5" priority="P0">Users Table Extended: ai_buddy_preferences JSONB column added with default '{}'::jsonb</criterion>
+    <criterion id="14.1.6" priority="P0">Enums Created: ai_buddy_message_role, ai_buddy_confidence_level, ai_buddy_permission ENUMs</criterion>
+    <criterion id="14.1.7" priority="P1">Default Rate Limits Seeded: free (10/min, 100/day), pro (30/min, 500/day), enterprise (60/min, 2000/day)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-14/tech-spec.md" title="Epic 14 Tech Spec" section="4. Data Models">
+        Complete table definitions, column types, indexes, and RLS policies for all 8 AI Buddy tables. Section 4.2 has CREATE TABLE SQL, Section 4.3 has RLS policies.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture">
+        High-level ERD showing Projects → Conversations → Messages hierarchy. Indexes and RLS policy patterns. JSONB usage for flexible fields.
+      </doc>
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="SaaS B2B Specific Requirements">
+        Multi-tenancy architecture, permissions model (Producer/Admin/Owner), audit log requirements for 7-year retention.
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="supabase/migrations/00001_initial_schema.sql" kind="migration" reason="Pattern for table creation - uses agencies/users FKs, timestamps, uuid primary keys">
+        <note>Pattern: CREATE TABLE with agency_id FK, user_id FK, timestamps (created_at, updated_at)</note>
+        <note>Existing users table structure - will need ALTER TABLE to add ai_buddy_preferences</note>
+      </artifact>
+      <artifact path="supabase/migrations/00003_rls_policies.sql" kind="migration" reason="Pattern for RLS policies - uses get_user_agency_id() helper function">
+        <note>Pattern: Enable RLS, CREATE POLICY with agency_id scoping via helper function</note>
+        <note>Uses SELECT (SELECT agency_id FROM users WHERE id = auth.uid()) pattern</note>
+      </artifact>
+      <artifact path="supabase/migrations/00007_queue_management.sql" kind="migration" reason="Recent migration pattern - shows current naming convention">
+        <note>Latest migration number: 00007 - next should be 00008_ai_buddy_foundation.sql</note>
+      </artifact>
+      <artifact path="src/types/database.types.ts" kind="types" reason="Will need regeneration after migration - shows current table types">
+        <note>Users table has: id, agency_id, email, full_name, role, created_at, updated_at</note>
+        <note>No ai_buddy_preferences column exists yet - confirms ALTER TABLE needed</note>
+      </artifact>
+      <artifact path="src/lib/rate-limit.ts" kind="service" reason="Existing rate limiting pattern using Supabase RPC">
+        <note>Uses rate_limits table + increment_rate_limit() RPC function</note>
+        <note>AI Buddy will have its own ai_buddy_rate_limits table (tier-based)</note>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <ecosystem name="npm">
+        <package name="@supabase/supabase-js" version="^2.84.0">Database client</package>
+        <package name="@supabase/ssr" version="^0.7.0">SSR helpers for auth</package>
+      </ecosystem>
+      <ecosystem name="supabase">
+        <extension name="uuid-ossp">UUID generation with gen_random_uuid()</extension>
+        <extension name="pgvector">Vector search (existing)</extension>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">All tables MUST include agency_id FK for multi-tenant isolation</constraint>
+    <constraint source="architecture">RLS policies MUST use auth.uid() for user identification</constraint>
+    <constraint source="architecture">Use gen_random_uuid() for UUID primary keys (Postgres native)</constraint>
+    <constraint source="architecture">JSONB for flexible schema fields (preferences, sources, metadata)</constraint>
+    <constraint source="architecture">Soft deletes via deleted_at/archived_at nullable timestamps</constraint>
+    <constraint source="security">Audit logs MUST be append-only - NO UPDATE/DELETE policies</constraint>
+    <constraint source="security">Audit log retention minimum 7 years per insurance industry standards</constraint>
+    <constraint source="pattern">Follow existing migration naming: 00008_ai_buddy_foundation.sql</constraint>
+    <constraint source="pattern">All tables prefixed with ai_buddy_ to avoid naming conflicts</constraint>
+    <constraint source="pattern">Indexes on all frequently queried columns (user_id, agency_id, conversation_id)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="get_user_agency_id()" kind="SQL function" path="supabase/migrations/00003_rls_policies.sql">
+      <signature>CREATE OR REPLACE FUNCTION get_user_agency_id() RETURNS UUID AS $$ SELECT agency_id FROM users WHERE id = auth.uid() $$ LANGUAGE sql SECURITY DEFINER;</signature>
+      <note>Reuse this helper in ai_buddy RLS policies for agency scoping</note>
+    </interface>
+    <interface name="auth.uid()" kind="Supabase built-in">
+      <signature>auth.uid() → UUID</signature>
+      <note>Returns current authenticated user ID from JWT</note>
+    </interface>
+    <interface name="agencies(id)" kind="FK reference">
+      <signature>REFERENCES agencies(id) ON DELETE CASCADE</signature>
+      <note>All AI Buddy tables reference agencies for multi-tenant isolation</note>
+    </interface>
+    <interface name="users(id)" kind="FK reference">
+      <signature>REFERENCES users(id) ON DELETE CASCADE</signature>
+      <note>Projects, conversations, messages, permissions reference users</note>
+    </interface>
+    <interface name="documents(id)" kind="FK reference">
+      <signature>REFERENCES documents(id) ON DELETE CASCADE</signature>
+      <note>ai_buddy_project_documents references existing documents table</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Schema tests: Verify column types, constraints, defaults using pg_catalog queries</standard>
+      <standard>RLS tests: Test with different user contexts (owner, other user, admin) using SET ROLE</standard>
+      <standard>Index tests: Use EXPLAIN ANALYZE to verify index usage on common queries</standard>
+      <standard>Immutability test: Attempt UPDATE/DELETE on audit_logs (should fail)</standard>
+      <standard>Apply migration via Supabase MCP apply_migration tool</standard>
+    </standards>
+    <locations>
+      <location>Migration file: supabase/migrations/00008_ai_buddy_foundation.sql</location>
+      <location>Schema validation: Use mcp__supabase__execute_sql to verify tables/columns</location>
+      <location>RLS validation: Use mcp__supabase__execute_sql with different auth contexts</location>
+    </locations>
+    <ideas>
+      <idea ac="14.1.1">Query pg_tables to verify all 8 ai_buddy_* tables exist</idea>
+      <idea ac="14.1.2">Test RLS by inserting/selecting with auth.uid() set to different users</idea>
+      <idea ac="14.1.3">Query pg_indexes to verify all 12 indexes exist</idea>
+      <idea ac="14.1.4">Attempt UPDATE on audit_logs - should return permission denied</idea>
+      <idea ac="14.1.5">Query information_schema.columns for users.ai_buddy_preferences</idea>
+      <idea ac="14.1.6">Query pg_type for ai_buddy_message_role, ai_buddy_confidence_level, ai_buddy_permission</idea>
+      <idea ac="14.1.7">Query ai_buddy_rate_limits for 3 default tier rows</idea>
+    </ideas>
+  </tests>
+
+  <devNotes>
+    <note category="pattern">Use Supabase MCP apply_migration tool to apply the migration to production</note>
+    <note category="pattern">After migration, regenerate types with mcp__supabase__generate_typescript_types</note>
+    <note category="pattern">Migration file: 00008_ai_buddy_foundation.sql (next after 00007_queue_management.sql)</note>
+    <note category="security">Audit logs INSERT policy: Use explicit service role check WITH CHECK (auth.role() = 'service_role') per existing pattern in 00003_rls_policies.sql</note>
+    <note category="security">Permission checks for guardrails/audit require checking ai_buddy_permissions table</note>
+    <note category="security">AI Buddy uses user-level isolation (user_id = auth.uid()) for projects/conversations, not agency-level like existing tables</note>
+    <note category="performance">GIN index on messages content enables full-text search with to_tsvector('english', content)</note>
+    <note category="integration">ai_buddy_project_documents creates junction to existing documents table</note>
+    <note category="integration">Reuse existing get_user_agency_id() helper from 00003_rls_policies.sql for agency-scoped policies</note>
+  </devNotes>
+</story-context>

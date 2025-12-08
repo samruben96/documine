@@ -1,0 +1,201 @@
+<story-context id="13-4-testing-validation" v="1.0">
+  <metadata>
+    <epicId>13</epicId>
+    <storyId>4</storyId>
+    <title>Testing &amp; Validation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-13/stories/13-4-testing-validation/13-4-testing-validation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>product owner</asA>
+    <iWant>comprehensive testing of the LlamaParse migration</iWant>
+    <soThat>I'm confident the system works for all document types before removing fallbacks</soThat>
+    <tasks>
+      <task id="1" priority="P0">Upload and test 126-page insurance PDF (25-26 CPKG Policy CIN.PDF)</task>
+      <task id="2" priority="P0">Test "foran auto nationwide.pdf" - previously hung with Docling</task>
+      <task id="3" priority="P1">Test 3+ standard quote documents</task>
+      <task id="4" priority="P0">Verify Chat/RAG functionality with test documents</task>
+      <task id="5" priority="P0">Document performance benchmarks</task>
+      <task id="6" priority="P1">Test error handling (corrupted PDF, password-protected, non-PDF)</task>
+      <task id="7" priority="P0">Verify page markers are correctly extracted for citations</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-13.4.1" name="Large Document Test">
+      <description>Upload 126-page insurance PDF, verify processing completes in &lt;120s, all pages extracted, document appears in library, chat retrieves context correctly</description>
+      <testFile>__tests__/e2e/document-ai-processing.spec.ts (adapt for LlamaParse)</testFile>
+    </criterion>
+    <criterion id="AC-13.4.2" name="Previously Problematic Document">
+      <description>Upload "foran auto nationwide.pdf", processing completes in &lt;60s, no timeout or hang, document content is searchable via chat</description>
+    </criterion>
+    <criterion id="AC-13.4.3" name="Standard Quote Documents">
+      <description>Test 3+ insurance quote PDFs, all process successfully, extraction data populates, chat provides accurate coverage answers</description>
+    </criterion>
+    <criterion id="AC-13.4.4" name="Chat/RAG Validation">
+      <description>Ask "What coverages are included?" - get relevant answer; Ask about specific limits - get accurate numbers; Verify source citations point to correct pages</description>
+      <relatedCode>src/lib/chat/vector-search.ts, src/lib/chat/rag.ts</relatedCode>
+    </criterion>
+    <criterion id="AC-13.4.5" name="Performance Benchmarks">
+      <description>Small (1-10 pages): &lt;15s; Medium (10-50 pages): &lt;30s; Large (50-150 pages): &lt;90s; No memory errors; No timeout errors</description>
+    </criterion>
+    <criterion id="AC-13.4.6" name="Error Handling Validation">
+      <description>Corrupted PDF - graceful error; Password-protected PDF - clear error message; Non-PDF file - rejected appropriately; Error messages are user-friendly</description>
+      <relatedCode>supabase/functions/process-document/llamaparse-client.ts:147-197 (error classes)</relatedCode>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/tech-spec/tech-spec-epic-13.md</path>
+        <title>Epic 13 Tech Spec - LlamaParse Migration</title>
+        <section>Testing Strategy</section>
+        <snippet>Unit tests for mock API responses, verify markdown parsing, verify page marker extraction. Integration tests with real PDFs. E2E tests for 126-page insurance PDF.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/epic.md</path>
+        <title>Epic 13: LlamaParse Migration</title>
+        <section>Success Criteria</section>
+        <snippet>126-page insurance PDF processes successfully. All existing chat/RAG functionality works. Processing time &lt;60s for typical documents. Zero Document AI code remains.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/rag-pipeline-architecture-implemented.md</path>
+        <title>RAG Pipeline Architecture</title>
+        <section>Current Production Pipeline</section>
+        <snippet>Query → Embedding → Hybrid Search → Reranker → RAG Context → Claude. Uses Cohere Rerank 3.5, Claude Sonnet 4.5 via OpenRouter. Table-aware chunking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/stories/13-1-llamaparse-api-client/13-1-llamaparse-api-client.md</path>
+        <title>Story 13.1: LlamaParse API Client</title>
+        <section>Implementation</section>
+        <snippet>parseDocumentWithLlamaParse() function, convertToDoclingResult(), extractPageMarkersWithIndices(). Page marker format: --- PAGE {pageNumber} ---</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-13/stories/13-2-edge-function-integration/13-2-edge-function-integration.md</path>
+        <title>Story 13.2: Edge Function Integration</title>
+        <section>Implementation</section>
+        <snippet>LlamaParse integrated into process-document Edge Function. Progress callback at 0-100% during parsing. classifyLlamaParseError() for error handling.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>supabase/functions/process-document/llamaparse-client.ts</path>
+        <kind>service</kind>
+        <symbol>parseDocumentWithLlamaParse</symbol>
+        <lines>583-655</lines>
+        <reason>Main entry point for document parsing - must validate this works correctly with various PDFs</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/functions/process-document/llamaparse-client.ts</path>
+        <kind>utility</kind>
+        <symbol>extractPageMarkersWithIndices</symbol>
+        <lines>483-541</lines>
+        <reason>Critical for citation system - page markers must be correctly extracted for chat source citations</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/functions/process-document/llamaparse-client.ts</path>
+        <kind>utility</kind>
+        <symbol>convertToDoclingResult</symbol>
+        <lines>550-562</lines>
+        <reason>Compatibility layer - converts LlamaParse output to DoclingResult format for existing pipeline</reason>
+      </artifact>
+      <artifact>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>handler</symbol>
+        <reason>Main Edge Function that orchestrates document processing - LlamaParse integration point</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/chat/vector-search.ts</path>
+        <kind>service</kind>
+        <symbol>searchChunks</symbol>
+        <reason>Chat RAG search - must verify chunks created by LlamaParse are searchable</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/lib/llamaparse/client.test.ts</path>
+        <kind>test</kind>
+        <symbol>LlamaParse Client tests</symbol>
+        <lines>1-546</lines>
+        <reason>Existing unit tests - 24 tests for page marker extraction, DoclingResult conversion, retry logic</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/e2e/document-ai-processing.spec.ts</path>
+        <kind>test</kind>
+        <symbol>E2E processing tests</symbol>
+        <reason>Existing E2E test for document processing - may need adaptation for LlamaParse validation</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <nodejs>
+        <package name="openai" version="^6.9.1" purpose="Embeddings and chat completions" />
+        <package name="cohere-ai" version="^7.20.0" purpose="Reranking for RAG" />
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Database and storage" />
+        <package name="vitest" version="^4.0.14" purpose="Unit testing" />
+        <package name="@playwright/test" version="^1.57.0" purpose="E2E testing" />
+      </nodejs>
+      <environment>
+        <var name="LLAMA_CLOUD_API_KEY" location="Supabase Edge Function secrets" purpose="LlamaParse API authentication" />
+        <var name="OPENAI_API_KEY" location="Vercel/Supabase secrets" purpose="Embeddings generation" />
+        <var name="COHERE_API_KEY" location="Vercel secrets" purpose="Reranking" />
+      </environment>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance">LlamaParse free tier: 10,000 pages/month - be mindful of test document sizes</constraint>
+    <constraint type="compatibility">Page markers must use format: --- PAGE {pageNumber} --- to match existing splitByPages() regex</constraint>
+    <constraint type="architecture">Output must be convertible to DoclingResult format for downstream chunking pipeline</constraint>
+    <constraint type="testing">Story 13.3 (code cleanup) already complete - Document AI and Docling code removed</constraint>
+    <constraint type="dependency">Stories 13.1 and 13.2 are complete - LlamaParse is integrated</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="parseDocumentWithLlamaParse" kind="function">
+      <signature>async function parseDocumentWithLlamaParse(fileBuffer: ArrayBuffer, filename: string, config: LlamaParseConfig, onProgress?: (stage: string, percent: number) => Promise&lt;void&gt;): Promise&lt;LlamaParseResult&gt;</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:583</path>
+    </interface>
+    <interface name="LlamaParseConfig" kind="type">
+      <signature>interface LlamaParseConfig { apiKey: string; baseUrl?: string; pollingIntervalMs?: number; maxWaitTimeMs?: number; }</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:22-31</path>
+    </interface>
+    <interface name="LlamaParseResult" kind="type">
+      <signature>interface LlamaParseResult { markdown: string; pageCount: number; jobId: string; processingTimeMs: number; }</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:37-46</path>
+    </interface>
+    <interface name="DoclingResult" kind="type">
+      <signature>interface DoclingResult { markdown: string; pageMarkers: PageMarker[]; pageCount: number; }</signature>
+      <path>supabase/functions/process-document/llamaparse-client.ts:76-80</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E tests. Tests located in __tests__/ directory. Run with `npm run test` for unit tests. Edge Function testing requires real API calls or manual testing via Supabase dashboard/logs.
+    </standards>
+    <locations>
+      <location>__tests__/lib/llamaparse/client.test.ts</location>
+      <location>__tests__/e2e/document-ai-processing.spec.ts</location>
+      <location>__tests__/e2e/*.spec.ts (E2E patterns)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-13.4.1">Manual test: Upload 126-page PDF, verify in Supabase logs processing time &lt;120s, check document_chunks count matches pages</idea>
+      <idea ac="AC-13.4.2">Manual test: Upload "foran auto nationwide.pdf", verify no timeout in Edge Function logs, check document status = 'ready'</idea>
+      <idea ac="AC-13.4.3">Manual test: Upload 3+ quote PDFs, verify extraction_data column populated, test chat responses</idea>
+      <idea ac="AC-13.4.4">Manual test: Ask coverage/limits questions, verify source citations show correct page numbers matching content</idea>
+      <idea ac="AC-13.4.5">Performance logging: Use Edge Function logs to track llamaParseTimeMs, compare against benchmarks</idea>
+      <idea ac="AC-13.4.6">Manual test: Upload corrupted.pdf, password.pdf, image.jpg - verify error_message column has user-friendly text</idea>
+    </ideas>
+    <manualTestProcedure>
+      <step n="1">Deploy Edge Function: npx supabase functions deploy process-document</step>
+      <step n="2">Monitor logs: npx supabase functions logs process-document --scroll</step>
+      <step n="3">Upload test documents via app UI or Supabase Storage API</step>
+      <step n="4">Verify in Supabase: SELECT * FROM documents WHERE filename LIKE '%test%' ORDER BY created_at DESC</step>
+      <step n="5">Test chat functionality: Ask questions, verify source citations</step>
+      <step n="6">Record performance metrics in story test matrix</step>
+    </manualTestProcedure>
+  </tests>
+</story-context>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Buddy - Color Theme Explorer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .header p {
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .themes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+      .themes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .theme-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid #e2e8f0;
+    }
+
+    .theme-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .theme-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .theme-header .personality {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .theme-header .best-for {
+      font-size: 0.75rem;
+      background: #f1f5f9;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: #475569;
+    }
+
+    .palette-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .palette-section h3 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .color-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .color-swatch {
+      flex: 1;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 0.25rem;
+      font-size: 0.625rem;
+      font-weight: 500;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .color-swatch.light-text {
+      color: #1e293b;
+      text-shadow: none;
+    }
+
+    .semantic-colors {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+
+    .semantic-swatch {
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.625rem;
+      font-weight: 500;
+      color: white;
+    }
+
+    .components-section {
+      padding: 1.5rem;
+    }
+
+    .components-section h3 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+
+    .component-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .input-demo {
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      border: 1px solid #e2e8f0;
+      width: 180px;
+      outline: none;
+    }
+
+    .card-demo {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .card-demo h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-demo p {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .alert-demo {
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chat-preview {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 0.75rem;
+    }
+
+    .chat-message {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      margin-bottom: 0.5rem;
+      max-width: 80%;
+      font-size: 0.813rem;
+    }
+
+    .chat-message.user {
+      margin-left: auto;
+      color: white;
+    }
+
+    .chat-message.ai {
+      background: white;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Theme 1: Trust Blue */
+    .theme-trust-blue .color-primary { background: #1e40af; }
+    .theme-trust-blue .color-primary-light { background: #3b82f6; }
+    .theme-trust-blue .color-primary-dark { background: #1e3a8a; }
+    .theme-trust-blue .color-secondary { background: #0891b2; }
+    .theme-trust-blue .color-secondary-light { background: #22d3ee; }
+    .theme-trust-blue .color-accent { background: #059669; }
+    .theme-trust-blue .color-bg { background: #f8fafc; }
+    .theme-trust-blue .color-surface { background: #ffffff; }
+    .theme-trust-blue .color-border { background: #e2e8f0; }
+    .theme-trust-blue .color-text { background: #0f172a; }
+    .theme-trust-blue .color-muted { background: #64748b; }
+    .theme-trust-blue .btn-primary { background: #1e40af; color: white; }
+    .theme-trust-blue .btn-primary:hover { background: #1e3a8a; }
+    .theme-trust-blue .btn-secondary { background: white; border: 1px solid #e2e8f0; color: #1e293b; }
+    .theme-trust-blue .btn-ghost { background: transparent; color: #1e40af; }
+    .theme-trust-blue .input-demo:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .theme-trust-blue .chat-message.user { background: #1e40af; }
+    .theme-trust-blue .alert-success { background: #ecfdf5; color: #065f46; border-left: 3px solid #059669; }
+    .theme-trust-blue .alert-error { background: #fef2f2; color: #991b1b; border-left: 3px solid #dc2626; }
+
+    /* Theme 2: Calm Teal */
+    .theme-calm-teal .color-primary { background: #0d9488; }
+    .theme-calm-teal .color-primary-light { background: #14b8a6; }
+    .theme-calm-teal .color-primary-dark { background: #0f766e; }
+    .theme-calm-teal .color-secondary { background: #6366f1; }
+    .theme-calm-teal .color-secondary-light { background: #818cf8; }
+    .theme-calm-teal .color-accent { background: #f59e0b; }
+    .theme-calm-teal .color-bg { background: #f0fdfa; }
+    .theme-calm-teal .color-surface { background: #ffffff; }
+    .theme-calm-teal .color-border { background: #ccfbf1; }
+    .theme-calm-teal .color-text { background: #134e4a; }
+    .theme-calm-teal .color-muted { background: #5eead4; }
+    .theme-calm-teal .btn-primary { background: #0d9488; color: white; }
+    .theme-calm-teal .btn-primary:hover { background: #0f766e; }
+    .theme-calm-teal .btn-secondary { background: white; border: 1px solid #ccfbf1; color: #134e4a; }
+    .theme-calm-teal .btn-ghost { background: transparent; color: #0d9488; }
+    .theme-calm-teal .input-demo:focus { border-color: #14b8a6; box-shadow: 0 0 0 3px rgba(20,184,166,0.1); }
+    .theme-calm-teal .chat-message.user { background: #0d9488; }
+    .theme-calm-teal .alert-success { background: #ecfdf5; color: #065f46; border-left: 3px solid #10b981; }
+    .theme-calm-teal .alert-error { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+
+    /* Theme 3: Slate Professional */
+    .theme-slate-pro .color-primary { background: #475569; }
+    .theme-slate-pro .color-primary-light { background: #64748b; }
+    .theme-slate-pro .color-primary-dark { background: #334155; }
+    .theme-slate-pro .color-secondary { background: #6366f1; }
+    .theme-slate-pro .color-secondary-light { background: #818cf8; }
+    .theme-slate-pro .color-accent { background: #8b5cf6; }
+    .theme-slate-pro .color-bg { background: #f8fafc; }
+    .theme-slate-pro .color-surface { background: #ffffff; }
+    .theme-slate-pro .color-border { background: #e2e8f0; }
+    .theme-slate-pro .color-text { background: #0f172a; }
+    .theme-slate-pro .color-muted { background: #94a3b8; }
+    .theme-slate-pro .btn-primary { background: #475569; color: white; }
+    .theme-slate-pro .btn-primary:hover { background: #334155; }
+    .theme-slate-pro .btn-secondary { background: white; border: 1px solid #e2e8f0; color: #1e293b; }
+    .theme-slate-pro .btn-ghost { background: transparent; color: #6366f1; }
+    .theme-slate-pro .input-demo:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .theme-slate-pro .chat-message.user { background: #6366f1; }
+    .theme-slate-pro .alert-success { background: #f0fdf4; color: #166534; border-left: 3px solid #22c55e; }
+    .theme-slate-pro .alert-error { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+
+    /* Theme 4: Warm Neutral */
+    .theme-warm-neutral .color-primary { background: #78716c; }
+    .theme-warm-neutral .color-primary-light { background: #a8a29e; }
+    .theme-warm-neutral .color-primary-dark { background: #57534e; }
+    .theme-warm-neutral .color-secondary { background: #d97706; }
+    .theme-warm-neutral .color-secondary-light { background: #fbbf24; }
+    .theme-warm-neutral .color-accent { background: #ea580c; }
+    .theme-warm-neutral .color-bg { background: #fafaf9; }
+    .theme-warm-neutral .color-surface { background: #ffffff; }
+    .theme-warm-neutral .color-border { background: #e7e5e4; }
+    .theme-warm-neutral .color-text { background: #1c1917; }
+    .theme-warm-neutral .color-muted { background: #a8a29e; }
+    .theme-warm-neutral .btn-primary { background: #78716c; color: white; }
+    .theme-warm-neutral .btn-primary:hover { background: #57534e; }
+    .theme-warm-neutral .btn-secondary { background: white; border: 1px solid #e7e5e4; color: #1c1917; }
+    .theme-warm-neutral .btn-ghost { background: transparent; color: #d97706; }
+    .theme-warm-neutral .input-demo:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.1); }
+    .theme-warm-neutral .chat-message.user { background: #78716c; }
+    .theme-warm-neutral .alert-success { background: #f0fdf4; color: #166534; border-left: 3px solid #22c55e; }
+    .theme-warm-neutral .alert-error { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+
+    .semantic-success { background: #059669; }
+    .semantic-warning { background: #d97706; }
+    .semantic-error { background: #dc2626; }
+    .semantic-info { background: #0891b2; }
+
+    .recommendation {
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 2rem;
+    }
+
+    .recommendation h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .recommendation p {
+      opacity: 0.9;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>AI Buddy - Color Theme Explorer</h1>
+    <p>Four theme directions optimized for insurance professionals. Clean, trustworthy, calming.</p>
+  </div>
+
+  <div class="container">
+    <div class="themes-grid">
+
+      <!-- Theme 1: Trust Blue -->
+      <div class="theme-card theme-trust-blue">
+        <div class="theme-header">
+          <h2>1. Trust Blue</h2>
+          <p class="personality">Professional, Authoritative, Secure</p>
+          <span class="best-for">Best for: Enterprise agencies, compliance-focused</span>
+        </div>
+
+        <div class="palette-section">
+          <h3>Core Palette</h3>
+          <div class="color-row">
+            <div class="color-swatch color-primary">#1e40af</div>
+            <div class="color-swatch color-primary-light">#3b82f6</div>
+            <div class="color-swatch color-primary-dark">#1e3a8a</div>
+          </div>
+          <div class="color-row">
+            <div class="color-swatch color-secondary">#0891b2</div>
+            <div class="color-swatch color-secondary-light">#22d3ee</div>
+            <div class="color-swatch color-accent">#059669</div>
+          </div>
+          <h3 style="margin-top: 1rem;">Semantic Colors</h3>
+          <div class="semantic-colors">
+            <div class="semantic-swatch semantic-success">Success</div>
+            <div class="semantic-swatch semantic-warning">Warning</div>
+            <div class="semantic-swatch semantic-error">Error</div>
+            <div class="semantic-swatch semantic-info">Info</div>
+          </div>
+        </div>
+
+        <div class="components-section">
+          <h3>Component Examples</h3>
+          <div class="component-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-ghost">Ghost</button>
+          </div>
+          <div class="component-row">
+            <input type="text" class="input-demo" placeholder="Type a message...">
+          </div>
+          <div class="chat-preview">
+            <div class="chat-message ai">Hi! I'm AI Buddy. How can I help you today?</div>
+            <div class="chat-message user">What's the coverage limit on the Johnson policy?</div>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <div class="alert-demo alert-success">Policy uploaded successfully</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme 2: Calm Teal -->
+      <div class="theme-card theme-calm-teal">
+        <div class="theme-header">
+          <h2>2. Calm Teal</h2>
+          <p class="personality">Calming, Supportive, Approachable</p>
+          <span class="best-for">Best for: Reducing agent stress, friendly feel</span>
+        </div>
+
+        <div class="palette-section">
+          <h3>Core Palette</h3>
+          <div class="color-row">
+            <div class="color-swatch color-primary">#0d9488</div>
+            <div class="color-swatch color-primary-light">#14b8a6</div>
+            <div class="color-swatch color-primary-dark">#0f766e</div>
+          </div>
+          <div class="color-row">
+            <div class="color-swatch color-secondary">#6366f1</div>
+            <div class="color-swatch color-secondary-light">#818cf8</div>
+            <div class="color-swatch color-accent">#f59e0b</div>
+          </div>
+          <h3 style="margin-top: 1rem;">Semantic Colors</h3>
+          <div class="semantic-colors">
+            <div class="semantic-swatch semantic-success">Success</div>
+            <div class="semantic-swatch semantic-warning">Warning</div>
+            <div class="semantic-swatch semantic-error">Error</div>
+            <div class="semantic-swatch semantic-info">Info</div>
+          </div>
+        </div>
+
+        <div class="components-section">
+          <h3>Component Examples</h3>
+          <div class="component-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-ghost">Ghost</button>
+          </div>
+          <div class="component-row">
+            <input type="text" class="input-demo" placeholder="Type a message...">
+          </div>
+          <div class="chat-preview">
+            <div class="chat-message ai">Hi! I'm AI Buddy. How can I help you today?</div>
+            <div class="chat-message user">What's the coverage limit on the Johnson policy?</div>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <div class="alert-demo alert-success">Policy uploaded successfully</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme 3: Slate Professional -->
+      <div class="theme-card theme-slate-pro">
+        <div class="theme-header">
+          <h2>3. Slate Professional</h2>
+          <p class="personality">Minimal, Modern, Focused</p>
+          <span class="best-for">Best for: Power users, information-dense views</span>
+        </div>
+
+        <div class="palette-section">
+          <h3>Core Palette</h3>
+          <div class="color-row">
+            <div class="color-swatch color-primary">#475569</div>
+            <div class="color-swatch color-primary-light">#64748b</div>
+            <div class="color-swatch color-primary-dark">#334155</div>
+          </div>
+          <div class="color-row">
+            <div class="color-swatch color-secondary">#6366f1</div>
+            <div class="color-swatch color-secondary-light">#818cf8</div>
+            <div class="color-swatch color-accent">#8b5cf6</div>
+          </div>
+          <h3 style="margin-top: 1rem;">Semantic Colors</h3>
+          <div class="semantic-colors">
+            <div class="semantic-swatch semantic-success">Success</div>
+            <div class="semantic-swatch semantic-warning">Warning</div>
+            <div class="semantic-swatch semantic-error">Error</div>
+            <div class="semantic-swatch semantic-info">Info</div>
+          </div>
+        </div>
+
+        <div class="components-section">
+          <h3>Component Examples</h3>
+          <div class="component-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-ghost">Ghost</button>
+          </div>
+          <div class="component-row">
+            <input type="text" class="input-demo" placeholder="Type a message...">
+          </div>
+          <div class="chat-preview">
+            <div class="chat-message ai">Hi! I'm AI Buddy. How can I help you today?</div>
+            <div class="chat-message user">What's the coverage limit on the Johnson policy?</div>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <div class="alert-demo alert-success">Policy uploaded successfully</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Theme 4: Warm Neutral -->
+      <div class="theme-card theme-warm-neutral">
+        <div class="theme-header">
+          <h2>4. Warm Neutral</h2>
+          <p class="personality">Friendly, Inviting, Human</p>
+          <span class="best-for">Best for: Personal agencies, relationship-focused</span>
+        </div>
+
+        <div class="palette-section">
+          <h3>Core Palette</h3>
+          <div class="color-row">
+            <div class="color-swatch color-primary">#78716c</div>
+            <div class="color-swatch color-primary-light">#a8a29e</div>
+            <div class="color-swatch color-primary-dark">#57534e</div>
+          </div>
+          <div class="color-row">
+            <div class="color-swatch color-secondary">#d97706</div>
+            <div class="color-swatch color-secondary-light">#fbbf24</div>
+            <div class="color-swatch color-accent">#ea580c</div>
+          </div>
+          <h3 style="margin-top: 1rem;">Semantic Colors</h3>
+          <div class="semantic-colors">
+            <div class="semantic-swatch semantic-success">Success</div>
+            <div class="semantic-swatch semantic-warning">Warning</div>
+            <div class="semantic-swatch semantic-error">Error</div>
+            <div class="semantic-swatch semantic-info">Info</div>
+          </div>
+        </div>
+
+        <div class="components-section">
+          <h3>Component Examples</h3>
+          <div class="component-row">
+            <button class="btn btn-primary">Primary</button>
+            <button class="btn btn-secondary">Secondary</button>
+            <button class="btn btn-ghost">Ghost</button>
+          </div>
+          <div class="component-row">
+            <input type="text" class="input-demo" placeholder="Type a message...">
+          </div>
+          <div class="chat-preview">
+            <div class="chat-message ai">Hi! I'm AI Buddy. How can I help you today?</div>
+            <div class="chat-message user">What's the coverage limit on the Johnson policy?</div>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <div class="alert-demo alert-success">Policy uploaded successfully</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="recommendation">
+      <h3>Recommendation: Trust Blue</h3>
+      <p>Based on the PRD requirements for "trustworthy, professional, calming" and the insurance industry context,
+      <strong>Trust Blue</strong> is the recommended theme. It conveys authority and security while maintaining
+      approachability. The deep blue primary builds confidence, while the teal secondary adds a modern,
+      tech-forward feel without sacrificing professionalism.</p>
+    </div>
+
+  </div>
+</body>
+</html>

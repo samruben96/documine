@@ -259,3 +259,45 @@ This is an **excellent implementation** of the Message Display Component. All 8 
 - ✅ XSS via markdown: Mitigated (react-markdown sanitizes by default)
 - ✅ Link safety: External links use `rel="noopener noreferrer"`
 - ✅ User input display: Content rendered through React (no dangerouslySetInnerHTML)
+
+## Post-Review Enhancement: Virtualization
+
+**Date:** 2025-12-07
+**Author:** Dev Agent
+
+### Enhancement Summary
+
+Added `react-virtuoso` for performance at scale:
+
+- **Before:** Rendered all messages in DOM (slow for 500+ messages)
+- **After:** Virtualized rendering - only visible messages + 200px overscan
+
+### Implementation
+
+```tsx
+import { Virtuoso } from 'react-virtuoso';
+
+<Virtuoso
+  data={messages}
+  itemContent={renderMessage}
+  followOutput="smooth"           // Auto-scroll on new messages
+  initialTopMostItemIndex={messages.length - 1}  // Start at bottom
+  overscan={200}                  // Buffer for smooth scrolling
+/>
+```
+
+### Benefits
+
+- Handles 1000+ message conversations without lag
+- Built-in auto-scroll via `followOutput`
+- Variable height messages auto-measured
+- ~8KB gzipped bundle addition
+
+### Also Fixed: AI Buddy Page Integration
+
+The AI Buddy page had a disabled placeholder input. Updated to use real components:
+- `ChatInput` from Story 15.1
+- `ChatMessageList` from Story 15.2
+- `useChat` hook for state management
+
+Users can now type and send messages (mock responses until Story 15.3 API).

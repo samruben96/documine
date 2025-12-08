@@ -3,6 +3,8 @@
 ## Table of Contents
 
 - [Project: docuMINE](#table-of-contents)
+  - [Feature Modules](#feature-modules)
+  - [Feature Reference](./features.md)
   - [GitHub Repositories](./github-repositories.md)
   - [Deployments](./deployments.md)
   - [Project Structure](./project-structure.md)

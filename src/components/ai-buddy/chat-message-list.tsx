@@ -2,18 +2,21 @@
  * Chat Message List Component
  * Story 15.2: Message Display Component
  *
- * Renders a scrollable list of chat messages with auto-scroll.
+ * Renders a virtualized scrollable list of chat messages with auto-scroll.
+ * Uses react-virtuoso for performance with large message histories.
  *
  * Implements:
  * - AC-15.2.3: Messages display in chronological order (oldest at top)
  * - AC-15.2.4: Auto-scroll to newest message when new messages arrive
  * - AC-15.2.7: Typing indicator shown during AI response streaming
  * - AC-15.2.8: Empty state shown when no messages in conversation
+ * - Performance: Virtualized rendering for 500+ message conversations
  */
 
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { MessageSquare } from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { StreamingIndicator } from './streaming-indicator';
@@ -63,11 +66,12 @@ function EmptyState() {
 /**
  * Chat Message List Component
  *
- * Renders a scrollable list of chat messages with:
+ * Renders a virtualized list of chat messages with:
  * - Chronological ordering (oldest at top)
- * - Auto-scroll to bottom on new messages
+ * - Auto-scroll to bottom on new messages (followOutput)
  * - Streaming indicator during AI response
  * - Empty state when no messages
+ * - Virtualization for performance at scale
  */
 export function ChatMessageList({
   messages,
@@ -77,76 +81,37 @@ export function ChatMessageList({
   className,
   userName,
 }: ChatMessageListProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollAnchorRef = useRef<HTMLDivElement>(null);
-  const prevMessageCountRef = useRef<number>(messages.length);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   /**
-   * Check if user is near bottom of scroll container
-   * Used to determine whether to auto-scroll
+   * Render individual message item
+   * Used by Virtuoso's itemContent prop
    */
-  const isNearBottom = useCallback((): boolean => {
-    const container = scrollContainerRef.current;
-    if (!container) return true;
+  const renderMessage = useCallback(
+    (index: number, message: Message) => (
+      <ChatMessage
+        key={message.id}
+        message={message}
+        onCitationClick={onCitationClick}
+        userName={userName}
+      />
+    ),
+    [onCitationClick, userName]
+  );
 
-    const threshold = 100; // pixels from bottom
+  /**
+   * Footer component containing streaming indicator
+   * Rendered after all messages when AI is generating
+   */
+  const Footer = useCallback(() => {
+    if (!isLoading) return null;
     return (
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      threshold
+      <StreamingIndicator
+        isVisible={true}
+        streamingContent={streamingContent}
+      />
     );
-  }, []);
-
-  /**
-   * Scroll to bottom of message list
-   * Uses smooth behavior for better UX
-   * AC-15.2.4
-   */
-  const scrollToBottom = useCallback((smooth = true) => {
-    scrollAnchorRef.current?.scrollIntoView({
-      behavior: smooth ? 'smooth' : 'instant',
-      block: 'end',
-    });
-  }, []);
-
-  /**
-   * Auto-scroll when new messages arrive
-   * Only scrolls if user is already near the bottom
-   * AC-15.2.4
-   */
-  useEffect(() => {
-    const currentCount = messages.length;
-    const prevCount = prevMessageCountRef.current;
-
-    // New message arrived
-    if (currentCount > prevCount) {
-      // Only auto-scroll if user is near bottom
-      if (isNearBottom()) {
-        scrollToBottom();
-      }
-    }
-
-    prevMessageCountRef.current = currentCount;
-  }, [messages.length, isNearBottom, scrollToBottom]);
-
-  /**
-   * Auto-scroll when streaming content updates
-   * Keeps the streaming message in view
-   */
-  useEffect(() => {
-    if (isLoading && streamingContent && isNearBottom()) {
-      scrollToBottom();
-    }
-  }, [isLoading, streamingContent, isNearBottom, scrollToBottom]);
-
-  /**
-   * Scroll to bottom when isLoading starts
-   * Ensures user sees the typing indicator
-   */
-  useEffect(() => {
-    if (isLoading && isNearBottom()) {
-      scrollToBottom();
-    }
-  }, [isLoading, isNearBottom, scrollToBottom]);
+  }, [isLoading, streamingContent]);
 
   // AC-15.2.8: Show empty state when no messages
   if (messages.length === 0 && !isLoading) {
@@ -157,40 +122,43 @@ export function ChatMessageList({
     );
   }
 
-  return (
-    <div
-      ref={scrollContainerRef}
-      className={cn(
-        'flex-1 overflow-y-auto',
-        // Add padding for content
-        'px-4 py-2',
-        className
-      )}
-      data-testid="chat-message-list"
-      role="log"
-      aria-live="polite"
-      aria-label="Chat messages"
-    >
-      {/* AC-15.2.3: Messages in chronological order (oldest at top) */}
-      {messages.map((message) => (
-        <ChatMessage
-          key={message.id}
-          message={message}
-          onCitationClick={onCitationClick}
-          userName={userName}
-        />
-      ))}
-
-      {/* AC-15.2.7: Streaming indicator during AI response */}
-      {isLoading && (
+  // Show just streaming indicator when loading with no messages
+  if (messages.length === 0 && isLoading) {
+    return (
+      <div
+        className={cn('flex-1 overflow-y-auto px-4 py-2', className)}
+        data-testid="chat-message-list"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         <StreamingIndicator
           isVisible={true}
           streamingContent={streamingContent}
         />
-      )}
+      </div>
+    );
+  }
 
-      {/* Scroll anchor for auto-scroll */}
-      <div ref={scrollAnchorRef} aria-hidden="true" />
-    </div>
+  return (
+    <Virtuoso
+      ref={virtuosoRef}
+      data={messages}
+      itemContent={renderMessage}
+      components={{ Footer }}
+      // AC-15.2.4: Auto-scroll to newest message
+      // 'smooth' follows new messages when user is at bottom
+      followOutput="smooth"
+      // Start scrolled to bottom (chat-style)
+      initialTopMostItemIndex={messages.length - 1}
+      // Overscan for smoother scrolling
+      overscan={200}
+      className={cn('flex-1', className)}
+      data-testid="chat-message-list"
+      role="log"
+      aria-live="polite"
+      aria-label="Chat messages"
+      style={{ height: '100%' }}
+    />
   );
 }

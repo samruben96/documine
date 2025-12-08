@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Buddy - Design Directions (ChatGPT-Style)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --sidebar-bg: #171717;
+      --sidebar-hover: #212121;
+      --sidebar-active: #2d2d2d;
+      --sidebar-text: #ececec;
+      --sidebar-muted: #8e8e8e;
+      --chat-bg: #212121;
+      --chat-surface: #2d2d2d;
+      --chat-border: #3d3d3d;
+      --text-primary: #ececec;
+      --text-muted: #8e8e8e;
+      --user-msg-bg: #2d2d2d;
+      --ai-msg-bg: transparent;
+      --input-bg: #2d2d2d;
+      --input-border: #3d3d3d;
+      --accent-green: #10b981;
+      --accent-blue: #3b82f6;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .nav-bar {
+      background: #0a0a0a;
+      border-bottom: 1px solid #2d2d2d;
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-bar h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .nav-tab:hover {
+      background: #2d2d2d;
+      color: var(--text-primary);
+    }
+
+    .nav-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .direction-container {
+      display: none;
+      min-height: calc(100vh - 60px);
+    }
+
+    .direction-container.active {
+      display: block;
+    }
+
+    .direction-header {
+      background: #0a0a0a;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #2d2d2d;
+    }
+
+    .direction-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+
+    .direction-header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .direction-meta {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    .meta-tag {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      background: #2d2d2d;
+      color: var(--text-muted);
+    }
+
+    /* ===== MOCKUP FRAME ===== */
+    .mockup-frame {
+      height: calc(100vh - 180px);
+      min-height: 600px;
+      background: #0a0a0a;
+      padding: 1.5rem;
+    }
+
+    .mockup-window {
+      background: var(--chat-bg);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+    }
+
+    /* ===== CHATGPT-STYLE SIDEBAR ===== */
+    .chatgpt-sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-top {
+      padding: 0.75rem;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: transparent;
+      border: 1px solid #3d3d3d;
+      border-radius: 8px;
+      color: var(--sidebar-text);
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.15s;
+    }
+
+    .new-chat-btn:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .sidebar-section {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--sidebar-muted);
+      padding: 0.75rem 0.75rem 0.5rem;
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .project-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      margin: 0 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: var(--sidebar-text);
+    }
+
+    .project-item:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .project-item.active {
+      background: var(--sidebar-active);
+    }
+
+    .project-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #3d3d3d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .project-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .project-name {
+      font-size: 0.875rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-meta {
+      font-size: 0.6875rem;
+      color: var(--sidebar-muted);
+    }
+
+    .chat-history-item {
+      padding: 0.625rem 0.75rem;
+      margin: 0 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--sidebar-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chat-history-item:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .sidebar-bottom {
+      padding: 0.75rem;
+      border-top: 1px solid #2d2d2d;
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .user-menu:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-size: 0.875rem;
+      color: var(--sidebar-text);
+    }
+
+    .user-plan {
+      font-size: 0.6875rem;
+      color: var(--sidebar-muted);
+    }
+
+    /* ===== CHATGPT-STYLE MAIN AREA ===== */
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--chat-bg);
+    }
+
+    .chat-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--chat-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 0.75rem;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .model-selector:hover {
+      background: var(--chat-surface);
+    }
+
+    .chat-header-right {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .header-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-btn:hover {
+      background: var(--chat-surface);
+      color: var(--text-primary);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 0;
+    }
+
+    .message-container {
+      max-width: 768px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .message {
+      padding: 1.25rem 0;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .message + .message {
+      border-top: 1px solid var(--chat-border);
+    }
+
+    .message-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .message.user .message-avatar {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: white;
+    }
+
+    .message.ai .message-avatar {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+
+    .message-content {
+      flex: 1;
+      font-size: 0.9375rem;
+      line-height: 1.7;
+    }
+
+    .message-content strong {
+      font-weight: 600;
+    }
+
+    .message-content code {
+      background: #3d3d3d;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
+      font-size: 0.875rem;
+    }
+
+    .source-citation {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.75rem;
+      padding: 0.375rem 0.75rem;
+      background: var(--chat-surface);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    .source-citation:hover {
+      background: #3d3d3d;
+    }
+
+    .confidence-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-left: 0.5rem;
+      font-size: 0.6875rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 100px;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+    }
+
+    /* ===== CHAT INPUT AREA ===== */
+    .chat-input-container {
+      padding: 1rem 1.5rem 1.5rem;
+    }
+
+    .chat-input-wrapper {
+      max-width: 768px;
+      margin: 0 auto;
+    }
+
+    .input-box {
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+    }
+
+    .input-box:focus-within {
+      border-color: #4d4d4d;
+    }
+
+    .input-actions-left {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .input-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .input-btn:hover {
+      background: #3d3d3d;
+      color: var(--text-primary);
+    }
+
+    .input-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      resize: none;
+      max-height: 200px;
+      line-height: 1.5;
+    }
+
+    .input-field:focus {
+      outline: none;
+    }
+
+    .input-field::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      background: white;
+      color: #171717;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .send-btn:hover {
+      background: #e5e5e5;
+    }
+
+    .send-btn:disabled {
+      background: #3d3d3d;
+      color: #5d5d5d;
+      cursor: not-allowed;
+    }
+
+    .input-hint {
+      text-align: center;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+    }
+
+    /* ===== DOCUMENT CONTEXT PANEL ===== */
+    .doc-context-panel {
+      width: 300px;
+      border-left: 1px solid var(--chat-border);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-panel-header {
+      padding: 1rem;
+      border-bottom: 1px solid #2d2d2d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .doc-panel-header h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--sidebar-text);
+    }
+
+    .doc-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 0.5rem;
+      background: #212121;
+    }
+
+    .doc-item:hover {
+      background: #2d2d2d;
+    }
+
+    .doc-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background: #dc2626;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6875rem;
+      font-weight: 600;
+    }
+
+    .doc-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .doc-name {
+      font-size: 0.8125rem;
+      color: var(--sidebar-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+      font-size: 0.6875rem;
+      color: var(--sidebar-muted);
+    }
+
+    .upload-area {
+      margin: 0.5rem;
+      padding: 1.5rem;
+      border: 2px dashed #3d3d3d;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .upload-area:hover {
+      border-color: #4d4d4d;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .upload-area p {
+      font-size: 0.75rem;
+      color: var(--sidebar-muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ===== ADMIN/SETTINGS STYLES ===== */
+    .settings-layout {
+      display: flex;
+      height: 100%;
+    }
+
+    .settings-sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      padding: 1rem 0;
+      border-right: 1px solid #2d2d2d;
+    }
+
+    .settings-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin: 0 0.5rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--sidebar-text);
+      cursor: pointer;
+    }
+
+    .settings-nav-item:hover {
+      background: var(--sidebar-hover);
+    }
+
+    .settings-nav-item.active {
+      background: var(--sidebar-active);
+    }
+
+    .settings-content {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      background: var(--chat-bg);
+    }
+
+    .settings-section {
+      max-width: 640px;
+      margin-bottom: 2rem;
+    }
+
+    .settings-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .settings-card {
+      background: var(--chat-surface);
+      border: 1px solid var(--chat-border);
+      border-radius: 12px;
+      padding: 1rem;
+    }
+
+    .guardrail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--chat-border);
+    }
+
+    .guardrail-row:last-child {
+      border-bottom: none;
+    }
+
+    .guardrail-info h4 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .guardrail-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: #3d3d3d;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle.on {
+      background: var(--accent-green);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      top: 2px;
+      left: 2px;
+      transition: left 0.2s;
+    }
+
+    .toggle.on::after {
+      left: 22px;
+    }
+
+    .carrier-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .carrier-tag {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      background: #3d3d3d;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .carrier-tag .remove {
+      cursor: pointer;
+      opacity: 0.6;
+    }
+
+    .carrier-tag .remove:hover {
+      opacity: 1;
+      color: #ef4444;
+    }
+
+    .add-tag {
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+    }
+
+    /* ===== ONBOARDING ===== */
+    .onboarding-bg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background: linear-gradient(180deg, #171717 0%, #212121 100%);
+    }
+
+    .onboarding-card {
+      background: var(--chat-surface);
+      border: 1px solid var(--chat-border);
+      border-radius: 16px;
+      max-width: 440px;
+      width: 100%;
+      padding: 2rem;
+    }
+
+    .onboarding-progress {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .progress-step {
+      height: 4px;
+      flex: 1;
+      border-radius: 2px;
+      background: #3d3d3d;
+    }
+
+    .progress-step.done {
+      background: var(--accent-green);
+    }
+
+    .progress-step.current {
+      background: var(--primary);
+    }
+
+    .onboarding-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .onboarding-card h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .onboarding-card > p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-field {
+      margin-bottom: 1rem;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-field input {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
+    .form-field input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .chip {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--chat-border);
+      border-radius: 100px;
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      border-color: var(--primary);
+    }
+
+    .chip.selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .btn-continue {
+      width: 100%;
+      padding: 0.75rem;
+      background: white;
+      color: #171717;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 1.5rem;
+    }
+
+    .btn-continue:hover {
+      background: #e5e5e5;
+    }
+
+    .btn-skip {
+      width: 100%;
+      padding: 0.75rem;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    .btn-skip:hover {
+      color: var(--text-primary);
+    }
+
+    /* Info panel */
+    .info-panel {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #0a0a0a;
+      border: 1px solid #2d2d2d;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      max-width: 320px;
+      z-index: 200;
+    }
+
+    .info-panel h4 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.375rem;
+    }
+
+    .info-panel p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav-bar">
+    <h1>AI Buddy - ChatGPT-Style Design</h1>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showDirection(1)">1. Main Chat</button>
+      <button class="nav-tab" onclick="showDirection(2)">2. With Docs</button>
+      <button class="nav-tab" onclick="showDirection(3)">3. Admin</button>
+      <button class="nav-tab" onclick="showDirection(4)">4. Onboarding</button>
+    </div>
+  </nav>
+
+  <!-- Direction 1: Main ChatGPT-Style Interface -->
+  <div id="direction-1" class="direction-container active">
+    <div class="direction-header">
+      <h2>Main Chat Interface (ChatGPT-Style)</h2>
+      <p>Dark sidebar with projects/history, centered chat area, familiar ChatGPT interaction patterns.</p>
+      <div class="direction-meta">
+        <span class="meta-tag">ChatGPT-familiar</span>
+        <span class="meta-tag">Dark theme</span>
+        <span class="meta-tag">Projects as conversations</span>
+      </div>
+    </div>
+    <div class="mockup-frame">
+      <div class="mockup-window">
+        <!-- ChatGPT-Style Sidebar -->
+        <div class="chatgpt-sidebar">
+          <div class="sidebar-top">
+            <button class="new-chat-btn">
+              <span>+</span>
+              <span>New Chat</span>
+            </button>
+          </div>
+
+          <div class="sidebar-scroll">
+            <div class="sidebar-section-title">Projects</div>
+            <div class="project-item active">
+              <div class="project-icon">JF</div>
+              <div class="project-info">
+                <div class="project-name">Johnson Family</div>
+                <div class="project-meta">3 docs attached</div>
+              </div>
+            </div>
+            <div class="project-item">
+              <div class="project-icon">AC</div>
+              <div class="project-info">
+                <div class="project-name">Acme Corp Renewal</div>
+                <div class="project-meta">5 docs attached</div>
+              </div>
+            </div>
+            <div class="project-item">
+              <div class="project-icon">SM</div>
+              <div class="project-info">
+                <div class="project-name">Smith Manufacturing</div>
+                <div class="project-meta">2 docs attached</div>
+              </div>
+            </div>
+
+            <div class="sidebar-section-title">Recent</div>
+            <div class="chat-history-item">
+              <span>💬</span>
+              Coverage limits comparison
+            </div>
+            <div class="chat-history-item">
+              <span>💬</span>
+              Quote analysis help
+            </div>
+            <div class="chat-history-item">
+              <span>💬</span>
+              Endorsement lookup
+            </div>
+            <div class="chat-history-item">
+              <span>💬</span>
+              Premium calculation
+            </div>
+          </div>
+
+          <div class="sidebar-bottom">
+            <div class="user-menu">
+              <div class="user-avatar">SJ</div>
+              <div class="user-info">
+                <div class="user-name">Sarah Johnson</div>
+                <div class="user-plan">Pro Plan</div>
+              </div>
+              <span style="color: var(--sidebar-muted);">⋯</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <button class="model-selector">
+                <span style="font-size: 1rem;">🤖</span>
+                AI Buddy
+                <span style="font-size: 0.75rem; opacity: 0.5;">▼</span>
+              </button>
+            </div>
+            <div class="chat-header-right">
+              <button class="header-btn" title="Attach document">📎</button>
+              <button class="header-btn" title="Share">↗</button>
+            </div>
+          </div>
+
+          <div class="chat-messages">
+            <div class="message-container">
+              <div class="message ai">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                  Hi Sarah! I see you're working on the <strong>Johnson Family</strong> project. I have their current Progressive policy and the Travelers quote loaded in context.
+                  <br><br>
+                  How can I help you today? I can:
+                  <br>• Compare coverage between policies
+                  <br>• Look up specific coverage details
+                  <br>• Help analyze premium differences
+                  <br>• Find endorsements or exclusions
+                </div>
+              </div>
+
+              <div class="message user">
+                <div class="message-avatar">SJ</div>
+                <div class="message-content">
+                  What's the liability limit difference between the current policy and the new quote?
+                </div>
+              </div>
+
+              <div class="message ai">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                  The Johnson Family's current Progressive policy has <strong>100/300/100</strong> liability limits:
+                  <br>• $100,000 per person bodily injury
+                  <br>• $300,000 per accident bodily injury
+                  <br>• $100,000 property damage
+                  <br><br>
+                  The Travelers quote offers <strong>250/500/100</strong>:
+                  <br>• $250,000 per person (+$150k)
+                  <br>• $500,000 per accident (+$200k)
+                  <br>• $100,000 property damage (same)
+                  <br><br>
+                  The premium difference is <strong>$127/year more</strong> for the significantly higher bodily injury coverage.
+
+                  <div style="margin-top: 0.75rem;">
+                    <span class="source-citation">📄 Progressive Policy pg. 3</span>
+                    <span class="source-citation">📄 Travelers Quote pg. 1</span>
+                    <span class="confidence-indicator">✓ High Confidence</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <div class="input-box">
+                <div class="input-actions-left">
+                  <button class="input-btn" title="Attach">📎</button>
+                </div>
+                <textarea class="input-field" placeholder="Message AI Buddy..." rows="1"></textarea>
+                <button class="send-btn">↑</button>
+              </div>
+              <div class="input-hint">
+                AI Buddy can make mistakes. Verify important policy details.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h4>ChatGPT-Style Layout</h4>
+      <p>Dark sidebar with projects (instead of conversations), centered chat area, streaming responses. Users instantly feel familiar with the interface.</p>
+    </div>
+  </div>
+
+  <!-- Direction 2: With Document Context Panel -->
+  <div id="direction-2" class="direction-container">
+    <div class="direction-header">
+      <h2>Chat with Document Context Panel</h2>
+      <p>Optional right panel shows project documents for easy reference and attachment.</p>
+      <div class="direction-meta">
+        <span class="meta-tag">Document-aware</span>
+        <span class="meta-tag">Quick attach</span>
+        <span class="meta-tag">Source visibility</span>
+      </div>
+    </div>
+    <div class="mockup-frame">
+      <div class="mockup-window">
+        <!-- Sidebar -->
+        <div class="chatgpt-sidebar">
+          <div class="sidebar-top">
+            <button class="new-chat-btn">
+              <span>+</span>
+              <span>New Chat</span>
+            </button>
+          </div>
+
+          <div class="sidebar-scroll">
+            <div class="sidebar-section-title">Projects</div>
+            <div class="project-item active">
+              <div class="project-icon">JF</div>
+              <div class="project-info">
+                <div class="project-name">Johnson Family</div>
+                <div class="project-meta">3 docs</div>
+              </div>
+            </div>
+            <div class="project-item">
+              <div class="project-icon">AC</div>
+              <div class="project-info">
+                <div class="project-name">Acme Corp</div>
+                <div class="project-meta">5 docs</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-bottom">
+            <div class="user-menu">
+              <div class="user-avatar">SJ</div>
+              <div class="user-info">
+                <div class="user-name">Sarah Johnson</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-main">
+          <div class="chat-header">
+            <div class="chat-header-left">
+              <button class="model-selector">
+                🤖 AI Buddy
+              </button>
+              <span style="color: var(--text-muted); font-size: 0.8125rem;">· Johnson Family</span>
+            </div>
+            <div class="chat-header-right">
+              <button class="header-btn">📄</button>
+              <button class="header-btn">⚙</button>
+            </div>
+          </div>
+
+          <div class="chat-messages">
+            <div class="message-container">
+              <div class="message user">
+                <div class="message-avatar">SJ</div>
+                <div class="message-content">
+                  Does the Progressive policy have rental car coverage?
+                </div>
+              </div>
+
+              <div class="message ai">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                  Yes! The Johnson's Progressive policy includes <strong>Rental Reimbursement Coverage</strong>:
+                  <br><br>
+                  • <strong>Limit:</strong> $30/day, $900 max per occurrence
+                  <br>• <strong>Trigger:</strong> When their covered vehicle is being repaired due to a covered loss
+                  <br>• <strong>Waiting period:</strong> None specified
+                  <br><br>
+                  Note: This does NOT cover rental cars for pleasure trips - only when their vehicle is in the shop for a covered claim.
+
+                  <div style="margin-top: 0.75rem;">
+                    <span class="source-citation">📄 Progressive Policy pg. 12</span>
+                    <span class="confidence-indicator">✓ High Confidence</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <div class="input-box">
+                <button class="input-btn">📎</button>
+                <textarea class="input-field" placeholder="Ask about the Johnson Family account..." rows="1"></textarea>
+                <button class="send-btn">↑</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Document Context Panel -->
+        <div class="doc-context-panel">
+          <div class="doc-panel-header">
+            <h4>Project Documents</h4>
+            <button class="header-btn">+</button>
+          </div>
+          <div class="doc-panel-content">
+            <div class="doc-item" style="border: 1px solid var(--primary);">
+              <div class="doc-icon">PDF</div>
+              <div class="doc-info">
+                <div class="doc-name">Progressive_Policy.pdf</div>
+                <div class="doc-meta">Current policy · 24 pages</div>
+              </div>
+            </div>
+            <div class="doc-item">
+              <div class="doc-icon" style="background: #2563eb;">PDF</div>
+              <div class="doc-info">
+                <div class="doc-name">Travelers_Quote.pdf</div>
+                <div class="doc-meta">New quote · 8 pages</div>
+              </div>
+            </div>
+            <div class="doc-item">
+              <div class="doc-icon" style="background: #7c3aed;">PDF</div>
+              <div class="doc-info">
+                <div class="doc-name">Application.pdf</div>
+                <div class="doc-meta">Signed · 12 pages</div>
+              </div>
+            </div>
+            <div class="upload-area">
+              <span style="font-size: 1.5rem; opacity: 0.5;">📄</span>
+              <p>Drop files here or click to upload</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h4>Document Context Panel</h4>
+      <p>Optional collapsible panel shows documents attached to the current project. Click to preview, drag to attach to conversation.</p>
+    </div>
+  </div>
+
+  <!-- Direction 3: Admin Settings -->
+  <div id="direction-3" class="direction-container">
+    <div class="direction-header">
+      <h2>Admin Settings (Agency Principal View)</h2>
+      <p>Guardrails, approved carriers, and compliance controls. Within existing Settings page.</p>
+      <div class="direction-meta">
+        <span class="meta-tag">Compliance-first</span>
+        <span class="meta-tag">E&O Protection</span>
+        <span class="meta-tag">Agency control</span>
+      </div>
+    </div>
+    <div class="mockup-frame">
+      <div class="mockup-window">
+        <div class="settings-layout">
+          <div class="settings-sidebar">
+            <div class="settings-nav-item">👤 Profile</div>
+            <div class="settings-nav-item">🏢 Agency</div>
+            <div class="settings-nav-item active">🤖 AI Buddy</div>
+            <div class="settings-nav-item">👥 Team</div>
+            <div class="settings-nav-item">📊 Usage</div>
+            <div class="settings-nav-item">📋 Audit Log</div>
+            <div class="settings-nav-item">💳 Billing</div>
+          </div>
+
+          <div class="settings-content">
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text-primary);">AI Buddy Settings</h2>
+
+            <div class="settings-section">
+              <h3>🛡️ Compliance Guardrails</h3>
+              <div class="settings-card">
+                <div class="guardrail-row">
+                  <div class="guardrail-info">
+                    <h4>Approved Carriers Only</h4>
+                    <p>AI will only discuss carriers your agency is appointed with</p>
+                  </div>
+                  <div class="toggle on"></div>
+                </div>
+                <div class="guardrail-row">
+                  <div class="guardrail-info">
+                    <h4>E&O Disclosure Reminder</h4>
+                    <p>Remind agents that AI suggestions require human review</p>
+                  </div>
+                  <div class="toggle on"></div>
+                </div>
+                <div class="guardrail-row">
+                  <div class="guardrail-info">
+                    <h4>State Compliance Warnings</h4>
+                    <p>Flag when conversations involve multi-state compliance</p>
+                  </div>
+                  <div class="toggle on"></div>
+                </div>
+                <div class="guardrail-row">
+                  <div class="guardrail-info">
+                    <h4>AI Chatbot Disclosure</h4>
+                    <p>Show disclosure per Utah/Maine chatbot laws</p>
+                  </div>
+                  <div class="toggle on"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>✅ Approved Carriers</h3>
+              <div class="settings-card">
+                <p style="font-size: 0.875rem; color: var(--text-muted);">AI Buddy will only recommend these carriers:</p>
+                <div class="carrier-tags">
+                  <div class="carrier-tag">Progressive <span class="remove">×</span></div>
+                  <div class="carrier-tag">Travelers <span class="remove">×</span></div>
+                  <div class="carrier-tag">Hartford <span class="remove">×</span></div>
+                  <div class="carrier-tag">Safeco <span class="remove">×</span></div>
+                  <div class="carrier-tag">Liberty Mutual <span class="remove">×</span></div>
+                  <div class="carrier-tag add-tag">+ Add</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>🚫 Restricted Topics</h3>
+              <div class="settings-card">
+                <p style="font-size: 0.875rem; color: var(--text-muted);">AI will redirect away from these topics:</p>
+                <div class="carrier-tags">
+                  <div class="carrier-tag">Legal advice <span class="remove">×</span></div>
+                  <div class="carrier-tag">Claims processing <span class="remove">×</span></div>
+                  <div class="carrier-tag">Competitor pricing <span class="remove">×</span></div>
+                  <div class="carrier-tag add-tag">+ Add</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h4>Admin Controls</h4>
+      <p>Guardrails presented as protection, not restriction. Agency principals configure compliance rules that invisibly guide all producer conversations.</p>
+    </div>
+  </div>
+
+  <!-- Direction 4: Onboarding -->
+  <div id="direction-4" class="direction-container">
+    <div class="direction-header">
+      <h2>Quick Onboarding (< 2 minutes)</h2>
+      <p>Collect essential preferences, then immediately demonstrate value with personalized AI.</p>
+      <div class="direction-meta">
+        <span class="meta-tag">Quick setup</span>
+        <span class="meta-tag">Skip-friendly</span>
+        <span class="meta-tag">Immediate value</span>
+      </div>
+    </div>
+    <div class="mockup-frame">
+      <div class="mockup-window">
+        <div class="onboarding-bg">
+          <div class="onboarding-card">
+            <div class="onboarding-progress">
+              <div class="progress-step done"></div>
+              <div class="progress-step current"></div>
+              <div class="progress-step"></div>
+            </div>
+
+            <div class="onboarding-icon">🎯</div>
+
+            <h2>What do you work on most?</h2>
+            <p>This helps AI Buddy give you more relevant answers.</p>
+
+            <div class="form-field">
+              <label>Lines of Business</label>
+              <div class="chip-group">
+                <div class="chip selected">Personal Auto</div>
+                <div class="chip selected">Homeowners</div>
+                <div class="chip">Commercial</div>
+                <div class="chip">Life</div>
+                <div class="chip">Health</div>
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-top: 1.5rem;">
+              <label>Your go-to carriers</label>
+              <div class="chip-group">
+                <div class="chip selected">Progressive</div>
+                <div class="chip selected">Travelers</div>
+                <div class="chip">Hartford</div>
+                <div class="chip">Safeco</div>
+                <div class="chip">Liberty</div>
+                <div class="chip">Nationwide</div>
+              </div>
+            </div>
+
+            <button class="btn-continue">Continue →</button>
+            <button class="btn-skip">Skip for now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <h4>Onboarding Flow</h4>
+      <p>3-step flow: Name → Lines & Carriers → Start chatting. Chip selection for quick multi-select. Always skippable but immediately useful if completed.</p>
+    </div>
+  </div>
+
+  <script>
+    function showDirection(num) {
+      document.querySelectorAll('.direction-container').forEach(el => el.classList.remove('active'));
+      document.getElementById('direction-' + num).classList.add('active');
+      document.querySelectorAll('.nav-tab').forEach((el, i) => el.classList.toggle('active', i === num - 1));
+    }
+  </script>
+
+</body>
+</html>
