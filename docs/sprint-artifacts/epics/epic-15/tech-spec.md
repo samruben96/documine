@@ -623,13 +623,17 @@ export function checkGuardrails(message: string, config: GuardrailConfig): Guard
 
 ---
 
-### Story 15.5: Source Citations
+### Story 15.5: AI Response Quality & Attribution (Merged)
 
-**As a** user,
-**I want** AI responses to cite their sources,
-**So that** I can verify information and trust the answers.
+> **Note:** This story consolidates original stories 15.5, 15.6, and 15.7 due to tight coupling in prompt building, SSE parsing, and display logic. Approved by PM and SM on 2025-12-07.
+
+**As a** user asking questions to AI Buddy,
+**I want** responses that include source citations, confidence indicators, and respect agency guardrails invisibly,
+**So that** I can trust AI answers, verify information, and receive compliant responses without feeling restricted.
 
 **Acceptance Criteria:**
+
+*Source Citations:*
 - Inline citations: `[📄 Document Name pg. X]`
 - Citations styled in blue (#3b82f6)
 - Tooltip shows quoted text on hover
@@ -637,25 +641,7 @@ export function checkGuardrails(message: string, config: GuardrailConfig): Guard
 - SSE includes citation data
 - No citations for general knowledge
 
-**Technical Tasks:**
-1. Create `source-citation.tsx` component
-2. Implement citation parsing from AI response
-3. Add citation extraction to prompt
-4. Store citations in message `sources` column
-5. Integrate with document preview
-6. Unit tests
-
-**Estimate:** 5 points
-
----
-
-### Story 15.6: Confidence Indicators
-
-**As a** user,
-**I want** to see how confident AI Buddy is in its answers,
-**So that** I know when to verify information myself.
-
-**Acceptance Criteria:**
+*Confidence Indicators:*
 - Confidence badge below each AI response
 - High (green): from attached documents
 - Medium (amber): general knowledge, verify
@@ -663,25 +649,7 @@ export function checkGuardrails(message: string, config: GuardrailConfig): Guard
 - Hover tooltip explains each level
 - SSE includes confidence data
 
-**Technical Tasks:**
-1. Create `confidence-badge.tsx` component
-2. Implement confidence calculation logic
-3. Add confidence to AI prompt instructions
-4. Store in message `confidence` column
-5. Style per UX spec
-6. Unit tests
-
-**Estimate:** 3 points
-
----
-
-### Story 15.7: Guardrail-Aware Responses
-
-**As a** user,
-**I want** AI Buddy to stay within agency guidelines invisibly,
-**So that** I get helpful responses without feeling restricted.
-
-**Acceptance Criteria:**
+*Guardrail-Aware Responses:*
 - AI never says "I cannot", "blocked", or "restricted"
 - Restricted topics get helpful redirects
 - AI says "I don't know" when appropriate (no hallucination)
@@ -689,48 +657,59 @@ export function checkGuardrails(message: string, config: GuardrailConfig): Guard
 - Changes apply immediately
 
 **Technical Tasks:**
-1. Create `guardrails.ts` loader
-2. Create `prompt-builder.ts` with guardrail injection
-3. Implement invisible guardrail prompts
-4. Add guardrail logging to audit
-5. Create `audit-logger.ts` helper
-6. Integration tests for guardrail scenarios
 
-**Estimate:** 8 points
+*Phase A: Foundation*
+1. Create `guardrails.ts` with `loadGuardrails()` and `checkGuardrails()`
+2. Create `prompt-builder.ts` with system prompt construction
+3. Create `audit-logger.ts` for event logging
+4. Unit tests for guardrails and prompt builder
+
+*Phase B: Citation Extraction & Display*
+5. Add citation extraction logic to AI response parsing
+6. Create `source-citation.tsx` component with tooltip
+7. Integrate citations into `ChatMessage` component
+8. Add `sources` SSE event emission and storage
+
+*Phase C: Confidence Indicators*
+9. Implement confidence calculation logic (based on RAG hits)
+10. Create `confidence-badge.tsx` component with tooltip
+11. Add `confidence` SSE event emission and storage
+
+*Phase D: Integration & Testing*
+12. Update `/api/ai-buddy/chat` to use prompt builder with guardrails
+13. Integration tests for full flow
+14. E2E tests for citations, confidence, and guardrails
+
+**Estimate:** 16 points (combined from 5 + 3 + 8)
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Core Components (Stories 15.1, 15.2)
+### Phase 1: Core Components (Stories 15.1, 15.2) ✅ DONE
 - Chat input component
 - Message display components
 - Streaming indicator
 - Basic styling
 
-### Phase 2: Chat API (Story 15.3)
+### Phase 2: Chat API (Story 15.3) ✅ DONE
 - API route implementation
 - OpenRouter integration
 - SSE streaming
 - useChat hook
 
-### Phase 3: Persistence (Story 15.4)
+### Phase 3: Persistence (Story 15.4) ✅ DONE
 - Conversation CRUD
 - Message storage
 - Sidebar integration
 - History loading
 
-### Phase 4: Citations & Confidence (Stories 15.5, 15.6)
-- Citation component
-- Confidence badge
-- AI prompt instructions
-- Document preview integration
-
-### Phase 5: Guardrails (Story 15.7)
-- Guardrail loading
-- Prompt building
+### Phase 4: Quality & Attribution (Story 15.5 - Merged)
+- Guardrail loading and prompt building
+- Citation extraction and display
+- Confidence calculation and badges
 - Audit logging
-- Testing edge cases
+- Integration and E2E testing
 
 ---
 

@@ -1,6 +1,7 @@
 /**
  * AI Buddy Chat API Route
  * Story 15.3: Streaming Chat API
+ * Story 15.5: AI Response Quality & Attribution
  *
  * POST /api/ai-buddy/chat - Send a message and receive AI response (streaming)
  *
@@ -9,6 +10,11 @@
  * AC-15.3.4: SSE events include: chunk, sources, confidence, done, error types
  * AC-15.3.6: Rate limiting enforced (20 messages/minute default)
  * AC-15.3.8: Conversation auto-creates on first message if no conversationId
+ *
+ * Story 15.5 ACs:
+ * AC1-AC6: Source citations with SSE emission
+ * AC7-AC14: Confidence indicators with SSE emission
+ * AC15-AC20: Guardrail-aware responses via prompt builder
  */
 
 import { z } from 'zod';
@@ -16,7 +22,15 @@ import { createClient } from '@/lib/supabase/server';
 import { log } from '@/lib/utils/logger';
 import { getLLMClient, getModelId } from '@/lib/llm/config';
 import { checkAiBuddyRateLimit } from '@/lib/ai-buddy/rate-limiter';
-import type { ChatRequest, StreamChunk, Citation, ConfidenceLevel } from '@/types/ai-buddy';
+import { loadGuardrails, checkGuardrails } from '@/lib/ai-buddy/guardrails';
+import {
+  buildSystemPrompt,
+  extractCitationsFromResponse,
+  calculateConfidence,
+  type DocumentContext,
+} from '@/lib/ai-buddy/prompt-builder';
+import { logGuardrailEvent, logMessageEvent } from '@/lib/ai-buddy/audit-logger';
+import type { ChatRequest, Citation, ConfidenceLevel } from '@/types/ai-buddy';
 
 // Edge Runtime for low latency streaming (AC-15.3.2)
 export const runtime = 'edge';
@@ -40,6 +54,7 @@ const chatRequestSchema = z.object({
 
 /**
  * SSE Event types for AI Buddy streaming
+ * AC-15.3.4: chunk, sources, confidence, done, error
  */
 interface AiBuddySSEEvent {
   type: 'chunk' | 'sources' | 'confidence' | 'done' | 'error';
@@ -136,10 +151,10 @@ export async function POST(request: Request): Promise<Response> {
       return createErrorResponse('UNAUTHORIZED', 'Authentication required', 401);
     }
 
-    // Get user's agency
+    // Get user's agency and preferences
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('agency_id')
+      .select('agency_id, ai_buddy_preferences')
       .eq('id', user.id)
       .single();
 
@@ -151,6 +166,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const agencyId = userData.agency_id;
+    const userPreferences = userData.ai_buddy_preferences as Record<string, unknown> | null;
 
     // Check rate limit (AC-15.3.6)
     const rateLimitCheck = await checkAiBuddyRateLimit(user.id, agencyId, supabase);
@@ -173,10 +189,11 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Verify project exists if provided
+    let projectName: string | undefined;
     if (projectId) {
       const { data: project, error: projectError } = await supabase
         .from('ai_buddy_projects')
-        .select('id')
+        .select('id, name')
         .eq('id', projectId)
         .single();
 
@@ -184,6 +201,21 @@ export async function POST(request: Request): Promise<Response> {
         log.warn('AI Buddy project not found', { projectId, userId: user.id });
         return createErrorResponse('AIB_001', 'Project not found', 404);
       }
+      projectName = project.name;
+    }
+
+    // Load guardrails for the agency (AC15-AC20)
+    const guardrailConfig = await loadGuardrails(agencyId);
+
+    // Check message against guardrails
+    const guardrailCheckResult = checkGuardrails(message, guardrailConfig);
+
+    // Log guardrail trigger if applicable (AC19)
+    if (guardrailCheckResult.triggeredTopic) {
+      log.info('AI Buddy guardrail triggered', {
+        userId: user.id,
+        topic: guardrailCheckResult.triggeredTopic.trigger,
+      });
     }
 
     // Handle conversation - create new or verify existing (AC-15.3.8)
@@ -254,6 +286,18 @@ export async function POST(request: Request): Promise<Response> {
       return createErrorResponse('INTERNAL_ERROR', 'Failed to save message', 500);
     }
 
+    // Log guardrail event if triggered (AC19)
+    if (guardrailCheckResult.triggeredTopic) {
+      await logGuardrailEvent(
+        agencyId,
+        user.id,
+        activeConversationId,
+        guardrailCheckResult.triggeredTopic.trigger,
+        guardrailCheckResult.triggeredTopic.redirect,
+        message
+      );
+    }
+
     // Verify LLM configuration
     const hasOpenRouterKey = !!process.env.OPENROUTER_API_KEY;
     if (!hasOpenRouterKey) {
@@ -269,8 +313,29 @@ export async function POST(request: Request): Promise<Response> {
       .order('created_at', { ascending: true })
       .limit(20);
 
+    // Placeholder for document context (future: RAG integration)
+    // For now, empty - will be populated when document attachments are processed
+    const documentContext: DocumentContext[] = [];
+
+    // Build system prompt with guardrails (AC15-AC20)
+    const { systemPrompt } = buildSystemPrompt({
+      userPreferences: userPreferences
+        ? {
+            displayName: userPreferences.displayName as string | undefined,
+            role: userPreferences.role as 'producer' | 'csr' | 'manager' | 'other' | undefined,
+            linesOfBusiness: userPreferences.linesOfBusiness as string[] | undefined,
+            favoriteCarriers: userPreferences.favoriteCarriers as string[] | undefined,
+            communicationStyle: userPreferences.communicationStyle as 'professional' | 'casual' | undefined,
+            agencyName: userPreferences.agencyName as string | undefined,
+          }
+        : undefined,
+      guardrailConfig,
+      guardrailCheckResult,
+      documentContext,
+      projectName,
+    });
+
     // Build messages for LLM
-    const systemPrompt = buildAiBuddySystemPrompt();
     const llmMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
       { role: 'system', content: systemPrompt },
     ];
@@ -293,11 +358,13 @@ export async function POST(request: Request): Promise<Response> {
       userId: user.id,
       messageCount: llmMessages.length,
       isNewConversation,
+      guardrailsApplied: guardrailCheckResult.appliedRules,
     });
 
     // Create streaming response (AC-15.3.1, AC-15.3.4)
     const encoder = new TextEncoder();
     const finalConversationId = activeConversationId!;
+    const hasDocumentContext = documentContext.length > 0;
 
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -325,15 +392,33 @@ export async function POST(request: Request): Promise<Response> {
             }
           }
 
-          // For now, emit placeholder sources and confidence
-          // Real implementation will extract these from RAG context in future stories
-          const sourcesEvent: AiBuddySSEEvent = { type: 'sources', citations: [] };
+          // Extract citations from response (AC1-AC5)
+          const citations = extractCitationsFromResponse(fullResponse, documentContext);
+
+          // Calculate confidence level (AC9-AC11)
+          const confidence = calculateConfidence(hasDocumentContext, citations, fullResponse);
+
+          // Emit sources event (AC5: SSE includes citation data)
+          const sourcesEvent: AiBuddySSEEvent = { type: 'sources', citations };
           controller.enqueue(encoder.encode(formatSSEEvent(sourcesEvent)));
 
-          const confidenceEvent: AiBuddySSEEvent = { type: 'confidence', level: 'medium' };
+          // Emit confidence event (AC8: SSE includes confidence data)
+          const confidenceEvent: AiBuddySSEEvent = { type: 'confidence', level: confidence };
           controller.enqueue(encoder.encode(formatSSEEvent(confidenceEvent)));
 
-          // Save assistant message to database
+          // Save assistant message to database with citations and confidence (T9, T14)
+          // Cast citations to JSON-compatible format for Supabase
+          const sourcesJson = citations.length > 0
+            ? citations.map((c) => ({
+                documentId: c.documentId,
+                documentName: c.documentName,
+                page: c.page,
+                text: c.text,
+                startOffset: c.startOffset,
+                endOffset: c.endOffset,
+              }))
+            : null;
+
           const { data: assistantMessage, error: saveError } = await supabase
             .from('ai_buddy_messages')
             .insert({
@@ -341,8 +426,8 @@ export async function POST(request: Request): Promise<Response> {
               agency_id: agencyId,
               role: 'assistant',
               content: fullResponse,
-              sources: null,
-              confidence: 'medium',
+              sources: sourcesJson,
+              confidence,
             })
             .select('id')
             .single();
@@ -357,6 +442,20 @@ export async function POST(request: Request): Promise<Response> {
             .update({ updated_at: new Date().toISOString() })
             .eq('id', finalConversationId);
 
+          // Log message received event
+          if (assistantMessage) {
+            await logMessageEvent(
+              agencyId,
+              user.id,
+              finalConversationId,
+              assistantMessage.id,
+              'assistant',
+              fullResponse.length,
+              citations.length > 0,
+              confidence
+            );
+          }
+
           // Emit done event (AC-15.3.4)
           const doneEvent: AiBuddySSEEvent = {
             type: 'done',
@@ -370,6 +469,8 @@ export async function POST(request: Request): Promise<Response> {
             conversationId: finalConversationId,
             messageId: assistantMessage?.id,
             responseLength: fullResponse.length,
+            citationCount: citations.length,
+            confidence,
             duration,
           });
 
@@ -409,34 +510,4 @@ export async function POST(request: Request): Promise<Response> {
       500
     );
   }
-}
-
-/**
- * Build AI Buddy system prompt
- * Basic prompt for MVP - enhanced with guardrails in Story 15.7
- */
-function buildAiBuddySystemPrompt(): string {
-  return `You are AI Buddy, a helpful AI assistant for independent insurance agents. You help agents with:
-
-- Answering questions about insurance policies and coverage
-- Explaining insurance concepts and terminology
-- Providing guidance on best practices
-- Assisting with client communication
-- General insurance industry knowledge
-
-## Guidelines:
-
-1. Be helpful, professional, and friendly
-2. When you don't know something, say so honestly
-3. For specific coverage questions, recommend verifying with the carrier
-4. Never provide legal advice - suggest consulting an attorney for legal questions
-5. Keep responses clear and concise
-
-## Response Format:
-
-- Use markdown for formatting when helpful (bold, lists, etc.)
-- Be conversational but professional
-- If asked about documents, explain you need them attached to provide specific answers
-
-Remember: You're here to help agents serve their clients better!`;
 }

@@ -26,15 +26,15 @@ Users can ask insurance questions and receive accurate, sourced answers in real-
 
 ## Stories
 
-| Story | Name | Description |
-|-------|------|-------------|
-| 15.1 | Chat Input Component | Text input with send button, Enter to send, character limit |
-| 15.2 | Message Display | Chat bubbles with avatars, markdown, timestamps |
-| 15.3 | Streaming Chat API | SSE streaming via OpenRouter Claude |
-| 15.4 | Conversation Persistence | Save conversations, auto-generate titles |
-| 15.5 | Source Citations | Inline clickable citations to document pages |
-| 15.6 | Confidence Indicators | High/Medium/Low badges with explanations |
-| 15.7 | Guardrail-Aware Responses | Invisible guardrail enforcement with helpful redirects |
+| Story | Name | Points | Status | Description |
+|-------|------|--------|--------|-------------|
+| 15.1 | Chat Input Component | 3 | Done | Text input with send button, Enter to send, character limit |
+| 15.2 | Message Display | 5 | Done | Chat bubbles with avatars, markdown, timestamps |
+| 15.3 | Streaming Chat API | 8 | Done | SSE streaming via OpenRouter Claude |
+| 15.4 | Conversation Persistence | 5 | Done | Save conversations, auto-generate titles |
+| 15.5 | AI Response Quality & Attribution | 16 | Draft | Source citations, confidence indicators, guardrail-aware responses (merged from 15.5-15.7) |
+
+**Note:** Stories 15.5, 15.6, and 15.7 were merged into a single story (15.5) due to tight coupling in prompt building, SSE parsing, and display logic. Approved by PM and SM on 2025-12-07.
 
 ## Dependencies
 

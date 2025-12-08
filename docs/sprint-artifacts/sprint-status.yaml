@@ -979,16 +979,21 @@ development_status:
   # Goal: Conversational AI with streaming, citations, confidence
   # FRs: FR1, FR2, FR5, FR7, FR8, FR9, FR10
   # Tech Spec: docs/sprint-artifacts/epics/epic-15/tech-spec.md
-  # Total Points: 37 (7 stories)
+  # Total Points: 37 (5 stories - 15.5-15.7 merged into 15.5)
   # CONTEXTED 2025-12-07: Tech spec complete with story breakdown
   epic-15-ai-buddy-core-chat: contexted
   15-1-chat-input-component: done
   15-2-message-display: done
   15-3-streaming-chat-api: done
   15-4-conversation-persistence: done
-  15-5-source-citations: backlog
-  15-6-confidence-indicators: backlog
-  15-7-guardrail-aware-responses: backlog
+  # Story 15.5: AI Response Quality & Attribution (16 pts)
+  # MERGED 2025-12-07: Combines original 15.5 (Source Citations), 15.6 (Confidence Indicators),
+  # and 15.7 (Guardrail-Aware Responses) due to tight coupling in prompt building, SSE parsing, display logic
+  # Approved by: PM (John) and SM (Bob)
+  # CONTEXTED 2025-12-07: Story context generated, ready for dev
+  # REVIEW 2025-12-07: Implementation complete, pending code review
+  # DONE 2025-12-07: Code review APPROVED - 20/20 ACs implemented, 145+ tests passing
+  15-5-ai-response-quality-attribution: done
 
   # Epic 16: AI Buddy Projects
   # Goal: Organize work by client accounts with persistent document context

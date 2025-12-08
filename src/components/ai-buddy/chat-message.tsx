@@ -1,6 +1,7 @@
 /**
  * Chat Message Component
  * Story 15.2: Message Display Component
+ * Story 15.5: AI Response Quality & Attribution
  *
  * Displays a single message (user or assistant) in the chat.
  *
@@ -9,6 +10,8 @@
  * - AC-15.2.2: AI messages left-aligned with green avatar (AI icon)
  * - AC-15.2.5: Timestamps shown on hover (relative format)
  * - AC-15.2.6: Markdown rendering (via ReactMarkdown)
+ * - AC7: Confidence badge displayed below each AI response
+ * - AC1-AC4: Source citations with tooltips
  */
 
 'use client';
@@ -19,6 +22,8 @@ import { formatDistanceToNow } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { ConfidenceBadge } from './confidence-badge';
+import { CitationList } from './source-citation';
 import type { Message, Citation } from '@/types/ai-buddy';
 
 export interface ChatMessageProps {
@@ -73,6 +78,8 @@ function formatTimestamp(dateString: string): string {
  * - Message bubble with proper alignment
  * - Hover-revealed timestamp
  * - Markdown content rendering
+ * - Confidence badge for AI responses (AC7)
+ * - Source citations (AC1-AC4)
  */
 export function ChatMessage({
   message,
@@ -84,8 +91,13 @@ export function ChatMessage({
   const [isHovered, setIsHovered] = useState(false);
 
   const isUser = message.role === 'user';
+  const isAssistant = message.role === 'assistant';
   const initials = getUserInitials(userName);
   const timestamp = formatTimestamp(message.createdAt);
+
+  // Extract citations and confidence for AI messages
+  const citations = message.sources ?? [];
+  const confidence = message.confidence;
 
   return (
     <div
@@ -136,7 +148,7 @@ export function ChatMessage({
             // Different styling for user vs assistant
             isUser
               ? 'bg-blue-500 text-white rounded-br-sm'
-              : 'bg-slate-100 text-slate-800 rounded-bl-sm',
+              : 'bg-slate-100 text-slate-800 rounded-bl-sm dark:bg-slate-800 dark:text-slate-100',
             // Subtle shadow
             'shadow-sm'
           )}
@@ -149,7 +161,7 @@ export function ChatMessage({
               // Adjust prose colors for user messages (white text)
               isUser && 'prose-invert',
               // Assistant message styling
-              !isUser && 'prose-slate'
+              !isUser && 'prose-slate dark:prose-invert'
             )}
           >
             <ReactMarkdown
@@ -163,7 +175,7 @@ export function ChatMessage({
                     rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
                     className={cn(
                       'underline underline-offset-2',
-                      isUser ? 'text-blue-100 hover:text-white' : 'text-blue-600 hover:text-blue-800'
+                      isUser ? 'text-blue-100 hover:text-white' : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
                     )}
                     {...props}
                   >
@@ -177,7 +189,7 @@ export function ChatMessage({
                     <code
                       className={cn(
                         'rounded px-1.5 py-0.5 text-xs font-mono',
-                        isUser ? 'bg-blue-400/30' : 'bg-slate-200'
+                        isUser ? 'bg-blue-400/30' : 'bg-slate-200 dark:bg-slate-700'
                       )}
                       {...props}
                     >
@@ -226,21 +238,45 @@ export function ChatMessage({
               {message.content}
             </ReactMarkdown>
           </div>
+
+          {/* Source Citations - AC1-AC4 */}
+          {isAssistant && citations.length > 0 && (
+            <CitationList
+              citations={citations}
+              onCitationClick={onCitationClick}
+              className="mt-2"
+            />
+          )}
         </div>
 
-        {/* Timestamp - AC-15.2.5: Show on hover */}
+        {/* Footer: Timestamp and Confidence Badge */}
         <div
           className={cn(
-            'text-xs text-slate-400 transition-opacity duration-200',
-            // Only visible on hover
-            isHovered ? 'opacity-100' : 'opacity-0'
+            'flex items-center gap-3 mt-1',
+            isUser ? 'flex-row-reverse' : ''
           )}
-          data-testid="message-timestamp"
-          aria-label={`Sent ${timestamp}`}
         >
-          {timestamp}
+          {/* AC7: Confidence badge displayed below each AI response */}
+          {isAssistant && confidence && !isStreaming && (
+            <ConfidenceBadge level={confidence} />
+          )}
+
+          {/* Timestamp - AC-15.2.5: Show on hover */}
+          <div
+            className={cn(
+              'text-xs text-slate-400 transition-opacity duration-200',
+              // Only visible on hover
+              isHovered ? 'opacity-100' : 'opacity-0'
+            )}
+            data-testid="message-timestamp"
+            aria-label={`Sent ${timestamp}`}
+          >
+            {timestamp}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default ChatMessage;

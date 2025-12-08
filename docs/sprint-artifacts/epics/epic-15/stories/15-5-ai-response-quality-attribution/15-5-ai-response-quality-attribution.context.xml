@@ -1,0 +1,161 @@
+<story-context id="epic-15/story-15.5" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>5</storyId>
+    <title>AI Response Quality & Attribution</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-15/stories/15-5-ai-response-quality-attribution/15-5-ai-response-quality-attribution.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user asking questions to AI Buddy</asA>
+    <iWant>responses that include source citations, confidence indicators, and respect agency guardrails invisibly</iWant>
+    <soThat>I can trust AI answers, verify information, and receive compliant responses without feeling restricted</soThat>
+    <tasks>
+      <phase name="A: Foundation">
+        <task id="T1">Create src/lib/ai-buddy/guardrails.ts with loadGuardrails() and checkGuardrails()</task>
+        <task id="T2">Create src/lib/ai-buddy/prompt-builder.ts with system prompt construction</task>
+        <task id="T3">Create src/lib/ai-buddy/audit-logger.ts for event logging</task>
+        <task id="T4">Unit tests for guardrails and prompt builder</task>
+      </phase>
+      <phase name="B: Citation Extraction &amp; Display">
+        <task id="T5">Add citation extraction logic to AI response parsing</task>
+        <task id="T6">Create SourceCitation component with tooltip</task>
+        <task id="T7">Integrate citations into ChatMessage component</task>
+        <task id="T8">Add sources SSE event emission</task>
+        <task id="T9">Store citations in database</task>
+        <task id="T10">Unit tests for citation component</task>
+      </phase>
+      <phase name="C: Confidence Indicators">
+        <task id="T11">Implement confidence calculation logic (based on RAG hits)</task>
+        <task id="T12">Create ConfidenceBadge component with tooltip</task>
+        <task id="T13">Add confidence SSE event emission</task>
+        <task id="T14">Store confidence in database</task>
+        <task id="T15">Unit tests for confidence badge</task>
+      </phase>
+      <phase name="D: Integration &amp; Testing">
+        <task id="T16">Update /api/ai-buddy/chat to use prompt builder with guardrails</task>
+        <task id="T17">Integration tests for full flow</task>
+        <task id="T18">E2E test: Ask question with document → verify citation displayed</task>
+        <task id="T19">E2E test: Ask restricted topic → verify helpful redirect</task>
+        <task id="T20">E2E test: Ask unknown question → verify "I don't know" response</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <group name="Source Citations">
+      <ac id="AC1">AI responses include inline citations in format [📄 Document Name pg. X]</ac>
+      <ac id="AC2">Citations are styled in blue (#3b82f6) and clearly clickable</ac>
+      <ac id="AC3">Hovering a citation shows tooltip with the quoted text</ac>
+      <ac id="AC4">Clicking a citation opens document preview to the referenced page</ac>
+      <ac id="AC5">SSE stream includes sources event with citation data</ac>
+      <ac id="AC6">Citations are stored in message sources JSONB column</ac>
+      <ac id="AC7">General knowledge responses have no citations (appropriate)</ac>
+    </group>
+    <group name="Confidence Indicators">
+      <ac id="AC8">Confidence badge displays below each AI response</ac>
+      <ac id="AC9">High confidence (green): "High Confidence" - answer from attached documents</ac>
+      <ac id="AC10">Medium confidence (amber): "Needs Review" - general knowledge, verify recommended</ac>
+      <ac id="AC11">Low confidence (gray): "Not Found" - information not available</ac>
+      <ac id="AC12">Hovering badge shows tooltip explaining the confidence level</ac>
+      <ac id="AC13">SSE stream includes confidence event with level</ac>
+      <ac id="AC14">Confidence stored in message confidence column</ac>
+    </group>
+    <group name="Guardrail-Aware Responses">
+      <ac id="AC15">AI never says "I cannot", "blocked", "restricted", or similar phrases</ac>
+      <ac id="AC16">Restricted topics receive helpful redirects</ac>
+      <ac id="AC17">AI says "I don't know" when information is genuinely unavailable</ac>
+      <ac id="AC18">Guardrail enforcement is invisible to users</ac>
+      <ac id="AC19">Guardrail events are logged to audit table (admin-visible only)</ac>
+      <ac id="AC20">Guardrail changes apply immediately (no cache delay)</ac>
+    </group>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-15/tech-spec.md" title="Epic 15 Tech Spec" section="Story 15.5" snippet="Comprehensive technical specification including API contracts, component specs, and implementation details for AI Buddy Core Chat" />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Novel Pattern: Invisible Guardrails" snippet="AI Buddy enforces compliance guardrails invisibly via system prompt conditioning rather than post-processing filters" />
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="Guardrails &amp; Compliance" snippet="FR35-41 define guardrail requirements: restricted topics, E&amp;O protection, invisible enforcement, audit logging" />
+    </docs>
+    <code>
+      <file path="src/lib/ai-buddy/guardrails.ts" kind="library" symbol="checkGuardrails, getGuardrailConfig" lines="1-64" reason="STUB - needs full implementation. Currently throws 'Not implemented'. Must load guardrails from DB, check messages against restricted topics, return GuardrailCheckResult" />
+      <file path="src/lib/ai-buddy/prompt-builder.ts" kind="library" symbol="buildSystemPrompt, buildUserContext, buildGuardrailInstructions" lines="1-79" reason="STUB - needs full implementation. buildSystemPrompt throws 'Not implemented'. Helper functions exist but main function needs to compose full prompt with guardrails" />
+      <file path="src/lib/ai-buddy/audit-logger.ts" kind="library" symbol="logAuditEvent, queryAuditLogs" lines="1-76" reason="STUB - needs full implementation. Currently throws 'Not implemented'. Must insert to ai_buddy_audit_logs table" />
+      <file path="src/components/ai-buddy/source-citation.tsx" kind="component" symbol="SourceCitation" lines="1-42" reason="Basic component EXISTS. Needs tooltip functionality for AC3 (show quoted text on hover)" />
+      <file path="src/components/ai-buddy/confidence-badge.tsx" kind="component" symbol="ConfidenceBadge" lines="1-51" reason="Basic component EXISTS. Needs tooltip functionality for AC12 (explain confidence level on hover)" />
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api-route" symbol="POST /api/ai-buddy/chat" lines="1-443" reason="WORKING streaming API. Uses inline buildAiBuddySystemPrompt(). Needs to: 1) Use prompt-builder with guardrails, 2) Extract real citations from RAG, 3) Calculate real confidence, 4) Log audit events" />
+      <file path="src/components/ai-buddy/chat-message.tsx" kind="component" symbol="ChatMessage" reason="Display component that needs to render SourceCitation and ConfidenceBadge with extracted data" />
+      <file path="src/hooks/ai-buddy/use-chat.ts" kind="hook" symbol="useChat" reason="Client hook that consumes SSE events - already handles sources/confidence events, just needs real data" />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="Citation, ConfidenceLevel, GuardrailConfig, RestrictedTopic" lines="1-198" reason="Type definitions already exist and are comprehensive" />
+    </code>
+    <dependencies>
+      <npm>
+        <package name="@radix-ui/react-tooltip" version="latest" reason="Required for citation and confidence badge tooltips (AC3, AC12)" />
+      </npm>
+      <existing>
+        <package name="lucide-react" reason="FileText icon already used in source-citation.tsx" />
+        <package name="@supabase/supabase-js" reason="Database operations for guardrails, audit logs" />
+        <package name="zod" reason="Request validation in chat route" />
+      </existing>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">Use Edge Runtime for chat API route (low latency streaming)</constraint>
+    <constraint source="architecture">Guardrails enforced via system prompt injection, NOT post-processing</constraint>
+    <constraint source="architecture">AI never says "I cannot" - always provide helpful redirects</constraint>
+    <constraint source="prd">Audit logs are append-only, immutable, 7-year retention</constraint>
+    <constraint source="tech-spec">SSE event types: chunk, sources, confidence, done, error</constraint>
+    <constraint source="tech-spec">Message max length: 4000 characters</constraint>
+    <constraint source="tech-spec">Rate limiting: 20 messages/minute default</constraint>
+    <constraint source="architecture">RLS policies enforce user-only access to conversations/messages</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="SSE Event Format" kind="protocol">
+      data: {"type":"chunk","content":"..."}
+      data: {"type":"sources","citations":[{"documentId":"uuid","documentName":"Policy.pdf","page":3,"text":"..."}]}
+      data: {"type":"confidence","level":"high|medium|low"}
+      data: {"type":"done","conversationId":"uuid","messageId":"uuid"}
+      data: {"type":"error","error":"message","code":"AIB_XXX"}
+    </interface>
+    <interface name="GuardrailCheckResult" kind="typescript" path="src/lib/ai-buddy/guardrails.ts">
+      { allowed: boolean; triggeredTopic?: RestrictedTopic; redirectMessage?: string; }
+    </interface>
+    <interface name="BuiltPrompt" kind="typescript" path="src/lib/ai-buddy/prompt-builder.ts">
+      { systemPrompt: string; userContext: string; }
+    </interface>
+    <interface name="Citation" kind="typescript" path="src/types/ai-buddy.ts">
+      { documentId: string; documentName: string; page: number; text: string; startOffset?: number; endOffset?: number; }
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E. Tests in __tests__/ directory mirroring src/ structure.
+      Use @testing-library/react for component tests. Mock Supabase client for DB operations.
+      Minimum 80% coverage for new code per DoD.
+    </standards>
+    <locations>
+      <location>__tests__/lib/ai-buddy/guardrails.test.ts</location>
+      <location>__tests__/lib/ai-buddy/prompt-builder.test.ts</location>
+      <location>__tests__/lib/ai-buddy/audit-logger.test.ts</location>
+      <location>__tests__/components/ai-buddy/source-citation.test.tsx</location>
+      <location>__tests__/components/ai-buddy/confidence-badge.test.tsx</location>
+      <location>__tests__/e2e/ai-buddy-chat.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC1,AC5">Test citation extraction from AI response with embedded [Source] markers</idea>
+      <idea ac="AC3">Test tooltip appears on citation hover with correct quoted text</idea>
+      <idea ac="AC9,AC10,AC11">Test confidence calculation: high when RAG hits, medium for general, low for unknown</idea>
+      <idea ac="AC12">Test tooltip content varies by confidence level</idea>
+      <idea ac="AC15,AC16">Test restricted topic triggers helpful redirect, no "I cannot" in response</idea>
+      <idea ac="AC17">Test "I don't know" response when no relevant documents attached</idea>
+      <idea ac="AC19">Test audit log entry created when guardrail triggered</idea>
+      <idea ac="AC20">Test guardrail config changes take effect on next message (no cache)</idea>
+    </ideas>
+  </tests>
+</story-context>
