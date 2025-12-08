@@ -297,6 +297,43 @@ interface UseProjectsReturn {
 }
 ```
 
+### RLS Service Client Pattern (Verify-Then-Service)
+
+**Critical Pattern for UPDATE/DELETE in Edge Runtime:**
+
+Supabase RLS UPDATE/DELETE policies can fail with 403 errors in Edge Runtime even with correct authentication. Use the "Verify-Then-Service" pattern:
+
+```typescript
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+
+// Step 1: VERIFY ownership via SELECT (RLS works)
+const supabase = await createClient();
+const { data: conversation } = await supabase
+  .from('ai_buddy_conversations')
+  .select('id, user_id')
+  .eq('id', id)
+  .eq('user_id', user.id)
+  .single();
+
+if (!conversation) return notFound();
+
+// Step 2: PERFORM mutation with service client (bypasses RLS)
+const serviceClient = createServiceClient();
+await serviceClient
+  .from('ai_buddy_conversations')
+  .update({ deleted_at: new Date().toISOString() })
+  .eq('id', id);
+```
+
+**When to use:**
+- UPDATE operations in API routes
+- DELETE operations in API routes
+- Any mutation in Edge Runtime
+
+**Reference:** See [Implementation Patterns](../../architecture/implementation-patterns.md#rls-service-client-pattern-verify-then-service) for full documentation.
+
+**Discovered:** Epic 15, Story 15.4 (Conversation Persistence)
+
 ---
 
 ## Data Architecture

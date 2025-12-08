@@ -12,6 +12,10 @@ export {
   type UseProjectsOptions,
   type UseProjectsReturn,
 } from './use-projects';
+export {
+  useActiveProject,
+  type UseActiveProjectReturn,
+} from './use-active-project';
 export { usePreferences, type UsePreferencesReturn } from './use-preferences';
 export { useGuardrails, type UseGuardrailsReturn } from './use-guardrails';
 export {

@@ -1,0 +1,236 @@
+<story-context id="16-1-project-creation-sidebar" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>1</storyId>
+    <title>Project Creation &amp; Sidebar</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-1-project-creation-sidebar/16-1-project-creation-sidebar.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to create Projects and see them in a sidebar</iWant>
+    <soThat>I can organize my work by client and switch between them easily</soThat>
+    <tasks>
+      <phase name="A: Database &amp; API Foundation">
+        <task id="T1">Verify ai_buddy_projects table exists with correct schema and RLS policies</task>
+        <task id="T2">Create src/lib/ai-buddy/project-service.ts with CRUD operations</task>
+        <task id="T3">Create src/app/api/ai-buddy/projects/route.ts with GET and POST handlers</task>
+        <task id="T4">Create Zod validation schemas for project creation</task>
+        <task id="T5">Unit tests for project service functions</task>
+      </phase>
+      <phase name="B: Project Hooks">
+        <task id="T6">Create src/hooks/ai-buddy/use-projects.ts with React Query integration</task>
+        <task id="T7">Create src/hooks/ai-buddy/use-active-project.ts for context management</task>
+        <task id="T8">Implement optimistic updates for project creation</task>
+        <task id="T9">Unit tests for hooks</task>
+      </phase>
+      <phase name="C: UI Components">
+        <task id="T10">Create src/components/ai-buddy/project-card.tsx with name truncation and doc count</task>
+        <task id="T11">Create src/components/ai-buddy/project-sidebar.tsx with project list and empty state</task>
+        <task id="T12">Create src/components/ai-buddy/project-create-dialog.tsx with form validation</task>
+        <task id="T13">Integrate sidebar into AI Buddy page layout</task>
+        <task id="T14">Implement mobile Sheet overlay for sidebar</task>
+        <task id="T15">Component tests for all UI components</task>
+      </phase>
+      <phase name="D: Integration &amp; Testing">
+        <task id="T16">Integration test: Create project via API</task>
+        <task id="T17">Integration test: List projects with RLS enforcement</task>
+        <task id="T18">E2E test: Full project creation flow</task>
+        <task id="T19">E2E test: Project switching</task>
+        <task id="T20">E2E test: Mobile sidebar behavior</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <group name="Project Creation (FR11)">
+      <ac id="AC-16.1.1" testType="E2E">Clicking "New Project" opens a dialog with name (required) and description (optional) fields</ac>
+      <ac id="AC-16.1.2" testType="Unit">Name is required and limited to 100 characters</ac>
+      <ac id="AC-16.1.3" testType="Unit">Description is optional and limited to 500 characters</ac>
+      <ac id="AC-16.1.4" testType="Integration">Clicking "Create" creates the project and selects it as active</ac>
+      <ac id="AC-16.1.5" testType="E2E">New project appears in sidebar immediately (optimistic update)</ac>
+      <ac id="AC-16.1.6" testType="Unit">Validation error "Project name is required" shown if name empty</ac>
+      <ac id="AC-16.1.7" testType="API">API returns AIB_102 if name exceeds 100 characters</ac>
+    </group>
+    <group name="Project Sidebar (FR17)">
+      <ac id="AC-16.1.8" testType="E2E">Sidebar shows "Projects" section with all active (non-archived) projects</ac>
+      <ac id="AC-16.1.9" testType="Unit">Each project card shows name (truncated at 25 chars) and document count badge</ac>
+      <ac id="AC-16.1.10" testType="E2E">Active project has visual indicator (highlight, different background)</ac>
+      <ac id="AC-16.1.11" testType="E2E">Clicking a project switches to that project's context</ac>
+      <ac id="AC-16.1.12" testType="Unit">Projects sorted alphabetically by name</ac>
+      <ac id="AC-16.1.13" testType="E2E">Empty state shown when no projects exist: "Create your first project"</ac>
+      <ac id="AC-16.1.14" testType="E2E">Mobile: Sidebar rendered in Sheet overlay</ac>
+    </group>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-16/tech-spec.md" title="Epic 16 Tech Spec" section="Story 16.1: Project Creation &amp; Sidebar">
+        Primary technical specification for project creation, sidebar UI, API contracts, and database schema. Contains all AC definitions and test types.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture">
+        Database schema for ai_buddy_projects table, RLS policies, and service client patterns. Includes API contracts and response formats.
+      </doc>
+      <doc path="docs/features/ai-buddy/epics.md" title="AI Buddy Epics" section="Epic 3: Projects">
+        Feature requirements for projects (FR11-19). Story 3.1 defines project creation and organization.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/hooks/ai-buddy/use-conversations.ts" kind="hook" symbol="useConversations" lines="1-365" reason="Reference pattern for React hook with CRUD operations, optimistic updates, and API calls">
+        Follow this pattern for use-projects.ts - includes state management, pagination, error handling, and optimistic updates.
+      </file>
+      <file path="src/hooks/ai-buddy/use-chat.ts" kind="hook" symbol="useChat" lines="1-348" reason="Reference pattern for React Query-style state management and SSE streaming">
+        Shows pattern for conversation creation callback (onConversationCreated) - use similar for project selection.
+      </file>
+      <file path="src/components/ai-buddy/project-sidebar.tsx" kind="component" symbol="ProjectSidebar" lines="1-109" reason="EXISTING component to EXTEND - currently shows conversations, needs Projects section">
+        This is the target component. Add Projects section above "Recent" conversations. Lines 98-104 have placeholder "Coming soon".
+      </file>
+      <file path="src/components/ai-buddy/chat-history-item.tsx" kind="component" symbol="ChatHistoryItem" lines="all" reason="Reference pattern for sidebar item with hover states, truncation, and delete action">
+        Use as reference for ProjectCard component - similar UI patterns for list items.
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="Project, CreateProjectRequest" lines="22-32,156-161" reason="EXISTING Project interface and CreateProjectRequest - use these types">
+        Project interface already defined with all required fields. CreateProjectRequest exists.
+      </file>
+      <file path="src/lib/ai-buddy/errors.ts" kind="library" symbol="AI_BUDDY_ERRORS" lines="all" reason="Error codes pattern - add AIB_101, AIB_102, AIB_103 for project validation">
+        Add project-specific error codes following existing pattern.
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="@tanstack/react-query" version="^5.x" purpose="NOT INSTALLED - but pattern followed in hooks via useState/useCallback" />
+        <package name="zod" version="^4.1.13" purpose="Input validation for API routes" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" purpose="Dialog component via shadcn/ui for create project modal" />
+        <package name="@radix-ui/react-slot" version="^1.2.4" purpose="Button composition in shadcn/ui" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons: Plus, FolderOpen, MoreHorizontal, etc." />
+        <package name="date-fns" version="^4.1.0" purpose="Date formatting for timestamps" />
+      </npm>
+      <internal>
+        <dependency name="Epic 14: AI Buddy Foundation" status="Done" notes="Database schema with ai_buddy_projects table" />
+        <dependency name="Epic 15: Core Chat" status="Done" notes="Chat panel, conversation hooks, sidebar patterns" />
+        <dependency name="shadcn/ui Dialog" status="Available" notes="Import via @/components/ui/dialog" />
+        <dependency name="shadcn/ui Sheet" status="Available" notes="Import via @/components/ui/sheet for mobile sidebar" />
+        <dependency name="Supabase Client" status="Available" notes="src/lib/supabase/client.ts and server.ts" />
+      </internal>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <architectural>
+      <constraint id="RLS-001">All project queries must use RLS-enabled client. Users see only their own projects (user_id = auth.uid())</constraint>
+      <constraint id="SOFT-DELETE-001">Projects use archived_at for soft delete - never hard delete for audit compliance</constraint>
+      <constraint id="VERIFY-THEN-SERVICE">For UPDATE/DELETE, verify ownership with SELECT first, then use service client. See architecture.md#RLS-Service-Client-Pattern</constraint>
+      <constraint id="API-RESPONSE">Return { data: T | null, error: { code: string, message: string } | null } format</constraint>
+      <constraint id="ERROR-CODES">Use AIB_XXX pattern: AIB_101 (name required), AIB_102 (name too long), AIB_103 (desc too long)</constraint>
+    </architectural>
+    <coding>
+      <constraint id="COMPONENT-STYLE">Use 'use client' directive for interactive components</constraint>
+      <constraint id="CSS-VARS">Use CSS variables for theming: var(--text-primary), var(--sidebar-hover), var(--chat-border)</constraint>
+      <constraint id="NAMING">Components: PascalCase, files: kebab-case, hooks: camelCase with use prefix</constraint>
+      <constraint id="NO-REACT-QUERY">Project does NOT use @tanstack/react-query package - use useState/useCallback patterns from existing hooks</constraint>
+    </coding>
+    <testing>
+      <constraint id="TEST-LOCATION">Unit tests: __tests__/components/ai-buddy/, __tests__/hooks/ai-buddy/</constraint>
+      <constraint id="COVERAGE">Target 80% coverage for new code</constraint>
+      <constraint id="E2E-LOCATION">E2E tests: __tests__/e2e/ai-buddy/</constraint>
+    </testing>
+  </constraints>
+
+  <interfaces>
+    <api name="GET /api/ai-buddy/projects" kind="REST endpoint">
+      <signature>GET /api/ai-buddy/projects?includeArchived=false&amp;sortBy=name&amp;sortOrder=asc</signature>
+      <response>{ data: Project[], error: null }</response>
+      <path>src/app/api/ai-buddy/projects/route.ts</path>
+    </api>
+    <api name="POST /api/ai-buddy/projects" kind="REST endpoint">
+      <signature>POST /api/ai-buddy/projects { name: string, description?: string }</signature>
+      <response>{ data: Project, error: null }</response>
+      <errors>AIB_101 (name required), AIB_102 (name &gt; 100 chars), AIB_103 (desc &gt; 500 chars)</errors>
+      <path>src/app/api/ai-buddy/projects/route.ts</path>
+    </api>
+    <hook name="useProjects" kind="React hook">
+      <signature>useProjects(options?: { autoFetch?: boolean }): UseProjectsReturn</signature>
+      <returns>{ projects, isLoading, error, createProject, archiveProject, selectProject, activeProject }</returns>
+      <path>src/hooks/ai-buddy/use-projects.ts (NEW)</path>
+    </hook>
+    <hook name="useActiveProject" kind="React hook">
+      <signature>useActiveProject(): UseActiveProjectReturn</signature>
+      <returns>{ activeProject, setActiveProject, clearActiveProject }</returns>
+      <path>src/hooks/ai-buddy/use-active-project.ts (NEW)</path>
+    </hook>
+    <component name="ProjectCreateDialog" kind="React component">
+      <signature>ProjectCreateDialog({ open, onOpenChange, onProjectCreated })</signature>
+      <path>src/components/ai-buddy/project-create-dialog.tsx (NEW)</path>
+    </component>
+    <component name="ProjectCard" kind="React component">
+      <signature>ProjectCard({ project, isActive, onClick, onContextMenu })</signature>
+      <path>src/components/ai-buddy/project-card.tsx (NEW)</path>
+    </component>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E. Use @testing-library/react for component testing.
+      Mock Supabase client with vi.mock. Follow existing patterns in __tests__/components/ai-buddy/*.
+      All tests must pass before merge. Coverage target: 80% for new code.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/project-card.test.tsx</location>
+      <location>__tests__/components/ai-buddy/project-sidebar.test.tsx</location>
+      <location>__tests__/components/ai-buddy/project-create-dialog.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-projects.test.ts</location>
+      <location>__tests__/hooks/ai-buddy/use-active-project.test.ts</location>
+      <location>__tests__/api/ai-buddy/projects.test.ts</location>
+      <location>__tests__/e2e/ai-buddy/projects.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-16.1.1">Test dialog opens on button click, contains name and description fields</idea>
+      <idea ac="AC-16.1.2">Test validation rejects empty name, accepts 100 chars, rejects 101 chars</idea>
+      <idea ac="AC-16.1.3">Test description optional, accepts 500 chars, rejects 501 chars</idea>
+      <idea ac="AC-16.1.4">Test successful create updates state, selects new project</idea>
+      <idea ac="AC-16.1.5">Test optimistic update shows project immediately, rollback on error</idea>
+      <idea ac="AC-16.1.6">Test error message displayed when name empty on submit</idea>
+      <idea ac="AC-16.1.7">Test API returns AIB_102 error for name exceeding 100 chars</idea>
+      <idea ac="AC-16.1.8">Test sidebar renders Projects section with project cards</idea>
+      <idea ac="AC-16.1.9">Test name truncation at 25 chars, document count badge display</idea>
+      <idea ac="AC-16.1.10">Test active project has distinct styling (background color)</idea>
+      <idea ac="AC-16.1.11">Test clicking project calls onSelectProject callback</idea>
+      <idea ac="AC-16.1.12">Test projects rendered in alphabetical order by name</idea>
+      <idea ac="AC-16.1.13">Test empty state message when projects array empty</idea>
+      <idea ac="AC-16.1.14">E2E: Test mobile viewport renders sidebar in Sheet component</idea>
+    </ideas>
+  </tests>
+
+  <devNotes>
+    <note category="architecture">
+      Use the Verify-Then-Service pattern for project mutations. The existing use-conversations.ts hook
+      shows the pattern for optimistic updates and error handling. The project-sidebar.tsx component
+      already exists but has a placeholder "Coming soon" for Projects - extend this component.
+    </note>
+    <note category="database">
+      The ai_buddy_projects table should already exist from Epic 14 migrations. Verify schema:
+      - id (UUID), user_id (FK), agency_id (FK), name (VARCHAR 100), description (TEXT)
+      - archived_at (TIMESTAMPTZ), created_at, updated_at
+      - RLS policies: Users can SELECT/INSERT their own projects
+    </note>
+    <note category="ui">
+      Follow the existing dark theme CSS variables. The sidebar uses var(--chat-border),
+      var(--text-primary), var(--text-muted), var(--sidebar-hover). See project-sidebar.tsx
+      lines 50-58 for button styling pattern.
+    </note>
+    <note category="hooks">
+      NOTE: This project does NOT use @tanstack/react-query package despite the story template
+      mentioning it. Follow the useState/useCallback patterns from use-conversations.ts instead.
+      Do NOT add react-query as a dependency.
+    </note>
+    <note category="previous-story">
+      From Story 15.5: Service client pattern (createServiceClient for mutations after ownership
+      verification), SSE event format, test organization (__tests__/components/ai-buddy/ and
+      __tests__/e2e/), error response format { data: null, error: { code, message } }.
+    </note>
+  </devNotes>
+</story-context>

@@ -727,15 +727,21 @@ data: {"type":"confidence","level":"high"}
 
 **User Value:** Users can organize conversations by client account, matching how insurance agents naturally work.
 
+**Stories:** 6 stories (merged from original 9 for implementation efficiency)
+
 ---
 
-### Story 3.1: AI Buddy Create Project
+### Story 3.1: Project Creation & Sidebar (FR11, FR17)
+
+*Merged from original stories 3.1 + 3.2*
 
 **As a** user,
-**I want** to create Projects to organize my work by client,
-**So that** I can keep conversations and documents organized. (FR11)
+**I want** to create Projects and see them in a sidebar,
+**So that** I can organize my work by client and switch between them easily.
 
 **Acceptance Criteria:**
+
+**Project Creation (FR11):**
 
 **Given** I am on the AI Buddy page
 **When** I click "New Project" in the sidebar
@@ -753,30 +759,14 @@ data: {"type":"confidence","level":"high"}
 **When** I click "Create"
 **Then** I see a validation error "Project name is required"
 
-**Prerequisites:** Story 2.7 (core chat complete)
-
-**Technical Notes:**
-- Component: `project-create-dialog.tsx`
-- API: `POST /api/ai-buddy/projects`
-- Store in `ai_buddy_projects` table
-- Auto-select new project after creation
-
----
-
-### Story 3.2: AI Buddy Project Sidebar
-
-**As a** user,
-**I want** to see my Projects in the sidebar,
-**So that** I can switch between clients easily. (FR17)
-
-**Acceptance Criteria:**
+**Project Sidebar (FR17):**
 
 **Given** I have created Projects
 **When** I view the sidebar
 **Then** I see a "Projects" section listing all my active projects
 
 **And** each project shows:
-- Project name (truncated if too long)
+- Project name (truncated at 25 chars)
 - Document count badge (e.g., "3 docs")
 - Active indicator when selected
 
@@ -788,23 +778,24 @@ data: {"type":"confidence","level":"high"}
 **When** I view the sidebar
 **Then** I see an empty state: "Create your first project to organize by client"
 
-**And** there is a "Create Project" button
+**And** mobile: Sidebar rendered in Sheet overlay
 
-**Prerequisites:** Story 3.1 (create project)
+**Prerequisites:** Story 2.7 (core chat complete)
 
 **Technical Notes:**
-- Component: `project-sidebar.tsx`, `project-card.tsx`
-- Hook: `use-projects.ts` for data fetching
-- Use React Query/SWR for caching and optimistic updates
-- Truncate names > 25 characters with ellipsis
+- Components: `project-create-dialog.tsx`, `project-sidebar.tsx`, `project-card.tsx`
+- API: `POST /api/ai-buddy/projects`
+- Hook: `use-projects.ts` for data fetching with React Query
+- Store in `ai_buddy_projects` table
+- Auto-select new project after creation (optimistic update)
 
 ---
 
-### Story 3.3: AI Buddy Project Context
+### Story 3.2: Project Context Switching (FR16)
 
 **As a** user,
 **I want** conversations within a Project to have access to project documents,
-**So that** AI can answer questions about my client's policies. (FR16)
+**So that** AI can answer questions about my client's policies.
 
 **Acceptance Criteria:**
 
@@ -828,21 +819,24 @@ data: {"type":"confidence","level":"high"}
 
 **And** the header shows "AI Buddy" without a project name
 
-**Prerequisites:** Story 3.2 (project sidebar)
+**And** context switch completes in < 200ms (perceived)
+
+**Prerequisites:** Story 3.1 (project creation & sidebar)
 
 **Technical Notes:**
+- Components: `project-context-header.tsx`, update `chat-panel.tsx`
+- Hook: `use-active-project.ts`
 - Pass project_id to chat API
 - Load project documents via `ai_buddy_project_documents` junction
 - Include document content in RAG pipeline
-- Context switch should be immediate (< 200ms per UX spec)
 
 ---
 
-### Story 3.4: AI Buddy Rename and Archive Projects
+### Story 3.3: Project Management - Rename & Archive (FR12)
 
 **As a** user,
 **I want** to rename and archive Projects,
-**So that** I can keep my workspace organized. (FR12)
+**So that** I can keep my workspace organized.
 
 **Acceptance Criteria:**
 
@@ -866,11 +860,12 @@ data: {"type":"confidence","level":"high"}
 **When** I click "View Archived" at the bottom of Projects section
 **Then** I see a list of archived projects
 
-**And** I can restore an archived project
+**And** I can restore an archived project (clears `archived_at`)
 
-**Prerequisites:** Story 3.3 (project context)
+**Prerequisites:** Story 3.1 (project creation & sidebar)
 
 **Technical Notes:**
+- Extend `project-card.tsx` with context menu
 - API: `PATCH /api/ai-buddy/projects/[id]` for rename
 - API: `DELETE /api/ai-buddy/projects/[id]` sets `archived_at`
 - Soft delete pattern - never hard delete projects
@@ -878,13 +873,17 @@ data: {"type":"confidence","level":"high"}
 
 ---
 
-### Story 3.5: AI Buddy Conversation History
+### Story 3.4: Conversation History & General Chat (FR3, FR18)
+
+*Merged from original stories 3.5 + 3.8*
 
 **As a** user,
-**I want** to see my conversation history organized by date and Project,
-**So that** I can find past conversations. (FR3)
+**I want** to see my conversation history and start general chats,
+**So that** I can find past conversations and ask quick questions.
 
 **Acceptance Criteria:**
+
+**Conversation History (FR3):**
 
 **Given** I have had multiple conversations
 **When** I view the sidebar "Recent" section
@@ -905,21 +904,38 @@ data: {"type":"confidence","level":"high"}
 **When** I look at the sidebar
 **Then** I see conversations filtered to that Project only
 
-**Prerequisites:** Story 3.4 (rename/archive)
+**And** maximum 50 conversations loaded, with "Load more" pagination
+
+**General Chat (FR18):**
+
+**Given** I click "New Chat" in the sidebar
+**When** no project is selected
+**Then** I start a general conversation (not associated with any project)
+
+**And** the header shows "AI Buddy" without a project name
+
+**And** I can still attach documents to this specific conversation
+
+**And** `project_id` is NULL for general conversations
+
+**And** general conversations appear in "Recent" but not under any project
+
+**Prerequisites:** Story 3.1 (project creation & sidebar)
 
 **Technical Notes:**
 - Component: `chat-history-item.tsx`
+- Extend `use-conversations.ts` hook
 - Group by date using date-fns
 - Filter by project_id when project is selected
-- Limit to 50 most recent, with "Load more" option
+- `project_id` is nullable in conversations table
 
 ---
 
-### Story 3.6: AI Buddy Search Conversations
+### Story 3.5: Conversation Search (FR4)
 
 **As a** user,
 **I want** to search across my conversations,
-**So that** I can find past discussions quickly. (FR4)
+**So that** I can find past discussions quickly.
 
 **Acceptance Criteria:**
 
@@ -947,92 +963,56 @@ data: {"type":"confidence","level":"high"}
 
 **And** I can clear the search to return to normal view
 
-**Prerequisites:** Story 3.5 (conversation history)
+**And** search uses PostgreSQL full-text search (`tsvector`, `ts_rank`)
+
+**Prerequisites:** Story 3.4 (conversation history)
 
 **Technical Notes:**
+- Component: `conversation-search.tsx`
+- Hook: `use-conversation-search.ts`
 - Use PostgreSQL full-text search on `ai_buddy_messages.content`
 - API: `GET /api/ai-buddy/conversations?search=query`
 - Component: Search dialog using shadcn/ui Command component
 - Index: `idx_messages_content_fts` GIN index
+- Debounce search input (300ms)
 
 ---
 
-### Story 3.7: AI Buddy Delete Conversations
+### Story 3.6: Conversation Management - Delete & Move (FR6, FR19)
+
+*Merged from original stories 3.7 + 3.9*
 
 **As a** user,
-**I want** to delete conversations I no longer need,
-**So that** I can keep my history clean. (FR6)
+**I want** to delete conversations and move them between projects,
+**So that** I can keep my history clean and organized.
 
 **Acceptance Criteria:**
+
+**Delete Conversations (FR6):**
 
 **Given** I am viewing a conversation
 **When** I click the menu icon and select "Delete"
 **Then** I see a confirmation dialog "Delete this conversation?"
 
-**And** confirming permanently deletes the conversation
+**And** confirming sets `deleted_at` (soft delete)
+
+**And** deleted conversation no longer visible to user
 
 **And** I am returned to the AI Buddy home (empty state or last project)
 
-**Given** I delete a conversation
-**When** it's deleted
-**Then** the conversation and all its messages are removed from my view
+**And** audit log records deletion event with `conversation_deleted` action
 
-**And** audit log retains a record that conversation was deleted (compliance)
+**Move Conversation to Project (FR19):**
 
-**Prerequisites:** Story 3.6 (search)
-
-**Technical Notes:**
-- API: `DELETE /api/ai-buddy/conversations/[id]`
-- Soft delete with `deleted_at` column (for audit compliance)
-- RLS policy hides deleted conversations from user queries
-- Audit log entry: action `conversation_deleted`
-
----
-
-### Story 3.8: AI Buddy General Chat (No Project)
-
-**As a** user,
-**I want** to have quick conversations without creating a Project,
-**So that** I can ask general questions easily. (FR18)
-
-**Acceptance Criteria:**
-
-**Given** I click "New Chat" in the sidebar
-**When** no project is selected
-**Then** I start a general conversation (not associated with any project)
-
-**And** the header shows "AI Buddy" without a project name
-
-**And** I can still attach documents to this specific conversation
-
-**Given** I have a general conversation
-**When** I want to organize it later
-**Then** I can move it into a Project (see Story 3.9)
-
-**Prerequisites:** Story 3.7 (delete conversations)
-
-**Technical Notes:**
-- `project_id` is nullable in conversations table
-- General chats appear in "Recent" but not under any project
-- Document attachments are conversation-specific, not project-wide
-
----
-
-### Story 3.9: AI Buddy Move Conversation to Project
-
-**As a** user,
-**I want** to move a conversation into a Project after the fact,
-**So that** I can organize conversations I started outside a project. (FR19)
-
-**Acceptance Criteria:**
-
-**Given** I have a general conversation (no project)
+**Given** I have a conversation (general or in another project)
 **When** I click menu → "Move to Project"
 **Then** I see a list of my projects to choose from
 
-**And** selecting a project moves the conversation
+**And** selecting a project updates conversation's `project_id`
 
 **And** the conversation now appears under that project's history
+
+**And** toast shows "Moved to [Project Name]" confirmation
 
 **Given** I move a conversation to a project
 **When** the move completes
@@ -1040,13 +1020,17 @@ data: {"type":"confidence","level":"high"}
 
 **And** the header updates to show the project name
 
-**Prerequisites:** Story 3.8 (general chat)
+**And** can move from project to "No Project" (general chat)
+
+**Prerequisites:** Story 3.1 (project creation), Story 3.4 (conversation history)
 
 **Technical Notes:**
+- Extend conversation menu
+- API: `DELETE /api/ai-buddy/conversations/[id]` - soft delete with `deleted_at`
 - API: `PATCH /api/ai-buddy/conversations/[id]` with `project_id`
+- RLS policy hides deleted conversations from user queries
 - Moving doesn't retroactively change past messages
 - Future messages get project context
-- Show toast confirmation "Moved to [Project Name]"
 
 ---
 
@@ -2281,23 +2265,23 @@ data: {"type":"confidence","level":"high"}
 |----|-------------|------|-------|
 | FR1 | Start new conversations | 2 | 2.1, 2.4 |
 | FR2 | Streaming AI responses | 2 | 2.3 |
-| FR3 | Conversation history by date/project | 3 | 3.5 |
-| FR4 | Search conversations | 3 | 3.6 |
+| FR3 | Conversation history by date/project | 3 | 3.4 |
+| FR4 | Search conversations | 3 | 3.5 |
 | FR5 | Continue previous conversations | 2 | 2.4 |
-| FR6 | Delete conversations | 3 | 3.7 |
+| FR6 | Delete conversations | 3 | 3.6 |
 | FR7 | Source citations | 2 | 2.5 |
 | FR8 | Confidence indicators | 2 | 2.6 |
 | FR9 | "I don't know" responses | 2 | 2.7 |
 | FR10 | Invisible guardrail respect | 2 | 2.7 |
 | FR11 | Create Projects | 3 | 3.1 |
-| FR12 | Rename/archive Projects | 3 | 3.4 |
+| FR12 | Rename/archive Projects | 3 | 3.3 |
 | FR13 | Attach documents to Projects | 4 | 4.2 |
 | FR14 | Remove documents from Projects | 4 | 4.6 |
 | FR15 | View Project documents | 4 | 4.2, 4.4 |
-| FR16 | Project document context | 3 | 3.3 |
-| FR17 | Switch Projects | 3 | 3.2 |
-| FR18 | General chat (no project) | 3 | 3.8 |
-| FR19 | Move conversation to Project | 3 | 3.9 |
+| FR16 | Project document context | 3 | 3.2 |
+| FR17 | Switch Projects | 3 | 3.1 |
+| FR18 | General chat (no project) | 3 | 3.4 |
+| FR19 | Move conversation to Project | 3 | 3.6 |
 | FR20 | Upload to conversation | 4 | 4.1 |
 | FR21 | Upload to Project | 4 | 4.2 |
 | FR22 | Process documents for AI | 4 | 4.3 |
@@ -2356,7 +2340,7 @@ data: {"type":"confidence","level":"high"}
 |------|------|---------|-------------|
 | 1 | AI Buddy Foundation | 5 | FR63 |
 | 2 | AI Buddy Core Chat | 7 | FR1, FR2, FR5, FR7-10 |
-| 3 | AI Buddy Projects | 9 | FR3, FR4, FR6, FR11-19 |
+| 3 | AI Buddy Projects | 6 | FR3, FR4, FR6, FR11-19 |
 | 4 | AI Buddy Document Intelligence | 7 | FR20-25, FR65, FR66 |
 | 5 | AI Buddy Personalization & Onboarding | 8 | FR26-32, FR57-62 |
 | 6 | AI Buddy Guardrails & Compliance | 6 | FR35-41 |
@@ -2364,7 +2348,7 @@ data: {"type":"confidence","level":"high"}
 
 **Totals:**
 - **7 Epics**
-- **55 Stories**
+- **52 Stories** (Epic 3 consolidated from 9 to 6 stories)
 - **64 FRs covered** (FR33-34 deferred to Quoting feature)
 
 **Context Incorporated:**

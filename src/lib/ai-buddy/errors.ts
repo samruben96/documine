@@ -21,6 +21,10 @@ export const AIB_ERROR_CODES = {
   AIB_006: { status: 500, message: 'Internal server error' },
   AIB_007: { status: 503, message: 'AI service unavailable' },
   AIB_NOT_IMPLEMENTED: { status: 501, message: 'Not implemented' },
+  // Project-specific error codes (Story 16.1)
+  AIB_101: { status: 400, message: 'Project name is required' },
+  AIB_102: { status: 400, message: 'Project name exceeds 100 characters' },
+  AIB_103: { status: 400, message: 'Project description exceeds 500 characters' },
 } as const;
 
 export type AiBuddyErrorCode = keyof typeof AIB_ERROR_CODES;

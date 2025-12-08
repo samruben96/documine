@@ -20,6 +20,8 @@
     - [Streaming Response Format](./implementation-patterns.md#streaming-response-format)
     - [Database Query Pattern](./implementation-patterns.md#database-query-pattern)
     - [File Upload Pattern](./implementation-patterns.md#file-upload-pattern)
+    - [RLS Service Client Pattern (Verify-Then-Service)](./implementation-patterns.md#rls-service-client-pattern-verify-then-service)
+    - [SSE Streaming Pattern for AI Responses](./implementation-patterns.md#sse-streaming-pattern-for-ai-responses)
   - [Consistency Rules](./consistency-rules.md)
     - [Naming Conventions](./consistency-rules.md#naming-conventions)
     - [Code Organization](./consistency-rules.md#code-organization)

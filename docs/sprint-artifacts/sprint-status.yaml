@@ -980,8 +980,12 @@ development_status:
   # FRs: FR1, FR2, FR5, FR7, FR8, FR9, FR10
   # Tech Spec: docs/sprint-artifacts/epics/epic-15/tech-spec.md
   # Total Points: 37 (5 stories - 15.5-15.7 merged into 15.5)
-  # CONTEXTED 2025-12-07: Tech spec complete with story breakdown
-  epic-15-ai-buddy-core-chat: contexted
+  # COMPLETE 2025-12-07: All 5 stories done (37 points)
+  # RETROSPECTIVE 2025-12-07: docs/sprint-artifacts/retrospectives/epic-15-retrospective.md
+  # Key learnings: Service client pattern for RLS bypass, story merging for tight coupling
+  # Grade: A - 100% delivery, 350+ tests, excellent code quality
+  epic-15-ai-buddy-core-chat: done
+  epic-15-retrospective: completed
   15-1-chat-input-component: done
   15-2-message-display: done
   15-3-streaming-chat-api: done
@@ -990,24 +994,32 @@ development_status:
   # MERGED 2025-12-07: Combines original 15.5 (Source Citations), 15.6 (Confidence Indicators),
   # and 15.7 (Guardrail-Aware Responses) due to tight coupling in prompt building, SSE parsing, display logic
   # Approved by: PM (John) and SM (Bob)
-  # CONTEXTED 2025-12-07: Story context generated, ready for dev
-  # REVIEW 2025-12-07: Implementation complete, pending code review
   # DONE 2025-12-07: Code review APPROVED - 20/20 ACs implemented, 145+ tests passing
   15-5-ai-response-quality-attribution: done
 
   # Epic 16: AI Buddy Projects
   # Goal: Organize work by client accounts with persistent document context
   # FRs: FR3, FR4, FR6, FR11-19
-  epic-16-ai-buddy-projects: backlog
-  16-1-create-project: backlog
-  16-2-project-sidebar: backlog
-  16-3-project-context: backlog
-  16-4-rename-archive-projects: backlog
-  16-5-conversation-history: backlog
-  16-6-search-conversations: backlog
-  16-7-delete-conversations: backlog
-  16-8-general-chat: backlog
-  16-9-move-conversation-to-project: backlog
+  # Stories: 6 (consolidated from 9 for implementation efficiency - 2025-12-07)
+  # Tech Spec: docs/sprint-artifacts/epics/epic-16/tech-spec.md
+  epic-16-ai-buddy-projects: contexted
+  # Story 16.1: Project Creation & Sidebar (FR11, FR17)
+  # Merged from: Create Project + Project Sidebar
+  # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-1-project-creation-sidebar/16-1-project-creation-sidebar.md
+  # READY-FOR-DEV 2025-12-07: Context generated at 16-1-project-creation-sidebar.context.xml
+  16-1-project-creation-sidebar: done
+  # Story 16.2: Project Context Switching (FR16)
+  16-2-project-context-switching: backlog
+  # Story 16.3: Project Management - Rename & Archive (FR12)
+  16-3-project-management: backlog
+  # Story 16.4: Conversation History & General Chat (FR3, FR18)
+  # Merged from: Conversation History + General Chat
+  16-4-conversation-history-general-chat: backlog
+  # Story 16.5: Conversation Search (FR4)
+  16-5-conversation-search: backlog
+  # Story 16.6: Conversation Management - Delete & Move (FR6, FR19)
+  # Merged from: Delete Conversations + Move Conversation to Project
+  16-6-conversation-management: backlog
 
   # Epic 17: AI Buddy Document Intelligence
   # Goal: Document upload, processing, AI-powered context

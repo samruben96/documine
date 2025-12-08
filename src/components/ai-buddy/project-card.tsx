@@ -1,51 +1,116 @@
 /**
  * Project Card Component
- * Story 14.5: Component Scaffolding
+ * Story 16.1: Project Creation & Sidebar
  *
- * Displays a project in the sidebar.
- * Stub implementation - full functionality in Epic 16.
+ * Displays a project in the sidebar list.
+ *
+ * AC-16.1.9: Name truncated at 25 chars, document count badge
+ * AC-16.1.10: Active project has visual indicator
  */
 
-import { Folder, MoreVertical } from 'lucide-react';
+'use client';
+
+import { FolderOpen, MoreVertical, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
+import type { Project } from '@/types/ai-buddy';
 
 export interface ProjectCardProps {
-  name: string;
-  documentCount?: number;
+  project: Project;
   isActive?: boolean;
   onClick?: () => void;
+  onArchive?: (id: string) => void;
   className?: string;
 }
 
+/**
+ * Truncate text to specified length with ellipsis
+ * AC-16.1.9: Name truncated at 25 chars
+ */
+function truncateName(text: string, maxLength = 25): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength) + '...';
+}
+
 export function ProjectCard({
-  name,
-  documentCount = 0,
+  project,
   isActive = false,
   onClick,
+  onArchive,
   className,
 }: ProjectCardProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleArchive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onArchive?.(project.id);
+    setIsMenuOpen(false);
+  };
+
+  const truncatedName = truncateName(project.name);
+  const documentCount = project.documentCount ?? 0;
+
   return (
     <button
       type="button"
       onClick={onClick}
+      data-testid={`project-card-${project.id}`}
       className={cn(
-        'w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left',
+        'w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left group',
         isActive
           ? 'bg-[var(--sidebar-active)]'
           : 'hover:bg-[var(--sidebar-hover)]',
         className
       )}
     >
-      <Folder className="h-4 w-4 text-[var(--text-muted)]" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-          {name}
-        </p>
-        <p className="text-xs text-[var(--text-muted)]">
-          {documentCount} document{documentCount !== 1 ? 's' : ''}
-        </p>
+      <FolderOpen className="h-4 w-4 text-[var(--text-muted)] flex-shrink-0" />
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <span
+          className="text-sm font-medium text-[var(--text-primary)] truncate"
+          title={project.name}
+        >
+          {truncatedName}
+        </span>
+        {documentCount > 0 && (
+          <span
+            className="text-xs text-[var(--text-muted)] bg-[var(--sidebar-hover)] px-1.5 py-0.5 rounded-full flex-shrink-0"
+            data-testid={`project-doc-count-${project.id}`}
+          >
+            {documentCount}
+          </span>
+        )}
       </div>
-      <MoreVertical className="h-4 w-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100" />
+
+      {onArchive && (
+        <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <span
+              className={cn(
+                'h-6 w-6 flex items-center justify-center rounded hover:bg-[var(--sidebar-hover)] cursor-pointer',
+                isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}
+              data-testid={`project-menu-${project.id}`}
+            >
+              <MoreVertical className="h-4 w-4 text-[var(--text-muted)]" />
+            </span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onClick={handleArchive}
+              className="cursor-pointer"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </button>
   );
 }
