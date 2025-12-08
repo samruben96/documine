@@ -1,17 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Bot, FileText, HelpCircle, Sparkles } from 'lucide-react';
 import { ChatInput } from '@/components/ai-buddy/chat-input';
 import { ChatMessageList } from '@/components/ai-buddy/chat-message-list';
 import { useChat } from '@/hooks/ai-buddy/use-chat';
+import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
 
 /**
  * AI Buddy Main Page
- * Story 14.4: Page Layout Shell (updated with Stories 15.1 + 15.2)
+ * Story 15.4: Conversation Persistence (updated from 14.4, 15.1, 15.2)
  *
- * AC 14.4.5: Empty state displayed with welcome message and CTAs.
- * Now integrated with real ChatInput (15.1) and ChatMessageList (15.2).
- * Light theme consistent with rest of docuMINE.
+ * AC-15.4.1: New conversation created automatically on first message
+ * AC-15.4.2: Conversation title auto-generated from first 50 characters
+ * AC-15.4.3: Full conversation history loads when returning to existing conversation
+ * AC-15.4.8: Clicking conversation in sidebar loads that conversation's messages
  */
 
 const quickActions = [
@@ -36,7 +39,51 @@ const quickActions = [
 ];
 
 export default function AiBuddyPage() {
-  const { messages, isLoading, streamingContent, sendMessage } = useChat();
+  const {
+    selectedConversationId,
+    activeConversation,
+    isLoadingConversation,
+    addConversation,
+    refresh,
+    selectConversation,
+  } = useAiBuddyContext();
+
+  // useChat with conversation ID from context
+  const {
+    messages: chatMessages,
+    isLoading: isSending,
+    streamingContent,
+    sendMessage,
+    conversation: newConversation,
+    clearMessages,
+  } = useChat({
+    conversationId: selectedConversationId ?? undefined,
+    onConversationCreated: (conv) => {
+      // Add to sidebar list and select it
+      addConversation(conv);
+      selectConversation(conv.id);
+    },
+  });
+
+  // Sync loaded conversation messages with chat state
+  // When a conversation is loaded from sidebar, set messages from context
+  const displayMessages = selectedConversationId && activeConversation?.messages
+    ? activeConversation.messages
+    : chatMessages;
+
+  // Handle new chat button - clear current state
+  useEffect(() => {
+    if (selectedConversationId === null) {
+      clearMessages();
+    }
+  }, [selectedConversationId, clearMessages]);
+
+  // Refresh conversations list after sending a message (to update order)
+  useEffect(() => {
+    if (newConversation?.id && !selectedConversationId) {
+      refresh();
+    }
+  }, [newConversation?.id, selectedConversationId, refresh]);
 
   const handleSend = (message: string) => {
     sendMessage(message);
@@ -46,7 +93,8 @@ export default function AiBuddyPage() {
     sendMessage(prompt);
   };
 
-  const hasMessages = messages.length > 0;
+  const hasMessages = displayMessages.length > 0;
+  const isLoading = isSending || isLoadingConversation;
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -54,11 +102,18 @@ export default function AiBuddyPage() {
       <div className="flex-1 overflow-hidden">
         {hasMessages ? (
           <ChatMessageList
-            messages={messages}
-            isLoading={isLoading}
+            messages={displayMessages}
+            isLoading={isLoading && isSending}
             streamingContent={streamingContent}
             className="h-full"
           />
+        ) : isLoadingConversation ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+              <p className="text-sm text-slate-500">Loading conversation...</p>
+            </div>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full px-4 py-8">
             {/* Welcome section */}

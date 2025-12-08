@@ -1,29 +1,56 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Plus, MessageSquare } from 'lucide-react';
+import { Menu, X, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ProjectSidebar } from '@/components/ai-buddy/project-sidebar';
+import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
 
 /**
  * AI Buddy Layout
- * Story 14.4: Page Layout Shell
+ * Story 15.4: Conversation Persistence (updated from Story 14.4)
  *
- * Light theme layout for AI Buddy feature.
- * Consistent with rest of docuMINE app styling.
+ * Light theme layout for AI Buddy feature with conversation sidebar.
  *
- * AC 14.4.1: Layout shell with sidebar
- * AC 14.4.2: Sidebar 260px
- * AC 14.4.3: Main chat area
- * AC 14.4.4: Responsive breakpoints
+ * AC-15.4.4: Conversations listed in sidebar "Recent" section
+ * AC-15.4.8: Clicking conversation loads that conversation's messages
  */
 
 interface AiBuddyLayoutProps {
   children: React.ReactNode;
 }
 
-export default function AiBuddyLayout({ children }: AiBuddyLayoutProps) {
+/**
+ * Inner layout component that uses the context
+ */
+function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const {
+    conversations,
+    isLoading,
+    selectedConversationId,
+    selectConversation,
+    deleteConversation,
+    startNewConversation,
+  } = useAiBuddyContext();
+
+  const handleNewChat = () => {
+    startNewConversation();
+    // Close mobile sidebar after action
+    setSidebarOpen(false);
+  };
+
+  const handleSelectConversation = (id: string) => {
+    selectConversation(id);
+    // Close mobile sidebar after selection
+    setSidebarOpen(false);
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    await deleteConversation(id);
+  };
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden bg-slate-50">
@@ -43,47 +70,28 @@ export default function AiBuddyLayout({ children }: AiBuddyLayoutProps) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Sidebar header */}
-        <div className="flex h-14 items-center justify-between px-4 border-b border-slate-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-slate-700 hover:bg-slate-100 gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </Button>
+        {/* Mobile close button */}
+        <div className="flex h-14 items-center justify-end px-4 border-b border-slate-200 lg:hidden">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-slate-700 hover:bg-slate-100"
+            className="text-slate-700 hover:bg-slate-100"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Projects section placeholder */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Projects
-            </h3>
-            <p className="text-sm text-slate-500">
-              No projects yet
-            </p>
-          </div>
-
-          {/* Recent chats placeholder */}
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Recent Chats
-            </h3>
-            <p className="text-sm text-slate-500">
-              Start a conversation
-            </p>
-          </div>
-        </div>
+        {/* Project Sidebar Component */}
+        <ProjectSidebar
+          conversations={conversations}
+          activeConversationId={selectedConversationId}
+          isLoading={isLoading}
+          onNewChat={handleNewChat}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
+          className="flex-1"
+        />
       </aside>
 
       {/* Main content area - AC 14.4.3 */}
@@ -108,5 +116,16 @@ export default function AiBuddyLayout({ children }: AiBuddyLayoutProps) {
         <div className="flex-1 overflow-hidden">{children}</div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Outer layout that provides the context
+ */
+export default function AiBuddyLayout({ children }: AiBuddyLayoutProps) {
+  return (
+    <AiBuddyProvider>
+      <AiBuddyLayoutInner>{children}</AiBuddyLayoutInner>
+    </AiBuddyProvider>
   );
 }

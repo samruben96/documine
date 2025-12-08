@@ -19,3 +19,8 @@ export {
   type UseAuditLogsOptions,
   type UseAuditLogsReturn,
 } from './use-audit-logs';
+export {
+  useConversations,
+  type UseConversationsOptions,
+  type UseConversationsReturn,
+} from './use-conversations';

@@ -985,7 +985,7 @@ development_status:
   15-1-chat-input-component: done
   15-2-message-display: done
   15-3-streaming-chat-api: done
-  15-4-conversation-persistence: backlog
+  15-4-conversation-persistence: done
   15-5-source-citations: backlog
   15-6-confidence-indicators: backlog
   15-7-guardrail-aware-responses: backlog

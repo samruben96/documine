@@ -1,0 +1,305 @@
+<story-context id="15-4-conversation-persistence" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>4</storyId>
+    <title>Conversation Persistence</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-15/stories/15-4-conversation-persistence/15-4-conversation-persistence.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>my conversations saved automatically</iWant>
+    <soThat>I can continue them later and maintain context with AI Buddy</soThat>
+    <tasks>
+      <task id="1" ac="15.4.4,15.4.6">
+        <title>Create GET /api/ai-buddy/conversations endpoint</title>
+        <subtasks>
+          <subtask>1.1: Set up route with GET handler at src/app/api/ai-buddy/conversations/route.ts</subtask>
+          <subtask>1.2: Implement query parameters: projectId, search, limit (default: 50), cursor</subtask>
+          <subtask>1.3: Query ai_buddy_conversations table with user_id filter and RLS</subtask>
+          <subtask>1.4: Sort by updated_at DESC for most recent first</subtask>
+          <subtask>1.5: Implement cursor-based pagination using updated_at and id</subtask>
+          <subtask>1.6: Return { data: Conversation[], nextCursor?: string, error: null }</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="15.4.3,15.4.7">
+        <title>Create GET /api/ai-buddy/conversations/[id] endpoint</title>
+        <subtasks>
+          <subtask>2.1: Set up dynamic route at src/app/api/ai-buddy/conversations/[id]/route.ts</subtask>
+          <subtask>2.2: Validate conversation belongs to authenticated user</subtask>
+          <subtask>2.3: Fetch conversation with all messages from ai_buddy_messages</subtask>
+          <subtask>2.4: Sort messages by created_at ASC (oldest first)</subtask>
+          <subtask>2.5: Return { data: { conversation: Conversation, messages: ChatMessage[] }, error: null }</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="15.4.4,15.4.8">
+        <title>Create useConversations hook</title>
+        <subtasks>
+          <subtask>3.1: Create src/hooks/ai-buddy/use-conversations.ts</subtask>
+          <subtask>3.2: Implement conversations state with SWR or React Query for caching</subtask>
+          <subtask>3.3: Implement loadConversation(id) to fetch and set active conversation</subtask>
+          <subtask>3.4: Implement createConversation(projectId?) for manual creation</subtask>
+          <subtask>3.5: Implement deleteConversation(id) with optimistic update</subtask>
+          <subtask>3.6: Implement searchConversations(query) using search parameter</subtask>
+          <subtask>3.7: Add isLoading and error states</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="15.4.4,15.4.8">
+        <title>Update sidebar to display conversations</title>
+        <subtasks>
+          <subtask>4.1: Update src/components/ai-buddy/sidebar.tsx to include "Recent" section</subtask>
+          <subtask>4.2: Create src/components/ai-buddy/chat-history-item.tsx for conversation items</subtask>
+          <subtask>4.3: Display conversation title, truncated to fit</subtask>
+          <subtask>4.4: Show relative timestamp (e.g., "2h ago", "Yesterday")</subtask>
+          <subtask>4.5: Highlight currently active conversation</subtask>
+          <subtask>4.6: Handle click to navigate/load conversation</subtask>
+          <subtask>4.7: Add empty state when no conversations exist</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="15.4.5">
+        <title>Integrate conversation context into AI prompt</title>
+        <subtasks>
+          <subtask>5.1: Update chat API route to include conversation history in messages array</subtask>
+          <subtask>5.2: Limit history to last 20 messages to manage context window</subtask>
+          <subtask>5.3: Format history as alternating user/assistant messages</subtask>
+          <subtask>5.4: Verify AI responses reference previous conversation context</subtask>
+        </subtasks>
+        <note>Already partially implemented in chat/route.ts lines 265-289</note>
+      </task>
+      <task id="6" ac="15.4.3,15.4.8">
+        <title>Integrate useConversations with AI Buddy page</title>
+        <subtasks>
+          <subtask>6.1: Update /app/(dashboard)/ai-buddy/page.tsx to use useConversations</subtask>
+          <subtask>6.2: Load conversation on URL parameter or sidebar selection</subtask>
+          <subtask>6.3: Initialize empty chat for new conversations</subtask>
+          <subtask>6.4: Update URL when conversation changes (optional, for bookmarking)</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="15.4.1-15.4.8">
+        <title>Write tests</title>
+        <subtasks>
+          <subtask>7.1: Unit tests for useConversations hook</subtask>
+          <subtask>7.2: Unit tests for chat-history-item.tsx component</subtask>
+          <subtask>7.3: Integration tests for conversations API endpoints</subtask>
+          <subtask>7.4: E2E test for conversation persistence flow</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-15.4.1">New conversation created automatically on first message if no conversationId exists</criterion>
+    <criterion id="AC-15.4.2">Conversation title auto-generated from first 50 characters of first message</criterion>
+    <criterion id="AC-15.4.3">Full conversation history loads when returning to existing conversation</criterion>
+    <criterion id="AC-15.4.4">Conversations listed in sidebar "Recent" section, sorted by most recent activity</criterion>
+    <criterion id="AC-15.4.5">AI retains context from previous messages in conversation</criterion>
+    <criterion id="AC-15.4.6">GET /api/ai-buddy/conversations returns user's conversations with pagination</criterion>
+    <criterion id="AC-15.4.7">GET /api/ai-buddy/conversations/[id] returns conversation with all messages</criterion>
+    <criterion id="AC-15.4.8">Clicking conversation in sidebar loads that conversation's messages</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-15/tech-spec.md</path>
+        <title>Epic 15 Tech Spec</title>
+        <section>Story 15.4: Conversation Persistence</section>
+        <snippet>This story implements conversation persistence - auto-save, history listing, sidebar display, and AI context retention. Uses cursor-based pagination for conversations list.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Data Architecture</section>
+        <snippet>ai_buddy_conversations and ai_buddy_messages tables with RLS policies. Conversations link to projects optionally, messages have role, content, sources, confidence fields.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-15/stories/15-3-streaming-chat-api/15-3-streaming-chat-api.md</path>
+        <title>Story 15.3 - Streaming Chat API</title>
+        <section>Dev Agent Record</section>
+        <snippet>Conversation auto-creation at route.ts:205-232, title generation from first 50 chars, message storage at route.ts:240-255, history retrieval at route.ts:265-289.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/app/api/ai-buddy/conversations/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET</symbol>
+        <lines>1-31</lines>
+        <reason>STUB - needs implementation. Currently returns notImplementedResponse(). Replace with actual conversation list query.</reason>
+      </file>
+      <file>
+        <path>src/app/api/ai-buddy/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST</symbol>
+        <lines>205-232</lines>
+        <reason>Conversation creation logic to reuse. Creates conversation if no conversationId, generates title from first 50 chars.</reason>
+      </file>
+      <file>
+        <path>src/app/api/ai-buddy/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>buildAiBuddySystemPrompt</symbol>
+        <lines>265-289</lines>
+        <reason>Already fetches conversation history (last 20 messages) and includes in LLM context. AC-15.4.5 already partially implemented.</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-chat.ts</path>
+        <kind>hook</kind>
+        <symbol>useChat</symbol>
+        <lines>76-347</lines>
+        <reason>Current chat hook with conversation state management. New useConversations hook should complement this for listing/loading.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/project-sidebar.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectSidebar</symbol>
+        <lines>1-44</lines>
+        <reason>STUB sidebar - needs "Recent" section for conversation history. Add conversation list below "New Chat" button.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/chat-history-item.tsx</path>
+        <kind>component</kind>
+        <symbol>ChatHistoryItem</symbol>
+        <lines>1-53</lines>
+        <reason>Already exists with title, preview, timestamp, isActive props. Can be used as-is or enhanced with delete action.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/ai-buddy/page.tsx</path>
+        <kind>page</kind>
+        <symbol>AiBuddyPage</symbol>
+        <lines>1-118</lines>
+        <reason>Main AI Buddy page. Uses useChat hook. Needs integration with useConversations for loading existing conversations.</reason>
+      </file>
+      <file>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>Conversation, Message, ConversationListResponse</symbol>
+        <lines>34-180</lines>
+        <reason>TypeScript types already defined. Conversation, Message, ConversationListParams, ConversationListResponse interfaces available.</reason>
+      </file>
+      <file>
+        <path>src/lib/supabase/server.ts</path>
+        <kind>utility</kind>
+        <symbol>createClient</symbol>
+        <reason>Server-side Supabase client factory. Use for API routes.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+      </node>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+      </node>
+      <node>
+        <package>next</package>
+        <version>^16.0.7</version>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+      </node>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <note>Use for relative timestamp formatting (e.g., formatDistanceToNow)</note>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>GET /api/ai-buddy/conversations</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/ai-buddy/conversations?projectId=uuid&amp;search=string&amp;limit=50&amp;cursor=string</signature>
+      <response>{ data: Conversation[], nextCursor?: string, error: null }</response>
+      <path>src/app/api/ai-buddy/conversations/route.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/ai-buddy/conversations/[id]</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/ai-buddy/conversations/:id</signature>
+      <response>{ data: { conversation: Conversation, messages: Message[] }, error: null }</response>
+      <path>src/app/api/ai-buddy/conversations/[id]/route.ts</path>
+    </interface>
+    <interface>
+      <name>useConversations</name>
+      <kind>React hook</kind>
+      <signature>useConversations(): UseConversationsReturn</signature>
+      <returns>{ conversations, isLoading, error, loadConversation, createConversation, deleteConversation, searchConversations }</returns>
+      <path>src/hooks/ai-buddy/use-conversations.ts</path>
+    </interface>
+    <interface>
+      <name>Conversation</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface Conversation { id, agencyId, userId, projectId?, title?, deletedAt?, createdAt, updatedAt, messageCount?, project? }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>ConversationListResponse</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ConversationListResponse { conversations: Conversation[], total: number }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint source="docs/features/ai-buddy/architecture.md">
+      RLS policies: Users see only their own conversations via user_id = auth.uid() policy
+    </constraint>
+    <constraint source="docs/sprint-artifacts/epics/epic-15/tech-spec.md">
+      Conversation history limited to last 20 messages for AI context window management
+    </constraint>
+    <constraint source="docs/sprint-artifacts/epics/epic-15/tech-spec.md">
+      Cursor-based pagination using (updated_at, id) for efficient scrolling
+    </constraint>
+    <constraint source="docs/features/ai-buddy/architecture.md">
+      API response format: { data: T | null, error: AiBuddyApiError | null }
+    </constraint>
+    <constraint source="docs/sprint-artifacts/epics/epic-15/stories/15-3-streaming-chat-api/15-3-streaming-chat-api.md">
+      Conversation title auto-generated from first 50 characters + "..." if longer
+    </constraint>
+    <constraint source="existing-pattern">
+      Use date-fns formatDistanceToNow for relative timestamps in sidebar
+    </constraint>
+    <constraint source="existing-pattern">
+      Follow existing useChat hook pattern for state management (isLoading, error, data)
+    </constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Use vitest for unit tests, @testing-library/react for component tests, and @playwright/test for E2E tests. Follow existing test patterns from __tests__/hooks/ai-buddy/ and __tests__/lib/ai-buddy/. Tests should be organized by AC ID for traceability.
+    </standards>
+    <locations>
+      <location>__tests__/hooks/ai-buddy/use-conversations.test.ts</location>
+      <location>__tests__/components/ai-buddy/chat-history-item.test.tsx</location>
+      <location>__tests__/app/api/ai-buddy/conversations.test.ts</location>
+      <location>__tests__/e2e/ai-buddy-conversation-persistence.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-15.4.1">Test conversation auto-creation via useChat when conversationId is null - already covered by useChat tests</idea>
+      <idea ac="AC-15.4.2">Test title generation: message under 50 chars uses full text, over 50 chars truncates with "..."</idea>
+      <idea ac="AC-15.4.3">Test loadConversation fetches full history and populates messages state correctly</idea>
+      <idea ac="AC-15.4.4">Test conversations API returns sorted list (most recent updated_at first)</idea>
+      <idea ac="AC-15.4.4">Test sidebar renders ChatHistoryItem for each conversation with correct props</idea>
+      <idea ac="AC-15.4.5">Integration test: Send multiple messages, verify AI references earlier context in response</idea>
+      <idea ac="AC-15.4.6">Test pagination: cursor returns next page, empty cursor for last page</idea>
+      <idea ac="AC-15.4.7">Test conversation detail endpoint returns all messages in ascending order</idea>
+      <idea ac="AC-15.4.8">Test sidebar click handler calls loadConversation with correct id</idea>
+      <idea ac="AC-15.4.8">E2E test: Click conversation in sidebar, verify messages display in chat area</idea>
+    </ideas>
+  </tests>
+</story-context>
