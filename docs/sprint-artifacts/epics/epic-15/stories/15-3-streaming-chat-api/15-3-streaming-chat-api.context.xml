@@ -1,0 +1,230 @@
+<story-context id="15-3-streaming-chat-api" v="1.0">
+  <metadata>
+    <epicId>15</epicId>
+    <storyId>3</storyId>
+    <title>Streaming Chat API</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-15/stories/15-3-streaming-chat-api/15-3-streaming-chat-api.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user</asA>
+    <iWant>AI responses to stream in real-time</iWant>
+    <soThat>I see answers progressively without waiting for the complete response</soThat>
+    <tasks>
+      <task id="1" acs="15.3.1, 15.3.2, 15.3.4">Create `/api/ai-buddy/chat/route.ts` API endpoint
+        <subtask>1.1: Set up Edge Runtime route with POST handler</subtask>
+        <subtask>1.2: Validate request body (message, optional conversationId, projectId, attachments)</subtask>
+        <subtask>1.3: Implement SSE response stream using ReadableStream + TextEncoderStream</subtask>
+        <subtask>1.4: Format events as JSON with type discriminator (chunk, sources, confidence, done, error)</subtask>
+        <subtask>1.5: Set appropriate headers (Content-Type: text/event-stream, Cache-Control: no-cache)</subtask>
+      </task>
+      <task id="2" acs="15.3.1, 15.3.2">Implement OpenRouter streaming integration
+        <subtask>2.1: Create `src/lib/ai-buddy/ai-client.ts` wrapper</subtask>
+        <subtask>2.2: Configure OpenAI client for OpenRouter endpoint with Claude Sonnet 4.5</subtask>
+        <subtask>2.3: Implement streaming completion with delta chunks</subtask>
+        <subtask>2.4: Handle SSE format conversion (OpenAI deltas to AI Buddy SSE events)</subtask>
+        <subtask>2.5: Add abort signal support for cancellation</subtask>
+      </task>
+      <task id="3" acs="15.3.6">Implement rate limiting
+        <subtask>3.1: Create `src/lib/ai-buddy/rate-limiter.ts` helper</subtask>
+        <subtask>3.2: Query `ai_buddy_rate_limits` table for user's tier limits</subtask>
+        <subtask>3.3: Check rate limit before processing message</subtask>
+        <subtask>3.4: Return AIB_003 error code when rate limit exceeded</subtask>
+        <subtask>3.5: Include retry-after header in rate limit response</subtask>
+      </task>
+      <task id="4" acs="15.3.8">Implement conversation auto-creation
+        <subtask>4.1: Check if conversationId provided in request</subtask>
+        <subtask>4.2: If not, create new conversation record with user_id, agency_id, project_id</subtask>
+        <subtask>4.3: Auto-generate title from first 50 chars of first message</subtask>
+        <subtask>4.4: Return conversationId in `done` event</subtask>
+        <subtask>4.5: Store user message in ai_buddy_messages table</subtask>
+      </task>
+      <task id="5" acs="15.3.3, 15.3.5, 15.3.7">Upgrade `useChat` hook
+        <subtask>5.1: Implement SSE connection using EventSource or fetch with ReadableStream</subtask>
+        <subtask>5.2: Parse incoming SSE events by type</subtask>
+        <subtask>5.3: Accumulate chunk events into streamingContent state</subtask>
+        <subtask>5.4: Handle sources and confidence events</subtask>
+        <subtask>5.5: Clear streaming state and add complete message on done event</subtask>
+        <subtask>5.6: Implement error handling with retry callback</subtask>
+        <subtask>5.7: Add abort controller for request cancellation</subtask>
+      </task>
+      <task id="6" acs="15.3.1-15.3.8">Write tests
+        <subtask>6.1: Unit tests for ai-client.ts streaming logic</subtask>
+        <subtask>6.2: Unit tests for rate-limiter.ts</subtask>
+        <subtask>6.3: Unit tests for useChat hook SSE handling</subtask>
+        <subtask>6.4: Integration tests for chat API route</subtask>
+        <subtask>6.5: E2E test for streaming message display</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="15.3.1" verification="Integration test">Response streams via Server-Sent Events (SSE) format</ac>
+    <ac id="15.3.2" verification="Performance test">First token appears within 500ms of sending message</ac>
+    <ac id="15.3.3" verification="E2E test">Text appears progressively (chunk by chunk) in UI</ac>
+    <ac id="15.3.4" verification="Unit test">SSE events include: chunk, sources, confidence, done, error types</ac>
+    <ac id="15.3.5" verification="Unit test">Error handling provides retry option to user</ac>
+    <ac id="15.3.6" verification="Integration test">Rate limiting enforced (20 messages/minute default)</ac>
+    <ac id="15.3.7" verification="Unit test">useChat hook manages SSE connection and state</ac>
+    <ac id="15.3.8" verification="Integration test">Conversation auto-creates on first message if no conversationId</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="API Contracts">
+        SSE streaming format: chunk, sources, confidence, done events. OpenRouter Claude Sonnet 4.5. Rate limiting via database config.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-15/tech-spec.md" title="Epic 15 Tech Spec" section="Story 15.3">
+        StreamEvent interface, ChatRequest type, API endpoint contract. Edge Runtime, 500ms TTFB target.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-15/stories/15-2-message-display/15-2-message-display.md" title="Story 15.2 - Message Display" section="Dev Agent Record">
+        useChat hook interface established: { messages, isLoading, streamingContent, sendMessage, conversation }. Mock implementation to be replaced with real SSE.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture">
+        Database tables: ai_buddy_conversations, ai_buddy_messages, ai_buddy_rate_limits with RLS policies.
+      </doc>
+    </docs>
+    <code>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api-route" reason="Stub endpoint to be implemented - currently returns notImplementedResponse()">
+        <lines>1-32</lines>
+      </file>
+      <file path="src/lib/ai-buddy/ai-client.ts" kind="service" reason="Stub AI client with interfaces defined - createChatStream to be implemented">
+        <symbol>createChatStream, ChatStreamOptions, ChatStreamResult</symbol>
+        <lines>1-57</lines>
+      </file>
+      <file path="src/lib/ai-buddy/rate-limiter.ts" kind="service" reason="Stub rate limiter - checkAiBuddyRateLimit to be implemented">
+        <symbol>checkAiBuddyRateLimit, RateLimitCheck, AI_BUDDY_RATE_LIMITS</symbol>
+        <lines>1-76</lines>
+      </file>
+      <file path="src/hooks/ai-buddy/use-chat.ts" kind="hook" reason="Mock implementation - to be upgraded with real SSE connection">
+        <symbol>useChat, UseChatReturn, UseChatOptions</symbol>
+        <lines>1-120</lines>
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" reason="All TypeScript types for AI Buddy - Message, Conversation, StreamChunk, ChatRequest">
+        <symbol>Message, Conversation, StreamChunk, ChatRequest, Citation, ConfidenceLevel</symbol>
+        <lines>1-198</lines>
+      </file>
+      <file path="src/lib/chat/openai-stream.ts" kind="service" reason="Existing streaming pattern to follow - createChatStream, formatSSEEvent, streamChatResponse">
+        <symbol>createChatStream, formatSSEEvent, formatSSEDone, streamChatResponse</symbol>
+        <lines>1-242</lines>
+      </file>
+      <file path="src/lib/llm/config.ts" kind="config" reason="LLM configuration - OpenRouter client factory, model IDs, getLLMClient">
+        <symbol>getLLMClient, getModelId, OPENROUTER_MODEL_IDS, getModelConfig</symbol>
+        <lines>1-339</lines>
+      </file>
+      <file path="src/app/api/chat/route.ts" kind="api-route" reason="Existing chat API route pattern - SSE streaming, rate limiting, conversation handling">
+        <lines>1-313</lines>
+      </file>
+      <file path="src/app/(dashboard)/ai-buddy/page.tsx" kind="page" reason="AI Buddy page using useChat hook - integration point">
+        <symbol>AiBuddyPage</symbol>
+        <lines>1-119</lines>
+      </file>
+      <file path="src/components/ai-buddy/chat-message-list.tsx" kind="component" reason="Message list consuming useChat hook - streamingContent prop">
+        <symbol>ChatMessageList</symbol>
+      </file>
+      <file path="src/components/ai-buddy/streaming-indicator.tsx" kind="component" reason="Streaming indicator component - isVisible, streamingContent props">
+        <symbol>StreamingIndicator</symbol>
+      </file>
+    </code>
+    <dependencies>
+      <package name="openai" version="^6.9.1" reason="OpenAI client library for OpenRouter API calls" />
+      <package name="zod" version="^4.1.13" reason="Request validation schema" />
+      <package name="@supabase/supabase-js" version="^2.84.0" reason="Database access for conversations, messages, rate limits" />
+      <package name="next" version="^16.0.7" reason="Edge Runtime for streaming API routes" />
+      <package name="react" version="19.2.0" reason="useState, useCallback for hook state management" />
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="ChatRequest" kind="type" path="src/types/ai-buddy.ts">
+      <signature><![CDATA[interface ChatRequest {
+  conversationId?: string;
+  projectId?: string;
+  message: string;
+  attachments?: { documentId: string; type: 'pdf' | 'image'; }[];
+}]]></signature>
+    </interface>
+    <interface name="StreamChunk" kind="type" path="src/types/ai-buddy.ts">
+      <signature><![CDATA[interface StreamChunk {
+  type: 'chunk' | 'sources' | 'confidence' | 'done';
+  content?: string;
+  citations?: Citation[];
+  level?: ConfidenceLevel;
+  conversationId?: string;
+  messageId?: string;
+}]]></signature>
+    </interface>
+    <interface name="UseChatReturn" kind="type" path="src/hooks/ai-buddy/use-chat.ts">
+      <signature><![CDATA[interface UseChatReturn {
+  messages: Message[];
+  isLoading: boolean;
+  streamingContent: string;
+  error: Error | null;
+  conversation: Conversation | null;
+  sendMessage: (content: string, attachments?: string[]) => Promise<void>;
+  clearMessages: () => void;
+}]]></signature>
+    </interface>
+    <interface name="RateLimitCheck" kind="type" path="src/lib/ai-buddy/rate-limiter.ts">
+      <signature><![CDATA[interface RateLimitCheck {
+  allowed: boolean;
+  remaining: number;
+  resetAt: Date;
+  limit: number;
+  tier: string;
+}]]></signature>
+    </interface>
+    <interface name="POST /api/ai-buddy/chat" kind="REST endpoint" path="src/app/api/ai-buddy/chat/route.ts">
+      <signature><![CDATA[POST /api/ai-buddy/chat
+Request: ChatRequest (JSON body)
+Response: SSE stream with events:
+  data: {"type":"chunk","content":"..."}
+  data: {"type":"sources","citations":[...]}
+  data: {"type":"confidence","level":"high|medium|low"}
+  data: {"type":"done","conversationId":"uuid","messageId":"uuid"}
+  data: {"type":"error","error":"...","code":"AIB_XXX"}
+Headers: Content-Type: text/event-stream, Cache-Control: no-cache]]></signature>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Follow existing SSE streaming pattern from src/lib/chat/openai-stream.ts - use ReadableStream with TextEncoder, formatSSEEvent helper</constraint>
+    <constraint type="pattern">Use OpenRouter via getLLMClient() from src/lib/llm/config.ts - do not create new OpenAI client instances directly</constraint>
+    <constraint type="pattern">AI Buddy error codes use AIB_XXX format (AIB_003 = rate limit, AIB_004 = AI provider error) per architecture.md</constraint>
+    <constraint type="layer">API route must use Supabase server client from @/lib/supabase/server for RLS-compliant database access</constraint>
+    <constraint type="testing">Tests organized by AC ID for traceability - follow pattern from Story 15.1 and 15.2</constraint>
+    <constraint type="testing">Use Vitest for unit tests, Playwright for E2E tests - see existing __tests__/components/ai-buddy/*.test.tsx</constraint>
+    <constraint type="style">Light theme with emerald accents (emerald-500, emerald-600) - CSS variables from Story 15.1</constraint>
+    <constraint type="performance">First token must appear within 500ms - use Edge Runtime for chat route</constraint>
+    <constraint type="database">Use ai_buddy_* tables with agency_id scoping and RLS policies per architecture.md</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit and integration tests. Playwright for E2E tests. Tests organized by AC ID in describe blocks. Mock Supabase and OpenAI clients for unit tests. Use existing test patterns from __tests__/components/ai-buddy/*.test.tsx. Target 80%+ coverage on new code.
+    </standards>
+    <locations>
+      <location>__tests__/lib/ai-buddy/ai-client.test.ts</location>
+      <location>__tests__/lib/ai-buddy/rate-limiter.test.ts</location>
+      <location>__tests__/hooks/ai-buddy/use-chat.test.ts</location>
+      <location>__tests__/api/ai-buddy/chat.test.ts</location>
+      <location>__tests__/e2e/ai-buddy-chat-streaming.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="15.3.1">Test SSE response has correct Content-Type header and event format</idea>
+      <idea ac="15.3.1">Test stream emits chunk events with content property</idea>
+      <idea ac="15.3.2">Performance test measuring time from request to first chunk</idea>
+      <idea ac="15.3.3">E2E test verifying text appears progressively in ChatMessageList</idea>
+      <idea ac="15.3.4">Test all event types (chunk, sources, confidence, done, error) are emitted correctly</idea>
+      <idea ac="15.3.5">Test error event triggers retry UI in useChat hook</idea>
+      <idea ac="15.3.6">Test rate limit check returns 429 with correct error code AIB_003</idea>
+      <idea ac="15.3.7">Test useChat hook parses SSE events and updates state correctly</idea>
+      <idea ac="15.3.7">Test useChat hook handles streaming content accumulation</idea>
+      <idea ac="15.3.8">Test conversation creation when conversationId not provided</idea>
+      <idea ac="15.3.8">Test user message saved to ai_buddy_messages table</idea>
+    </ideas>
+  </tests>
+</story-context>

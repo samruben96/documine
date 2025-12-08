@@ -62,6 +62,346 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_buddy_audit_logs: {
+        Row: {
+          action: string
+          agency_id: string
+          conversation_id: string | null
+          id: string
+          logged_at: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          agency_id: string
+          conversation_id?: string | null
+          id?: string
+          logged_at?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          agency_id?: string
+          conversation_id?: string | null
+          id?: string
+          logged_at?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_audit_logs_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_audit_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_buddy_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_conversations: {
+        Row: {
+          agency_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          project_id: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          project_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_conversations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_buddy_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_guardrails: {
+        Row: {
+          agency_id: string
+          ai_disclosure_enabled: boolean | null
+          ai_disclosure_message: string | null
+          custom_rules: Json | null
+          eando_disclaimer: boolean | null
+          restricted_topics: Json | null
+          restricted_topics_enabled: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          ai_disclosure_enabled?: boolean | null
+          ai_disclosure_message?: string | null
+          custom_rules?: Json | null
+          eando_disclaimer?: boolean | null
+          restricted_topics?: Json | null
+          restricted_topics_enabled?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          ai_disclosure_enabled?: boolean | null
+          ai_disclosure_message?: string | null
+          custom_rules?: Json | null
+          eando_disclaimer?: boolean | null
+          restricted_topics?: Json | null
+          restricted_topics_enabled?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_guardrails_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_messages: {
+        Row: {
+          agency_id: string
+          confidence:
+            | Database["public"]["Enums"]["ai_buddy_confidence_level"]
+            | null
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["ai_buddy_message_role"]
+          sources: Json | null
+        }
+        Insert: {
+          agency_id: string
+          confidence?:
+            | Database["public"]["Enums"]["ai_buddy_confidence_level"]
+            | null
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["ai_buddy_message_role"]
+          sources?: Json | null
+        }
+        Update: {
+          agency_id?: string
+          confidence?:
+            | Database["public"]["Enums"]["ai_buddy_confidence_level"]
+            | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["ai_buddy_message_role"]
+          sources?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_messages_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_buddy_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission: Database["public"]["Enums"]["ai_buddy_permission"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: Database["public"]["Enums"]["ai_buddy_permission"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: Database["public"]["Enums"]["ai_buddy_permission"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_project_documents: {
+        Row: {
+          attached_at: string
+          document_id: string
+          project_id: string
+        }
+        Insert: {
+          attached_at?: string
+          document_id: string
+          project_id: string
+        }
+        Update: {
+          attached_at?: string
+          document_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_project_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ai_buddy_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_projects: {
+        Row: {
+          agency_id: string
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_projects_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_buddy_rate_limits: {
+        Row: {
+          messages_per_day: number
+          messages_per_minute: number
+          tier: string
+        }
+        Insert: {
+          messages_per_day: number
+          messages_per_minute: number
+          tier: string
+        }
+        Update: {
+          messages_per_day?: number
+          messages_per_minute?: number
+          tier?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           agency_id: string
@@ -605,6 +945,7 @@ export type Database = {
       users: {
         Row: {
           agency_id: string
+          ai_buddy_preferences: Json | null
           created_at: string
           email: string
           full_name: string | null
@@ -614,6 +955,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          ai_buddy_preferences?: Json | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -623,6 +965,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          ai_buddy_preferences?: Json | null
           created_at?: string
           email?: string
           full_name?: string | null
@@ -708,7 +1051,14 @@ export type Database = {
       reset_stuck_processing_jobs: { Args: never; Returns: undefined }
     }
     Enums: {
-      [_ in never]: never
+      ai_buddy_confidence_level: "high" | "medium" | "low"
+      ai_buddy_message_role: "user" | "assistant" | "system"
+      ai_buddy_permission:
+        | "use_ai_buddy"
+        | "manage_own_projects"
+        | "manage_users"
+        | "configure_guardrails"
+        | "view_audit_logs"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -835,6 +1185,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ai_buddy_confidence_level: ["high", "medium", "low"],
+      ai_buddy_message_role: ["user", "assistant", "system"],
+      ai_buddy_permission: [
+        "use_ai_buddy",
+        "manage_own_projects",
+        "manage_users",
+        "configure_guardrails",
+        "view_audit_logs",
+      ],
+    },
   },
 } as const
