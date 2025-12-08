@@ -28,3 +28,7 @@ export {
   type UseConversationsOptions,
   type UseConversationsReturn,
 } from './use-conversations';
+export {
+  useConversationSearch,
+  type ConversationSearchResult,
+} from './use-conversation-search';

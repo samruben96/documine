@@ -1,11 +1,15 @@
 /**
  * AI Buddy Conversations API Route
  * Story 15.4: Conversation Persistence
+ * Story 16.5: Conversation Search (FR4)
  *
  * GET /api/ai-buddy/conversations - List user's conversations
+ * GET /api/ai-buddy/conversations?search=query - Full-text search across messages
  *
  * AC-15.4.4: Conversations listed sorted by most recent activity
  * AC-15.4.6: Returns user's conversations with pagination
+ * AC-16.5.2: Typing query searches across all user's conversations
+ * AC-16.5.7: Search uses PostgreSQL full-text search (tsvector, ts_rank)
  */
 
 import { NextRequest } from 'next/server';
@@ -24,6 +28,26 @@ const queryParamsSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
   cursor: z.string().optional(),
 });
+
+/**
+ * Full-text search result from search_conversations RPC
+ * AC-16.5.3: Results show conversation title, matched text snippet (highlighted), project name, date
+ */
+export interface ConversationSearchResult {
+  conversationId: string;
+  conversationTitle: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  matchedText: string;
+  highlightedText: string; // HTML with <mark> tags
+  messageId: string;
+  createdAt: string;
+}
+
+/**
+ * Minimum query length for full-text search
+ */
+const MIN_SEARCH_LENGTH = 2;
 
 /**
  * Parse cursor for pagination
@@ -99,6 +123,54 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (authError || !user) {
       log.warn('AI Buddy conversations list unauthorized');
       return aiBuddyErrorResponse('AIB_001', 'Authentication required');
+    }
+
+    // Full-text search mode (AC-16.5.7: PostgreSQL tsvector/ts_rank)
+    if (search && search.length >= MIN_SEARCH_LENGTH) {
+      const { data: searchResults, error: searchError } = await supabase.rpc(
+        'search_conversations',
+        {
+          p_user_id: user.id,
+          p_query: search,
+          p_limit: limit,
+        }
+      );
+
+      if (searchError) {
+        log.error('Full-text search failed', searchError);
+        return aiBuddyErrorResponse('AIB_006', 'Search failed');
+      }
+
+      // Map RPC results to ConversationSearchResult format
+      const results: ConversationSearchResult[] = (searchResults || []).map(
+        (row: {
+          conversation_id: string;
+          conversation_title: string | null;
+          project_id: string | null;
+          project_name: string | null;
+          matched_text: string;
+          highlighted_text: string;
+          message_id: string;
+          created_at: string;
+        }) => ({
+          conversationId: row.conversation_id,
+          conversationTitle: row.conversation_title,
+          projectId: row.project_id,
+          projectName: row.project_name,
+          matchedText: row.matched_text,
+          highlightedText: row.highlighted_text,
+          messageId: row.message_id,
+          createdAt: row.created_at,
+        })
+      );
+
+      log.info('AI Buddy full-text search completed', {
+        userId: user.id,
+        query: search,
+        resultCount: results.length,
+      });
+
+      return aiBuddySuccessResponse({ data: results });
     }
 
     // Build query

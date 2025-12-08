@@ -1049,6 +1049,19 @@ export type Database = {
       }
       process_next_document_job: { Args: never; Returns: undefined }
       reset_stuck_processing_jobs: { Args: never; Returns: undefined }
+      search_conversations: {
+        Args: { p_limit?: number; p_query: string; p_user_id: string }
+        Returns: {
+          conversation_id: string
+          conversation_title: string
+          created_at: string
+          highlighted_text: string
+          matched_text: string
+          message_id: string
+          project_id: string
+          project_name: string
+        }[]
+      }
     }
     Enums: {
       ai_buddy_confidence_level: "high" | "medium" | "low"

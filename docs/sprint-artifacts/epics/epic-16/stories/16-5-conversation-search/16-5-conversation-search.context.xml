@@ -1,0 +1,284 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>5</storyId>
+    <title>Conversation Search</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-5-conversation-search/16-5-conversation-search.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to search across all my conversations by keyword</iWant>
+    <soThat>I can quickly find past discussions about specific topics without manually browsing through conversation history</soThat>
+    <tasks>
+      <phase name="A: Database Setup">
+        <task id="T1">Verify `search_vector` or GIN index exists on `ai_buddy_messages` table</task>
+        <task id="T2">Create `search_conversations` RPC function migration</task>
+        <task id="T3">Apply migrations to development database</task>
+        <task id="T4">Test RPC function directly in Supabase dashboard</task>
+      </phase>
+      <phase name="B: API Endpoint">
+        <task id="T5">Update `GET /api/ai-buddy/conversations` to handle `search` parameter with full-text</task>
+        <task id="T6">Call `search_conversations` RPC when search query provided</task>
+        <task id="T7">Return results in `ConversationSearchResult` format</task>
+        <task id="T8">Integration tests for search API endpoint</task>
+      </phase>
+      <phase name="C: Search Hook">
+        <task id="T9">Create `src/hooks/ai-buddy/use-conversation-search.ts`</task>
+        <task id="T10">Implement debouncing (300ms) for search queries</task>
+        <task id="T11">Return loading, error, and results states</task>
+        <task id="T12">Unit tests for hook (mock fetch)</task>
+      </phase>
+      <phase name="D: Search Dialog Component">
+        <task id="T13">Create `src/components/ai-buddy/conversation-search.tsx`</task>
+        <task id="T14">Use shadcn Command component (cmdk) for dialog</task>
+        <task id="T15">Display search results with highlighted text snippets</task>
+        <task id="T16">Show project name, timestamp, and conversation title</task>
+        <task id="T17">Handle empty states: "No results" and "Type to search"</task>
+        <task id="T18">Component tests for ConversationSearch</task>
+      </phase>
+      <phase name="E: Keyboard Shortcut Integration">
+        <task id="T19">Add Cmd/Ctrl+K listener to AI Buddy layout</task>
+        <task id="T20">Add `isSearchOpen` state to AI Buddy context</task>
+        <task id="T21">Wire up search dialog open/close to state</task>
+        <task id="T22">Navigate to conversation on result selection</task>
+      </phase>
+      <phase name="F: E2E Testing">
+        <task id="T23">E2E test: Cmd+K opens search dialog</task>
+        <task id="T24">E2E test: Typing query shows results</task>
+        <task id="T25">E2E test: Clicking result navigates to conversation</task>
+        <task id="T26">E2E test: Empty query shows helpful message</task>
+        <task id="T27">E2E test: No results shows appropriate message</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-16.5.1">Cmd/Ctrl+K opens search dialog</criterion>
+    <criterion id="AC-16.5.2">Typing query searches across all user's conversations</criterion>
+    <criterion id="AC-16.5.3">Results show conversation title, matched text snippet (highlighted), project name, date</criterion>
+    <criterion id="AC-16.5.4">Clicking result opens that conversation</criterion>
+    <criterion id="AC-16.5.5">Search results return within 1 second</criterion>
+    <criterion id="AC-16.5.6">No results shows "No conversations found for '[query]'"</criterion>
+    <criterion id="AC-16.5.7">Search uses PostgreSQL full-text search (`tsvector`, `ts_rank`)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Decision Summary - Conversation Search</section>
+        <snippet>Conversation Search: PostgreSQL full-text search | N/A | FR4 | Simple, sufficient for MVP. Uses tsvector and ts_rank for ranked results.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Data Architecture - ai_buddy_messages</section>
+        <snippet>Full-text search index: CREATE INDEX idx_messages_content_fts ON ai_buddy_messages USING GIN (to_tsvector('english', content));</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/prd.md</path>
+        <title>AI Buddy PRD</title>
+        <section>FR4 - Conversation Search</section>
+        <snippet>FR4: Users can search across all their conversations by keyword. Search should be fast and return relevant matches.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/tech-spec.md</path>
+        <title>Epic 16 Tech Spec</title>
+        <section>Story 16.5 - Conversation Search</section>
+        <snippet>PostgreSQL full-text search with ts_headline for highlighted snippets. Cmd/Ctrl+K keyboard shortcut. Results within 1 second.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/app/api/ai-buddy/conversations/route.ts</path>
+        <kind>API Route</kind>
+        <symbol>GET</symbol>
+        <lines>68-194</lines>
+        <reason>Modify to add full-text search support via RPC function. Currently only does ilike title search.</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-conversations.ts</path>
+        <kind>Hook</kind>
+        <symbol>useConversations, searchConversations</symbol>
+        <lines>1-386</lines>
+        <reason>Reference for conversation fetching patterns. Has basic search but needs full-text enhancement.</reason>
+      </file>
+      <file>
+        <path>src/contexts/ai-buddy-context.tsx</path>
+        <kind>Context</kind>
+        <symbol>AiBuddyContext, useAiBuddyContext</symbol>
+        <lines>1-296</lines>
+        <reason>Add isSearchOpen state and search handlers. Wire up conversation selection.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/ai-buddy/layout.tsx</path>
+        <kind>Layout</kind>
+        <symbol>AiBuddyLayout</symbol>
+        <lines>1-229</lines>
+        <reason>Add Cmd/Ctrl+K keyboard listener and ConversationSearch dialog component.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/conversation-group.tsx</path>
+        <kind>Component</kind>
+        <symbol>ConversationGroup</symbol>
+        <reason>Reference for conversation display patterns from Story 16.4.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/chat-history-item.tsx</path>
+        <kind>Component</kind>
+        <symbol>ChatHistoryItem</symbol>
+        <reason>Reference for conversation item display patterns with project badge.</reason>
+      </file>
+      <file>
+        <path>src/lib/ai-buddy/date-grouping.ts</path>
+        <kind>Utility</kind>
+        <symbol>groupConversationsByDate</symbol>
+        <reason>Reference for date formatting patterns (formatDistanceToNow).</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/20251207000000_ai_buddy_foundation.sql</path>
+        <kind>Migration</kind>
+        <symbol>ai_buddy_messages, idx_messages_content_fts</symbol>
+        <lines>95-109</lines>
+        <reason>GIN index on to_tsvector('english', content) already exists. Add RPC function for search.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <purpose>Date formatting (formatDistanceToNow for timestamps)</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <purpose>Icons (MessageSquare, Folder, Calendar, Search)</purpose>
+      </node>
+      <node>
+        <package>use-debounce</package>
+        <version>^10.0.6</version>
+        <purpose>Debounce hook for search input (300ms delay)</purpose>
+      </node>
+      <node>
+        <package>cmdk</package>
+        <version>via shadcn</version>
+        <purpose>Command palette UI (needs installation: npx shadcn@latest add command)</purpose>
+        <note>NOT YET INSTALLED - requires `npx shadcn@latest add command`</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture.md">Use PostgreSQL full-text search (tsvector, plainto_tsquery, ts_rank) - no external search service</constraint>
+    <constraint source="architecture.md">RPC functions use SECURITY DEFINER for RLS bypass, with user_id filter in query</constraint>
+    <constraint source="prd.md">Search results must return within 1 second (performance requirement)</constraint>
+    <constraint source="architecture.md">All paths in context should be project-relative, not absolute</constraint>
+    <constraint source="story">Minimum 2 characters required before search executes</constraint>
+    <constraint source="story">300ms debounce on search input to prevent excessive API calls</constraint>
+    <constraint source="design">Search dialog uses shadcn Command component (cmdk) for consistent UX</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>search_conversations RPC</name>
+      <kind>PostgreSQL Function</kind>
+      <signature>
+search_conversations(
+  p_user_id UUID,
+  p_query TEXT,
+  p_limit INT DEFAULT 20
+) RETURNS TABLE (
+  conversation_id UUID,
+  conversation_title TEXT,
+  project_id UUID,
+  project_name TEXT,
+  matched_text TEXT,
+  highlighted_text TEXT,
+  message_id UUID,
+  created_at TIMESTAMPTZ
+)
+      </signature>
+      <path>supabase/migrations/YYYYMMDD_add_search_conversations_function.sql</path>
+    </interface>
+    <interface>
+      <name>GET /api/ai-buddy/conversations?search=</name>
+      <kind>REST Endpoint</kind>
+      <signature>
+GET /api/ai-buddy/conversations?search={query}&amp;limit={limit}
+Response: { data: ConversationSearchResult[], error: null }
+      </signature>
+      <path>src/app/api/ai-buddy/conversations/route.ts</path>
+    </interface>
+    <interface>
+      <name>useConversationSearch</name>
+      <kind>React Hook</kind>
+      <signature>
+function useConversationSearch(query: string): {
+  results: ConversationSearchResult[];
+  isLoading: boolean;
+  error: Error | null;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-conversation-search.ts</path>
+    </interface>
+    <interface>
+      <name>ConversationSearch</name>
+      <kind>React Component</kind>
+      <signature>
+interface ConversationSearchProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+      </signature>
+      <path>src/components/ai-buddy/conversation-search.tsx</path>
+    </interface>
+    <interface>
+      <name>ConversationSearchResult</name>
+      <kind>TypeScript Type</kind>
+      <signature>
+interface ConversationSearchResult {
+  conversationId: string;
+  conversationTitle: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  matchedText: string;
+  highlightedText: string;  // HTML with &lt;mark&gt; tags
+  messageId: string;
+  createdAt: string;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-conversation-search.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing follows vitest for unit/integration tests and Playwright for E2E. Component tests use @testing-library/react with happy-dom. Mock fetch for API calls in hook tests. E2E tests verify actual UI interactions including keyboard shortcuts.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/conversation-search.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-conversation-search.test.ts</location>
+      <location>__tests__/e2e/ai-buddy-conversation-search.spec.ts</location>
+    </locations>
+    <ideas>
+      <test ac="AC-16.5.1">E2E: Press Cmd+K, verify search dialog opens with input focused</test>
+      <test ac="AC-16.5.1">E2E: Press Ctrl+K (Windows), verify search dialog opens</test>
+      <test ac="AC-16.5.2">Unit: useConversationSearch with valid query returns results after debounce</test>
+      <test ac="AC-16.5.2">Unit: useConversationSearch with short query (&lt;2 chars) returns empty results</test>
+      <test ac="AC-16.5.3">Component: ConversationSearch renders title, snippet, project, date for each result</test>
+      <test ac="AC-16.5.3">Component: Highlighted text rendered with mark tags visible</test>
+      <test ac="AC-16.5.4">E2E: Click search result, verify dialog closes and conversation loads</test>
+      <test ac="AC-16.5.5">Integration: Search API returns within 1000ms for typical query</test>
+      <test ac="AC-16.5.6">Component: No results state shows correct message with query text</test>
+      <test ac="AC-16.5.7">Integration: Search uses PostgreSQL FTS (verify query plan or RPC call)</test>
+      <test>E2E: Press Escape, verify search dialog closes</test>
+      <test>Unit: Debounce prevents API call within 300ms of typing</test>
+      <test>Unit: Error state displays correctly when API fails</test>
+    </ideas>
+  </tests>
+</story-context>

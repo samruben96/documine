@@ -1,14 +1,17 @@
 /**
  * AI Buddy Context Provider
  * Story 16.1: Project Creation & Sidebar (updated from 15.4)
+ * Story 16.5: Conversation Search (FR4)
  *
  * Provides shared state between AI Buddy layout (sidebar) and page (chat).
- * Manages project selection, conversation selection, and coordination.
+ * Manages project selection, conversation selection, search, and coordination.
  *
  * AC-16.1.4: Create project and select it as active
  * AC-16.1.11: Clicking a project switches to that project's context
  * AC-15.4.3: Full conversation history loads when returning to existing conversation
  * AC-15.4.8: Clicking conversation in sidebar loads that conversation's messages
+ * AC-16.5.1: Cmd/Ctrl+K opens search dialog
+ * AC-16.5.4: Clicking result opens that conversation
  */
 
 'use client';
@@ -36,6 +39,12 @@ interface AiBuddyContextValue extends UseConversationsReturn {
   startNewConversation: () => void;
   /** Messages for the current conversation (from activeConversation) */
   currentMessages: Message[];
+  /** Whether there are more conversations to load */
+  hasMoreConversations: boolean;
+  /** Load more conversations (pagination) */
+  loadMoreConversations: () => Promise<void>;
+  /** Whether loading more conversations */
+  isLoadingMore: boolean;
 
   // Project state (Story 16.1)
   /** List of projects */
@@ -52,12 +61,46 @@ interface AiBuddyContextValue extends UseConversationsReturn {
   createProject: (input: CreateProjectRequest) => Promise<Project | null>;
   /** Archive a project */
   archiveProject: (projectId: string) => Promise<void>;
+  /** Update a project (Story 16.3) */
+  updateProject: (projectId: string, input: { name?: string; description?: string }) => Promise<Project | null>;
+  /** Restore a project (Story 16.3) */
+  restoreProject: (projectId: string) => Promise<Project | null>;
+  /** Archived projects (Story 16.3) */
+  archivedProjects: Project[];
+  /** Fetch archived projects (Story 16.3) */
+  fetchArchivedProjects: () => Promise<void>;
   /** Whether project create dialog is open */
   isCreateProjectDialogOpen: boolean;
   /** Open create project dialog */
   openCreateProjectDialog: () => void;
   /** Close create project dialog */
   closeCreateProjectDialog: () => void;
+  /** Whether archived projects sheet is open (Story 16.3) */
+  isArchivedSheetOpen: boolean;
+  /** Open archived projects sheet (Story 16.3) */
+  openArchivedSheet: () => void;
+  /** Close archived projects sheet (Story 16.3) */
+  closeArchivedSheet: () => void;
+  /** Project to archive (for confirmation dialog) (Story 16.3) */
+  projectToArchive: Project | null;
+  /** Show archive confirmation dialog (Story 16.3) */
+  showArchiveConfirmation: (project: Project) => void;
+  /** Close archive confirmation dialog (Story 16.3) */
+  closeArchiveConfirmation: () => void;
+  /** Confirm archive and perform operation (Story 16.3) */
+  confirmArchive: () => Promise<void>;
+
+  // Search state (Story 16.5)
+  /** Whether search dialog is open */
+  isSearchOpen: boolean;
+  /** Open search dialog */
+  openSearch: () => void;
+  /** Close search dialog */
+  closeSearch: () => void;
+  /** Set search dialog open state */
+  setSearchOpen: (open: boolean) => void;
+  /** Set active conversation by ID (for search result selection) */
+  setActiveConversation: (conversationId: string) => void;
 }
 
 const AiBuddyContext = createContext<AiBuddyContextValue | null>(null);
@@ -79,6 +122,10 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
+  const [isArchivedSheetOpen, setIsArchivedSheetOpen] = useState(false);
+  const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Sync active project with projects list when projects load
   useEffect(() => {
@@ -156,6 +203,79 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     setIsCreateProjectDialogOpen(false);
   }, []);
 
+  // Story 16.3: Archived sheet handlers
+  const openArchivedSheet = useCallback(() => {
+    projectsHook.fetchArchivedProjects();
+    setIsArchivedSheetOpen(true);
+  }, [projectsHook]);
+
+  const closeArchivedSheet = useCallback(() => {
+    setIsArchivedSheetOpen(false);
+  }, []);
+
+  // Story 16.3: Archive confirmation handlers
+  const showArchiveConfirmation = useCallback((project: Project) => {
+    setProjectToArchive(project);
+  }, []);
+
+  const closeArchiveConfirmation = useCallback(() => {
+    setProjectToArchive(null);
+  }, []);
+
+  const confirmArchive = useCallback(async () => {
+    if (projectToArchive) {
+      await archiveProject(projectToArchive.id);
+      setProjectToArchive(null);
+    }
+  }, [archiveProject, projectToArchive]);
+
+  // Story 16.5: Search handlers
+  const openSearch = useCallback(() => {
+    setIsSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+
+  // AC-16.5.4: Set active conversation (from search result)
+  const setActiveConversation = useCallback(
+    (conversationId: string) => {
+      selectConversation(conversationId);
+    },
+    [selectConversation]
+  );
+
+  // Story 16.3: Restore project handler
+  const restoreProject = useCallback(
+    async (projectId: string) => {
+      const result = await projectsHook.restoreProject(projectId);
+      return result;
+    },
+    [projectsHook]
+  );
+
+  // Story 16.3: Update project handler
+  const updateProject = useCallback(
+    async (projectId: string, input: { name?: string; description?: string }) => {
+      const result = await projectsHook.updateProject(projectId, input);
+      return result;
+    },
+    [projectsHook]
+  );
+
+  // Story 16.4: Load more conversations
+  const loadMoreConversations = useCallback(async () => {
+    if (conversationsHook.nextCursor && !isLoadingMore) {
+      setIsLoadingMore(true);
+      try {
+        await conversationsHook.fetchConversations({ cursor: conversationsHook.nextCursor });
+      } finally {
+        setIsLoadingMore(false);
+      }
+    }
+  }, [conversationsHook, isLoadingMore]);
+
   // Get messages from active conversation
   const currentMessages = conversationsHook.activeConversation?.messages ?? [];
 
@@ -165,6 +285,9 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     selectConversation,
     startNewConversation,
     currentMessages,
+    hasMoreConversations: !!conversationsHook.nextCursor,
+    loadMoreConversations,
+    isLoadingMore,
     // Project state
     projects: projectsHook.projects,
     isLoadingProjects: projectsHook.isLoading,
@@ -173,9 +296,26 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     selectProject,
     createProject,
     archiveProject,
+    updateProject,
+    restoreProject,
+    archivedProjects: projectsHook.archivedProjects,
+    fetchArchivedProjects: projectsHook.fetchArchivedProjects,
     isCreateProjectDialogOpen,
     openCreateProjectDialog,
     closeCreateProjectDialog,
+    isArchivedSheetOpen,
+    openArchivedSheet,
+    closeArchivedSheet,
+    projectToArchive,
+    showArchiveConfirmation,
+    closeArchiveConfirmation,
+    confirmArchive,
+    // Search state (Story 16.5)
+    isSearchOpen,
+    openSearch,
+    closeSearch,
+    setSearchOpen: setIsSearchOpen,
+    setActiveConversation,
   };
 
   return (

@@ -1015,14 +1015,25 @@ development_status:
   # Story 16.3: Project Management - Rename & Archive (FR12)
   # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-3-project-management/16-3-project-management.md
   # READY-FOR-DEV 2025-12-07: Context generated at 16-3-project-management.context.xml
-  16-3-project-management: ready-for-dev
+  16-3-project-management: done
   # Story 16.4: Conversation History & General Chat (FR3, FR18)
   # Merged from: Conversation History + General Chat
   # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-4-conversation-history-general-chat/16-4-conversation-history-general-chat.md
   # READY-FOR-DEV 2025-12-07: Context generated at 16-4-conversation-history-general-chat.context.xml
-  16-4-conversation-history-general-chat: ready-for-dev
+  16-4-conversation-history-general-chat: done
   # Story 16.5: Conversation Search (FR4)
-  16-5-conversation-search: backlog
+  # DRAFTED 2025-12-08: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-5-conversation-search/16-5-conversation-search.md
+  # READY-FOR-DEV 2025-12-08: Context generated at 16-5-conversation-search.context.xml
+  # IMPLEMENTED 2025-12-08: All 7 ACs complete
+  # - search_conversations RPC function with PostgreSQL FTS (tsvector, ts_rank, ts_headline)
+  # - API endpoint: GET /api/ai-buddy/conversations?search=query
+  # - Hook: useConversationSearch with 300ms debounce
+  # - Component: ConversationSearch with shadcn CommandDialog (cmdk)
+  # - Keyboard shortcut: Cmd/Ctrl+K opens search dialog
+  # - 14 unit tests pass (8 hook + 6 component)
+  # - E2E tests: ai-buddy-conversation-search.spec.ts
+  # REVIEWED 2025-12-08: APPROVED - All 7 ACs verified, all 27 tasks verified, barrel export fix applied
+  16-5-conversation-search: done
   # Story 16.6: Conversation Management - Delete & Move (FR6, FR19)
   # Merged from: Delete Conversations + Move Conversation to Project
   16-6-conversation-management: backlog
