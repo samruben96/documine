@@ -84,13 +84,13 @@ development_status:
   18-4-admin-onboarding-status: done
   epic-18-retrospective: completed
 
-  # Epic 19: AI Buddy Guardrails & Compliance - IN PROGRESS
+  # Epic 19: AI Buddy Guardrails & Compliance - DONE 2025-12-09
   # Admin-controlled guardrails for E&O protection
   # Tech Spec: docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md
   # FRs: FR35-41
   # Stories: 4 (consolidated from 6)
   # Total Points: 13
-  epic-19-ai-buddy-guardrails-compliance: contexted
+  epic-19-ai-buddy-guardrails-compliance: done
   # Story 19.1: Guardrail Admin UI (5 pts) - DONE
   # Admin screen for restricted topics, rule toggles, immediate effect
   # IMPLEMENTED 2025-12-08: All ACs complete
@@ -117,21 +117,45 @@ development_status:
   # Configurable disclosure text (FR40-41)
   # DONE 2025-12-09: All ACs complete, 59 tests passing, REVIEW APPROVED
   19-4-ai-disclosure-message: done
+  epic-19-retrospective: completed
 
-  # Epic 20: AI Buddy Admin & Audit - BACKLOG
+  # Epic 20: AI Buddy Admin & Audit - CONTEXTED 2025-12-09
   # User management, analytics, audit trail for compliance
+  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-20.md
   # FRs: FR42-56, FR64
-  epic-20-ai-buddy-admin-audit: backlog
-  20-1-admin-user-list: backlog
-  20-2-invite-users: backlog
-  20-3-remove-users: backlog
-  20-4-change-user-roles: backlog
-  20-5-usage-analytics: backlog
-  20-6-usage-dashboard-trends: backlog
-  20-7-audit-log-view: backlog
-  20-8-audit-log-transcript-view: backlog
-  20-9-audit-log-export: backlog
-  20-10-audit-log-immutability: backlog
-  20-11-owner-billing-management: backlog
-  20-12-transfer-ownership: backlog
-  20-13-feature-navigation-polish: backlog
+  # Stories: 7 (consolidated from 13)
+  # Total Points: 26
+  epic-20-ai-buddy-admin-audit: contexted
+  # Story 20.1: Audit Log Infrastructure (3 pts)
+  # Append-only RLS, immutability trigger, 7-year retention
+  # FRs: FR54, FR55, FR56
+  # Story 20.1 - DONE 2025-12-09: All ACs complete, 14 tests, review approved
+  # - Immutability trigger prevents UPDATE/DELETE
+  # - Partial index for guardrail metadata filtering
+  # - 7-year retention policy documented
+  20-1-audit-log-infrastructure: done
+  # Story 20.2: Admin User Management (5 pts)
+  # User list, invite, remove, role changes
+  # FRs: FR42, FR43, FR44, FR45
+  20-2-admin-user-management: backlog
+  # Story 20.3: Usage Analytics Dashboard (5 pts)
+  # Summary cards, per-user breakdown, trend charts
+  # FRs: FR46, FR47
+  20-3-usage-analytics-dashboard: backlog
+  # Story 20.4: Audit Log Interface (5 pts)
+  # Filterable table, transcript viewer, PDF/CSV export
+  # FRs: FR50, FR51, FR52, FR53
+  20-4-audit-log-interface: backlog
+  # Story 20.5: Owner Billing Management (3 pts)
+  # Stripe integration, subscription view
+  # FR: FR48
+  20-5-owner-billing-management: backlog
+  # Story 20.6: Ownership Transfer (3 pts)
+  # Transfer to admin with password confirmation
+  # FR: FR49
+  20-6-ownership-transfer: backlog
+  # Story 20.7: Feature Navigation Polish (2 pts)
+  # State-preserving navigation between features
+  # FR: FR64
+  20-7-feature-navigation-polish: backlog
+  epic-20-retrospective: optional

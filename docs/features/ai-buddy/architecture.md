@@ -748,6 +748,49 @@ OPENROUTER_API_KEY=...  # Already exists
 
 **Decision:** Supabase append-only for MVP. Scale is manageable, RLS provides isolation. Add archival later if needed.
 
+---
+
+## Audit Log Retention Policy
+
+### Regulatory Compliance Requirements
+
+| Requirement | Standard | Duration | Source |
+|-------------|----------|----------|--------|
+| Insurance Document Retention | Industry Standard | 7 years minimum | State Insurance Regulations |
+| E&O Protection Records | NAIC Model Bulletin (2024) | 7 years minimum | NAIC Guidance on AI in Insurance |
+| AI-Assisted Decision Documentation | Emerging Regulation | Duration of policy + 7 years | NAIC Model Bulletin on AI |
+
+### Policy Statement
+
+**Minimum Retention Period:** 7 years from the date of log creation.
+
+All `ai_buddy_audit_logs` entries MUST be retained for a minimum of 7 years to comply with:
+- Insurance industry standard document retention requirements
+- NAIC Model Bulletin (2024) guidance on documenting AI-assisted insurance decisions
+- E&O (Errors & Omissions) protection best practices
+
+### Technical Implementation
+
+**Immutability Enforcement:**
+- Database trigger `audit_logs_immutable` prevents ALL UPDATE and DELETE operations
+- Even service_role cannot modify existing audit log entries
+- RLS policies restrict to INSERT-only for regular users
+
+**Indexes for Compliance Queries:**
+- `idx_audit_logs_agency_date` - (agency_id, logged_at DESC) for date-range queries
+- `idx_audit_logs_user` - (user_id) for per-user audit trails
+- `idx_audit_logs_action` - (action) for filtering by action type
+- `idx_audit_logs_metadata_guardrail` - partial index for guardrail event filtering
+
+### Future Archival Strategy (Post-MVP)
+
+For agencies with high audit log volume (>1M entries):
+1. **Year 1-2:** Active storage in Supabase PostgreSQL (hot)
+2. **Year 3-7:** Migrate to cold storage (S3/GCS) with on-demand retrieval
+3. **Year 7+:** Review and archive per agency retention policy
+
+**Implementation Note:** Any archival strategy must maintain full audit trail integrity and comply with the 7-year minimum retention period. Archival should be additive (copy-then-verify), not destructive.
+
 ### ADR-AIB-004: Separate Permissions Table
 
 **Decision:** Use a separate `ai_buddy_permissions` table instead of role column.
