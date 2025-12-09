@@ -69,6 +69,12 @@ export interface PreferencesFormProps {
   onReset: () => Promise<void>;
   /** Loading state */
   isLoading?: boolean;
+  /** Hide the reset button (when reset is provided elsewhere, e.g., sub-tab layout) */
+  hideResetButton?: boolean;
+  /** Callback when dirty state changes */
+  onDirtyChange?: (isDirty: boolean) => void;
+  /** Callback to expose the save trigger function to parent */
+  onSaveRef?: (saveFn: (() => void) | null) => void;
 }
 
 /**
@@ -80,6 +86,9 @@ export function PreferencesForm({
   onSave,
   onReset,
   isLoading = false,
+  hideResetButton = false,
+  onDirtyChange,
+  onSaveRef,
 }: PreferencesFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -117,6 +126,11 @@ export function PreferencesForm({
     });
   }, [preferences, reset]);
 
+  // Notify parent of dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
   // Watch carriers for custom carrier input
   const currentCarriers = watch('favoriteCarriers');
 
@@ -128,7 +142,7 @@ export function PreferencesForm({
     }
   }, [customCarrier, currentCarriers, setValue]);
 
-  const onSubmit = async (data: PreferencesFormData) => {
+  const onSubmit = useCallback(async (data: PreferencesFormData) => {
     setIsSaving(true);
     try {
       await onSave({
@@ -145,7 +159,20 @@ export function PreferencesForm({
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [onSave]);
+
+  // Expose form submit function to parent
+  // Use useEffect to avoid calling onSaveRef during render (which would cause setState-during-render errors)
+  useEffect(() => {
+    if (onSaveRef) {
+      onSaveRef(() => {
+        handleSubmit(onSubmit)();
+      });
+    }
+    return () => {
+      onSaveRef?.(null);
+    };
+  }, [onSaveRef, handleSubmit, onSubmit]);
 
   const handleReset = async () => {
     setIsResetting(true);
@@ -376,40 +403,42 @@ export function PreferencesForm({
       </Card>
 
       {/* Actions - AC-18.2.8, AC-18.2.9 */}
-      <div className="flex items-center justify-between pt-4" data-testid="form-actions">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isLoading || isSaving || isResetting}
-              data-testid="reset-btn"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Reset to Defaults
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reset AI Buddy Preferences?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will clear all your preferences and show the onboarding flow again.
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleReset}
-                disabled={isResetting}
-                data-testid="confirm-reset-btn"
+      <div className={`flex items-center pt-4 ${hideResetButton ? 'justify-end' : 'justify-between'}`} data-testid="form-actions">
+        {!hideResetButton && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isSaving || isResetting}
+                data-testid="reset-btn"
               >
-                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Reset Preferences
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset to Defaults
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset AI Buddy Preferences?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will clear all your preferences and show the onboarding flow again.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleReset}
+                  disabled={isResetting}
+                  data-testid="confirm-reset-btn"
+                >
+                  {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Reset Preferences
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         <Button
           type="submit"

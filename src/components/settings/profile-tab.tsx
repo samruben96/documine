@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { profileSchema, type ProfileFormData } from '@/lib/validations/auth';
 import { updateProfile } from '@/app/(dashboard)/settings/actions';
+import { useSettings } from '@/contexts/settings-context';
 
 interface ProfileTabProps {
   user: {
@@ -33,11 +34,13 @@ interface ProfileTabProps {
  */
 export function ProfileTab({ user }: ProfileTabProps) {
   const [isPending, startTransition] = useTransition();
+  const { setIsDirty, setOnSave } = useSettings();
 
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
+    getValues,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -45,6 +48,30 @@ export function ProfileTab({ user }: ProfileTabProps) {
     },
     mode: 'onBlur', // Per AC-2.6.2: Real-time validation on blur
   });
+
+  // Report dirty state to settings context
+  useEffect(() => {
+    setIsDirty(isDirty);
+  }, [isDirty, setIsDirty]);
+
+  // Register save handler with context for use in unsaved changes modal
+  useEffect(() => {
+    if (isDirty) {
+      const saveHandler = async () => {
+        const data = getValues();
+        const result = await updateProfile(data);
+        if (!result.success) {
+          toast.error(result.error || 'Failed to update profile');
+          throw new Error(result.error || 'Failed to update profile');
+        }
+        toast.success('Profile updated');
+      };
+      // Wrap in arrow function to prevent React from calling it as a functional update
+      setOnSave(() => saveHandler);
+    } else {
+      setOnSave(undefined);
+    }
+  }, [isDirty, getValues, setOnSave]);
 
   const onSubmit = (data: ProfileFormData) => {
     startTransition(async () => {

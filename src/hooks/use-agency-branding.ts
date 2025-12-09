@@ -56,6 +56,7 @@ export function useAgencyBranding(agencyId: string | null): UseAgencyBrandingRet
   // Memoize the client to prevent infinite re-renders
   const supabase = useMemo(() => createClient(), []);
 
+
   const fetchBranding = useCallback(async () => {
     if (!agencyId) {
       setIsLoading(false);

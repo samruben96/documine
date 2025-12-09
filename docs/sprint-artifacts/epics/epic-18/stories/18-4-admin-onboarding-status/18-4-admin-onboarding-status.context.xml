@@ -1,0 +1,267 @@
+<story-context id="18-4-admin-onboarding-status" v="1.0">
+  <metadata>
+    <epicId>18</epicId>
+    <storyId>4</storyId>
+    <title>Admin Onboarding Status</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-18/stories/18-4-admin-onboarding-status/18-4-admin-onboarding-status.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>view the AI Buddy onboarding completion status for all users in my agency</iWant>
+    <soThat>I can monitor adoption and identify users who may need assistance getting started</soThat>
+    <tasks>
+      <task id="1" ac="18.4.2,18.4.3">Create OnboardingStatusEntry Type - Add interface to src/types/ai-buddy.ts</task>
+      <task id="2" ac="18.4.2,18.4.5">Create Admin Onboarding Status API Endpoint at /api/ai-buddy/admin/onboarding-status</task>
+      <task id="3" ac="18.4.2,18.4.4">Create useOnboardingStatus Hook with filterByStatus function</task>
+      <task id="4" ac="18.4.2,18.4.3,18.4.4">Create OnboardingStatusTable Component with Table, filter buttons, status badges</task>
+      <task id="5" ac="18.4.1,18.4.5">Create OnboardingStatusSection Component with Card wrapper and isAdmin check</task>
+      <task id="6" ac="18.4.1,18.4.5">Integrate into AiBuddyPreferencesTab - add isAdmin prop, conditional render section</task>
+      <task id="7" ac="18.4.3">Create OnboardingStatusBadge Component for Completed/Skipped/Not Started</task>
+      <task id="8" ac="18.4.2,18.4.5">Unit Tests - API Route (admin access, 403/401 responses, status extraction)</task>
+      <task id="9" ac="18.4.2,18.4.4">Unit Tests - Hook (fetch, error handling, filterByStatus)</task>
+      <task id="10" ac="18.4.1,18.4.3,18.4.4,18.4.5">Unit Tests - Components (table, badges, filter, admin-only)</task>
+      <task id="11" ac="all">E2E Tests (admin sees section, non-admin hidden, filters work)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-18.4.1" title="Admin Panel Section">
+      Given I am an admin, When I open the AI Buddy settings tab in Settings, Then I see an "Onboarding Status" section at the bottom of the page.
+    </criterion>
+    <criterion id="AC-18.4.2" title="User List Display">
+      Given I view the Onboarding Status section, When users exist in my agency, Then I see a table showing each user's onboarding completion status.
+    </criterion>
+    <criterion id="AC-18.4.3" title="User Row Information">
+      Given I view the user list, When I look at a user row, Then I see: Name, Email, Onboarding Status (Completed/Skipped/Not Started), Completion Date.
+    </criterion>
+    <criterion id="AC-18.4.4" title="Filter by Status">
+      Given I view the list, When I click a status filter button, Then I can filter to see only users with that specific status (e.g., "Not Started").
+    </criterion>
+    <criterion id="AC-18.4.5" title="Non-Admin Access Control">
+      Given I do NOT have admin permissions, When I view the AI Buddy settings tab, Then I do not see the Onboarding Status section.
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md</path>
+        <title>Epic 18 Technical Specification</title>
+        <section>Story 18.4: Admin Onboarding Status</section>
+        <snippet>Admin endpoint GET /api/ai-buddy/admin/onboarding-status returns OnboardingStatusEntry[] with userId, email, fullName, onboardingCompleted, onboardingCompletedAt, onboardingSkipped. Requires view_usage_analytics permission.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>API Contracts - Admin Endpoints</section>
+        <snippet>Admin endpoints use requireAdminAuth() for authorization. Response format: { data: T, error: null } or { data: null, error: { code, message } }.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/prd.md</path>
+        <title>AI Buddy PRD</title>
+        <section>FR62</section>
+        <snippet>FR62: Admins see onboarding completion status for their users. Enables adoption monitoring and identifying users needing assistance.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/auth/admin.ts</path>
+        <kind>auth-helper</kind>
+        <symbol>requireAdminAuth</symbol>
+        <lines>49-96</lines>
+        <reason>Permission check pattern for admin API routes. Returns AdminAuthResult with userId, agencyId on success or AdminAuthError with 401/403 status.</reason>
+      </file>
+      <file>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>UserPreferences</symbol>
+        <lines>91-112</lines>
+        <reason>UserPreferences interface with onboardingCompleted, onboardingCompletedAt, onboardingSkipped fields that need to be extracted for status display.</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-preferences.ts</path>
+        <kind>hook</kind>
+        <symbol>usePreferences</symbol>
+        <lines>51-191</lines>
+        <reason>Pattern for data fetching hook with useState/useCallback. New useOnboardingStatus hook should follow this pattern.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/ai-buddy-preferences-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AiBuddyPreferencesTab</symbol>
+        <lines>31-133</lines>
+        <reason>Component to extend with isAdmin prop and OnboardingStatusSection. Shows current props interface and structure.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/team-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>TeamTab</symbol>
+        <lines>72-415</lines>
+        <reason>Reference pattern for admin-only table with Card/Table components, role badges, isAdmin conditional rendering, and formatDate helper.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>23-179</lines>
+        <reason>Server component that checks isAdmin and passes to child components. Need to update to pass isAdmin to AiBuddyPreferencesTab.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/table.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Table, TableHeader, TableBody, TableRow, TableHead, TableCell</symbol>
+        <lines>1-116</lines>
+        <reason>shadcn/ui Table component to use for onboarding status table display.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/badge.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Badge, badgeVariants</symbol>
+        <lines>1-46</lines>
+        <reason>Badge component for status indicators. Variants: default, secondary, destructive, outline. Custom className for colors.</reason>
+      </file>
+      <file>
+        <path>src/app/api/ai-buddy/admin/users/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, POST, DELETE</symbol>
+        <lines>1-73</lines>
+        <reason>Existing admin API stub showing route structure. New onboarding-status route should follow similar pattern with requireAdminAuth.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>next</package>
+        <version>^16.0.7</version>
+        <usage>App Router, API routes, server components</usage>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database queries for users table with ai_buddy_preferences JSONB</usage>
+      </node>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+        <usage>useState, useCallback, useEffect hooks</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons for filter buttons, empty states</usage>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <usage>Toast notifications for error states</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use requireAdminAuth() from @/lib/auth/admin for API permission check</constraint>
+    <constraint type="pattern">Follow usePreferences hook pattern for useOnboardingStatus implementation</constraint>
+    <constraint type="pattern">Use Verify-Then-Service pattern for any database mutations (though this story is read-only)</constraint>
+    <constraint type="architecture">Preferences stored in users.ai_buddy_preferences JSONB column</constraint>
+    <constraint type="architecture">Admin components go in src/components/ai-buddy/admin/</constraint>
+    <constraint type="ui">Use shadcn/ui Card, Table, Badge components for consistent styling</constraint>
+    <constraint type="ui">Admin-only sections use conditional rendering based on isAdmin prop passed from server component</constraint>
+    <constraint type="performance">API response &lt; 500ms, table rendering &lt; 200ms (&lt; 100 users expected)</constraint>
+    <constraint type="performance">Filter application should be instant (client-side filtering)</constraint>
+    <constraint type="testing">Add data-testid attributes to all interactive elements</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>OnboardingStatusEntry</name>
+      <kind>TypeScript Interface</kind>
+      <signature>
+interface OnboardingStatusEntry {
+  userId: string;
+  email: string;
+  fullName: string | null;
+  onboardingCompleted: boolean;
+  onboardingCompletedAt: string | null;
+  onboardingSkipped: boolean;
+}
+      </signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/ai-buddy/admin/onboarding-status</name>
+      <kind>REST endpoint</kind>
+      <signature>
+GET /api/ai-buddy/admin/onboarding-status
+Response (200): { data: { users: OnboardingStatusEntry[] }, error: null }
+Response (401): { error: 'Not authenticated' }
+Response (403): { error: 'Admin access required' }
+      </signature>
+      <path>src/app/api/ai-buddy/admin/onboarding-status/route.ts</path>
+    </interface>
+    <interface>
+      <name>useOnboardingStatus</name>
+      <kind>React Hook</kind>
+      <signature>
+function useOnboardingStatus(): {
+  users: OnboardingStatusEntry[] | null;
+  isLoading: boolean;
+  error: Error | null;
+  filteredUsers: OnboardingStatusEntry[];
+  filterStatus: 'all' | 'completed' | 'skipped' | 'not_started';
+  setFilterStatus: (status: 'all' | 'completed' | 'skipped' | 'not_started') => void;
+  refetch: () => Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-onboarding-status.ts</path>
+    </interface>
+    <interface>
+      <name>AiBuddyPreferencesTabProps (updated)</name>
+      <kind>React Props</kind>
+      <signature>
+interface AiBuddyPreferencesTabProps {
+  agencyName?: string;
+  isAdmin?: boolean; // NEW: for conditional OnboardingStatusSection
+}
+      </signature>
+      <path>src/components/settings/ai-buddy-preferences-tab.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with @testing-library/react. E2E tests use Playwright. Test files follow __tests__ directory structure mirroring src/. Mock API responses with vi.mock(). Use data-testid attributes for E2E selectors. Aim for 70+ unit tests similar to Story 18.3 coverage.
+    </standards>
+    <locations>
+      <location>__tests__/app/api/ai-buddy/admin/onboarding-status/route.test.ts</location>
+      <location>__tests__/hooks/ai-buddy/use-onboarding-status.test.ts</location>
+      <location>__tests__/components/ai-buddy/admin/onboarding-status-table.test.tsx</location>
+      <location>__tests__/components/ai-buddy/admin/onboarding-status-section.test.tsx</location>
+      <location>__tests__/components/ai-buddy/admin/onboarding-status-badge.test.tsx</location>
+      <location>__tests__/components/settings/ai-buddy-preferences-tab.test.tsx</location>
+      <location>__tests__/e2e/ai-buddy/admin-onboarding-status.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="18.4.1">Test OnboardingStatusSection renders when isAdmin=true</idea>
+      <idea ac="18.4.1">Test OnboardingStatusSection does not render when isAdmin=false</idea>
+      <idea ac="18.4.2">Test API route returns user list with correct structure</idea>
+      <idea ac="18.4.2">Test table renders correct number of rows for users</idea>
+      <idea ac="18.4.3">Test each column displays correct data (Name, Email, Status, Date)</idea>
+      <idea ac="18.4.3">Test OnboardingStatusBadge renders green for Completed</idea>
+      <idea ac="18.4.3">Test OnboardingStatusBadge renders yellow for Skipped</idea>
+      <idea ac="18.4.3">Test OnboardingStatusBadge renders gray for Not Started</idea>
+      <idea ac="18.4.4">Test filter buttons change displayed users</idea>
+      <idea ac="18.4.4">Test "All" filter shows all users</idea>
+      <idea ac="18.4.4">Test "Completed" filter shows only completed users</idea>
+      <idea ac="18.4.4">Test empty state when filter has no matches</idea>
+      <idea ac="18.4.5">Test API returns 403 for non-admin user</idea>
+      <idea ac="18.4.5">Test API returns 401 for unauthenticated request</idea>
+      <idea ac="18.4.5">E2E: Admin sees onboarding status section in Settings</idea>
+      <idea ac="18.4.5">E2E: Non-admin does not see onboarding status section</idea>
+    </ideas>
+  </tests>
+</story-context>

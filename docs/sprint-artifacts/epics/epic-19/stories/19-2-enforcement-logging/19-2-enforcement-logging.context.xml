@@ -1,0 +1,240 @@
+<story-context id="19-2-enforcement-logging" v="1.0">
+  <metadata>
+    <epicId>19</epicId>
+    <storyId>2</storyId>
+    <title>Enforcement Logging</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-19/stories/19-2-enforcement-logging/story-19.2-enforcement-logging.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin with `view_audit_logs` permission</asA>
+    <iWant>see a log of all guardrail enforcement events</iWant>
+    <soThat>I can monitor compliance and understand how producers are interacting with restricted topics</soThat>
+    <tasks>
+      <task id="1" ac="19.2.1,19.2.7">Verify Existing Infrastructure - Confirm logGuardrailEvent is called in chat API, verify RLS, test audit log creation</task>
+      <task id="2" ac="19.2.2,19.2.4,19.2.6">Create Guardrail Logs API Endpoint - GET /api/ai-buddy/admin/guardrails/logs with date filtering</task>
+      <task id="3" ac="19.2.4,19.2.6">Create useGuardrailLogs Hook - fetching, filtering, pagination</task>
+      <task id="4" ac="19.2.3,19.2.4">Create GuardrailEnforcementLog Component - table display with columns</task>
+      <task id="5" ac="19.2.5">Create Log Entry Detail Dialog - full details view</task>
+      <task id="6" ac="19.2.6">Create Date Range Filter Component - date picker with presets</task>
+      <task id="7" ac="19.2.3">Integrate into GuardrailAdminPanel - add Enforcement Log section</task>
+      <task id="8" ac="19.2.2">Update TypeScript Types - add GuardrailEnforcementEvent interface</task>
+      <task id="9" ac="19.2.2,19.2.6,19.2.7">Unit Tests - API Route</task>
+      <task id="10" ac="19.2.4,19.2.6">Unit Tests - Hook</task>
+      <task id="11" ac="19.2.3,19.2.4,19.2.5">Unit Tests - Components</task>
+      <task id="12" ac="all">E2E Tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="19.2.1">Audit Log Entry Created - guardrail enforcement event logged to ai_buddy_audit_logs (ALREADY IMPLEMENTED in chat API)</ac>
+    <ac id="19.2.2">Log Entry Fields - userId, conversationId, triggeredTopic, userMessage (truncated), redirectApplied, timestamp</ac>
+    <ac id="19.2.3">Enforcement Log Section - visible to admin with view_audit_logs permission in Guardrails section</ac>
+    <ac id="19.2.4">Enforcement Log Table - columns: User, Triggered Topic, Message Preview, Date/Time</ac>
+    <ac id="19.2.5">Entry Details View - click to see full details including redirect guidance applied</ac>
+    <ac id="19.2.6">Date Range Filter - filter by date range</ac>
+    <ac id="19.2.7">Append-Only Logs - logs cannot be deleted or modified (RLS enforcement)</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md" title="Epic 19 Tech Spec" section="Story 19.2 Acceptance Criteria" snippet="Defines AC-19.2.1 through AC-19.2.7 for enforcement logging UI and append-only behavior"/>
+      <doc path="docs/sprint-artifacts/epics/epic-19/epic.md" title="Epic 19 Overview" section="FR38" snippet="FR38: Audit log shows: user ID, timestamp, triggered guardrail topic, message preview"/>
+      <doc path="docs/sprint-artifacts/epics/epic-19/stories/19-1-guardrail-admin-ui/story-19.1-guardrail-admin-ui.md" title="Story 19.1 Guardrail Admin UI" section="Dev Agent Record" snippet="Previous story with patterns for admin panel, hooks, and API routes"/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="PostgreSQL JSONB Type Casting Pattern" snippet="Use as unknown as Json for JSONB writes, defensive mapping for reads"/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="RLS Service Client Pattern" snippet="Verify-then-service pattern for UPDATE/DELETE operations"/>
+    </docs>
+    <code>
+      <file path="src/lib/ai-buddy/audit-logger.ts" kind="service" symbol="logGuardrailEvent, queryAuditLogs" reason="CRITICAL: Existing audit logging - logGuardrailEvent already called in chat API, queryAuditLogs supports action filtering"/>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api-route" symbol="POST" lines="319-328" reason="Guardrail event already logged here when guardrailCheckResult.triggeredTopic is truthy"/>
+      <file path="src/components/ai-buddy/admin/guardrail-admin-panel.tsx" kind="component" symbol="GuardrailAdminPanel" reason="EXTEND: Add Enforcement Log section below existing sections"/>
+      <file path="src/hooks/ai-buddy/use-guardrails.ts" kind="hook" symbol="useGuardrails" reason="PATTERN: Hook pattern to follow - { data, isLoading, error, refetch }"/>
+      <file path="src/app/api/ai-buddy/admin/guardrails/route.ts" kind="api-route" symbol="GET, PATCH" reason="PATTERN: Admin API route pattern with requireAdminAuth()"/>
+      <file path="src/lib/auth/admin.ts" kind="helper" symbol="requireAdminAuth" reason="Admin auth helper - returns { success, userId, agencyId, role } or error with status"/>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="AuditLogEntry, Permission" reason="Existing audit log type and view_audit_logs permission type"/>
+      <file path="src/components/ui/table.tsx" kind="ui-component" symbol="Table, TableHeader, TableBody, TableRow, TableHead, TableCell" reason="UI: Table components for log display"/>
+      <file path="src/components/ui/dialog.tsx" kind="ui-component" symbol="Dialog, DialogContent, DialogHeader, DialogTitle" reason="UI: Dialog for log entry detail view"/>
+      <file path="__tests__/hooks/ai-buddy/use-guardrails.test.ts" kind="test" symbol="useGuardrails tests" reason="PATTERN: Hook test pattern to follow"/>
+      <file path="__tests__/components/ai-buddy/admin/onboarding-status-table.test.tsx" kind="test" symbol="OnboardingStatusTable tests" reason="PATTERN: Admin table component test pattern"/>
+    </code>
+    <dependencies>
+      <npm>
+        <package name="date-fns" version="^4.1.0" note="Date formatting/manipulation - already installed"/>
+        <package name="@radix-ui/react-popover" version="^1.1.15" note="For date picker popover - already installed"/>
+        <package name="@tanstack/react-table" version="^8.21.3" note="Table utilities if needed - already installed"/>
+        <package name="vitest" version="^4.0.14" note="Unit testing"/>
+        <package name="@playwright/test" version="^1.57.0" note="E2E testing"/>
+      </npm>
+      <note>No new dependencies needed - DatePicker can use existing Popover + Calendar pattern or simple date inputs</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Admin API routes MUST use requireAdminAuth() from @/lib/auth/admin</constraint>
+    <constraint type="pattern">Hook return interface: { data, isLoading, error, refetch, totalCount }</constraint>
+    <constraint type="pattern">Use data-testid attributes throughout for E2E testing</constraint>
+    <constraint type="pattern">Use as unknown as Json for JSONB writes to Supabase</constraint>
+    <constraint type="security">Audit logs MUST be append-only - verify RLS denies UPDATE/DELETE</constraint>
+    <constraint type="security">view_audit_logs permission required for API and UI access</constraint>
+    <constraint type="ux">Empty state required when no logs exist</constraint>
+    <constraint type="ux">Loading skeleton during data fetch</constraint>
+    <constraint type="performance">Logs API query target: &lt;200ms</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/ai-buddy/admin/guardrails/logs" kind="REST endpoint">
+      <signature>GET /api/ai-buddy/admin/guardrails/logs?startDate=ISO&amp;endDate=ISO&amp;limit=N&amp;offset=N</signature>
+      <response>{ data: { logs: GuardrailEnforcementEvent[], total: number, hasMore: boolean }, error: null }</response>
+      <notes>Filter to action='guardrail_triggered', join users table for email</notes>
+    </interface>
+    <interface name="GuardrailEnforcementEvent" kind="TypeScript interface">
+      <signature>
+        interface GuardrailEnforcementEvent {
+          id: string;
+          agencyId: string;
+          userId: string;
+          userEmail: string;
+          conversationId: string | null;
+          triggeredTopic: string;
+          messagePreview: string;
+          redirectApplied: string;
+          loggedAt: string;
+        }
+      </signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface name="useGuardrailLogs" kind="React hook">
+      <signature>
+        function useGuardrailLogs(params?: {
+          startDate?: Date;
+          endDate?: Date;
+          limit?: number;
+        }): {
+          logs: GuardrailEnforcementEvent[];
+          isLoading: boolean;
+          error: Error | null;
+          totalCount: number;
+          hasMore: boolean;
+          loadMore: () => Promise&lt;void&gt;;
+          refetch: () => Promise&lt;void&gt;;
+        }
+      </signature>
+      <path>src/hooks/ai-buddy/use-guardrail-logs.ts</path>
+    </interface>
+    <interface name="queryAuditLogs" kind="function signature">
+      <signature>
+        async function queryAuditLogs(params: {
+          agencyId: string;
+          userId?: string;
+          action?: AuditAction;
+          conversationId?: string;
+          dateFrom?: Date;
+          dateTo?: Date;
+          search?: string;
+          limit?: number;
+          offset?: number;
+        }): Promise&lt;{ logs: AuditLogEntry[]; total: number }&gt;
+      </signature>
+      <path>src/lib/ai-buddy/audit-logger.ts</path>
+      <notes>EXISTING - can reuse with action='guardrail_triggered' filter</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for unit tests, Playwright for E2E. Follow established patterns from story 19.1.
+      Test file naming: __tests__/path/to/file.test.ts(x).
+      Mock Supabase client and API responses. Use data-testid for component queries.
+      Admin tests should verify 403 for non-admin, 401 for unauthenticated.
+    </standards>
+    <locations>
+      <glob>__tests__/app/api/ai-buddy/admin/guardrails/logs/**</glob>
+      <glob>__tests__/hooks/ai-buddy/use-guardrail-logs.test.ts</glob>
+      <glob>__tests__/components/ai-buddy/admin/guardrail-enforcement-log.test.tsx</glob>
+      <glob>__tests__/components/ai-buddy/admin/guardrail-log-detail.test.tsx</glob>
+      <glob>__tests__/components/ai-buddy/admin/date-range-filter.test.tsx</glob>
+      <glob>__tests__/e2e/ai-buddy/admin-guardrail-logs.spec.ts</glob>
+    </locations>
+    <ideas>
+      <test ac="19.2.1">Verify logGuardrailEvent is called in chat/route.ts when guardrail triggers</test>
+      <test ac="19.2.2">API returns logs with expected fields (userId, conversationId, triggeredTopic, messagePreview, redirectApplied)</test>
+      <test ac="19.2.3">GuardrailEnforcementLog renders when admin has view_audit_logs permission</test>
+      <test ac="19.2.4">Table displays columns: User, Triggered Topic, Message Preview, Date/Time</test>
+      <test ac="19.2.5">Clicking row opens detail dialog with full information</test>
+      <test ac="19.2.6">Date range filter updates API params and refreshes data</test>
+      <test ac="19.2.7">Verify RLS policies deny UPDATE and DELETE on ai_buddy_audit_logs</test>
+      <test ac="admin">API returns 403 for non-admin users</test>
+      <test ac="admin">API returns 401 for unauthenticated requests</test>
+      <test ac="ux">Empty state shown when no logs exist</test>
+      <test ac="ux">Loading skeleton shown during fetch</test>
+    </ideas>
+  </tests>
+
+  <existingImplementation>
+    <note>
+      AC-19.2.1 is ALREADY IMPLEMENTED. The logGuardrailEvent() function is called in
+      src/app/api/ai-buddy/chat/route.ts lines 319-328 when guardrailCheckResult.triggeredTopic is truthy.
+      This story focuses on creating the UI to VIEW these existing logs.
+    </note>
+    <codeSnippet location="src/app/api/ai-buddy/chat/route.ts:319-328">
+      // Log guardrail event if triggered (AC19)
+      if (guardrailCheckResult.triggeredTopic) {
+        await logGuardrailEvent(
+          agencyId,
+          user.id,
+          activeConversationId,
+          guardrailCheckResult.triggeredTopic.trigger,
+          guardrailCheckResult.triggeredTopic.redirect,
+          message
+        );
+      }
+    </codeSnippet>
+    <codeSnippet location="src/lib/ai-buddy/audit-logger.ts:89-109">
+      export async function logGuardrailEvent(
+        agencyId: string,
+        userId: string,
+        conversationId: string,
+        triggeredTopic: string,
+        redirectMessage: string,
+        userMessage: string
+      ): Promise&lt;void&gt; {
+        await logAuditEvent({
+          agencyId,
+          userId,
+          conversationId,
+          action: 'guardrail_triggered',
+          metadata: {
+            triggeredTopic,
+            redirectMessage,
+            messagePreview: userMessage.slice(0, 100),
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    </codeSnippet>
+  </existingImplementation>
+
+  <fileStructure>
+    <new>
+      <file>src/app/api/ai-buddy/admin/guardrails/logs/route.ts</file>
+      <file>src/hooks/ai-buddy/use-guardrail-logs.ts</file>
+      <file>src/components/ai-buddy/admin/guardrail-enforcement-log.tsx</file>
+      <file>src/components/ai-buddy/admin/guardrail-log-detail.tsx</file>
+      <file>src/components/ai-buddy/admin/date-range-filter.tsx</file>
+      <file>__tests__/app/api/ai-buddy/admin/guardrails/logs/route.test.ts</file>
+      <file>__tests__/hooks/ai-buddy/use-guardrail-logs.test.ts</file>
+      <file>__tests__/components/ai-buddy/admin/guardrail-enforcement-log.test.tsx</file>
+      <file>__tests__/components/ai-buddy/admin/guardrail-log-detail.test.tsx</file>
+      <file>__tests__/components/ai-buddy/admin/date-range-filter.test.tsx</file>
+      <file>__tests__/e2e/ai-buddy/admin-guardrail-logs.spec.ts</file>
+    </new>
+    <modify>
+      <file>src/components/ai-buddy/admin/guardrail-admin-panel.tsx</file>
+      <file>src/hooks/ai-buddy/index.ts</file>
+      <file>src/types/ai-buddy.ts</file>
+    </modify>
+  </fileStructure>
+</story-context>

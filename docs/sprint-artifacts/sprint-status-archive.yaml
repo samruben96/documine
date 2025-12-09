@@ -1,0 +1,160 @@
+# ARCHIVED SPRINT STATUS - EPICS 1-13
+# =====================================
+# Completed epics archived to reduce main file size.
+# Main status file: sprint-status.yaml
+# Future epics: sprint-status-future.yaml
+# Last archived: 2025-12-08
+
+# Epic 1: Foundation & Infrastructure - DONE 2025-11-28
+epic-1: done
+1-1-project-initialization-core-setup: done
+1-2-database-schema-rls-policies: done
+1-3-supabase-client-configuration: done
+1-4-storage-bucket-configuration: done
+1-5-error-handling-logging-patterns: done
+1-6-deployment-pipeline-setup: done
+epic-1-retrospective: completed
+
+# Pre-Epic Technical Debt
+0-1-test-framework-setup: done
+
+# Epic 2: User Authentication & Onboarding - DONE 2025-11-28
+epic-2: done
+2-1-signup-page-agency-creation: done
+2-2-post-signup-agency-user-record-creation: done
+2-3-login-page: done
+2-4-session-management-auth-middleware: done
+2-5-password-reset-flow: done
+2-6-user-profile-management: done
+epic-2-retrospective: done
+
+# Epic 3: Agency & Team Management - DONE 2025-11-29
+epic-3: done
+3-1-agency-settings-page: done
+3-2-invite-users-to-agency: done
+3-3-manage-team-members: done
+3-4-subscription-billing-management: done
+3-5-agency-usage-metrics: done
+3-6-settings-ux-enhancements: done
+epic-3-retrospective: completed
+
+# Epic 4: Document Upload & Management - DONE 2025-11-30
+epic-4: done
+4-1-document-upload-zone: done
+4-2-upload-progress-status-feedback: done
+4-3-document-list-view: done
+4-4-delete-documents: done
+4-5-document-organization-rename-label: done
+4-6-document-processing-pipeline-llamaparse: done
+4-7-processing-queue-management: done
+4-8-migrate-document-processing-to-docling: done
+epic-4-retrospective: completed
+
+# Epic 5: Document Q&A with Trust Transparency - DONE 2025-12-02
+epic-5: done
+5-1-chat-interface-layout-split-view: done
+5-2-natural-language-query-input: done
+5-3-ai-response-with-streaming-trust-elements: done
+5-4-source-citation-display: done
+5-5-document-viewer-with-highlight-navigation: done
+5-6-conversation-history-follow-up-questions: done
+5-7-responsive-chat-experience: done
+5-8-retrieval-quality-optimization: done
+5-8-1-large-document-processing: done
+5-9-chunking-optimization: done
+5-10-model-evaluation: done
+5-11-streaming-ai-personality-bugfix: done
+5-12-processing-progress-visualization: done
+5-13-docling-pdf-robustness: done
+5-14-realtime-polish: done
+epic-5-retrospective: completed
+
+# Epic 6: Epic 5 Cleanup & Stabilization + UI Polish - DONE 2025-12-03
+epic-6: done
+6-1-fix-conversation-loading-406: done
+6-2-fix-confidence-score-calculation: done
+6-3-fix-source-citation-navigation: done
+6-5-remove-stale-text-fix-title: done
+6-6-connection-status-indicator: done
+6-7-document-list-ux-polish: done
+6-8-design-system-refresh: done
+epic-6-retrospective: completed
+
+# Epic 7: Quote Comparison - DONE 2025-12-03
+epic-7: done
+7-1-quote-selection-interface: done
+7-2-quote-data-extraction: done
+7-3-comparison-table-view: done
+7-4-gap-conflict-identification: done
+7-5-source-citations-in-comparison: done
+7-6-export-comparison-results: done
+7-7-comparison-history: done
+epic-7-retrospective: completed
+
+# Epic 8: Tech Debt & Production Hardening - DONE 2025-12-03
+epic-8: done
+8-1-database-security-hardening: done
+8-2-rls-policy-performance: done
+8-3-database-index-optimization: done
+8-4-consolidate-processing-jobs-rls: done
+8-5-api-rate-limiting: done
+8-6-fix-test-failure: done
+8-7-code-quality-cleanup: done
+epic-8-retrospective: completed
+
+# Epic 9: One-Pager Generation - DONE 2025-12-04
+epic-9: done
+9-1-agency-branding: done
+9-2-dashboard-page: done
+9-3-one-pager-page: done
+9-4-one-pager-pdf-template: done
+9-5-entry-point-buttons: done
+9-6-testing-polish: done
+epic-9-retrospective: completed
+
+# Epic 10: Enhanced Quote Extraction & Analysis - DONE 2025-12-04
+epic-10: done
+10-1-extended-coverage-types: done
+10-2-policy-form-metadata: done
+10-3-enhanced-limits-deductibles: done
+10-4-endorsements-extraction: done
+10-5-carrier-information: done
+10-6-premium-breakdown: done
+10-7-automated-gap-analysis: done
+10-8-enhanced-comparison-table: done
+10-9-enhanced-one-pager: done
+10-audit-epic-10-codebase-audit: done
+10-10-extraction-prompts: done
+10-11-testing-migration: done
+10-12-extraction-at-upload-time: done
+epic-10-retrospective: completed
+
+# Epic 11: Processing Reliability & Enhanced Progress - DONE 2025-12-05
+epic-11: done
+11-1-async-processing-architecture: done
+11-2-enhanced-progress-bar-ui: done
+11-3-reliable-job-recovery: done
+11-4-processing-queue-visualization: done
+11-5-error-handling-user-feedback: done
+11-6-phased-processing-fast-chat: done
+11-7-comparison-extraction-status: done
+11-8-document-list-extraction-indicators: done
+epic-11-retrospective: completed
+
+# Epic 12: Google Cloud Document AI Migration - ABANDONED 2025-12-06
+# Reason: Too complex for serverless, memory limits, GCS dependency
+epic-12: abandoned
+12-1-connect-gcp-document-ai: done
+12-2-document-ai-parsing-service: done
+12-3-edge-function-integration: done
+12-4-response-parsing: done
+12-5-testing-validation: done
+12-6-batch-processing-large-documents: abandoned
+
+# Epic 13: LlamaParse Migration - DONE 2025-12-07
+epic-13: done
+13-1-llamaparse-api-client: done
+13-2-edge-function-integration: done
+13-3-remove-document-ai: done
+13-4-testing-validation: done
+epic-13-retrospective: completed

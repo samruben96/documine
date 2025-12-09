@@ -54,3 +54,12 @@ next-env.d.ts
 
 # BMAD Project Config - TRACKED (do not ignore)
 # .bmad/bmm/config.yaml is project-specific and must be committed
+
+# Playwright MCP
+/.playwright-mcp/
+
+# Playwright reports
+/playwright-report/
+
+# Documentation (tracked separately or generated)
+# /docs/

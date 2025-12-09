@@ -64,10 +64,129 @@ export interface Message {
   createdAt: string;
 }
 
+/**
+ * Restricted topic (simple version for prompt builder)
+ * Used by guardrails service for prompt injection
+ */
 export interface RestrictedTopic {
   trigger: string;
   redirect: string;
 }
+
+// ============ Epic 19: Extended Guardrail Types ============
+
+/**
+ * Extended restricted topic with full metadata for admin UI
+ * Story 19.1: Guardrail Admin UI
+ */
+export interface ExtendedRestrictedTopic {
+  id: string;                    // UUID for editing/deletion
+  trigger: string;               // Topic keyword or phrase (e.g., "legal advice")
+  description?: string;          // Admin description of why restricted
+  redirectGuidance: string;      // How AI should redirect
+  enabled: boolean;              // Can temporarily disable without deleting
+  isBuiltIn: boolean;            // true for default topics, false for custom
+  createdAt: string;
+  createdBy?: string;            // User ID who created
+}
+
+/**
+ * A custom guardrail rule (beyond restricted topics)
+ * Story 19.1: Guardrail Admin UI
+ */
+export interface CustomGuardrailRule {
+  id: string;
+  name: string;                  // e.g., "E&O Protection Language"
+  description: string;           // Explanation for admin
+  promptInjection: string;       // Text injected into system prompt when enabled
+  enabled: boolean;
+  isBuiltIn: boolean;            // true for system rules, false for custom
+}
+
+/**
+ * Complete guardrails configuration for admin UI
+ * Story 19.1: Guardrail Admin UI
+ */
+export interface AgencyGuardrails {
+  agencyId: string;
+  restrictedTopics: ExtendedRestrictedTopic[];
+  customRules: CustomGuardrailRule[];
+  eandoDisclaimer: boolean;      // Master toggle for E&O protection language
+  aiDisclosureMessage: string | null;  // Chatbot disclosure for state compliance
+  aiDisclosureEnabled: boolean;  // Whether disclosure is shown
+  restrictedTopicsEnabled: boolean; // Master toggle for all restricted topics
+  updatedAt: string;
+}
+
+/**
+ * Default restricted topics for new agencies
+ * Story 19.1: AC-19.1.2
+ */
+export const DEFAULT_RESTRICTED_TOPICS: ExtendedRestrictedTopic[] = [
+  {
+    id: 'default-legal',
+    trigger: 'legal advice',
+    description: 'Prevents AI from providing legal counsel',
+    redirectGuidance: 'Suggest the user consult with a licensed attorney for legal questions.',
+    enabled: true,
+    isBuiltIn: true,
+    createdAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'default-claims',
+    trigger: 'file a claim',
+    description: 'Prevents AI from handling claims',
+    redirectGuidance: 'Direct the user to contact their carrier directly or visit the carrier portal to file claims.',
+    enabled: true,
+    isBuiltIn: true,
+    createdAt: '2024-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'default-binding',
+    trigger: 'binding authority',
+    description: 'Prevents AI from discussing binding decisions',
+    redirectGuidance: 'Explain that binding decisions require human review and suggest contacting the agency.',
+    enabled: true,
+    isBuiltIn: true,
+    createdAt: '2024-01-01T00:00:00.000Z',
+  },
+];
+
+/**
+ * Default custom guardrail rules
+ * Story 19.1: AC-19.1.8
+ */
+export const DEFAULT_CUSTOM_RULES: CustomGuardrailRule[] = [
+  {
+    id: 'builtin-eando',
+    name: 'E&O Protection Language',
+    description: 'Adds standard E&O disclaimer language to responses involving coverage advice',
+    promptInjection: 'When discussing coverage, limits, or policy interpretation, always include: "Coverage is subject to policy terms and conditions. Please review the actual policy language or contact the carrier for confirmation."',
+    enabled: true,
+    isBuiltIn: true,
+  },
+  {
+    id: 'builtin-state-compliance',
+    name: 'State Compliance Warnings',
+    description: 'Reminds users about state-specific requirements when relevant',
+    promptInjection: 'When discussing state-specific coverage requirements or regulations, note that requirements vary by state and suggest verifying with the state insurance department if needed.',
+    enabled: true,
+    isBuiltIn: true,
+  },
+];
+
+/**
+ * Default guardrails for new agencies
+ * Story 19.1: Guardrail Admin UI
+ */
+export const DEFAULT_AGENCY_GUARDRAILS: Omit<AgencyGuardrails, 'agencyId' | 'updatedAt'> = {
+  restrictedTopics: DEFAULT_RESTRICTED_TOPICS,
+  customRules: DEFAULT_CUSTOM_RULES,
+  eandoDisclaimer: true,
+  aiDisclosureMessage: "You're chatting with AI Buddy, an AI assistant. While I strive for accuracy, please verify important information.",
+  aiDisclosureEnabled: true,
+  restrictedTopicsEnabled: true,
+};
 
 export interface GuardrailConfig {
   agencyId: string;
@@ -384,4 +503,33 @@ export interface AddProjectDocumentsRequest {
 
 export interface ProjectDocumentRemoveResponse {
   removed: true;
+}
+
+// ============ Story 18.4: Admin Onboarding Status Types ============
+
+export type OnboardingStatus = 'completed' | 'skipped' | 'not_started';
+
+export interface OnboardingStatusEntry {
+  userId: string;
+  email: string;
+  fullName: string | null;
+  onboardingCompleted: boolean;
+  onboardingCompletedAt: string | null;
+  onboardingSkipped: boolean;
+}
+
+export interface OnboardingStatusResponse {
+  users: OnboardingStatusEntry[];
+}
+
+/**
+ * Derive onboarding status from user preferences
+ */
+export function deriveOnboardingStatus(
+  onboardingCompleted: boolean | undefined,
+  onboardingSkipped: boolean | undefined
+): OnboardingStatus {
+  if (onboardingCompleted) return 'completed';
+  if (onboardingSkipped) return 'skipped';
+  return 'not_started';
 }

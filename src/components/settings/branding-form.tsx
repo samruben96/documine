@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LogoUpload } from './logo-upload';
 import { ColorPicker } from './color-picker';
 import { useAgencyBranding, type AgencyBranding } from '@/hooks/use-agency-branding';
+import { useSettings } from '@/contexts/settings-context';
 
 /**
  * Branding Form Component
@@ -51,10 +52,12 @@ export function BrandingForm({ agencyId }: BrandingFormProps) {
     uploadLogo,
     removeLogo,
   } = useAgencyBranding(agencyId);
+  const { setIsDirty, setOnSave } = useSettings();
 
   const [primaryColor, setPrimaryColor] = useState('#2563eb');
   const [secondaryColor, setSecondaryColor] = useState('#1e40af');
   const [isSaving, setIsSaving] = useState(false);
+  const [originalColors, setOriginalColors] = useState({ primary: '#2563eb', secondary: '#1e40af' });
 
   const form = useForm<BrandingFormValues>({
     resolver: zodResolver(brandingFormSchema),
@@ -65,6 +68,40 @@ export function BrandingForm({ agencyId }: BrandingFormProps) {
       website: '',
     },
   });
+
+  // Track if colors have changed from original
+  const colorsChanged = useMemo(() => {
+    return primaryColor !== originalColors.primary || secondaryColor !== originalColors.secondary;
+  }, [primaryColor, secondaryColor, originalColors]);
+
+  // Report combined dirty state (form + colors) to settings context
+  const formIsDirty = form.formState.isDirty;
+  const isDirtyTotal = formIsDirty || colorsChanged;
+
+  useEffect(() => {
+    setIsDirty(isDirtyTotal);
+  }, [isDirtyTotal, setIsDirty]);
+
+  // Register save handler with context for use in unsaved changes modal
+  useEffect(() => {
+    if (isDirtyTotal) {
+      const saveHandler = async () => {
+        const values = form.getValues();
+        await updateBranding({
+          primaryColor,
+          secondaryColor,
+          phone: values.phone || null,
+          email: values.email || null,
+          address: values.address || null,
+          website: values.website || null,
+        });
+      };
+      // Wrap in arrow function to prevent React from calling it as a functional update
+      setOnSave(() => saveHandler);
+    } else {
+      setOnSave(undefined);
+    }
+  }, [isDirtyTotal, form, primaryColor, secondaryColor, updateBranding, setOnSave]);
 
   // Update form when branding loads
   useEffect(() => {
@@ -77,6 +114,7 @@ export function BrandingForm({ agencyId }: BrandingFormProps) {
       });
       setPrimaryColor(branding.primaryColor);
       setSecondaryColor(branding.secondaryColor);
+      setOriginalColors({ primary: branding.primaryColor, secondary: branding.secondaryColor });
     }
   }, [branding, form]);
 

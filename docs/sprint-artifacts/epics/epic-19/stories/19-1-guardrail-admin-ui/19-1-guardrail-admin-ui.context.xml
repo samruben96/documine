@@ -1,0 +1,254 @@
+<story-context id="19-1-guardrail-admin-ui" v="1.0">
+  <metadata>
+    <epicId>19</epicId>
+    <storyId>19.1</storyId>
+    <title>Guardrail Admin UI</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-19/stories/19-1-guardrail-admin-ui/story-19.1-guardrail-admin-ui.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin with `configure_guardrails` permission</asA>
+    <iWant>define restricted topics and toggle guardrail rules from the Settings page</iWant>
+    <soThat>I can protect my agency from E&O exposure while ensuring producers get helpful AI assistance</soThat>
+    <tasks>
+      <task id="0" name="Prerequisites &amp; Housekeeping">
+        <subtask>Update `.gitignore` to exclude `/docs/`, `/.playwright-mcp/`, and `/.bmad/` directories</subtask>
+        <subtask>Verify `ai_buddy_guardrails` table exists with expected schema from Epic 14</subtask>
+        <subtask>Verify `ai_buddy_audit_logs` table exists with append-only RLS</subtask>
+        <subtask>Verify `configure_guardrails` permission exists in `ai_buddy_permissions`</subtask>
+        <subtask>Run: `SELECT * FROM ai_buddy_guardrails LIMIT 1;` to confirm table structure</subtask>
+        <subtask>[P2 Tech Debt] Document PostgreSQL type casting patterns in `docs/architecture/`</subtask>
+        <subtask>[P2 Tech Debt] Add E2E test for document preview modal flow</subtask>
+      </task>
+      <task id="1" name="Create TypeScript Types">
+        <subtask>Add `RestrictedTopic` interface to `src/types/ai-buddy.ts`</subtask>
+        <subtask>Add `CustomGuardrailRule` interface to `src/types/ai-buddy.ts`</subtask>
+        <subtask>Add `AgencyGuardrails` interface to `src/types/ai-buddy.ts`</subtask>
+        <subtask>Add `DEFAULT_GUARDRAILS` constant with default topics and rules</subtask>
+        <subtask>Export all types from module</subtask>
+      </task>
+      <task id="2" name="Create Guardrails Admin API Endpoints">
+        <subtask>Create `src/app/api/ai-buddy/admin/guardrails/route.ts`</subtask>
+        <subtask>Implement GET endpoint that returns `AgencyGuardrails`</subtask>
+        <subtask>Implement PATCH endpoint that updates guardrails</subtask>
+        <subtask>Use `requireAdminAuth()` for permission check</subtask>
+        <subtask>Use verify-then-service pattern for mutations</subtask>
+        <subtask>Log changes to `ai_buddy_audit_logs`</subtask>
+        <subtask>Return defaults if no guardrails configured for agency</subtask>
+      </task>
+      <task id="3" name="Create Topic CRUD API Endpoints">
+        <subtask>Create `src/app/api/ai-buddy/admin/guardrails/topics/route.ts` for POST</subtask>
+        <subtask>Create `src/app/api/ai-buddy/admin/guardrails/topics/[id]/route.ts` for PATCH/DELETE</subtask>
+        <subtask>Use `requireAdminAuth()` for permission check</subtask>
+        <subtask>Auto-generate UUID for new topics</subtask>
+        <subtask>Log all topic operations to audit log</subtask>
+      </task>
+      <task id="4" name="Create useGuardrails Hook">
+        <subtask>Create `src/hooks/ai-buddy/use-guardrails.ts`</subtask>
+        <subtask>Implement hook with interface: `{ guardrails, isLoading, error, updateGuardrails, addTopic, updateTopic, deleteTopic, refetch }`</subtask>
+        <subtask>Fetch from `/api/ai-buddy/admin/guardrails`</subtask>
+        <subtask>Handle optimistic updates for topic operations</subtask>
+        <subtask>Add to barrel export in `src/hooks/ai-buddy/index.ts`</subtask>
+      </task>
+      <task id="5" name="Create GuardrailAdminPanel Component">
+        <subtask>Create `src/components/ai-buddy/admin/guardrail-admin-panel.tsx`</subtask>
+        <subtask>Accept `isAdmin` prop for conditional rendering</subtask>
+        <subtask>Only render if `isAdmin === true`</subtask>
+        <subtask>Use Card component for section container</subtask>
+        <subtask>Add section title "Guardrails" with description</subtask>
+        <subtask>Render RestrictedTopicsList and GuardrailToggleList inside</subtask>
+      </task>
+      <task id="6" name="Create RestrictedTopicsList Component">
+        <subtask>Create `src/components/ai-buddy/admin/restricted-topics-list.tsx`</subtask>
+        <subtask>Render list of RestrictedTopicCard components</subtask>
+        <subtask>Add "Add Topic" button at top</subtask>
+        <subtask>Show loading skeleton when loading</subtask>
+        <subtask>Show empty state when no topics</subtask>
+      </task>
+      <task id="7" name="Create RestrictedTopicCard Component">
+        <subtask>Create `src/components/ai-buddy/admin/restricted-topic-card.tsx`</subtask>
+        <subtask>Display trigger phrase (bold), description, redirect guidance</subtask>
+        <subtask>Include Switch component for enable/disable toggle</subtask>
+        <subtask>Include Edit and Delete icon buttons</subtask>
+        <subtask>Use Badge to show "Default" for built-in topics</subtask>
+        <subtask>Add data-testid attributes for testing</subtask>
+      </task>
+      <task id="8" name="Create RestrictedTopicEditor Dialog">
+        <subtask>Create `src/components/ai-buddy/admin/restricted-topic-editor.tsx`</subtask>
+        <subtask>Use Dialog component from shadcn/ui</subtask>
+        <subtask>Form fields: trigger phrase (Input), description (Textarea), redirect guidance (Textarea)</subtask>
+        <subtask>Support create mode (empty form) and edit mode (pre-populated)</subtask>
+        <subtask>Validate required fields before save</subtask>
+        <subtask>Call appropriate API on save (POST for create, PATCH for edit)</subtask>
+        <subtask>Close dialog and refresh list on success</subtask>
+      </task>
+      <task id="9" name="Create GuardrailToggleList Component">
+        <subtask>Create `src/components/ai-buddy/admin/guardrail-toggle-list.tsx`</subtask>
+        <subtask>Render list of GuardrailToggleCard components</subtask>
+        <subtask>Display built-in rules: "E&amp;O Protection Language", "State Compliance Warnings"</subtask>
+        <subtask>Include master toggle for "eandoDisclaimer"</subtask>
+      </task>
+      <task id="10" name="Create GuardrailToggleCard Component">
+        <subtask>Create `src/components/ai-buddy/admin/guardrail-toggle-card.tsx`</subtask>
+        <subtask>Display rule name and description</subtask>
+        <subtask>Include Switch component for enable/disable</subtask>
+        <subtask>Show "Built-in" badge for system rules</subtask>
+        <subtask>Auto-save on toggle change</subtask>
+        <subtask>Add data-testid attributes for testing</subtask>
+      </task>
+      <task id="11" name="Integrate into AiBuddyPreferencesTab">
+        <subtask>Update `src/components/settings/ai-buddy-preferences-tab.tsx`</subtask>
+        <subtask>Import and render GuardrailAdminPanel below OnboardingStatusSection</subtask>
+        <subtask>Pass `isAdmin` prop to GuardrailAdminPanel</subtask>
+        <subtask>Ensure non-admin users don't see the section</subtask>
+      </task>
+      <task id="12" name="Implement Guardrails Loading in Chat API">
+        <subtask>Update `src/app/api/ai-buddy/chat/route.ts`</subtask>
+        <subtask>Create `src/lib/ai-buddy/guardrails.ts` with `loadGuardrails()` function</subtask>
+        <subtask>Load guardrails fresh on each request (NO CACHING)</subtask>
+        <subtask>Create `injectGuardrails()` function in prompt-builder.ts</subtask>
+        <subtask>Inject guardrails into system prompt before AI call</subtask>
+        <subtask>Log guardrail context with each message (async)</subtask>
+      </task>
+      <task id="13" name="Unit Tests - API Routes">
+        <subtask>Test GET returns guardrails for admin</subtask>
+        <subtask>Test GET returns defaults when no guardrails configured</subtask>
+        <subtask>Test PATCH updates guardrails</subtask>
+        <subtask>Test POST creates new topic</subtask>
+        <subtask>Test PATCH updates existing topic</subtask>
+        <subtask>Test DELETE removes topic</subtask>
+        <subtask>Test 403 response for non-admin</subtask>
+        <subtask>Test 401 response for unauthenticated</subtask>
+      </task>
+      <task id="14" name="Unit Tests - Hook">
+        <subtask>Test successful data fetching</subtask>
+        <subtask>Test error handling</subtask>
+        <subtask>Test addTopic function</subtask>
+        <subtask>Test updateTopic function</subtask>
+        <subtask>Test deleteTopic function</subtask>
+        <subtask>Test updateGuardrails function</subtask>
+        <subtask>Test loading state</subtask>
+      </task>
+      <task id="15" name="Unit Tests - Components">
+        <subtask>Test GuardrailAdminPanel renders only for admin</subtask>
+        <subtask>Test RestrictedTopicsList renders topics correctly</subtask>
+        <subtask>Test RestrictedTopicCard displays all fields</subtask>
+        <subtask>Test RestrictedTopicEditor dialog opens and closes</subtask>
+        <subtask>Test RestrictedTopicEditor form validation</subtask>
+        <subtask>Test GuardrailToggleList renders toggles</subtask>
+        <subtask>Test GuardrailToggleCard toggle state change</subtask>
+        <subtask>Test AiBuddyPreferencesTab shows/hides guardrail section</subtask>
+      </task>
+      <task id="16" name="E2E Tests">
+        <subtask>Test admin sees guardrail section in Settings</subtask>
+        <subtask>Test non-admin doesn't see guardrail section</subtask>
+        <subtask>Test add new restricted topic flow</subtask>
+        <subtask>Test edit existing topic flow</subtask>
+        <subtask>Test delete topic flow</subtask>
+        <subtask>Test toggle guardrail rule</subtask>
+        <subtask>Test guardrail immediate effect (change → new chat → verify applied)</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-19.1.1">Given I am an admin with `configure_guardrails` permission, When I open Settings → AI Buddy, Then I see a "Guardrails" section with restricted topics and rule toggles.</criterion>
+    <criterion id="AC-19.1.2">Given I view the Guardrails section, When I see the Restricted Topics list, Then I see default topics (legal advice, claims filing, binding authority) with their redirect guidance.</criterion>
+    <criterion id="AC-19.1.3">Given I view a restricted topic, When I look at its card, Then I see: trigger phrase, description, redirect guidance, and enable/disable toggle.</criterion>
+    <criterion id="AC-19.1.4">Given I click "Add Topic", When a dialog opens, Then I can enter a trigger phrase, description, and redirect guidance.</criterion>
+    <criterion id="AC-19.1.5">Given I fill out the Add Topic form, When I click "Save", Then the topic is added to the list and the dialog closes.</criterion>
+    <criterion id="AC-19.1.6">Given I click the edit button on a topic, When the editor opens, Then I can modify the trigger, description, and redirect guidance.</criterion>
+    <criterion id="AC-19.1.7">Given I click the delete button on a topic, When I confirm deletion, Then the topic is removed from the list.</criterion>
+    <criterion id="AC-19.1.8">Given I view the Guardrail Rules section, When I see the toggles, Then I see built-in rules: "E&amp;O Protection Language" and "State Compliance Warnings".</criterion>
+    <criterion id="AC-19.1.9">Given I toggle a guardrail rule off, When I save, Then the rule is disabled and no longer injected into the system prompt.</criterion>
+    <criterion id="AC-19.1.10">Given I make any change to guardrails, When I save, Then changes are persisted immediately to the database.</criterion>
+    <criterion id="AC-19.1.11">Given I save guardrail changes, When a producer uses AI Buddy in a new chat, Then the updated guardrails are immediately in effect (no cache, no delay).</criterion>
+    <criterion id="AC-19.1.12">Given I do NOT have `configure_guardrails` permission, When I open Settings → AI Buddy, Then I do NOT see the Guardrails admin section.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md" title="Epic 19 Tech Spec" section="Story 19.1: Guardrail Admin UI">
+        Complete technical specification for guardrail admin UI including TypeScript types, API contracts, workflows, and implementation patterns.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Novel Pattern: Invisible Guardrails">
+        Architecture decision for invisible guardrails pattern - AI never says "blocked", always provides helpful redirects.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-18/stories/18-4-admin-onboarding-status/18-4-admin-onboarding-status.md" title="Story 18.4: Admin Onboarding Status" section="Dev Agent Record">
+        Reference implementation for admin-only Settings section pattern with isAdmin prop, requireAdminAuth(), and component structure.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="src/types/ai-buddy.ts" kind="types" symbol="GuardrailConfig, RestrictedTopic" lines="67-81" reason="Existing guardrail types - need to extend with new RestrictedTopic fields (id, description, enabled, createdAt)"/>
+      <artifact path="src/lib/ai-buddy/guardrails.ts" kind="service" symbol="loadGuardrails, checkGuardrails, updateGuardrailConfig" lines="1-227" reason="Existing guardrails service - loadGuardrails() and updateGuardrailConfig() already implemented, needs only hook integration"/>
+      <artifact path="src/lib/ai-buddy/prompt-builder.ts" kind="service" symbol="buildSystemPrompt, buildGuardrailInstructions" lines="222-322" reason="Existing prompt builder with guardrail injection - already handles restrictedTopics and customRules"/>
+      <artifact path="src/hooks/ai-buddy/use-guardrails.ts" kind="hook" symbol="useGuardrails, UseGuardrailsReturn" lines="1-52" reason="Stub hook implementation - needs full implementation with API calls"/>
+      <artifact path="src/hooks/ai-buddy/use-preferences.ts" kind="hook" symbol="usePreferences" lines="1-191" reason="Reference hook pattern with useState, useCallback, optimistic updates - follow this pattern for useGuardrails"/>
+      <artifact path="src/hooks/ai-buddy/index.ts" kind="barrel" symbol="exports" lines="1-54" reason="Barrel export file - useGuardrails already exported, verify after implementation"/>
+      <artifact path="src/components/ai-buddy/admin/onboarding-status-section.tsx" kind="component" symbol="OnboardingStatusSection" lines="1-99" reason="Reference admin section pattern - uses isAdmin prop, Card container, error states, useOnboardingStatus hook"/>
+      <artifact path="src/components/settings/ai-buddy-preferences-tab.tsx" kind="component" symbol="AiBuddyPreferencesTab" lines="1-141" reason="Target component for integration - add GuardrailAdminPanel below OnboardingStatusSection"/>
+      <artifact path="src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" lines="1-183" reason="Settings page that determines isAdmin prop - passed to AiBuddyPreferencesTab"/>
+      <artifact path="src/app/api/ai-buddy/admin/onboarding-status/route.ts" kind="api" symbol="GET" lines="1-61" reason="Reference admin API pattern - uses requireAdminAuth(), returns data with error handling"/>
+      <artifact path="src/lib/auth/admin.ts" kind="auth" symbol="requireAdminAuth, AdminAuthResult, AdminAuthError" lines="1-96" reason="Admin authentication helper - use for API permission checks"/>
+    </code>
+    <dependencies>
+      <package name="@tanstack/react-table" version="^8.21.3" reason="Already installed - can use for table views if needed"/>
+      <package name="lucide-react" version="^0.554.0" reason="Already installed - icons for edit, delete, toggle buttons"/>
+      <package name="shadcn/ui" components="Card, Dialog, Switch, Input, Textarea, Badge, Button, Alert" reason="UI components for admin panel"/>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">NO CACHING: Guardrails must be loaded fresh on each chat API call to ensure FR37 "immediate effect" - this is a deliberate trade-off.</constraint>
+    <constraint type="architecture">Guardrails enforced via system prompt injection ONLY, NOT post-processing (per ADR-AIB-002).</constraint>
+    <constraint type="architecture">AI must NEVER say "I cannot", "blocked", "restricted" - always provide helpful redirects (invisible guardrail pattern).</constraint>
+    <constraint type="security">All admin endpoints require `configure_guardrails` permission via requireAdminAuth().</constraint>
+    <constraint type="security">Agency isolation via RLS - agencies can only see/modify their own guardrails.</constraint>
+    <constraint type="security">Audit logging - all guardrail changes logged to ai_buddy_audit_logs with user ID and timestamp.</constraint>
+    <constraint type="pattern">Follow verify-then-service pattern for mutations (verify auth first, then use service client).</constraint>
+    <constraint type="pattern">Use isAdmin prop pattern from OnboardingStatusSection for conditional admin rendering.</constraint>
+    <constraint type="performance">Guardrail load time target: &lt; 50ms (single indexed query).</constraint>
+    <constraint type="performance">Admin page load target: &lt; 300ms.</constraint>
+    <constraint type="performance">Chat latency impact: &lt; 100ms for guardrail loading.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/ai-buddy/admin/guardrails" kind="REST endpoint" signature="GET /api/ai-buddy/admin/guardrails -> { data: { guardrails: AgencyGuardrails }, error: null }" path="src/app/api/ai-buddy/admin/guardrails/route.ts"/>
+    <interface name="PATCH /api/ai-buddy/admin/guardrails" kind="REST endpoint" signature="PATCH /api/ai-buddy/admin/guardrails (body: Partial&lt;AgencyGuardrails&gt;) -> { data: { guardrails: AgencyGuardrails }, error: null }" path="src/app/api/ai-buddy/admin/guardrails/route.ts"/>
+    <interface name="POST /api/ai-buddy/admin/guardrails/topics" kind="REST endpoint" signature="POST /api/ai-buddy/admin/guardrails/topics (body: Omit&lt;RestrictedTopic, 'id'|'createdAt'&gt;) -> { data: { topic: RestrictedTopic }, error: null }" path="src/app/api/ai-buddy/admin/guardrails/topics/route.ts"/>
+    <interface name="PATCH /api/ai-buddy/admin/guardrails/topics/[id]" kind="REST endpoint" signature="PATCH /api/ai-buddy/admin/guardrails/topics/[id] (body: Partial&lt;RestrictedTopic&gt;) -> { data: { topic: RestrictedTopic }, error: null }" path="src/app/api/ai-buddy/admin/guardrails/topics/[id]/route.ts"/>
+    <interface name="DELETE /api/ai-buddy/admin/guardrails/topics/[id]" kind="REST endpoint" signature="DELETE /api/ai-buddy/admin/guardrails/topics/[id] -> { data: { deleted: true }, error: null }" path="src/app/api/ai-buddy/admin/guardrails/topics/[id]/route.ts"/>
+    <interface name="UseGuardrailsReturn" kind="hook interface" signature="{ guardrails: AgencyGuardrails | null, isLoading: boolean, error: Error | null, updateGuardrails: (updates) => Promise, addTopic: (topic) => Promise, updateTopic: (id, updates) => Promise, deleteTopic: (id) => Promise, refetch: () => Promise }" path="src/hooks/ai-buddy/use-guardrails.ts"/>
+    <interface name="loadGuardrails" kind="function" signature="async (agencyId: string) => Promise&lt;GuardrailConfig&gt;" path="src/lib/ai-buddy/guardrails.ts"/>
+    <interface name="injectGuardrails" kind="function" signature="(guardrails: AgencyGuardrails) => string" path="src/lib/ai-buddy/prompt-builder.ts"/>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Tests use Vitest for unit/integration tests and Playwright for E2E tests. Unit tests mock Supabase client and fetch calls. Component tests use React Testing Library with `@testing-library/react`. Follow existing patterns in `__tests__/` directory. API tests verify 401/403 responses for auth failures. Hook tests use `renderHook` from testing library.
+    </standards>
+    <locations>
+      <location>__tests__/app/api/ai-buddy/admin/guardrails/*.test.ts</location>
+      <location>__tests__/hooks/ai-buddy/use-guardrails.test.ts</location>
+      <location>__tests__/components/ai-buddy/admin/*.test.tsx</location>
+      <location>__tests__/e2e/ai-buddy/guardrails-admin.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea acRef="AC-19.1.1">Test GuardrailAdminPanel renders when isAdmin=true, not when isAdmin=false</idea>
+      <idea acRef="AC-19.1.2">Test RestrictedTopicsList displays 3 default topics on first load</idea>
+      <idea acRef="AC-19.1.3">Test RestrictedTopicCard shows trigger, description, redirect, and toggle</idea>
+      <idea acRef="AC-19.1.4">Test RestrictedTopicEditor dialog opens with empty form on "Add Topic"</idea>
+      <idea acRef="AC-19.1.5">Test POST /topics creates topic and updates UI</idea>
+      <idea acRef="AC-19.1.6">Test RestrictedTopicEditor pre-populates form in edit mode</idea>
+      <idea acRef="AC-19.1.7">Test DELETE /topics/[id] removes topic from list</idea>
+      <idea acRef="AC-19.1.8">Test GuardrailToggleList shows E&amp;O and State Compliance toggles</idea>
+      <idea acRef="AC-19.1.9">Test toggle updates customRules array via PATCH</idea>
+      <idea acRef="AC-19.1.10">Test PATCH /guardrails persists changes to database</idea>
+      <idea acRef="AC-19.1.11">E2E: Change guardrail, start new chat, verify system prompt includes change</idea>
+      <idea acRef="AC-19.1.12">Test GET /guardrails returns 403 for non-admin user</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -18,7 +18,7 @@ export {
 } from './use-active-project';
 export { usePreferences, type UsePreferencesReturn } from './use-preferences';
 export { useOnboarding, type UseOnboardingReturn } from './use-onboarding';
-export { useGuardrails, type UseGuardrailsReturn } from './use-guardrails';
+export { useGuardrails, type UseGuardrailsReturn, type ResetSection } from './use-guardrails';
 export {
   useAuditLogs,
   type UseAuditLogsOptions,
@@ -47,3 +47,8 @@ export {
   useDocumentPreview,
   type UseDocumentPreviewReturn,
 } from './use-document-preview';
+export {
+  useOnboardingStatus,
+  type UseOnboardingStatusReturn,
+  type FilterStatus,
+} from './use-onboarding-status';

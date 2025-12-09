@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TabsContent } from '@/components/ui/tabs';
+import { SettingsTabsWrapper } from '@/components/settings/settings-tabs-wrapper';
 import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
 import { TeamTab } from '@/components/settings/team-tab';
@@ -114,17 +115,7 @@ export default async function SettingsPage() {
           </p>
         </div>
 
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="agency">Agency</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
-          <TabsTrigger value="billing">Billing</TabsTrigger>
-          {isAdmin && <TabsTrigger value="branding">Branding</TabsTrigger>}
-          {isAdmin && <TabsTrigger value="usage">Usage</TabsTrigger>}
-          <TabsTrigger value="ai-buddy" data-testid="ai-buddy-tab">AI Buddy</TabsTrigger>
-        </TabsList>
-
+      <SettingsTabsWrapper defaultTab="profile" isAdmin={isAdmin}>
         <TabsContent value="profile">
           <ProfileTab user={userData} />
         </TabsContent>
@@ -169,10 +160,14 @@ export default async function SettingsPage() {
         )}
 
         {/* AC-18.2.1: AI Buddy preferences tab */}
+        {/* AC-18.4.1, AC-18.4.5: Pass isAdmin for onboarding status section */}
         <TabsContent value="ai-buddy">
-          <AiBuddyPreferencesTab agencyName={userData.agency?.name || undefined} />
+          <AiBuddyPreferencesTab
+            agencyName={userData.agency?.name || undefined}
+            isAdmin={isAdmin}
+          />
         </TabsContent>
-      </Tabs>
+      </SettingsTabsWrapper>
       </div>
     </div>
   );

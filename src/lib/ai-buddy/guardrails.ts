@@ -85,15 +85,55 @@ export async function loadGuardrails(agencyId: string): Promise<GuardrailConfig>
   }
 
   // Map database columns to GuardrailConfig
-  // Cast through unknown to handle Supabase JSON type
+  // Handle both old format (trigger/redirect) and new format (trigger/redirectGuidance)
+  const rawTopics = data.restricted_topics as unknown[];
+  const mappedTopics: RestrictedTopic[] = rawTopics
+    ? rawTopics.map((t) => {
+        const topic = t as Record<string, unknown>;
+        // Check if topic is enabled (default true if not specified)
+        const isEnabled = topic.enabled !== false;
+        if (!isEnabled) return null; // Skip disabled topics
+
+        return {
+          trigger: (topic.trigger as string) || '',
+          // Handle both old format (redirect) and new format (redirectGuidance)
+          redirect: (topic.redirectGuidance as string) || (topic.redirect as string) || '',
+        };
+      }).filter((t): t is RestrictedTopic => t !== null && t.trigger !== '' && t.redirect !== '')
+    : DEFAULT_GUARDRAILS.restrictedTopics;
+
+  // Map custom rules - handle both old (string[]) and new (CustomGuardrailRule[]) formats
+  const rawRules = data.custom_rules as unknown[];
+  let mappedRules: string[] = [];
+  if (rawRules && rawRules.length > 0) {
+    const firstRule = rawRules[0];
+    if (typeof firstRule === 'string') {
+      // Old format - array of strings
+      mappedRules = rawRules as string[];
+    } else {
+      // New format - array of CustomGuardrailRule objects
+      // Extract promptInjection from enabled rules only
+      mappedRules = rawRules
+        .filter((r) => {
+          const rule = r as Record<string, unknown>;
+          return rule.enabled !== false;
+        })
+        .map((r) => {
+          const rule = r as Record<string, unknown>;
+          return (rule.promptInjection as string) || '';
+        })
+        .filter((s) => s !== '');
+    }
+  }
+
   return {
     agencyId: data.agency_id,
-    restrictedTopics: (data.restricted_topics as unknown as RestrictedTopic[]) ?? DEFAULT_GUARDRAILS.restrictedTopics,
-    customRules: (data.custom_rules as unknown as string[]) ?? [],
+    restrictedTopics: mappedTopics,
+    customRules: mappedRules,
     eandoDisclaimer: data.eando_disclaimer ?? true,
     aiDisclosureMessage: data.ai_disclosure_message ?? DEFAULT_GUARDRAILS.aiDisclosureMessage,
-    aiDisclosureEnabled: data.ai_disclosure_message != null,
-    restrictedTopicsEnabled: true,
+    aiDisclosureEnabled: data.ai_disclosure_enabled ?? (data.ai_disclosure_message != null),
+    restrictedTopicsEnabled: data.restricted_topics_enabled ?? true,
     updatedAt: data.updated_at,
   };
 }

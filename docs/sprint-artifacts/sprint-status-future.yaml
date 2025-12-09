@@ -1,0 +1,80 @@
+# FUTURE EPICS - Prioritized Post-MVP Roadmap
+# ============================================
+# These are deferred features for future development.
+# Main status file: sprint-status.yaml
+# Archive (Epics 1-13): sprint-status-archive.yaml
+# Last updated: 2025-12-08
+
+# Priority Order (as of 2025-12-03): F3 → F4 → F5 → F7 → F8
+# F1 completed via Epic 8, F2 completed, F6 obsolete
+
+future_epics:
+  # Epic F3: Document Viewer Enhancements
+  # Source: Story 6.8 AC-6.8.18 - 2025-12-03
+  # Reason: Requires PDF.js text layer work, significant effort
+  epic-f3-document-viewer-enhancements: future
+  f3-1-source-text-highlighting: future
+  f3-2-text-selection-highlighting: future
+  f3-3-search-within-document: future
+
+  # Epic F4: Email Infrastructure
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Resend requires custom domain setup
+  epic-f4-email-infrastructure: future
+  f4-1-custom-domain-setup-verification: future
+  f4-2-resend-smtp-integration-supabase-auth: future
+  f4-3-professional-email-templates: future
+  f4-4-delivery-tracking-analytics: future
+
+  # Epic F5: Billing Infrastructure
+  # Source: Epic 2 Retrospective - 2025-11-28
+  # Reason: Simplify MVP, manual tier assignment sufficient
+  epic-f5-billing-infrastructure: future
+  f5-1-stripe-or-lemonsqueezy-integration: future
+  f5-2-subscription-management-ui: future
+  f5-3-payment-processing: future
+  f5-4-usage-based-billing: future
+  f5-5-self-service-plan-changes: future
+
+  # Epic F7: Mobile Optimization
+  # Source: Epic 6 Story 6.4 - 2025-12-02
+  # Reason: Mobile optimization not priority for MVP
+  epic-f7-mobile-optimization: future
+  f7-1-mobile-tab-state-preservation: future
+  f7-2-mobile-responsive-polish: future
+  f7-3-touch-gesture-improvements: future
+
+  # Epic F8: Multi-Agent Workflows
+  # Source: Story 7.2 Implementation - 2025-12-03
+  # Reason: Complex agentic pipelines using @openai/agents SDK
+  # Potential use cases:
+  #   - Quote extraction → comparison → reporting pipeline
+  #   - Multi-document analysis with specialized agents per coverage type
+  #   - Interactive quote negotiation workflows
+  epic-f8-multi-agent-workflows: future
+  f8-1-agents-sdk-evaluation: future
+  f8-2-extraction-comparison-pipeline: future
+  f8-3-multi-agent-coordination: future
+  f8-4-guardrails-tracing: future
+
+completed_future_epics:
+  # Epic F1: Tech Debt & Optimizations - COMPLETED VIA EPIC 8 (2025-12-03)
+  epic-f1-tech-debt-optimizations: done
+
+  # Epic F2: Document Library & Intelligence - DONE 2025-12-04
+  epic-f2-document-library-intelligence: done
+  f2-1-document-library-page: done
+  f2-2-document-categorization-schema: done
+  f2-3-ai-tagging-summarization: done
+  f2-4-filter-general-docs-from-compare: done
+  f2-5-tag-management-ui: done
+  f2-6-document-library-table-view: done
+  epic-f2-retrospective: completed
+
+obsolete_future_epics:
+  # Epic F6: Document Processing Reliability - OBSOLETE 2025-12-05
+  # Superseded by Epic 12 (Document AI) and Epic 13 (LlamaParse)
+  epic-f6-document-processing-reliability: obsolete
+  f6-1-pypdfium2-backend-evaluation: obsolete
+  f6-2-multi-backend-fallback-chain: obsolete
+  f6-3-pdf-preprocessing-normalization: obsolete
