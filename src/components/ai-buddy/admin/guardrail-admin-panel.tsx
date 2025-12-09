@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { RestrictedTopicsList } from './restricted-topics-list';
 import { GuardrailToggleList } from './guardrail-toggle-list';
 import { GuardrailEnforcementLog } from './guardrail-enforcement-log';
+import { AIDisclosureEditor } from './ai-disclosure-editor';
 import { useGuardrails, type ResetSection } from '@/hooks/ai-buddy/use-guardrails';
 import { Separator } from '@/components/ui/separator';
 
@@ -233,6 +234,32 @@ export function GuardrailAdminPanel({ isAdmin, hasViewAuditLogsPermission = fals
             }}
             isLoading={isLoading}
             hideHeader
+          />
+        </div>
+
+        {/* AI Disclosure Section - AC-19.4.1 */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium">AI Disclosure</h3>
+              <p className="text-sm text-muted-foreground">
+                Configurable disclosure message for state compliance requirements.
+              </p>
+            </div>
+            <ResetButton section="aiDisclosure" label="AI Disclosure" />
+          </div>
+          <AIDisclosureEditor
+            value={guardrails?.aiDisclosureMessage ?? null}
+            enabled={guardrails?.aiDisclosureEnabled ?? true}
+            onChange={async (message) => {
+              await updateGuardrails({ aiDisclosureMessage: message });
+              toast.success('Disclosure message updated');
+            }}
+            onEnabledChange={async (enabled) => {
+              await updateGuardrails({ aiDisclosureEnabled: enabled });
+              toast.success(enabled ? 'Disclosure enabled' : 'Disclosure disabled');
+            }}
+            isLoading={isLoading}
           />
         </div>
 

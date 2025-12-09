@@ -57,3 +57,4 @@ export {
   type UseGuardrailLogsParams,
   type UseGuardrailLogsReturn,
 } from './use-guardrail-logs';
+export { useDisclosure } from './use-disclosure';

@@ -1,0 +1,192 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>19</epicId>
+    <storyId>4</storyId>
+    <title>AI Disclosure Message</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-19/stories/19-4-ai-disclosure-message/story-19.4-ai-disclosure-message.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>admin configuring AI Buddy for my agency</asA>
+    <iWant>to set a configurable AI disclosure message</iWant>
+    <soThat>my agency complies with state chatbot disclosure laws and users are informed they're interacting with AI</soThat>
+    <tasks>
+      <task id="1" name="AI Disclosure Editor Component">
+        <subtask>Create src/components/ai-buddy/admin/ai-disclosure-editor.tsx</subtask>
+        <subtask>Implement text editor using shadcn/ui Textarea</subtask>
+        <subtask>Add placeholder text with example disclosure language</subtask>
+        <subtask>Add character count display (max 500 characters recommended)</subtask>
+        <subtask>Show preview of how disclosure will appear</subtask>
+      </task>
+      <task id="2" name="Integrate into GuardrailAdminPanel">
+        <subtask>Add "AI Disclosure" section to existing GuardrailAdminPanel</subtask>
+        <subtask>Position after Rules section, before Enforcement Log</subtask>
+        <subtask>Include section header "AI Disclosure" with info tooltip</subtask>
+        <subtask>Add description explaining state compliance requirements</subtask>
+      </task>
+      <task id="3" name="API Integration for Disclosure">
+        <subtask>Verify existing PATCH /api/ai-buddy/admin/guardrails handles aiDisclosureMessage field</subtask>
+        <subtask>Ensure null/empty string clears disclosure (AC-19.4.7)</subtask>
+        <subtask>Test auto-save behavior (debounced 500ms)</subtask>
+        <subtask>Verify audit log entry created on disclosure change</subtask>
+      </task>
+      <task id="4" name="AI Disclosure Banner Component">
+        <subtask>Create src/components/ai-buddy/chat/ai-disclosure-banner.tsx</subtask>
+        <subtask>Style as prominent banner at top of chat area</subtask>
+        <subtask>Use info icon with contrasting background</subtask>
+        <subtask>Ensure no dismiss/close button (non-dismissible)</subtask>
+        <subtask>Implement ARIA attributes for screen reader support</subtask>
+        <subtask>Verify color contrast meets WCAG AA (4.5:1 for normal text)</subtask>
+      </task>
+      <task id="5" name="Display Logic in AI Buddy Chat">
+        <subtask>Load disclosure message from guardrails config in AI Buddy layout</subtask>
+        <subtask>Conditionally render AIDisclosureBanner when message exists</subtask>
+        <subtask>Hide banner when aiDisclosureMessage is null/empty</subtask>
+        <subtask>Position banner above message list, below header</subtask>
+      </task>
+      <task id="6" name="useGuardrails Hook Enhancement">
+        <subtask>Verify useGuardrails hook returns aiDisclosureMessage field</subtask>
+        <subtask>Add updateDisclosure(message: string | null) convenience method</subtask>
+        <subtask>Handle loading and error states for disclosure field</subtask>
+      </task>
+      <task id="7" name="Unit Tests">
+        <subtask>Create __tests__/components/ai-buddy/admin/ai-disclosure-editor.test.tsx</subtask>
+        <subtask>Test editor renders with placeholder when empty</subtask>
+        <subtask>Test character count updates correctly</subtask>
+        <subtask>Test onChange callback fires with debounce</subtask>
+        <subtask>Create __tests__/components/ai-buddy/chat/ai-disclosure-banner.test.tsx</subtask>
+        <subtask>Test banner renders with custom message</subtask>
+        <subtask>Test banner does not render when message is null/empty</subtask>
+        <subtask>Test banner has correct ARIA attributes</subtask>
+        <subtask>Test banner is not dismissible (no close button)</subtask>
+      </task>
+      <task id="8" name="Integration Tests">
+        <subtask>Test saving disclosure via API persists to database</subtask>
+        <subtask>Test clearing disclosure removes from database</subtask>
+        <subtask>Test disclosure loads correctly in chat context</subtask>
+        <subtask>Test audit log entry created on disclosure update</subtask>
+      </task>
+      <task id="9" name="E2E Tests">
+        <subtask>Create __tests__/e2e/ai-buddy/ai-disclosure.spec.ts</subtask>
+        <subtask>Test admin can set disclosure message</subtask>
+        <subtask>Test disclosure appears in chat for users</subtask>
+        <subtask>Test clearing disclosure removes banner</subtask>
+        <subtask>Test accessibility of disclosure banner</subtask>
+      </task>
+      <task id="10" name="Accessibility Testing">
+        <subtask>Run axe-core accessibility audit on disclosure banner</subtask>
+        <subtask>Verify color contrast with both light and dark themes</subtask>
+        <subtask>Test keyboard navigation</subtask>
+        <subtask>Test with screen reader</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-19.4.1">Given I am an admin, when I view the Guardrails section in Settings -> AI Buddy, then I see an "AI Disclosure" subsection with a text editor.</criterion>
+    <criterion id="AC-19.4.2">Given I view the AI Disclosure editor, when it is empty, then I see placeholder text suggesting example disclosure language.</criterion>
+    <criterion id="AC-19.4.3">Given I enter a disclosure message, when I save, then the message is persisted to the database.</criterion>
+    <criterion id="AC-19.4.4">Given a disclosure message is configured, when a user starts a new conversation in AI Buddy, then the disclosure is displayed prominently (banner or first message).</criterion>
+    <criterion id="AC-19.4.5">Given the disclosure is displayed, when the user reads it, then it is clearly visible and cannot be dismissed/hidden.</criterion>
+    <criterion id="AC-19.4.6">Given NO disclosure message is configured, when a user starts a conversation, then no disclosure banner/message is shown.</criterion>
+    <criterion id="AC-19.4.7">Given I clear the disclosure message and save, when users start new conversations, then the disclosure no longer appears.</criterion>
+    <criterion id="AC-19.4.8">Given the disclosure message, when it is displayed, then it meets WCAG 2.1 AA accessibility requirements (contrast, screen reader support).</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md" title="Epic 19 Tech Spec" section="Story 19.4: AI Disclosure Message" snippet="AC-19.4.1 through AC-19.4.8 define the disclosure admin UI, banner display, and accessibility requirements." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Novel Pattern: Invisible Guardrails" snippet="AI Buddy enforces compliance guardrails invisibly. AI disclosure is part of state compliance requirements." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture" snippet="ai_buddy_guardrails table has ai_disclosure_message text column for storing disclosure." />
+      <doc path="docs/sprint-artifacts/epics/epic-19/stories/19-3-invisible-guardrail-responses/story-19.3-invisible-guardrail-responses.md" title="Story 19.3" section="Dev Agent Record" snippet="Story 19.3 established test patterns - 76 tests across unit/integration/E2E. Follow same organization." />
+    </docs>
+    <code>
+      <file path="src/components/ai-buddy/admin/guardrail-admin-panel.tsx" kind="component" symbol="GuardrailAdminPanel" lines="1-250" reason="Main admin panel - must add AI Disclosure section between Rules and Enforcement Log sections." />
+      <file path="src/hooks/ai-buddy/use-guardrails.ts" kind="hook" symbol="useGuardrails" lines="1-423" reason="Hook for guardrails CRUD - already returns aiDisclosureMessage, may need updateDisclosure convenience method." />
+      <file path="src/lib/ai-buddy/guardrails.ts" kind="service" symbol="loadGuardrails" lines="59-139" reason="Server-side guardrails loader - returns aiDisclosureMessage field." />
+      <file path="src/app/api/ai-buddy/admin/guardrails/route.ts" kind="api" symbol="PATCH" lines="152-234" reason="API route - already handles aiDisclosureMessage in PATCH body." />
+      <file path="src/app/(dashboard)/ai-buddy/layout.tsx" kind="layout" symbol="AiBuddyLayoutInner" lines="63-319" reason="AI Buddy layout - must add AIDisclosureBanner rendering above chat content." />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="AgencyGuardrails" lines="110-119" reason="Type definition - aiDisclosureMessage already defined as string | null." />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="DEFAULT_AGENCY_GUARDRAILS" lines="182-189" reason="Default disclosure message already defined." />
+      <file path="__tests__/lib/ai-buddy/guardrails-invisible.test.ts" kind="test" symbol="describe" lines="1-300" reason="Test patterns from Story 19.3 - follow same organization." />
+      <file path="__tests__/hooks/ai-buddy/use-guardrails.test.ts" kind="test" symbol="describe" lines="1-400" reason="Existing hook tests - add disclosure-specific tests." />
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="@radix-ui/react-textarea" version="N/A" note="Use shadcn/ui Textarea (already installed)" />
+        <package name="use-debounce" version="^10.0.6" note="For 500ms debounced auto-save" />
+        <package name="lucide-react" version="^0.554.0" note="For Info icon in banner" />
+        <package name="sonner" version="^2.0.7" note="For toast notifications" />
+        <package name="@playwright/test" version="^1.57.0" note="For E2E tests" />
+        <package name="vitest" version="^4.0.14" note="For unit tests" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Dev Notes">AI Disclosure banner must be non-dismissible (no close button) per FR40-41.</constraint>
+    <constraint source="Dev Notes">Use debounced auto-save (500ms) for disclosure editor like other guardrail fields.</constraint>
+    <constraint source="Tech Spec">Banner should use subtle blue/info color (bg-blue-50 light / bg-blue-900/20 dark).</constraint>
+    <constraint source="Architecture">Guardrails must be loaded fresh on each request (NO CACHING) per FR37 immediate effect.</constraint>
+    <constraint source="Architecture">Admin-only access requires configure_guardrails permission.</constraint>
+    <constraint source="Architecture">All guardrail changes must be logged to ai_buddy_audit_logs table.</constraint>
+    <constraint source="AC-19.4.8">Banner must meet WCAG 2.1 AA requirements (4.5:1 contrast ratio for normal text).</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="AgencyGuardrails" kind="TypeScript interface" path="src/types/ai-buddy.ts">
+      <signature>
+interface AgencyGuardrails {
+  agencyId: string;
+  restrictedTopics: ExtendedRestrictedTopic[];
+  customRules: CustomGuardrailRule[];
+  eandoDisclaimer: boolean;
+  aiDisclosureMessage: string | null;  // This field
+  aiDisclosureEnabled: boolean;
+  restrictedTopicsEnabled: boolean;
+  updatedAt: string;
+}
+      </signature>
+    </interface>
+    <interface name="PATCH /api/ai-buddy/admin/guardrails" kind="REST endpoint" path="src/app/api/ai-buddy/admin/guardrails/route.ts">
+      <signature>
+// Request body (partial update)
+{ aiDisclosureMessage?: string | null }
+
+// Response
+{ data: { guardrails: AgencyGuardrails } }
+      </signature>
+    </interface>
+    <interface name="loadGuardrails" kind="function" path="src/lib/ai-buddy/guardrails.ts">
+      <signature>
+async function loadGuardrails(agencyId: string): Promise&lt;GuardrailConfig&gt;
+// Returns aiDisclosureMessage field from database
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Testing uses Vitest for unit/integration tests and Playwright for E2E. Tests follow the patterns established in Story 19.3 with 76 tests across unit/integration/E2E. Component tests use @testing-library/react. E2E tests authenticate as admin using the test fixtures. All new components require unit tests covering render, interaction, and accessibility.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/admin/ai-disclosure-editor.test.tsx (NEW)</location>
+      <location>__tests__/components/ai-buddy/chat/ai-disclosure-banner.test.tsx (NEW)</location>
+      <location>__tests__/hooks/ai-buddy/use-guardrails.test.ts (EXTEND)</location>
+      <location>__tests__/e2e/ai-buddy/ai-disclosure.spec.ts (NEW)</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-19.4.1">Test AIDisclosureEditor renders in GuardrailAdminPanel for admin users.</idea>
+      <idea acId="AC-19.4.2">Test editor shows placeholder text when aiDisclosureMessage is empty/null.</idea>
+      <idea acId="AC-19.4.3">Test updateGuardrails({ aiDisclosureMessage }) persists to database.</idea>
+      <idea acId="AC-19.4.4">Test AIDisclosureBanner renders in layout when disclosure message exists.</idea>
+      <idea acId="AC-19.4.5">Test banner has no close button or dismiss functionality.</idea>
+      <idea acId="AC-19.4.6">Test banner does not render when aiDisclosureMessage is null/empty.</idea>
+      <idea acId="AC-19.4.7">Test clearing disclosure (empty string) removes banner from chat.</idea>
+      <idea acId="AC-19.4.8">Test banner has correct ARIA attributes (role="status", aria-live="polite").</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -32,6 +32,10 @@ export interface UseGuardrailsReturn {
   toggleRule: (ruleId: string, enabled: boolean) => Promise<void>;
   resetToDefaults: (section: ResetSection) => Promise<AgencyGuardrails>;
   refetch: () => Promise<void>;
+  /** Convenience method to update AI disclosure message (AC-19.4.3) */
+  updateDisclosure: (message: string | null) => Promise<AgencyGuardrails>;
+  /** Convenience method to toggle AI disclosure enabled state */
+  toggleDisclosure: (enabled: boolean) => Promise<AgencyGuardrails>;
 }
 
 interface GuardrailsApiResponse {
@@ -400,6 +404,28 @@ export function useGuardrails(): UseGuardrailsReturn {
     await fetchGuardrails();
   }, [fetchGuardrails]);
 
+  /**
+   * Update AI disclosure message
+   * AC-19.4.3: Save disclosure message
+   * AC-19.4.7: Clear disclosure when null/empty
+   */
+  const updateDisclosure = useCallback(
+    async (message: string | null): Promise<AgencyGuardrails> => {
+      return updateGuardrails({ aiDisclosureMessage: message });
+    },
+    [updateGuardrails]
+  );
+
+  /**
+   * Toggle AI disclosure enabled state
+   */
+  const toggleDisclosure = useCallback(
+    async (enabled: boolean): Promise<AgencyGuardrails> => {
+      return updateGuardrails({ aiDisclosureEnabled: enabled });
+    },
+    [updateGuardrails]
+  );
+
   // Fetch guardrails on mount
   useEffect(() => {
     if (!hasFetchedRef.current) {
@@ -419,5 +445,7 @@ export function useGuardrails(): UseGuardrailsReturn {
     toggleRule,
     resetToDefaults,
     refetch,
+    updateDisclosure,
+    toggleDisclosure,
   };
 }

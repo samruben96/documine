@@ -14,7 +14,8 @@ import { ConversationSearch } from '@/components/ai-buddy/conversation-search';
 import { DocumentPanel } from '@/components/ai-buddy/documents/document-panel';
 import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
 import { OnboardingFlow } from '@/components/ai-buddy/onboarding';
-import { useOnboarding } from '@/hooks/ai-buddy';
+import { useOnboarding, useDisclosure } from '@/hooks/ai-buddy';
+import { AIDisclosureBanner } from '@/components/ai-buddy/chat/ai-disclosure-banner';
 
 // Dynamic import for DocumentPreviewModal to avoid SSR issues with react-pdf
 const DocumentPreviewModal = dynamic(
@@ -70,6 +71,9 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
     skipOnboarding,
   } = useOnboarding();
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Story 19.4: AI Disclosure banner (AC-19.4.4)
+  const { message: disclosureMessage, enabled: disclosureEnabled } = useDisclosure();
 
   // Show onboarding when shouldShowOnboarding becomes true
   useEffect(() => {
@@ -255,6 +259,13 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
               />
             </div>
           </div>
+
+          {/* Story 19.4: AI Disclosure Banner - AC-19.4.4, AC-19.4.5, AC-19.4.6 */}
+          {/* Position: Above message list, below header */}
+          {/* AC-19.4.6: Only show when disclosure is configured AND enabled */}
+          {disclosureEnabled && disclosureMessage && (
+            <AIDisclosureBanner message={disclosureMessage} />
+          )}
 
           {/* Page content */}
           <div className="flex-1 overflow-hidden">{children}</div>
