@@ -98,14 +98,15 @@ describe('OnboardingFlow', () => {
       expect(screen.getByText('Homeowners')).toBeInTheDocument();
     });
 
-    it('Continue is disabled until at least one LOB is selected', () => {
+    // LOB selection is optional - user can proceed without selecting any
+    it('Continue is enabled without selecting LOB (optional step)', () => {
       goToStep2();
 
       const continueButton = screen.getByTestId('continue-button');
-      expect(continueButton).toBeDisabled();
+      expect(continueButton).not.toBeDisabled();
     });
 
-    it('Continue is enabled after selecting an LOB', () => {
+    it('Continue remains enabled after selecting an LOB', () => {
       goToStep2();
 
       fireEvent.click(screen.getByTestId('chip-personal-auto'));

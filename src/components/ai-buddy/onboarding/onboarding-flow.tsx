@@ -98,8 +98,8 @@ export function OnboardingFlow({
   // Step 1: Name validation
   const isStep1Valid = data.displayName.trim().length > 0;
 
-  // Step 2: Lines of business validation (min 1 required)
-  const isStep2Valid = data.linesOfBusiness.length >= 1;
+  // Step 2: Lines of business - optional (no selection = all)
+  const isStep2Valid = true;
 
   // Step 3: Carriers are optional
   const isStep3Valid = true;
@@ -183,6 +183,7 @@ export function OnboardingFlow({
               </DialogTitle>
               <DialogDescription>
                 Let&apos;s personalize your experience. This takes less than 2 minutes.
+                You can always change these in Settings later.
               </DialogDescription>
             </DialogHeader>
 
@@ -253,8 +254,8 @@ export function OnboardingFlow({
             <DialogHeader>
               <DialogTitle>Lines of Business</DialogTitle>
               <DialogDescription>
-                Select the lines of business you work with most often. This helps me
-                provide more relevant suggestions.
+                Select the lines of business you work with most often.
+                Skip this step if you work with all lines.
               </DialogDescription>
             </DialogHeader>
 
@@ -265,8 +266,9 @@ export function OnboardingFlow({
                 onChange={(selected) =>
                   setData((d) => ({ ...d, linesOfBusiness: selected }))
                 }
-                minSelection={1}
-                label="Select at least one"
+                minSelection={0}
+                label="Select your focus areas (optional)"
+                showSelectAll
               />
             </div>
 
@@ -306,8 +308,7 @@ export function OnboardingFlow({
             <DialogHeader>
               <DialogTitle>Favorite Carriers</DialogTitle>
               <DialogDescription>
-                Select your preferred carriers (optional). This helps me tailor
-                recommendations to carriers you work with.
+                Select your preferred carriers to get tailored recommendations.
               </DialogDescription>
             </DialogHeader>
 
@@ -319,7 +320,8 @@ export function OnboardingFlow({
                   setData((d) => ({ ...d, favoriteCarriers: selected }))
                 }
                 minSelection={0}
-                label="Select your favorites"
+                label="Select your favorites (optional)"
+                showSelectAll
               />
             </div>
 

@@ -7,6 +7,7 @@ import { TeamTabSkeleton } from '@/components/settings/team-tab-skeleton';
 import { BillingTab } from '@/components/settings/billing-tab';
 import { UsageTab } from '@/components/settings/usage-tab';
 import { BrandingTab } from '@/components/settings/branding-tab';
+import { AiBuddyPreferencesTab } from '@/components/settings/ai-buddy-preferences-tab';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { type PlanTier } from '@/lib/constants/plans';
@@ -121,6 +122,7 @@ export default async function SettingsPage() {
           <TabsTrigger value="billing">Billing</TabsTrigger>
           {isAdmin && <TabsTrigger value="branding">Branding</TabsTrigger>}
           {isAdmin && <TabsTrigger value="usage">Usage</TabsTrigger>}
+          <TabsTrigger value="ai-buddy" data-testid="ai-buddy-tab">AI Buddy</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -165,6 +167,11 @@ export default async function SettingsPage() {
             <UsageTab metrics={usageMetrics} />
           </TabsContent>
         )}
+
+        {/* AC-18.2.1: AI Buddy preferences tab */}
+        <TabsContent value="ai-buddy">
+          <AiBuddyPreferencesTab agencyName={userData.agency?.name || undefined} />
+        </TabsContent>
       </Tabs>
       </div>
     </div>

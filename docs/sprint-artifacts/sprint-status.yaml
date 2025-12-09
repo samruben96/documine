@@ -1163,7 +1163,11 @@ development_status:
   # Settings tab for all preferences + agency info + reset
   # Covers: FR26-32
   # Points: 5
-  18-2-preferences-management: backlog
+  # IMPLEMENTED 2025-12-08: All 12 ACs complete
+  # Components: AiBuddyPreferencesTab, PreferencesForm, CommunicationStyleToggle, LicensedStatesSelect
+  # API: POST /api/ai-buddy/preferences/reset
+  # Tests: 36 unit tests + 19 E2E tests
+  18-2-preferences-management: done
   # Story 18.3: Preference-Aware AI Responses (was 18.5)
   # AI uses preferences in responses (carriers, LOB, style)
   # Covers: FR31

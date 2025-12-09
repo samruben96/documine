@@ -136,23 +136,34 @@ export function usePreferences(): UsePreferencesReturn {
   );
 
   /**
-   * Reset preferences to defaults
+   * Reset preferences to defaults via dedicated API endpoint
+   * AC-18.2.9, AC-18.2.10, AC-18.2.11: Reset with onboarding re-trigger
    */
   const resetPreferences = useCallback(async (): Promise<void> => {
-    await updatePreferences({
-      displayName: undefined,
-      role: undefined,
-      linesOfBusiness: [],
-      favoriteCarriers: [],
-      agencyName: undefined,
-      licensedStates: [],
-      communicationStyle: 'professional',
-      onboardingCompleted: false,
-      onboardingCompletedAt: undefined,
-      onboardingSkipped: false,
-      onboardingSkippedAt: undefined,
-    });
-  }, [updatePreferences]);
+    try {
+      const response = await fetch('/api/ai-buddy/preferences/reset', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error?.message || `Failed to reset preferences: ${response.status}`);
+      }
+
+      const result: PreferencesApiResponse = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      // Update local state with reset preferences
+      setPreferences(result.data?.preferences || {});
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to reset preferences');
+      setError(error);
+      throw error;
+    }
+  }, []);
 
   /**
    * Refetch preferences

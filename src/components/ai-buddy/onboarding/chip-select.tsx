@@ -26,6 +26,8 @@ export interface ChipSelectProps {
   label?: string;
   /** Additional className */
   className?: string;
+  /** Show Select All / Clear All button */
+  showSelectAll?: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function ChipSelect({
   minSelection = 0,
   label,
   className,
+  showSelectAll = false,
 }: ChipSelectProps) {
   const handleToggle = (option: string) => {
     const isSelected = selected.includes(option);
@@ -64,8 +67,17 @@ export function ChipSelect({
     }
   };
 
+  const handleSelectAll = () => {
+    onChange([...options]);
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
+
   const selectionCount = selected.length;
   const isMinimumMet = selectionCount >= minSelection;
+  const allSelected = selectionCount === options.length;
 
   return (
     <div className={cn('space-y-3', className)} data-testid="chip-select">
@@ -74,18 +86,30 @@ export function ChipSelect({
           <label className="text-sm font-medium text-foreground">
             {label}
           </label>
-          {minSelection > 0 && (
-            <span
-              className={cn(
-                'text-xs',
-                isMinimumMet ? 'text-muted-foreground' : 'text-destructive'
-              )}
-              data-testid="selection-count"
-            >
-              {selectionCount} selected
-              {!isMinimumMet && ` (min ${minSelection})`}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {showSelectAll && (
+              <button
+                type="button"
+                onClick={allSelected ? handleClearAll : handleSelectAll}
+                className="text-xs text-primary hover:underline"
+                data-testid="select-all-btn"
+              >
+                {allSelected ? 'Clear All' : 'Select All'}
+              </button>
+            )}
+            {minSelection > 0 && (
+              <span
+                className={cn(
+                  'text-xs',
+                  isMinimumMet ? 'text-muted-foreground' : 'text-destructive'
+                )}
+                data-testid="selection-count"
+              >
+                {selectionCount} selected
+                {!isMinimumMet && ` (min ${minSelection})`}
+              </span>
+            )}
+          </div>
         </div>
       )}
 

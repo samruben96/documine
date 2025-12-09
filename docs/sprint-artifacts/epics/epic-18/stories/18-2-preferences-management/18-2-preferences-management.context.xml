@@ -1,0 +1,318 @@
+<story-context id="18-2-preferences-management" v="1.0">
+  <metadata>
+    <epicId>18</epicId>
+    <storyId>2</storyId>
+    <title>Preferences Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-18/stories/18-2-preferences-management/18-2-preferences-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>AI Buddy user</asA>
+    <iWant>view and edit my preferences through a dedicated settings tab</iWant>
+    <soThat>I can update my display name, role, lines of business, favorite carriers, communication style, and agency information at any time</soThat>
+    <tasks>
+      <task id="1" ac="18.2.1,18.2.2">Create PreferencesTab Component - Settings tab container with preferences loading</task>
+      <task id="2" ac="18.2.3-18.2.7">Create PreferencesForm Component - Full edit form with section layout</task>
+      <task id="3" ac="18.2.3">Identity Section Implementation - Display name input, role dropdown</task>
+      <task id="4" ac="18.2.4">Lines of Business Section - ChipSelect with LINES_OF_BUSINESS</task>
+      <task id="5" ac="18.2.5">Favorite Carriers Section - ChipSelect with COMMON_CARRIERS + custom entry</task>
+      <task id="6" ac="18.2.6">Agency Information Section - Read-only agency name, licensed states multi-select</task>
+      <task id="7" ac="18.2.7">Communication Style Toggle - Professional/Casual switch</task>
+      <task id="8" ac="18.2.8">Save Functionality - Save button, dirty state, success toast</task>
+      <task id="9" ac="18.2.9,18.2.10,18.2.11">Reset Preferences API - POST /api/ai-buddy/preferences/reset endpoint</task>
+      <task id="10" ac="18.2.9">Reset Confirmation Dialog - AlertDialog with cancel/confirm</task>
+      <task id="11" ac="18.2.10,18.2.11">Reset Flow Integration - API call, toast, onboarding re-trigger</task>
+      <task id="12" ac="18.2.1">Settings Tab Integration - Add AI Buddy tab to settings page</task>
+      <task id="13" ac="all">Unit Tests - Component, hook, and API route tests</task>
+      <task id="14" ac="all">E2E Tests - Full user flow testing</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="18.2.1">AI Buddy Settings Tab - Dedicated tab visible in Settings page</criterion>
+    <criterion id="18.2.2">Preferences Form Load - Shows current preferences on load</criterion>
+    <criterion id="18.2.3">Identity Section - Edit display name and role</criterion>
+    <criterion id="18.2.4">Lines of Business Section - Chip-based multi-select for LOBs</criterion>
+    <criterion id="18.2.5">Favorite Carriers Section - Chip-based multi-select for carriers</criterion>
+    <criterion id="18.2.6">Agency Information Section - Read-only agency name, editable licensed states</criterion>
+    <criterion id="18.2.7">Communication Style Toggle - Professional/Casual toggle</criterion>
+    <criterion id="18.2.8">Save Changes - Save button with success toast</criterion>
+    <criterion id="18.2.9">Reset Confirmation Dialog - Confirmation before reset</criterion>
+    <criterion id="18.2.10">Reset Action - Preferences reset to defaults</criterion>
+    <criterion id="18.2.11">Onboarding Re-Trigger After Reset - Onboarding modal shows after reset</criterion>
+    <criterion id="18.2.12">Preference Update Reflection - AI behavior reflects updated preferences</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md</path>
+        <title>Epic 18 Technical Specification</title>
+        <section>Story 18.2: Preferences Management</section>
+        <snippet>Settings tab for managing all preferences including identity, LOBs, carriers, agency info, and communication style. Includes reset functionality that triggers onboarding re-display.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Data Architecture - User Preferences</section>
+        <snippet>User preferences stored in users.ai_buddy_preferences JSONB column. Uses verify-then-service pattern for PATCH updates.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/prd.md</path>
+        <title>AI Buddy PRD</title>
+        <section>Personalization (FR26-FR32)</section>
+        <snippet>FR26-32 cover user profile customization including name, role, LOBs, carriers, agency info, and communication style preferences.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-18/stories/18-1-onboarding-flow-guided-start/18-1-onboarding-flow-guided-start.md</path>
+        <title>Story 18.1 - Onboarding Flow</title>
+        <section>Dev Agent Record - File List</section>
+        <snippet>Created usePreferences hook, ChipSelect component, preferences API routes. 60 unit tests. Verify-then-service pattern for API.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-173</lines>
+        <reason>Settings page with tabs structure - add AI Buddy tab here following existing pattern (Profile, Agency, Team, Billing, Branding, Usage)</reason>
+      </file>
+      <file>
+        <path>src/components/settings/profile-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>ProfileTab</symbol>
+        <lines>1-143</lines>
+        <reason>Reference implementation for settings tab pattern - uses react-hook-form, Card layout, Input, Button, toast notifications</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-preferences.ts</path>
+        <kind>hook</kind>
+        <symbol>usePreferences</symbol>
+        <lines>1-180</lines>
+        <reason>REUSE DIRECTLY - Already implements GET/PATCH with optimistic updates. Has resetPreferences method ready for use.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/onboarding/chip-select.tsx</path>
+        <kind>component</kind>
+        <symbol>ChipSelect</symbol>
+        <lines>1-137</lines>
+        <reason>REUSE DIRECTLY - Multi-select chip component with minSelection prop. Use with minSelection={0} for settings (unlike onboarding).</reason>
+      </file>
+      <file>
+        <path>src/app/api/ai-buddy/preferences/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, PATCH</symbol>
+        <lines>1-200</lines>
+        <reason>REUSE - Existing preferences API. Add POST reset endpoint in separate reset/route.ts file.</reason>
+      </file>
+      <file>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>UserPreferences, LINES_OF_BUSINESS, COMMON_CARRIERS, USER_ROLES, DEFAULT_USER_PREFERENCES</symbol>
+        <lines>91-159</lines>
+        <reason>REUSE - All types and constants for preferences. Add US_STATES constant here.</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-onboarding.ts</path>
+        <kind>hook</kind>
+        <symbol>useOnboarding</symbol>
+        <lines>all</lines>
+        <reason>Reference for onboarding re-trigger logic - shouldShowOnboarding checks onboardingCompleted and onboardingSkipped flags.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/onboarding/onboarding-flow.tsx</path>
+        <kind>component</kind>
+        <symbol>OnboardingFlow</symbol>
+        <lines>all</lines>
+        <reason>Reference for form layout patterns - Dialog usage, step navigation, form field styling.</reason>
+      </file>
+      <file>
+        <path>__tests__/hooks/ai-buddy/use-preferences.test.ts</path>
+        <kind>test</kind>
+        <symbol>usePreferences tests</symbol>
+        <lines>all</lines>
+        <reason>Reference for hook test patterns - 13 existing tests. Extend for reset functionality.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ai-buddy/onboarding/onboarding-flow.test.tsx</path>
+        <kind>test</kind>
+        <symbol>OnboardingFlow tests</symbol>
+        <lines>all</lines>
+        <reason>Reference for component test patterns - 18 tests covering form interactions.</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/ai-buddy/onboarding.spec.ts</path>
+        <kind>test</kind>
+        <symbol>Onboarding E2E tests</symbol>
+        <lines>all</lines>
+        <reason>Reference for E2E test patterns - settings navigation, form interactions, toast verification.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.68.0</version>
+        <usage>Form state management with validation</usage>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <usage>Zod validation resolver for react-hook-form</usage>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Schema validation for form data</usage>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <usage>Toast notifications for save/reset feedback</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-alert-dialog</package>
+        <version>^1.1.15</version>
+        <usage>Reset confirmation dialog</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-switch</package>
+        <version>^1.2.6</version>
+        <usage>Communication style toggle</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-select</package>
+        <version>^2.2.6</version>
+        <usage>Role dropdown and licensed states multi-select</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons for tab, buttons, toggle states</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Use verify-then-service pattern for API mutations (verify with anon client, mutate with service client)</constraint>
+    <constraint type="architecture">Follow existing settings tab pattern - server component for data fetch, client component for form</constraint>
+    <constraint type="architecture">Reuse existing usePreferences hook - do not duplicate fetch/update logic</constraint>
+    <constraint type="architecture">Reuse ChipSelect component from onboarding with minSelection={0}</constraint>
+    <constraint type="pattern">Use Card components for section grouping per ProfileTab pattern</constraint>
+    <constraint type="pattern">Use react-hook-form with zodResolver for form validation</constraint>
+    <constraint type="pattern">Use sonner toast for success/error notifications</constraint>
+    <constraint type="pattern">Disable Save button when no changes (isDirty state)</constraint>
+    <constraint type="pattern">Use AlertDialog for destructive action confirmation (reset)</constraint>
+    <constraint type="testing">Maintain test coverage - aim for 20+ unit tests for new components</constraint>
+    <constraint type="testing">E2E tests must cover full user flow including reset and onboarding re-trigger</constraint>
+    <constraint type="naming">Files: kebab-case (ai-buddy-preferences-tab.tsx)</constraint>
+    <constraint type="naming">Components: PascalCase (AiBuddyPreferencesTab)</constraint>
+    <constraint type="naming">API routes: /api/ai-buddy/preferences/reset for reset endpoint</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>UsePreferencesReturn</name>
+      <kind>hook-interface</kind>
+      <signature>
+{
+  preferences: UserPreferences | null;
+  isLoading: boolean;
+  error: Error | null;
+  updatePreferences: (updates: Partial&lt;UserPreferences&gt;) => Promise&lt;UserPreferences&gt;;
+  resetPreferences: () => Promise&lt;void&gt;;
+  refetch: () => Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-preferences.ts:12-19</path>
+    </interface>
+    <interface>
+      <name>ChipSelectProps</name>
+      <kind>component-props</kind>
+      <signature>
+{
+  options: readonly string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  minSelection?: number;
+  label?: string;
+  className?: string;
+}
+      </signature>
+      <path>src/components/ai-buddy/onboarding/chip-select.tsx:16-29</path>
+    </interface>
+    <interface>
+      <name>GET /api/ai-buddy/preferences</name>
+      <kind>REST endpoint</kind>
+      <signature>Response: { data: { preferences: UserPreferences } }</signature>
+      <path>src/app/api/ai-buddy/preferences/route.ts:31-75</path>
+    </interface>
+    <interface>
+      <name>PATCH /api/ai-buddy/preferences</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: Partial&lt;UserPreferences&gt; | Response: { data: { preferences: UserPreferences } }</signature>
+      <path>src/app/api/ai-buddy/preferences/route.ts:104-192</path>
+    </interface>
+    <interface>
+      <name>POST /api/ai-buddy/preferences/reset (NEW)</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: none | Response: { data: { preferences: UserPreferences } } - Resets to DEFAULT_USER_PREFERENCES</signature>
+      <path>src/app/api/ai-buddy/preferences/reset/route.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>UserPreferences</name>
+      <kind>type</kind>
+      <signature>
+{
+  displayName?: string;
+  role?: 'producer' | 'csr' | 'manager' | 'other';
+  linesOfBusiness?: string[];
+  favoriteCarriers?: string[];
+  agencyName?: string;
+  licensedStates?: string[];
+  communicationStyle?: 'professional' | 'casual';
+  onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string;
+  onboardingSkipped?: boolean;
+  onboardingSkippedAt?: string;
+}
+      </signature>
+      <path>src/types/ai-buddy.ts:91-112</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Use Vitest for unit tests and Playwright for E2E tests. Component tests use @testing-library/react with user-event for interactions. Mock fetch calls with vi.fn(). Follow existing patterns from __tests__/hooks/ai-buddy/use-preferences.test.ts and __tests__/components/ai-buddy/onboarding/onboarding-flow.test.tsx. Test data-testid attributes for element selection. Verify toast.success/toast.error calls for feedback validation.
+    </standards>
+    <locations>
+      <location>__tests__/components/settings/ai-buddy-preferences-tab.test.tsx</location>
+      <location>__tests__/components/ai-buddy/preferences-form.test.tsx</location>
+      <location>__tests__/components/ai-buddy/communication-style-toggle.test.tsx</location>
+      <location>__tests__/api/ai-buddy/preferences-reset.test.ts</location>
+      <location>__tests__/e2e/ai-buddy/preferences-settings.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="18.2.1">Test AI Buddy tab renders in Settings page tabs list</idea>
+      <idea ac="18.2.2">Test preferences load on tab mount with loading skeleton then data display</idea>
+      <idea ac="18.2.3">Test display name input change and role dropdown selection</idea>
+      <idea ac="18.2.4">Test LOB chip selection/deselection (no minimum required unlike onboarding)</idea>
+      <idea ac="18.2.5">Test carrier chip selection and custom carrier entry via input</idea>
+      <idea ac="18.2.6">Test agency name displays as read-only, licensed states can be added/removed</idea>
+      <idea ac="18.2.7">Test communication style toggle between Professional and Casual</idea>
+      <idea ac="18.2.8">Test Save button disabled when no changes, enabled when dirty, shows loading state, displays success toast</idea>
+      <idea ac="18.2.9">Test Reset button opens confirmation dialog with correct text</idea>
+      <idea ac="18.2.10">Test Reset confirm calls API and resets form to defaults</idea>
+      <idea ac="18.2.11">E2E: Test after reset, navigating to AI Buddy shows onboarding modal</idea>
+      <idea ac="18.2.12">E2E: Test changing communication style reflects in AI Buddy chat interface</idea>
+      <idea ac="api">Test POST /api/ai-buddy/preferences/reset returns default preferences</idea>
+      <idea ac="api">Test reset API sets onboardingCompleted=false and onboardingSkipped=false</idea>
+      <idea ac="error">Test error handling when save fails - error toast displayed, form state preserved</idea>
+    </ideas>
+  </tests>
+</story-context>
