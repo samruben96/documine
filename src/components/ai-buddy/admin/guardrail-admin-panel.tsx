@@ -28,11 +28,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { RestrictedTopicsList } from './restricted-topics-list';
 import { GuardrailToggleList } from './guardrail-toggle-list';
+import { GuardrailEnforcementLog } from './guardrail-enforcement-log';
 import { useGuardrails, type ResetSection } from '@/hooks/ai-buddy/use-guardrails';
+import { Separator } from '@/components/ui/separator';
 
 interface GuardrailAdminPanelProps {
   /** Whether the current user is an admin */
   isAdmin: boolean;
+  /** Whether the current user has view_audit_logs permission (AC-19.2.3) */
+  hasViewAuditLogsPermission?: boolean;
 }
 
 /**
@@ -46,7 +50,7 @@ interface GuardrailAdminPanelProps {
  * <GuardrailAdminPanel isAdmin={isAdmin} />
  * ```
  */
-export function GuardrailAdminPanel({ isAdmin }: GuardrailAdminPanelProps) {
+export function GuardrailAdminPanel({ isAdmin, hasViewAuditLogsPermission = false }: GuardrailAdminPanelProps) {
   const {
     guardrails,
     isLoading,
@@ -231,6 +235,14 @@ export function GuardrailAdminPanel({ isAdmin }: GuardrailAdminPanelProps) {
             hideHeader
           />
         </div>
+
+        {/* Enforcement Log Section - AC-19.2.3 */}
+        {hasViewAuditLogsPermission && (
+          <>
+            <Separator className="my-6" />
+            <GuardrailEnforcementLog />
+          </>
+        )}
       </CardContent>
     </Card>
   );

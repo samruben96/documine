@@ -105,6 +105,18 @@ export default async function SettingsPage() {
   // Fetch usage metrics for admins only (AC-3.5.5, AC-3.5.6)
   const usageMetrics = isAdmin ? await getUsageMetrics() : null;
 
+  // AC-19.2.3: Check if admin has view_audit_logs permission for enforcement log section
+  let hasViewAuditLogsPermission = false;
+  if (isAdmin) {
+    const { data: permission } = await supabase
+      .from('ai_buddy_permissions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('permission', 'view_audit_logs')
+      .maybeSingle();
+    hasViewAuditLogsPermission = !!permission;
+  }
+
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -161,10 +173,12 @@ export default async function SettingsPage() {
 
         {/* AC-18.2.1: AI Buddy preferences tab */}
         {/* AC-18.4.1, AC-18.4.5: Pass isAdmin for onboarding status section */}
+        {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
         <TabsContent value="ai-buddy">
           <AiBuddyPreferencesTab
             agencyName={userData.agency?.name || undefined}
             isAdmin={isAdmin}
+            hasViewAuditLogsPermission={hasViewAuditLogsPermission}
           />
         </TabsContent>
       </SettingsTabsWrapper>

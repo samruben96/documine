@@ -52,3 +52,8 @@ export {
   type UseOnboardingStatusReturn,
   type FilterStatus,
 } from './use-onboarding-status';
+export {
+  useGuardrailLogs,
+  type UseGuardrailLogsParams,
+  type UseGuardrailLogsReturn,
+} from './use-guardrail-logs';

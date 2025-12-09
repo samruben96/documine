@@ -46,6 +46,8 @@ export interface AiBuddyPreferencesTabProps {
   agencyName?: string;
   /** Whether the current user is an admin (AC-18.4.5) */
   isAdmin?: boolean;
+  /** Whether the admin has view_audit_logs permission (AC-19.2.3) */
+  hasViewAuditLogsPermission?: boolean;
 }
 
 type SubTab = 'personal' | 'admin';
@@ -57,7 +59,7 @@ type SubTab = 'personal' | 'admin';
  * Shows skeleton UI during loading.
  * Shows OnboardingStatusSection for admin users (AC-18.4.1, AC-18.4.5).
  */
-export function AiBuddyPreferencesTab({ agencyName, isAdmin = false }: AiBuddyPreferencesTabProps) {
+export function AiBuddyPreferencesTab({ agencyName, isAdmin = false, hasViewAuditLogsPermission = false }: AiBuddyPreferencesTabProps) {
   const { preferences, isLoading, error, updatePreferences, resetPreferences, refetch } = usePreferences();
   const { setIsDirty, setOnSave } = useSettings();
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
@@ -314,7 +316,8 @@ export function AiBuddyPreferencesTab({ agencyName, isAdmin = false }: AiBuddyPr
             <OnboardingStatusSection isAdmin={isAdmin} />
 
             {/* AC-19.1.1, AC-19.1.12: Admin-only guardrails section */}
-            <GuardrailAdminPanel isAdmin={isAdmin} />
+            {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
+            <GuardrailAdminPanel isAdmin={isAdmin} hasViewAuditLogsPermission={hasViewAuditLogsPermission} />
           </div>
         )}
       </div>

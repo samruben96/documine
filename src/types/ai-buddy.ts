@@ -522,6 +522,34 @@ export interface OnboardingStatusResponse {
   users: OnboardingStatusEntry[];
 }
 
+// ============ Story 19.2: Guardrail Enforcement Logging Types ============
+
+/**
+ * Guardrail enforcement audit log entry for admin viewing
+ * Story 19.2: Enforcement Logging - AC-19.2.2
+ */
+export interface GuardrailEnforcementEvent {
+  id: string;
+  agencyId: string;
+  userId: string;
+  userEmail: string; // Joined from users table
+  conversationId: string | null;
+  triggeredTopic: string;
+  messagePreview: string; // Truncated to 100 chars
+  redirectApplied: string;
+  loggedAt: string;
+}
+
+/**
+ * Response for guardrail enforcement logs API
+ * Story 19.2: AC-19.2.4
+ */
+export interface GuardrailEnforcementLogsResponse {
+  logs: GuardrailEnforcementEvent[];
+  total: number;
+  hasMore: boolean;
+}
+
 /**
  * Derive onboarding status from user preferences
  */
