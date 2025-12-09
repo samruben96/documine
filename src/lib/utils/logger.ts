@@ -20,6 +20,23 @@ type LogData = Record<string, unknown>;
  */
 export const log = {
   /**
+   * Log a debug message (only in development).
+   * Story 18.3: Added for DEBUG_PROMPT_CONTEXT support (AC-18.3.6)
+   */
+  debug: (message: string, data?: LogData): void => {
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PROMPT_CONTEXT === 'true') {
+      console.log(
+        JSON.stringify({
+          level: 'debug',
+          message,
+          ...data,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    }
+  },
+
+  /**
    * Log an informational message.
    */
   info: (message: string, data?: LogData): void => {

@@ -1,8 +1,9 @@
 /**
  * Prompt Builder Unit Tests
  * Story 15.5: AI Response Quality & Attribution
+ * Story 18.3: Preference-Aware AI Responses
  *
- * Tests for system prompt construction with guardrails integration.
+ * Tests for system prompt construction with guardrails integration and user preferences.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,6 +13,10 @@ import {
   buildGuardrailInstructions,
   extractCitationsFromResponse,
   calculateConfidence,
+  formatCarriersContext,
+  formatLOBContext,
+  formatStatesContext,
+  formatCommunicationStyle,
   type DocumentContext,
 } from '@/lib/ai-buddy/prompt-builder';
 import type { UserPreferences, GuardrailConfig, Citation } from '@/types/ai-buddy';
@@ -26,9 +31,10 @@ describe('buildUserContext', () => {
     expect(buildUserContext({})).toBe('');
   });
 
+  // Story 18.3: Updated format - now uses "Name:" instead of "User:"
   it('should include display name', () => {
     const prefs: UserPreferences = { displayName: 'John Doe' };
-    expect(buildUserContext(prefs)).toContain('User: John Doe');
+    expect(buildUserContext(prefs)).toContain('Name: John Doe');
   });
 
   it('should include role with label', () => {
@@ -36,32 +42,38 @@ describe('buildUserContext', () => {
     expect(buildUserContext(prefs)).toContain('Role: Producer/Agent');
   });
 
+  // Story 18.3: Updated format - now uses "You work at:" with richer context
   it('should include agency name', () => {
     const prefs: UserPreferences = { agencyName: 'ABC Insurance' };
-    expect(buildUserContext(prefs)).toContain('Agency: ABC Insurance');
+    expect(buildUserContext(prefs)).toContain('You work at: ABC Insurance');
   });
 
+  // Story 18.3: Updated format - now uses "You work primarily in:" with richer context
   it('should include lines of business', () => {
     const prefs: UserPreferences = {
       linesOfBusiness: ['Commercial', 'Personal Lines'],
     };
     expect(buildUserContext(prefs)).toContain(
-      'Primary Lines: Commercial, Personal Lines'
+      'You work primarily in: Commercial, Personal Lines'
     );
   });
 
+  // Story 18.3: Updated format - now uses "Your preferred carriers:" with richer context
   it('should include favorite carriers', () => {
     const prefs: UserPreferences = {
       favoriteCarriers: ['Progressive', 'Travelers'],
     };
     expect(buildUserContext(prefs)).toContain(
-      'Frequently Used Carriers: Progressive, Travelers'
+      'Your preferred carriers: Progressive, Travelers'
     );
   });
 
-  it('should include communication style', () => {
+  // Story 18.3: Communication style is now handled separately in buildSystemPrompt
+  // This test is updated to reflect that communicationStyle alone doesn't produce output in buildUserContext
+  it('should not include communication style in user context (handled separately)', () => {
     const prefs: UserPreferences = { communicationStyle: 'professional' };
-    expect(buildUserContext(prefs)).toContain('Preferred Style: Professional/Formal');
+    // Communication style is now part of the system prompt, not user context
+    expect(buildUserContext(prefs)).toBe('');
   });
 });
 
@@ -359,5 +371,276 @@ describe('AC Requirements for Prompt Builder', () => {
   it('AC1: Citation format instruction is [📄 Document Name pg. X]', () => {
     const { systemPrompt } = buildSystemPrompt({});
     expect(systemPrompt).toContain('[📄 Document Name pg. X]');
+  });
+});
+
+// Story 18.3: Preference-Aware AI Responses Tests
+describe('formatCarriersContext (AC-18.3.1)', () => {
+  it('should return empty string for undefined carriers', () => {
+    expect(formatCarriersContext(undefined)).toBe('');
+  });
+
+  it('should return empty string for empty array', () => {
+    expect(formatCarriersContext([])).toBe('');
+  });
+
+  it('should format single carrier correctly', () => {
+    const result = formatCarriersContext(['Progressive']);
+    expect(result).toContain('Your preferred carriers: Progressive');
+    expect(result).toContain('reference these carriers');
+  });
+
+  it('should format multiple carriers correctly', () => {
+    const result = formatCarriersContext(['Progressive', 'Travelers', 'Hartford']);
+    expect(result).toContain('Your preferred carriers: Progressive, Travelers, Hartford');
+  });
+});
+
+describe('formatLOBContext (AC-18.3.2)', () => {
+  it('should return empty string for undefined LOB', () => {
+    expect(formatLOBContext(undefined)).toBe('');
+  });
+
+  it('should return empty string for empty array', () => {
+    expect(formatLOBContext([])).toBe('');
+  });
+
+  it('should format single LOB correctly', () => {
+    const result = formatLOBContext(['Commercial Property']);
+    expect(result).toContain('You work primarily in: Commercial Property');
+    expect(result).toContain('Contextualize examples');
+  });
+
+  it('should format multiple LOBs correctly', () => {
+    const result = formatLOBContext(['Commercial Property', 'Workers Compensation', 'General Liability']);
+    expect(result).toContain('You work primarily in: Commercial Property, Workers Compensation, General Liability');
+  });
+});
+
+describe('formatStatesContext (AC-18.3.5)', () => {
+  it('should return empty string when no states or agency', () => {
+    expect(formatStatesContext(undefined, undefined)).toBe('');
+  });
+
+  it('should return empty string for empty states array and no agency', () => {
+    expect(formatStatesContext([], undefined)).toBe('');
+  });
+
+  it('should include agency name only', () => {
+    const result = formatStatesContext(undefined, 'ABC Insurance');
+    expect(result).toContain('You work at: ABC Insurance');
+    expect(result).not.toContain('Licensed in:');
+  });
+
+  it('should include licensed states only', () => {
+    const result = formatStatesContext(['CA', 'TX', 'NY'], undefined);
+    expect(result).toContain('Licensed in: CA, TX, NY');
+    expect(result).toContain('Prioritize information and regulations');
+    expect(result).not.toContain('You work at:');
+  });
+
+  it('should include both agency name and licensed states', () => {
+    const result = formatStatesContext(['CA', 'TX'], 'ABC Insurance');
+    expect(result).toContain('You work at: ABC Insurance');
+    expect(result).toContain('Licensed in: CA, TX');
+  });
+});
+
+describe('formatCommunicationStyle (AC-18.3.3, AC-18.3.4)', () => {
+  it('should return professional style directive by default (AC-18.3.7)', () => {
+    const result = formatCommunicationStyle(undefined);
+    expect(result).toContain('formal, professional language');
+    expect(result).toContain('Avoid contractions');
+  });
+
+  it('should return professional style directive explicitly', () => {
+    const result = formatCommunicationStyle('professional');
+    expect(result).toContain('formal, professional language');
+    expect(result).toContain('Avoid contractions');
+    expect(result).toContain('respectfully');
+  });
+
+  it('should return casual style directive (AC-18.3.3)', () => {
+    const result = formatCommunicationStyle('casual');
+    expect(result).toContain('friendly, conversational tone');
+    expect(result).toContain('Contractions are fine');
+    expect(result).toContain('approachable');
+    expect(result).toContain('Hey!');
+  });
+});
+
+describe('buildUserContext - Story 18.3 Enhanced', () => {
+  it('should include carrier context (AC-18.3.1)', () => {
+    const prefs: UserPreferences = {
+      favoriteCarriers: ['Progressive', 'Travelers'],
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toContain('Your preferred carriers: Progressive, Travelers');
+  });
+
+  it('should include LOB context (AC-18.3.2)', () => {
+    const prefs: UserPreferences = {
+      linesOfBusiness: ['Commercial Property', 'Workers Compensation'],
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toContain('You work primarily in: Commercial Property, Workers Compensation');
+  });
+
+  it('should include states context (AC-18.3.5)', () => {
+    const prefs: UserPreferences = {
+      agencyName: 'Smith Insurance',
+      licensedStates: ['CA', 'TX', 'NY'],
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toContain('You work at: Smith Insurance');
+    expect(result).toContain('Licensed in: CA, TX, NY');
+  });
+
+  it('should include full user context with all preferences', () => {
+    const prefs: UserPreferences = {
+      displayName: 'John Smith',
+      role: 'producer',
+      agencyName: 'ABC Insurance',
+      licensedStates: ['CA', 'TX'],
+      linesOfBusiness: ['Commercial Property'],
+      favoriteCarriers: ['Progressive'],
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toContain('Name: John Smith');
+    expect(result).toContain('Role: Producer/Agent');
+    expect(result).toContain('You work at: ABC Insurance');
+    expect(result).toContain('Licensed in: CA, TX');
+    expect(result).toContain('You work primarily in: Commercial Property');
+    expect(result).toContain('Your preferred carriers: Progressive');
+  });
+
+  it('should gracefully degrade with empty preferences (AC-18.3.7)', () => {
+    const prefs: UserPreferences = {
+      linesOfBusiness: [],
+      favoriteCarriers: [],
+      licensedStates: [],
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toBe('');
+  });
+
+  it('should skip sections for undefined arrays', () => {
+    const prefs: UserPreferences = {
+      displayName: 'Jane Doe',
+    };
+    const result = buildUserContext(prefs);
+    expect(result).toContain('Name: Jane Doe');
+    expect(result).not.toContain('Your preferred carriers');
+    expect(result).not.toContain('You work primarily in');
+    expect(result).not.toContain('Licensed in');
+  });
+});
+
+describe('buildSystemPrompt - Story 18.3 Communication Style', () => {
+  it('should include Communication Style section by default (AC-18.3.4)', () => {
+    const { systemPrompt } = buildSystemPrompt({});
+    expect(systemPrompt).toContain('## Communication Style');
+    expect(systemPrompt).toContain('formal, professional language');
+  });
+
+  it('should include professional style when explicitly set', () => {
+    const { systemPrompt } = buildSystemPrompt({
+      userPreferences: { communicationStyle: 'professional' },
+    });
+    expect(systemPrompt).toContain('## Communication Style');
+    expect(systemPrompt).toContain('formal, professional language');
+  });
+
+  it('should include casual style when set (AC-18.3.3)', () => {
+    const { systemPrompt } = buildSystemPrompt({
+      userPreferences: { communicationStyle: 'casual' },
+    });
+    expect(systemPrompt).toContain('## Communication Style');
+    expect(systemPrompt).toContain('friendly, conversational tone');
+    expect(systemPrompt).toContain('Contractions are fine');
+  });
+
+  it('should include User Context with preferences', () => {
+    const { systemPrompt, userContext } = buildSystemPrompt({
+      userPreferences: {
+        displayName: 'Agent Smith',
+        favoriteCarriers: ['Progressive'],
+        linesOfBusiness: ['Commercial'],
+        licensedStates: ['CA'],
+        agencyName: 'Smith Insurance',
+      },
+    });
+    expect(systemPrompt).toContain('## User Context');
+    expect(userContext).toContain('Name: Agent Smith');
+    expect(userContext).toContain('Your preferred carriers: Progressive');
+    expect(userContext).toContain('You work primarily in: Commercial');
+    expect(userContext).toContain('Licensed in: CA');
+  });
+
+  it('should work without preferences (graceful degradation AC-18.3.7)', () => {
+    const { systemPrompt, userContext } = buildSystemPrompt({});
+    // Should still have communication style (defaults to professional)
+    expect(systemPrompt).toContain('## Communication Style');
+    // But no user context section
+    expect(userContext).toBe('');
+  });
+});
+
+describe('Story 18.3 AC Requirements', () => {
+  it('AC-18.3.1: Carrier context included when carriers set', () => {
+    const { userContext } = buildSystemPrompt({
+      userPreferences: { favoriteCarriers: ['Progressive', 'Travelers'] },
+    });
+    expect(userContext).toContain('Your preferred carriers: Progressive, Travelers');
+    expect(userContext).toContain('reference these carriers');
+  });
+
+  it('AC-18.3.2: LOB context included when LOB set', () => {
+    const { userContext } = buildSystemPrompt({
+      userPreferences: { linesOfBusiness: ['Commercial Property'] },
+    });
+    expect(userContext).toContain('You work primarily in: Commercial Property');
+    expect(userContext).toContain('Contextualize examples');
+  });
+
+  it('AC-18.3.3: Casual style produces conversational directive', () => {
+    const { systemPrompt } = buildSystemPrompt({
+      userPreferences: { communicationStyle: 'casual' },
+    });
+    expect(systemPrompt).toContain('friendly, conversational tone');
+    expect(systemPrompt).toContain('Hey!');
+    expect(systemPrompt).not.toContain('Avoid contractions');
+  });
+
+  it('AC-18.3.4: Professional style produces formal directive', () => {
+    const { systemPrompt } = buildSystemPrompt({
+      userPreferences: { communicationStyle: 'professional' },
+    });
+    expect(systemPrompt).toContain('formal, professional language');
+    expect(systemPrompt).toContain('Avoid contractions');
+    expect(systemPrompt).not.toContain('Hey!');
+  });
+
+  it('AC-18.3.5: Licensed states context included when states set', () => {
+    const { userContext } = buildSystemPrompt({
+      userPreferences: {
+        agencyName: 'ABC Insurance',
+        licensedStates: ['CA', 'TX', 'NY'],
+      },
+    });
+    expect(userContext).toContain('You work at: ABC Insurance');
+    expect(userContext).toContain('Licensed in: CA, TX, NY');
+    expect(userContext).toContain('Prioritize information and regulations');
+  });
+
+  it('AC-18.3.7: Graceful degradation - professional style and generic context with no preferences', () => {
+    const { systemPrompt, userContext } = buildSystemPrompt({});
+    // Professional style is default
+    expect(systemPrompt).toContain('formal, professional language');
+    // No user context when no preferences
+    expect(userContext).toBe('');
+    // System prompt should still work
+    expect(systemPrompt).toContain('AI Buddy');
+    expect(systemPrompt).toContain('insurance agents');
   });
 });

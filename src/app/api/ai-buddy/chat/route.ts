@@ -487,6 +487,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Build system prompt with guardrails (AC15-AC20)
+    // Story 18.3: Pass complete preferences including licensedStates (AC-18.3.5)
     const { systemPrompt } = buildSystemPrompt({
       userPreferences: userPreferences
         ? {
@@ -496,6 +497,7 @@ export async function POST(request: Request): Promise<Response> {
             favoriteCarriers: userPreferences.favoriteCarriers as string[] | undefined,
             communicationStyle: userPreferences.communicationStyle as 'professional' | 'casual' | undefined,
             agencyName: userPreferences.agencyName as string | undefined,
+            licensedStates: userPreferences.licensedStates as string[] | undefined,
           }
         : undefined,
       guardrailConfig,
@@ -524,12 +526,19 @@ export async function POST(request: Request): Promise<Response> {
     // Add current user message
     llmMessages.push({ role: 'user', content: message });
 
+    // Story 18.3: Log preference injection details (AC-18.3.6)
     log.info('AI Buddy chat request processing', {
       conversationId: activeConversationId,
       userId: user.id,
       messageCount: llmMessages.length,
       isNewConversation,
       guardrailsApplied: guardrailCheckResult.appliedRules,
+      preferencesInjected: {
+        hasCarriers: !!(userPreferences?.favoriteCarriers as string[] | undefined)?.length,
+        hasLOB: !!(userPreferences?.linesOfBusiness as string[] | undefined)?.length,
+        hasStates: !!(userPreferences?.licensedStates as string[] | undefined)?.length,
+        style: (userPreferences?.communicationStyle as string | undefined) ?? 'professional',
+      },
     });
 
     // Create streaming response (AC-15.3.1, AC-15.3.4)

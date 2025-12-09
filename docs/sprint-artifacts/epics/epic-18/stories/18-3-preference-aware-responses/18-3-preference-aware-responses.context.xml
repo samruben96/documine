@@ -1,0 +1,171 @@
+<story-context id="18-3-preference-aware-responses" v="1.0">
+  <metadata>
+    <epicId>18</epicId>
+    <storyId>3</storyId>
+    <title>Preference-Aware AI Responses</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-18/stories/18-3-preference-aware-responses/18-3-preference-aware-responses.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>AI Buddy user</asA>
+    <iWant>the AI to use my saved preferences when responding to my questions</iWant>
+    <soThat>I receive contextual responses that reference my preferred carriers, lines of business, communication style, and licensed states without having to re-explain my context in every conversation</soThat>
+    <tasks>
+      <task id="1" acs="18.3.1,18.3.2,18.3.5">Extend buildUserContext Function - Update prompt-builder.ts to add carriers, LOB, licensed states, agency name context sections</task>
+      <task id="2" acs="18.3.3,18.3.4">Add Communication Style to System Prompt - Create style directives (professional/casual) and inject early in prompt</task>
+      <task id="3" acs="18.3.6">Update Chat API Route - Verify preferences loading, add debug logging for preference injection</task>
+      <task id="4" acs="18.3.1,18.3.2,18.3.5">Create Preference Context Sections - formatCarriersContext, formatLOBContext, formatStatesContext, formatCommunicationStyle helper functions</task>
+      <task id="5" acs="18.3.7">Graceful Degradation Logic - Handle undefined preferences, empty arrays, default to professional style</task>
+      <task id="6" acs="18.3.6">Verification Utilities - DEBUG_PROMPT_CONTEXT env variable, log system prompt when enabled</task>
+      <task id="7" acs="all">Unit Tests - Prompt Builder - Test buildUserContext with full/empty/partial preferences and formatter functions</task>
+      <task id="8" acs="18.3.6,18.3.7">Unit Tests - Chat Route Integration - Test preferences loading, responses with/without preferences</task>
+      <task id="9" acs="all">E2E Tests - Test communication styles, carrier mentions, LOB context, graceful degradation</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="18.3.1" title="Carrier Context in Responses">
+      Given I have set my preferred carriers (e.g., Progressive, Travelers),
+      When I ask "Which carrier should I use?" or similar questions,
+      Then the AI references my preferred carriers in its response.
+    </ac>
+    <ac id="18.3.2" title="Lines of Business Context">
+      Given I have set my lines of business (e.g., Commercial Property),
+      When I ask a general insurance question,
+      Then the AI contextualizes examples to my LOB where relevant.
+    </ac>
+    <ac id="18.3.3" title="Casual Communication Style">
+      Given I have set communication style to "Casual",
+      When the AI responds,
+      Then it uses a more conversational tone (e.g., "Hey!", contractions, less formal language).
+    </ac>
+    <ac id="18.3.4" title="Professional Communication Style">
+      Given I have set communication style to "Professional",
+      When the AI responds,
+      Then it uses a formal tone (e.g., "Good day", no contractions, structured responses).
+    </ac>
+    <ac id="18.3.5" title="Licensed States Context">
+      Given I have set my agency name and licensed states,
+      When I ask about state-specific regulations,
+      Then the AI prioritizes information for my licensed states.
+    </ac>
+    <ac id="18.3.6" title="Preferences Injection Verification">
+      Given my preferences are loaded,
+      When I check the system prompt (via dev tools/logging),
+      Then I can verify my preferences are injected into the prompt context.
+    </ac>
+    <ac id="18.3.7" title="Graceful Degradation">
+      Given I have no preferences set (new user, skipped onboarding),
+      When I chat,
+      Then the AI uses professional style and generic examples (graceful degradation).
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md" title="Epic 18 Tech Spec" section="Story 18.3">
+        Story 18.3 specification covering preference-aware AI responses. FR31 implementation - AI incorporation of user preferences into responses.
+      </doc>
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="Personalization (FR26-FR32)">
+        Functional requirements for personalization including FR31: AI uses onboarding data to personalize responses without re-explaining context.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Prompt Construction">
+        Architecture for prompt building and user context injection into system prompts.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-18/stories/18-2-preferences-management/18-2-preferences-management.md" title="Story 18.2 (Previous)" section="Dev Agent Record">
+        Previous story learnings: usePreferences hook, API routes, UserPreferences type, DEFAULT_PREFERENCES constant, test patterns.
+      </doc>
+    </docs>
+    <code>
+      <file path="src/lib/ai-buddy/prompt-builder.ts" kind="service" symbol="buildUserContext" lines="220-259" reason="PRIMARY: Function to extend with carrier, LOB, states, and enhanced communication style context">
+        Current implementation includes displayName, role, agencyName, linesOfBusiness, favoriteCarriers, licensedStates, communicationStyle as basic labels. Needs enhancement for richer context and style directives.
+      </file>
+      <file path="src/lib/ai-buddy/prompt-builder.ts" kind="service" symbol="buildSystemPrompt" lines="140-215" reason="Entry point that calls buildUserContext - understand integration point">
+        Main system prompt builder that assembles persona, user context, guardrails, citations, confidence instructions, document context.
+      </file>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api-route" symbol="POST" lines="150-689" reason="Chat API that loads preferences and passes to buildSystemPrompt - verify preference flow">
+        Edge runtime chat endpoint. Lines 184-198 fetch user preferences from ai_buddy_preferences column. Lines 490-507 pass userPreferences to buildSystemPrompt.
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="UserPreferences" lines="91-112" reason="TypeScript interface for user preferences - defines available fields">
+        Interface with displayName, role, linesOfBusiness, favoriteCarriers, agencyName, licensedStates, communicationStyle, onboarding status fields.
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="DEFAULT_USER_PREFERENCES" lines="153-158" reason="Default preferences constant for graceful degradation">
+        Default values: empty arrays for LOB/carriers, professional style, onboardingCompleted: false.
+      </file>
+      <file path="src/hooks/ai-buddy/use-preferences.ts" kind="hook" symbol="usePreferences" lines="51-191" reason="Client-side hook for preferences - understand data flow">
+        Hook providing preferences state, updatePreferences, resetPreferences, refetch methods with optimistic updates.
+      </file>
+      <file path="__tests__/lib/ai-buddy/prompt-builder.test.ts" kind="test" symbol="buildUserContext tests" lines="20-66" reason="Existing tests to extend for new context sections">
+        Test suite with tests for displayName, role, agencyName, linesOfBusiness, favoriteCarriers, communicationStyle. Add tests for enhanced context formatting.
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.7">React framework with Edge runtime support</package>
+        <package name="openai" version="^6.9.1">OpenAI SDK for LLM calls via OpenRouter</package>
+        <package name="zod" version="^4.1.13">Schema validation</package>
+        <package name="vitest" version="^4.0.14" dev="true">Test framework</package>
+        <package name="@playwright/test" version="^1.57.0" dev="true">E2E testing</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">Prompt Builder Pattern: All context construction centralized in prompt-builder.ts</constraint>
+    <constraint source="architecture">Graceful Degradation: Feature must work without preferences using defaults</constraint>
+    <constraint source="tech-spec">Performance: Context building must complete in &lt;10ms</constraint>
+    <constraint source="tech-spec">No additional API calls: Preferences already loaded in chat route</constraint>
+    <constraint source="tech-spec">Prompt size increase: &lt;500 characters typical</constraint>
+    <constraint source="story-18.2">Professional style is the default - maintain this behavior</constraint>
+    <constraint source="coding-standards">Export helper functions for testability</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="buildUserContext" kind="function" path="src/lib/ai-buddy/prompt-builder.ts">
+      <signature>function buildUserContext(preferences?: UserPreferences): string</signature>
+      <description>Build user context section of system prompt from preferences</description>
+    </interface>
+    <interface name="buildSystemPrompt" kind="function" path="src/lib/ai-buddy/prompt-builder.ts">
+      <signature>function buildSystemPrompt(context: PromptContext): BuiltPrompt</signature>
+      <description>Build complete system prompt with guardrails, user context, document context</description>
+    </interface>
+    <interface name="UserPreferences" kind="type" path="src/types/ai-buddy.ts">
+      <signature>interface UserPreferences { displayName?: string; role?: 'producer' | 'csr' | 'manager' | 'other'; linesOfBusiness?: string[]; favoriteCarriers?: string[]; agencyName?: string; licensedStates?: string[]; communicationStyle?: 'professional' | 'casual'; onboardingCompleted?: boolean; ... }</signature>
+      <description>User preferences stored in ai_buddy_preferences JSONB column</description>
+    </interface>
+    <interface name="PromptContext" kind="type" path="src/lib/ai-buddy/prompt-builder.ts">
+      <signature>interface PromptContext { userPreferences?: UserPreferences; guardrailConfig?: GuardrailConfig; guardrailCheckResult?: GuardrailCheckResult; documentContext?: DocumentContext[]; projectName?: string; ... }</signature>
+      <description>Context object passed to buildSystemPrompt</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests with describe/it/expect pattern. Tests in __tests__/ directory mirroring src/ structure.
+      Playwright for E2E tests in __tests__/e2e/. Use data-testid attributes for element selection.
+      Follow existing prompt-builder.test.ts patterns: test each function independently, test edge cases (undefined, empty), test integration.
+      Aim for similar coverage to Story 18.2: 36+ unit tests covering all formatter functions and edge cases.
+    </standards>
+    <locations>
+      <location>__tests__/lib/ai-buddy/prompt-builder.test.ts - Extend existing tests</location>
+      <location>__tests__/e2e/ai-buddy/ - E2E tests for preference-aware responses</location>
+    </locations>
+    <ideas>
+      <idea ac="18.3.1">Test formatCarriersContext with carriers array returns "Your preferred carriers: Progressive, Travelers"</idea>
+      <idea ac="18.3.1">Test formatCarriersContext with empty array returns empty string</idea>
+      <idea ac="18.3.2">Test formatLOBContext with multiple LOBs returns "You work primarily in: Commercial Property, Workers Comp"</idea>
+      <idea ac="18.3.3">Test formatCommunicationStyle('casual') returns casual directive with contractions guidance</idea>
+      <idea ac="18.3.4">Test formatCommunicationStyle('professional') returns formal directive avoiding contractions</idea>
+      <idea ac="18.3.5">Test formatStatesContext with states returns "Licensed in: CA, TX, NY - prioritize regulations for these states"</idea>
+      <idea ac="18.3.6">Test buildUserContext includes DEBUG_PROMPT_CONTEXT logging when env enabled</idea>
+      <idea ac="18.3.7">Test buildUserContext with undefined preferences returns professional style default</idea>
+      <idea ac="18.3.7">Test buildSystemPrompt with empty preferences uses DEFAULT_USER_PREFERENCES</idea>
+      <idea ac="all" type="e2e">E2E: Set casual style, send message, verify response contains conversational elements</idea>
+      <idea ac="all" type="e2e">E2E: Set professional style, send message, verify response has formal structure</idea>
+      <idea ac="all" type="e2e">E2E: Set carriers, ask about carriers, verify response references user's carriers</idea>
+    </ideas>
+  </tests>
+</story-context>

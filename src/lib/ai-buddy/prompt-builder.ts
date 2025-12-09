@@ -1,6 +1,7 @@
 /**
  * AI Buddy Prompt Builder
  * Story 15.5: AI Response Quality & Attribution
+ * Story 18.3: Preference-Aware AI Responses
  *
  * System prompt construction for AI Buddy with guardrails integration.
  * Implements invisible guardrail enforcement through prompt conditioning.
@@ -10,10 +11,12 @@
  * - AI never says "I cannot" - always provide helpful alternatives
  * - Citation format instructions for source attribution
  * - Confidence level guidelines for trust transparency
+ * - User preferences injected for personalized responses (Story 18.3)
  */
 
 import type { UserPreferences, GuardrailConfig, Citation } from '@/types/ai-buddy';
 import type { GuardrailCheckResult } from './guardrails';
+import { log } from '@/lib/utils/logger';
 
 export interface PromptContext {
   userPreferences?: UserPreferences;
@@ -132,6 +135,85 @@ LOW CONFIDENCE (not found):
 - Suggest alternative resources`;
 
 /**
+ * Story 18.3: Communication Style Directives
+ * AC-18.3.3: Casual style - conversational tone
+ * AC-18.3.4: Professional style - formal tone
+ */
+const STYLE_DIRECTIVES = {
+  professional: `Use formal, professional language in your responses.
+Avoid contractions (use "do not" instead of "don't", "cannot" instead of "can't").
+Structure responses with clear sections when appropriate.
+Address the user respectfully and maintain a professional tone throughout.`,
+  casual: `Use a friendly, conversational tone in your responses.
+Contractions are fine (it's, don't, you're).
+Be approachable and personable.
+Feel free to use conversational openings like "Hey!" or "Sure thing!".`,
+} as const;
+
+/**
+ * Story 18.3: Format carrier context for system prompt
+ * AC-18.3.1: Carrier context in responses
+ *
+ * @param carriers - Array of preferred carrier names
+ * @returns Formatted carrier context string or empty string
+ */
+export function formatCarriersContext(carriers?: string[]): string {
+  if (!carriers || carriers.length === 0) {
+    return '';
+  }
+  return `Your preferred carriers: ${carriers.join(', ')}. When discussing carrier options or recommendations, reference these carriers when relevant.`;
+}
+
+/**
+ * Story 18.3: Format lines of business context for system prompt
+ * AC-18.3.2: LOB context in responses
+ *
+ * @param linesOfBusiness - Array of lines of business
+ * @returns Formatted LOB context string or empty string
+ */
+export function formatLOBContext(linesOfBusiness?: string[]): string {
+  if (!linesOfBusiness || linesOfBusiness.length === 0) {
+    return '';
+  }
+  return `You work primarily in: ${linesOfBusiness.join(', ')}. Contextualize examples and explanations to these lines of business when relevant.`;
+}
+
+/**
+ * Story 18.3: Format licensed states context for system prompt
+ * AC-18.3.5: Licensed states context in responses
+ *
+ * @param licensedStates - Array of state abbreviations
+ * @param agencyName - Optional agency name
+ * @returns Formatted states context string or empty string
+ */
+export function formatStatesContext(licensedStates?: string[], agencyName?: string): string {
+  const parts: string[] = [];
+
+  if (agencyName) {
+    parts.push(`You work at: ${agencyName}.`);
+  }
+
+  if (licensedStates && licensedStates.length > 0) {
+    parts.push(`Licensed in: ${licensedStates.join(', ')}. Prioritize information and regulations for these states when discussing state-specific topics.`);
+  }
+
+  return parts.join(' ');
+}
+
+/**
+ * Story 18.3: Format communication style directive for system prompt
+ * AC-18.3.3, AC-18.3.4: Communication style
+ *
+ * @param style - Communication style preference ('professional' or 'casual')
+ * @returns Formatted style directive string
+ */
+export function formatCommunicationStyle(style?: 'professional' | 'casual'): string {
+  // AC-18.3.7: Default to professional if style not set
+  const effectiveStyle = style ?? 'professional';
+  return STYLE_DIRECTIVES[effectiveStyle];
+}
+
+/**
  * Build the complete system prompt with guardrails
  *
  * @param context - Prompt context including preferences, guardrails, documents
@@ -139,6 +221,11 @@ LOW CONFIDENCE (not found):
  */
 export function buildSystemPrompt(context: PromptContext): BuiltPrompt {
   const parts: string[] = [BASE_PERSONA];
+
+  // Story 18.3: Add communication style directive early (AC-18.3.3, AC-18.3.4)
+  // This ensures the style influences the entire response
+  const styleDirective = formatCommunicationStyle(context.userPreferences?.communicationStyle);
+  parts.push(`\n## Communication Style\n${styleDirective}`);
 
   // Add user context if available
   const userContext = buildUserContext(context.userPreferences);
@@ -207,8 +294,28 @@ For coverage-specific questions:
 Include this disclosure when appropriate: "${context.guardrailConfig.aiDisclosureMessage}"`);
   }
 
+  const systemPrompt = parts.join('\n');
+
+  // AC-18.3.6: Debug logging for system prompt verification
+  if (process.env.DEBUG_PROMPT_CONTEXT === 'true') {
+    log.debug('Full system prompt constructed', {
+      promptLength: systemPrompt.length,
+      hasUserContext: !!userContext,
+      hasDocumentContext: !!documentContextSummary,
+      hasStructuredExtraction: !!context.structuredExtractionContext,
+      hasGuardrailConfig: !!context.guardrailConfig,
+      hasGuardrailTrigger: !!context.guardrailCheckResult?.triggeredTopic,
+      communicationStyle: context.userPreferences?.communicationStyle ?? 'professional',
+    });
+
+    // Log full prompt only in development (can be very long)
+    if (process.env.NODE_ENV === 'development') {
+      log.debug('System prompt content', { systemPrompt });
+    }
+  }
+
   return {
-    systemPrompt: parts.join('\n'),
+    systemPrompt,
     userContext,
     documentContextSummary,
   };
@@ -216,17 +323,25 @@ Include this disclosure when appropriate: "${context.guardrailConfig.aiDisclosur
 
 /**
  * Build the user context section of the prompt
+ * Story 18.3: Enhanced with richer context using formatter functions
+ * AC-18.3.1: Carrier context
+ * AC-18.3.2: LOB context
+ * AC-18.3.5: Licensed states context
+ * AC-18.3.7: Graceful degradation for missing preferences
  */
 export function buildUserContext(preferences?: UserPreferences): string {
+  // AC-18.3.7: Return empty string for undefined preferences (graceful degradation)
   if (!preferences) {
     return '';
   }
 
   const parts: string[] = [];
 
+  // Basic identity information
   if (preferences.displayName) {
-    parts.push(`User: ${preferences.displayName}`);
+    parts.push(`Name: ${preferences.displayName}`);
   }
+
   if (preferences.role) {
     const roleLabels: Record<string, string> = {
       producer: 'Producer/Agent',
@@ -236,26 +351,41 @@ export function buildUserContext(preferences?: UserPreferences): string {
     };
     parts.push(`Role: ${roleLabels[preferences.role] ?? preferences.role}`);
   }
-  if (preferences.agencyName) {
-    parts.push(`Agency: ${preferences.agencyName}`);
-  }
-  if (preferences.linesOfBusiness?.length) {
-    parts.push(`Primary Lines: ${preferences.linesOfBusiness.join(', ')}`);
-  }
-  if (preferences.favoriteCarriers?.length) {
-    parts.push(`Frequently Used Carriers: ${preferences.favoriteCarriers.join(', ')}`);
-  }
-  if (preferences.licensedStates?.length) {
-    parts.push(`Licensed States: ${preferences.licensedStates.join(', ')}`);
-  }
-  if (preferences.communicationStyle) {
-    const styleLabel = preferences.communicationStyle === 'professional'
-      ? 'Professional/Formal'
-      : 'Casual/Conversational';
-    parts.push(`Preferred Style: ${styleLabel}`);
+
+  // AC-18.3.5: Agency and licensed states context
+  const statesContext = formatStatesContext(preferences.licensedStates, preferences.agencyName);
+  if (statesContext) {
+    parts.push(statesContext);
   }
 
-  return parts.join('\n');
+  // AC-18.3.2: Lines of business context
+  const lobContext = formatLOBContext(preferences.linesOfBusiness);
+  if (lobContext) {
+    parts.push(lobContext);
+  }
+
+  // AC-18.3.1: Carrier context
+  const carriersContext = formatCarriersContext(preferences.favoriteCarriers);
+  if (carriersContext) {
+    parts.push(carriersContext);
+  }
+
+  const result = parts.join('\n');
+
+  // AC-18.3.6: Debug logging for preference injection verification
+  if (process.env.DEBUG_PROMPT_CONTEXT === 'true') {
+    log.debug('Preferences injected into prompt', {
+      hasDisplayName: !!preferences.displayName,
+      hasRole: !!preferences.role,
+      hasCarriers: !!preferences.favoriteCarriers?.length,
+      hasLOB: !!preferences.linesOfBusiness?.length,
+      hasStates: !!preferences.licensedStates?.length,
+      hasAgency: !!preferences.agencyName,
+      style: preferences.communicationStyle ?? 'professional',
+    });
+  }
+
+  return result;
 }
 
 /**

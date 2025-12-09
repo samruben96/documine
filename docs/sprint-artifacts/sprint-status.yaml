@@ -1172,7 +1172,8 @@ development_status:
   # AI uses preferences in responses (carriers, LOB, style)
   # Covers: FR31
   # Points: 3
-  18-3-preference-aware-responses: backlog
+  # READY-FOR-DEV 2025-12-08: Context file generated, story ready for implementation
+  18-3-preference-aware-responses: done
   # Story 18.4: Admin Onboarding Status (was 18.8)
   # Admin view of user onboarding completion
   # Covers: FR62
