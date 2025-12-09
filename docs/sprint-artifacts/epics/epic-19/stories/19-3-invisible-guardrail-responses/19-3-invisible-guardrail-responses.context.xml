@@ -1,0 +1,287 @@
+<story-context id="19-3-invisible-guardrail-responses" v="1.0">
+  <metadata>
+    <epicId>19</epicId>
+    <storyId>3</storyId>
+    <title>Invisible Guardrail Responses</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-19/stories/19-3-invisible-guardrail-responses/story-19.3-invisible-guardrail-responses.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>producer using AI Buddy</asA>
+    <iWant>the AI to provide helpful redirections when I ask about restricted topics</iWant>
+    <soThat>I receive useful guidance without experiencing a "blocked" or restrictive interaction</soThat>
+    <tasks>
+      <task id="1" title="Verify Existing Infrastructure">
+        <subtask>Review checkGuardrails() in src/lib/ai-buddy/guardrails.ts for topic matching</subtask>
+        <subtask>Review buildGuardrailInstructions() in src/lib/ai-buddy/prompt-builder.ts for prompt injection</subtask>
+        <subtask>Verify "Immediate Guidance Required" section is properly injected when topic triggered</subtask>
+        <subtask>Confirm logGuardrailEvent() is called in chat API route</subtask>
+      </task>
+      <task id="2" title="Enhance GUARDRAIL_BASE_INSTRUCTIONS" ac="19.3.1">
+        <subtask>Review GUARDRAIL_BASE_INSTRUCTIONS in src/lib/ai-buddy/prompt-builder.ts</subtask>
+        <subtask>Verify it explicitly forbids "I cannot", "blocked", "restricted", etc.</subtask>
+        <subtask>Add any missing blocking phrases to the forbidden list</subtask>
+        <subtask>Verify positive framing instructions are comprehensive</subtask>
+      </task>
+      <task id="3" title="Test Default Topic Redirects" ac="19.3.2, 19.3.3, 19.3.4">
+        <subtask>Write unit test for "legal advice" topic triggering correct redirect</subtask>
+        <subtask>Write unit test for "file a claim" topic triggering correct redirect</subtask>
+        <subtask>Write unit test for "binding authority" topic triggering correct redirect</subtask>
+        <subtask>Verify default topics in DEFAULT_GUARDRAILS have clear redirect guidance</subtask>
+      </task>
+      <task id="4" title="Test Custom Topic Handling" ac="19.3.5">
+        <subtask>Write unit test for custom topic matching</subtask>
+        <subtask>Test prompt builder correctly includes custom topic redirect guidance</subtask>
+        <subtask>Verify custom topics from database override/extend defaults</subtask>
+      </task>
+      <task id="5" title="Test Disabled Topic Handling" ac="19.3.6">
+        <subtask>Write unit test verifying disabled topics are filtered in loadGuardrails()</subtask>
+        <subtask>Test that disabled topic in database is not included in check</subtask>
+        <subtask>Test AI responds normally when topic is disabled</subtask>
+      </task>
+      <task id="6" title="Debug Logging Verification" ac="19.3.7">
+        <subtask>Verify DEBUG_PROMPT_CONTEXT=true logs full system prompt</subtask>
+        <subtask>Test that guardrail injection is visible in debug logs</subtask>
+        <subtask>Document how to enable debug mode for developers</subtask>
+      </task>
+      <task id="7" title="Unit Tests - Guardrails" ac="All">
+        <subtask>Create __tests__/lib/ai-buddy/guardrails-invisible.test.ts</subtask>
+        <subtask>Test checkGuardrails() returns correct result for each default topic</subtask>
+        <subtask>Test topic matching is case-insensitive</subtask>
+        <subtask>Test partial matching (substring detection)</subtask>
+        <subtask>Test multiple topics in single message (first match wins)</subtask>
+        <subtask>Test empty/null restricted topics array</subtask>
+        <subtask>Test restrictedTopicsEnabled: false bypasses checking</subtask>
+      </task>
+      <task id="8" title="Unit Tests - Prompt Builder" ac="All">
+        <subtask>Create __tests__/lib/ai-buddy/prompt-builder-guardrails.test.ts</subtask>
+        <subtask>Test buildGuardrailInstructions() output format</subtask>
+        <subtask>Test "Immediate Guidance Required" section injected when topic triggered</subtask>
+        <subtask>Test GUARDRAIL_BASE_INSTRUCTIONS contains all forbidden phrases</subtask>
+        <subtask>Test prompt includes redirect message verbatim</subtask>
+      </task>
+      <task id="9" title="Integration Tests" ac="19.3.1-19.3.4">
+        <subtask>Create __tests__/api/ai-buddy/chat-guardrails.test.ts</subtask>
+        <subtask>Test chat API with restricted topic triggers guardrail flow</subtask>
+        <subtask>Test audit log entry created with correct metadata</subtask>
+        <subtask>Test system prompt passed to LLM includes guardrail instructions</subtask>
+        <subtask>Mock OpenRouter response to verify prompt content</subtask>
+      </task>
+      <task id="10" title="E2E Tests" ac="All">
+        <subtask>Create __tests__/e2e/ai-buddy/invisible-guardrails.spec.ts</subtask>
+        <subtask>Test sending message about "legal advice" returns helpful redirect</subtask>
+        <subtask>Test sending message about "file a claim" returns carrier guidance</subtask>
+        <subtask>Test sending message about "binding authority" returns agency review guidance</subtask>
+        <subtask>Test admin-configured custom topic works correctly</subtask>
+        <subtask>Test disabled topic allows normal response</subtask>
+        <subtask>Verify NO response contains "I cannot" or blocking language</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-19.3.1" title="No Blocking Language">
+      Given a user asks about a restricted topic (e.g., "Should I sue my carrier?"),
+      When the AI responds,
+      Then it provides a helpful redirect WITHOUT saying "I cannot", "blocked", or "restricted".
+    </criterion>
+    <criterion id="AC-19.3.2" title="Legal Advice Redirect">
+      Given the restricted topic "legal advice" with redirect "Suggest consulting a licensed attorney",
+      When triggered,
+      Then the AI response recommends consulting an attorney in a natural, helpful way.
+    </criterion>
+    <criterion id="AC-19.3.3" title="Claims Filing Redirect">
+      Given the restricted topic "file a claim" with redirect "Direct to carrier portal",
+      When triggered,
+      Then the AI provides guidance on contacting the carrier or using their portal.
+    </criterion>
+    <criterion id="AC-19.3.4" title="Binding Authority Redirect">
+      Given the restricted topic "binding authority" with redirect "Requires human review",
+      When triggered,
+      Then the AI explains binding requires agency review and offers other help.
+    </criterion>
+    <criterion id="AC-19.3.5" title="Custom Topic Redirect">
+      Given an admin adds a custom restricted topic with custom redirect guidance,
+      When that topic is triggered,
+      Then the AI follows the custom redirect guidance.
+    </criterion>
+    <criterion id="AC-19.3.6" title="Disabled Topic Normal Response">
+      Given a restricted topic is disabled,
+      When that topic comes up in conversation,
+      Then the AI discusses it normally (no redirect).
+    </criterion>
+    <criterion id="AC-19.3.7" title="Prompt Verification">
+      Given the system prompt,
+      When I inspect it (dev tools/logging),
+      Then I can verify restricted topics and their redirect guidance are injected correctly.
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md</path>
+        <title>Epic 19 Technical Specification</title>
+        <section>Story 19.3: Invisible Guardrails (FR39)</section>
+        <snippet>Story 19.3 focuses on ensuring AI provides helpful redirects without blocking language. AC-19.3.1 through AC-19.3.7 define the expected behaviors for invisible guardrail enforcement.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Novel Pattern: Invisible Guardrails</section>
+        <snippet>AI Buddy enforces compliance guardrails invisibly - agents never see "blocked" messages, only helpful redirects. This is achieved through system prompt conditioning rather than post-processing filters.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-19/stories/19-2-enforcement-logging/story-19.2-enforcement-logging.md</path>
+        <title>Story 19.2: Enforcement Logging</title>
+        <section>Dev Agent Record - Learnings</section>
+        <snippet>Guardrail logging works via logGuardrailEvent(). Admin UI shows logs in GuardrailEnforcementLog component. 59 unit tests for similar functionality - follow same patterns.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/ai-buddy/guardrails.ts</path>
+        <kind>service</kind>
+        <symbol>checkGuardrails, matchesRestrictedTopic, loadGuardrails, DEFAULT_GUARDRAILS</symbol>
+        <lines>1-268</lines>
+        <reason>Core guardrail checking logic - checkGuardrails() at line 150 checks messages against restricted topics, matchesRestrictedTopic() at line 192 performs case-insensitive substring matching</reason>
+      </file>
+      <file>
+        <path>src/lib/ai-buddy/prompt-builder.ts</path>
+        <kind>service</kind>
+        <symbol>buildSystemPrompt, buildGuardrailInstructions, GUARDRAIL_BASE_INSTRUCTIONS</symbol>
+        <lines>1-560</lines>
+        <reason>System prompt construction with guardrail injection - GUARDRAIL_BASE_INSTRUCTIONS at line 71 contains forbidden phrases, buildGuardrailInstructions() at line 394, "Immediate Guidance Required" injection at line 247-255</reason>
+      </file>
+      <file>
+        <path>src/app/api/ai-buddy/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST handler</symbol>
+        <lines>236-328</lines>
+        <reason>Chat API guardrail integration - loads guardrails at line 237, checks message at line 240, logs guardrail event at line 319-328</reason>
+      </file>
+      <file>
+        <path>src/lib/ai-buddy/audit-logger.ts</path>
+        <kind>service</kind>
+        <symbol>logGuardrailEvent, logAuditEvent</symbol>
+        <lines>1-264</lines>
+        <reason>Audit logging for guardrail events - logGuardrailEvent() at line 89 logs triggered topics with metadata</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/ai-buddy/guardrails.test.ts</path>
+        <kind>test</kind>
+        <symbol>describe blocks for matchesRestrictedTopic, checkGuardrails</symbol>
+        <lines>1-168</lines>
+        <reason>Existing unit tests for guardrail checking - covers AC15, AC16, AC18 basic cases. Story 19.3 should add more comprehensive invisible pattern tests.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <purpose>Unit testing framework</purpose>
+      </node>
+      <node>
+        <package>@playwright/test</package>
+        <version>^1.57.0</version>
+        <purpose>E2E testing</purpose>
+      </node>
+      <node>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+        <purpose>React component testing</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">
+      Follow existing test patterns from __tests__/lib/ai-buddy/guardrails.test.ts - use describe/it blocks with clear AC references
+    </constraint>
+    <constraint type="architectural">
+      Per ADR-AIB-002: Guardrails enforced via system prompt injection ONLY, NOT post-processing. Never add response filtering.
+    </constraint>
+    <constraint type="ux">
+      Per AC-19.3.1: AI must NEVER use phrases like "I cannot", "I'm not allowed", "I'm blocked", "I'm restricted from", "I'm unable to"
+    </constraint>
+    <constraint type="testing">
+      This is primarily a testing/verification story - focus on comprehensive test coverage rather than new implementation
+    </constraint>
+    <constraint type="debugging">
+      Use DEBUG_PROMPT_CONTEXT=true environment variable to enable system prompt logging for verification (AC-19.3.7)
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>checkGuardrails</name>
+      <kind>function signature</kind>
+      <signature>checkGuardrails(message: string, config: GuardrailConfig): GuardrailCheckResult</signature>
+      <path>src/lib/ai-buddy/guardrails.ts:150</path>
+    </interface>
+    <interface>
+      <name>matchesRestrictedTopic</name>
+      <kind>function signature</kind>
+      <signature>matchesRestrictedTopic(message: string, topics: RestrictedTopic[]): RestrictedTopic | null</signature>
+      <path>src/lib/ai-buddy/guardrails.ts:192</path>
+    </interface>
+    <interface>
+      <name>loadGuardrails</name>
+      <kind>function signature</kind>
+      <signature>loadGuardrails(agencyId: string): Promise&lt;GuardrailConfig&gt;</signature>
+      <path>src/lib/ai-buddy/guardrails.ts:59</path>
+    </interface>
+    <interface>
+      <name>buildGuardrailInstructions</name>
+      <kind>function signature</kind>
+      <signature>buildGuardrailInstructions(config?: GuardrailConfig): string</signature>
+      <path>src/lib/ai-buddy/prompt-builder.ts:394</path>
+    </interface>
+    <interface>
+      <name>buildSystemPrompt</name>
+      <kind>function signature</kind>
+      <signature>buildSystemPrompt(context: PromptContext): BuiltPrompt</signature>
+      <path>src/lib/ai-buddy/prompt-builder.ts:222</path>
+    </interface>
+    <interface>
+      <name>logGuardrailEvent</name>
+      <kind>function signature</kind>
+      <signature>logGuardrailEvent(agencyId: string, userId: string, conversationId: string, triggeredTopic: string, redirectMessage: string, userMessage: string): Promise&lt;void&gt;</signature>
+      <path>src/lib/ai-buddy/audit-logger.ts:89</path>
+    </interface>
+    <interface>
+      <name>GuardrailCheckResult</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface GuardrailCheckResult { allowed: boolean; triggeredTopic?: RestrictedTopic; redirectMessage?: string; appliedRules: string[]; }</signature>
+      <path>src/lib/ai-buddy/guardrails.ts:19</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with describe/it blocks. Test files follow pattern __tests__/{path}/{name}.test.ts. E2E tests use Playwright in __tests__/e2e/{feature}/{name}.spec.ts. Mock Supabase client using vi.mock(). Test AC requirements explicitly with comments like "// AC-19.3.1". Follow existing patterns from __tests__/lib/ai-buddy/guardrails.test.ts which has 31 tests covering basic guardrail checking.
+    </standards>
+    <locations>
+      <location>__tests__/lib/ai-buddy/ - Unit tests for guardrails.ts and prompt-builder.ts</location>
+      <location>__tests__/e2e/ai-buddy/ - E2E tests for invisible guardrail behavior</location>
+      <location>__tests__/api/ai-buddy/ - Integration tests for chat API guardrail flow</location>
+    </locations>
+    <ideas>
+      <idea ac="19.3.1">Test that GUARDRAIL_BASE_INSTRUCTIONS contains all forbidden phrases: "I cannot", "I'm not allowed", "I'm restricted from", "I'm blocked from", "I'm unable to", "I cannot provide", "That's outside my scope"</idea>
+      <idea ac="19.3.1">Test buildSystemPrompt() output contains GUARDRAIL_BASE_INSTRUCTIONS when guardrailConfig is provided</idea>
+      <idea ac="19.3.2">Test checkGuardrails() with message "I need legal advice" returns triggeredTopic.trigger="legal advice" and appropriate redirect</idea>
+      <idea ac="19.3.3">Test checkGuardrails() with message "How do I file a claim" returns triggeredTopic.trigger="file a claim" and carrier guidance redirect</idea>
+      <idea ac="19.3.4">Test checkGuardrails() with message "Can you bind coverage" returns triggeredTopic.trigger="bind coverage" and underwriter contact redirect</idea>
+      <idea ac="19.3.5">Test custom topic added by admin triggers correctly - mock database return with custom topic</idea>
+      <idea ac="19.3.6">Test disabled topic (enabled: false) is filtered out in loadGuardrails() and does not trigger redirect</idea>
+      <idea ac="19.3.7">Test that when DEBUG_PROMPT_CONTEXT=true, buildSystemPrompt logs full prompt content</idea>
+      <idea ac="All">E2E test: Send message containing "legal advice", verify AI response is helpful redirect without "I cannot"</idea>
+      <idea ac="All">E2E test: Admin creates custom restricted topic, user triggers it, verify custom redirect is used</idea>
+    </ideas>
+  </tests>
+</story-context>
