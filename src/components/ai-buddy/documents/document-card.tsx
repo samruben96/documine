@@ -1,11 +1,13 @@
 /**
  * Document Card Component
  * Story 17.2: Project Document Management
+ * Story 17.3: Document Preview & Multi-Document Context
  *
  * Individual document item showing name, status, and remove button.
  *
  * AC-17.2.5: Remove (X) removes document from project context
  * AC-17.2.7: Shows extraction context indicator for quote documents
+ * AC-17.3.1: Click on document opens preview in modal with page navigation
  */
 
 'use client';
@@ -17,6 +19,8 @@ import type { ProjectDocument } from '@/types/ai-buddy';
 export interface DocumentCardProps {
   /** Document data */
   document: ProjectDocument;
+  /** Callback when card is clicked (AC-17.3.1: opens preview) */
+  onClick?: (document: ProjectDocument) => void;
   /** Callback when remove button clicked */
   onRemove?: (documentId: string) => void;
   /** Whether removal is in progress */
@@ -71,6 +75,7 @@ function formatPageCount(pageCount: number | null): string {
 
 export function DocumentCard({
   document,
+  onClick,
   onRemove,
   isRemoving = false,
   disabled = false,
@@ -78,6 +83,21 @@ export function DocumentCard({
 }: DocumentCardProps) {
   const { document: doc, attached_at } = document;
   const hasExtractionData = !!doc.extraction_data;
+
+  // AC-17.3.1: Click on document opens preview
+  const handleClick = () => {
+    // Only allow clicks on ready documents
+    if (onClick && !disabled && doc.status === 'completed') {
+      onClick(document);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick && !disabled && doc.status === 'completed') {
+      e.preventDefault();
+      onClick(document);
+    }
+  };
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,9 +108,14 @@ export function DocumentCard({
 
   const isProcessing = doc.status === 'processing' || doc.status === 'pending';
   const isFailed = doc.status === 'failed';
+  const isClickable = onClick && !disabled && doc.status === 'completed';
 
   return (
     <div
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className={cn(
         'group flex items-center gap-3 p-3 rounded-lg',
         'bg-white border border-slate-200',
@@ -99,8 +124,11 @@ export function DocumentCard({
         isProcessing && 'bg-amber-50/50 border-amber-200',
         isFailed && 'bg-red-50/50 border-red-200',
         disabled && 'opacity-50 cursor-not-allowed',
+        // AC-17.3.1: Clickable state for preview
+        isClickable && 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500',
         className
       )}
+      aria-label={isClickable ? `Preview ${doc.name}` : undefined}
       data-testid="document-card"
     >
       {/* File type icon */}

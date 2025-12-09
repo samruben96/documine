@@ -1,6 +1,7 @@
 /**
  * Document Panel Component
  * Story 17.2: Project Document Management
+ * Story 17.3: Document Preview & Multi-Document Context
  *
  * Collapsible right panel showing project documents with add/remove actions.
  *
@@ -8,6 +9,7 @@
  * AC-17.2.2: Uploaded documents appear in list
  * AC-17.2.5: Remove documents with confirmation
  * AC-17.2.7: Shows extraction context for quote documents
+ * AC-17.3.1: Click on document opens preview in modal
  */
 
 'use client';
@@ -33,6 +35,8 @@ import {
 export interface DocumentPanelProps {
   /** Project ID to show documents for */
   projectId: string | null;
+  /** Callback when document is clicked for preview (AC-17.3.1) */
+  onDocumentClick?: (document: import('@/types/ai-buddy').ProjectDocument) => void;
   /** Additional CSS classes */
   className?: string;
   /** Whether panel is collapsed */
@@ -47,6 +51,7 @@ export interface DocumentPanelProps {
  */
 export function DocumentPanel({
   projectId,
+  onDocumentClick,
   className,
   collapsed: controlledCollapsed,
   onCollapseChange,
@@ -238,6 +243,7 @@ export function DocumentPanel({
               <DocumentCard
                 key={doc.document_id}
                 document={doc}
+                onClick={onDocumentClick}
                 onRemove={handleRemoveClick}
                 isRemoving={isRemoving}
                 disabled={isAdding || isUploading}

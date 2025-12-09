@@ -42,3 +42,7 @@ export {
   type UseProjectDocumentsOptions,
   type UseProjectDocumentsReturn,
 } from './use-project-documents';
+export {
+  useDocumentPreview,
+  type UseDocumentPreviewReturn,
+} from './use-document-preview';

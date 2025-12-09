@@ -1097,7 +1097,12 @@ development_status:
   # RAG: getProjectDocumentChunks integrates project docs into chat context with structuredExtractionContext
   # Tests: 44 unit tests (hook + components), E2E spec created, 2066+ tests pass
   17-2-project-document-management: done
-  17-3-document-preview-multi-document-context: backlog
+  # Story 17.3: Document Preview & Multi-Document Context
+  # READY-FOR-DEV 2025-12-08: Context generated, ready for implementation
+  # Components: DocumentPreviewModal, useDocumentPreview hook
+  # RAG: getMultiDocumentChunks, getSemanticDocumentChunks with per-doc limits
+  # Database: match_multi_document_chunks function
+  17-3-document-preview-multi-document-context: done
   17-4-document-processing-integration: backlog
 
   # Epic 18: AI Buddy Personalization & Onboarding

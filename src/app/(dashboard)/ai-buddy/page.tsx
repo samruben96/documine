@@ -13,6 +13,7 @@ import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
  * AI Buddy Main Page
  * Story 15.4: Conversation Persistence (updated from 14.4, 15.1, 15.2)
  * Story 17.1: Document Upload to Conversation with Status
+ * Story 17.3: Document Preview & Multi-Document Context
  *
  * AC-15.4.1: New conversation created automatically on first message
  * AC-15.4.2: Conversation title auto-generated from first 50 characters
@@ -20,6 +21,7 @@ import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
  * AC-15.4.8: Clicking conversation in sidebar loads that conversation's messages
  * AC-17.1.1: Attach button opens file picker for PDF/images
  * AC-17.1.5: Drag files onto chat area to attach
+ * AC-17.3.2: Click citation opens document preview to exact page
  */
 
 const quickActions = [
@@ -54,6 +56,8 @@ export default function AiBuddyPage() {
     // Story 16.2: Get activeProjectId for chat API (AC-16.2.3)
     activeProjectId,
     activeProject,
+    // Story 17.3: Document preview from citations (AC-17.3.2)
+    openCitationPreview,
   } = useAiBuddyContext();
 
   // useChat with conversation ID and project ID from context
@@ -139,6 +143,7 @@ export default function AiBuddyPage() {
             messages={displayMessages}
             isLoading={isLoading && isSending}
             streamingContent={streamingContent}
+            onCitationClick={openCitationPreview}
             className="h-full"
           />
         ) : isLoadingConversation ? (

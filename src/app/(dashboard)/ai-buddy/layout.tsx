@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -13,6 +14,12 @@ import { ConversationSearch } from '@/components/ai-buddy/conversation-search';
 import { DocumentPanel } from '@/components/ai-buddy/documents/document-panel';
 import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
 
+// Dynamic import for DocumentPreviewModal to avoid SSR issues with react-pdf
+const DocumentPreviewModal = dynamic(
+  () => import('@/components/ai-buddy/documents/document-preview-modal').then(mod => mod.DocumentPreviewModal),
+  { ssr: false }
+);
+
 /**
  * AI Buddy Layout
  * Story 16.1: Project Creation & Sidebar (updated from 15.4)
@@ -20,6 +27,7 @@ import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context'
  * Story 16.4: Conversation History & General Chat
  * Story 16.5: Conversation Search (FR4)
  * Story 17.2: Project Document Management
+ * Story 17.3: Document Preview & Multi-Document Context
  *
  * Light theme layout for AI Buddy feature with project and conversation sidebar.
  *
@@ -34,6 +42,7 @@ import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context'
  * AC-16.4.6: Load more pagination
  * AC-16.5.1: Cmd/Ctrl+K opens search dialog
  * AC-17.2.1: Document panel with Add Document menu (Upload/Library options)
+ * AC-17.3.1: Click on document opens preview in modal with page navigation
  */
 
 interface AiBuddyLayoutProps {
@@ -81,6 +90,11 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
     // Story 16.5: Search functionality
     isSearchOpen,
     setSearchOpen,
+    // Story 17.3: Document preview functionality (AC-17.3.1)
+    isDocumentPreviewOpen,
+    previewDocument,
+    openDocumentPreview,
+    setDocumentPreviewOpen,
   } = useAiBuddyContext();
 
   // Story 16.5: Cmd/Ctrl+K keyboard shortcut (AC-16.5.1)
@@ -215,10 +229,12 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
 
         {/* Story 17.2: Document Panel - Right side panel for project documents */}
         {/* AC-17.2.1: Shows Add Document with Upload/Library options */}
+        {/* AC-17.3.1: Click on document opens preview modal */}
         {/* Only visible on desktop (lg+) when a project is selected */}
         {activeProjectId && (
           <DocumentPanel
             projectId={activeProjectId}
+            onDocumentClick={openDocumentPreview}
             className="hidden lg:flex"
           />
         )}
@@ -251,6 +267,13 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
 
       {/* Conversation Search Dialog - AC-16.5.1 */}
       <ConversationSearch open={isSearchOpen} onOpenChange={setSearchOpen} />
+
+      {/* Document Preview Modal - AC-17.3.1, AC-17.3.2 */}
+      <DocumentPreviewModal
+        open={isDocumentPreviewOpen}
+        onOpenChange={setDocumentPreviewOpen}
+        document={previewDocument}
+      />
     </div>
   );
 }

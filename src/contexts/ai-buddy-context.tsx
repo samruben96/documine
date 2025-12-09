@@ -27,7 +27,8 @@ import {
 import { useConversations, type UseConversationsReturn } from '@/hooks/ai-buddy/use-conversations';
 import { useProjects, type UseProjectsReturn } from '@/hooks/ai-buddy/use-projects';
 import { useActiveProject, type UseActiveProjectReturn } from '@/hooks/ai-buddy/use-active-project';
-import type { Conversation, Message, Project, CreateProjectRequest } from '@/types/ai-buddy';
+import type { Conversation, Message, Project, CreateProjectRequest, Citation, ProjectDocument } from '@/types/ai-buddy';
+import type { DocumentPreviewData } from '@/components/ai-buddy/documents/document-preview-modal';
 
 interface AiBuddyContextValue extends UseConversationsReturn {
   // Conversation state
@@ -115,6 +116,20 @@ interface AiBuddyContextValue extends UseConversationsReturn {
   closeDeleteConfirmation: () => void;
   /** Confirm delete and perform operation */
   confirmDelete: () => Promise<void>;
+
+  // Document preview state (Story 17.3)
+  /** Whether document preview modal is open */
+  isDocumentPreviewOpen: boolean;
+  /** Current document being previewed */
+  previewDocument: DocumentPreviewData | null;
+  /** Open preview for a project document (AC-17.3.1) */
+  openDocumentPreview: (document: ProjectDocument) => void;
+  /** Open preview from citation with page navigation (AC-17.3.2) */
+  openCitationPreview: (citation: Citation) => void;
+  /** Close document preview modal */
+  closeDocumentPreview: () => void;
+  /** Set document preview open state */
+  setDocumentPreviewOpen: (open: boolean) => void;
 }
 
 const AiBuddyContext = createContext<AiBuddyContextValue | null>(null);
@@ -143,6 +158,9 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
   // Story 16.6: Conversation management state
   const [isMovingConversation, setIsMovingConversation] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<{ id: string; title: string } | null>(null);
+  // Story 17.3: Document preview state
+  const [isDocumentPreviewOpen, setIsDocumentPreviewOpen] = useState(false);
+  const [previewDocument, setPreviewDocument] = useState<DocumentPreviewData | null>(null);
 
   // Sync active project with projects list when projects load
   useEffect(() => {
@@ -330,6 +348,41 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     }
   }, [conversationsHook, isLoadingMore]);
 
+  // Story 17.3: Document preview handlers (AC-17.3.1, AC-17.3.2)
+  const openDocumentPreview = useCallback((document: ProjectDocument) => {
+    setPreviewDocument({
+      documentId: document.document_id,
+      documentName: document.document.name,
+      initialPage: undefined,
+    });
+    setIsDocumentPreviewOpen(true);
+  }, []);
+
+  const openCitationPreview = useCallback((citation: Citation) => {
+    setPreviewDocument({
+      documentId: citation.documentId,
+      documentName: citation.documentName,
+      initialPage: citation.page,
+    });
+    setIsDocumentPreviewOpen(true);
+  }, []);
+
+  const closeDocumentPreview = useCallback(() => {
+    setIsDocumentPreviewOpen(false);
+    // Delay clearing to allow modal close animation
+    setTimeout(() => {
+      setPreviewDocument(null);
+    }, 200);
+  }, []);
+
+  const handleSetDocumentPreviewOpen = useCallback((open: boolean) => {
+    if (!open) {
+      closeDocumentPreview();
+    } else {
+      setIsDocumentPreviewOpen(true);
+    }
+  }, [closeDocumentPreview]);
+
   // Get messages from active conversation
   const currentMessages = conversationsHook.activeConversation?.messages ?? [];
 
@@ -377,6 +430,13 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     showDeleteConfirmation,
     closeDeleteConfirmation,
     confirmDelete,
+    // Document preview state (Story 17.3)
+    isDocumentPreviewOpen,
+    previewDocument,
+    openDocumentPreview,
+    openCitationPreview,
+    closeDocumentPreview,
+    setDocumentPreviewOpen: handleSetDocumentPreviewOpen,
   };
 
   return (

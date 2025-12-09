@@ -1,0 +1,189 @@
+<story-context id="17-3-document-preview-multi-document-context" v="1.0">
+  <metadata>
+    <epicId>17</epicId>
+    <storyId>3</storyId>
+    <title>Document Preview & Multi-Document Context</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-17/stories/17-3-document-preview-multi-document-context/17-3-document-preview-multi-document-context.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy with documents attached to conversations or projects</asA>
+    <iWant>to preview documents and have the AI synthesize information across multiple documents</iWant>
+    <soThat>I can verify AI citations by viewing the source and get comprehensive answers spanning my entire document set</soThat>
+    <tasks>
+      <phase id="A" name="Preview Modal Component">
+        <task id="T1">Create DocumentPreviewModal component with page navigation</task>
+        <task id="T2">Integrate with existing DocumentViewer component</task>
+        <task id="T3">Add zoom controls (50%-200% range)</task>
+        <task id="T4">Implement state reset on close/reopen (AC-17.3.6)</task>
+        <task id="T5">Unit tests for modal component</task>
+      </phase>
+      <phase id="B" name="Preview Hook & Context">
+        <task id="T6">Create useDocumentPreview hook</task>
+        <task id="T7">Add preview state to AIBuddyContext</task>
+        <task id="T8">Export preview handlers (openPreview, closePreview)</task>
+        <task id="T9">Unit tests for hook</task>
+      </phase>
+      <phase id="C" name="Click Handlers">
+        <task id="T10">Add onClick to DocumentCard to open preview (AC-17.3.1)</task>
+        <task id="T11">Add onCitationClick prop to SourceCitation component (AC-17.3.2)</task>
+        <task id="T12">Wire citation clicks to preview with correct page</task>
+        <task id="T13">Integration tests for click to preview flow</task>
+      </phase>
+      <phase id="D" name="Multi-Document RAG">
+        <task id="T14">Create match_multi_document_chunks database function</task>
+        <task id="T15">Implement getMultiDocumentChunks() in rag.ts (AC-17.3.3)</task>
+        <task id="T16">Implement getSemanticDocumentChunks() with per-doc limits (AC-17.3.4)</task>
+        <task id="T17">Update chat API to use multi-document retrieval</task>
+        <task id="T18">Unit tests for RAG functions</task>
+      </phase>
+      <phase id="E" name="Citation Enhancement">
+        <task id="T19">Ensure all citations include documentName field (AC-17.3.5)</task>
+        <task id="T20">Format citations with document attribution in SSE stream</task>
+        <task id="T21">Update ChatMessage to pass documentName to citations</task>
+        <task id="T22">Integration tests for citation format</task>
+      </phase>
+      <phase id="F" name="Layout Integration">
+        <task id="T23">Add DocumentPreviewModal to AI Buddy layout</task>
+        <task id="T24">Wire context handlers to modal</task>
+        <task id="T25">Test modal z-index with other overlays</task>
+      </phase>
+      <phase id="G" name="E2E Testing">
+        <task id="T26">E2E test: Click document card opens preview</task>
+        <task id="T27">E2E test: Click citation opens preview at cited page</task>
+        <task id="T28">E2E test: Ask multi-doc question with citations from multiple docs</task>
+        <task id="T29">E2E test: With 15 documents, response still fast</task>
+        <task id="T30">E2E test: Close and reopen preview with state reset</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-17.3.1">Given I click on a document in the document panel, when preview opens, then I see the document in a modal with page navigation.</criterion>
+    <criterion id="AC-17.3.2">Given AI cites a specific page, when I click the citation, then preview opens to that exact page.</criterion>
+    <criterion id="AC-17.3.3">Given I have multiple documents attached, when I ask a question spanning documents, then AI synthesizes and cites from all relevant documents.</criterion>
+    <criterion id="AC-17.3.4">Given I have many documents (>10), when I ask a question, then AI uses semantic retrieval to find relevant chunks (not all docs).</criterion>
+    <criterion id="AC-17.3.5">Given multiple documents, when AI responds, then each citation indicates which document it came from.</criterion>
+    <criterion id="AC-17.3.6">Given I zoom or navigate in preview, when I close and reopen, then state resets to default.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md" title="Epic 17 Tech Spec" section="Story 17.3" snippet="Document preview modal using DocumentViewer with page navigation. Multi-doc RAG with per-document limits using window function for diverse retrieval." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Document Intelligence" snippet="Story 17.3 focuses on preview and synthesis - creating DocumentPreviewModal component and extending RAG for multi-document retrieval with per-document limits." />
+      <doc path="docs/architecture/rag-pipeline-architecture-implemented.md" title="RAG Pipeline Architecture" section="RAG Pipeline" snippet="Existing RAG implementation uses hybrid search (vector + FTS) with Cohere reranking. Story 17.3 extends this for multi-document context." />
+    </docs>
+
+    <code>
+      <file path="src/components/documents/document-viewer.tsx" kind="component" symbol="DocumentViewer" lines="68-558" reason="Existing document viewer component to be reused in DocumentPreviewModal. Exposes scrollToPage() and highlightSource() via ref." />
+      <file path="src/components/ai-buddy/source-citation.tsx" kind="component" symbol="SourceCitation" lines="45-150" reason="Citation component that needs onClick handler for preview navigation. Already has onClick prop and Citation type with documentId, documentName, page." />
+      <file path="src/components/ai-buddy/documents/document-card.tsx" kind="component" symbol="DocumentCard" lines="72-182" reason="Document card in panel that needs onClick to open preview. Currently only has onRemove handler." />
+      <file path="src/components/ai-buddy/documents/document-panel.tsx" kind="component" symbol="DocumentPanel" reason="Document panel that renders DocumentCards. Need to pass onClick handler for preview." />
+      <file path="src/lib/chat/rag.ts" kind="service" symbol="getProjectDocumentChunks" lines="809-944" reason="Existing project document RAG. Need to add getMultiDocumentChunks() and getSemanticDocumentChunks() with per-document limits." />
+      <file path="src/contexts/ai-buddy-context.tsx" kind="context" symbol="AiBuddyProvider" lines="126-395" reason="Context provider managing AI Buddy state. Need to add preview state (isPreviewOpen, previewDocument, previewPage) and handlers." />
+      <file path="src/app/(dashboard)/ai-buddy/layout.tsx" kind="layout" reason="AI Buddy layout where DocumentPreviewModal should be added. Uses AiBuddyProvider wrapper." />
+      <file path="src/hooks/ai-buddy/index.ts" kind="barrel" reason="Hooks barrel export. Need to add useDocumentPreview export." />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="Citation" lines="47-54" reason="Citation type with documentId, documentName, page, text fields. Already supports document attribution." />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="ProjectDocument" lines="243-255" reason="ProjectDocument type with document nested object including id, name, status, page_count." />
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="route" reason="Chat API route that calls RAG. Need to ensure multi-document retrieval is used and citations include documentName." />
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="react" version="19.2.0" />
+        <package name="react-pdf" version="^10.2.0" purpose="PDF rendering in DocumentViewer" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" purpose="Modal dialog for preview via shadcn" />
+        <package name="@radix-ui/react-tooltip" version="^1.2.8" purpose="Citation tooltips" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons (ChevronLeft, ChevronRight, ZoomIn, ZoomOut, X)" />
+        <package name="vitest" version="^4.0.14" purpose="Testing framework" />
+        <package name="@testing-library/react" version="^16.3.0" purpose="Component testing" />
+        <package name="@playwright/test" version="^1.57.0" purpose="E2E testing" />
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="architecture">DocumentViewer already handles PDF rendering with react-pdf, page navigation, zoom controls. Reuse via forwardRef pattern.</constraint>
+    <constraint source="architecture">Context state managed in AiBuddyContext for cross-component access. Add preview state following existing patterns (isSearchOpen, etc.).</constraint>
+    <constraint source="tech-spec">Per-document limits in multi-doc RAG: 5 chunks per document for sets <=10, 3 chunks per document for sets >10.</constraint>
+    <constraint source="tech-spec">Use similarity threshold of 0.5 for relevance filtering in multi-document retrieval.</constraint>
+    <constraint source="architecture">Database function match_multi_document_chunks uses window function with ROW_NUMBER() OVER (PARTITION BY document_id).</constraint>
+    <constraint source="testing">Follow existing test patterns: vitest + @testing-library/react for unit tests, Playwright for E2E.</constraint>
+    <constraint source="dev-notes">State must reset on modal close - zoom to 100%, page to initialPage or 1.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="DocumentViewerRef" kind="ref-interface" path="src/components/documents/document-viewer.tsx" signature="{ scrollToPage: (pageNumber: number) => void; highlightSource: (source: SourceCitation) => void; }" />
+    <interface name="DocumentViewerProps" kind="component-props" path="src/components/documents/document-viewer.tsx" signature="{ pdfUrl: string | null; className?: string; onPageChange?: (pageNumber: number) => void; }" />
+    <interface name="SourceCitationProps" kind="component-props" path="src/components/ai-buddy/source-citation.tsx" signature="{ citation: Citation; onClick?: (citation: Citation) => void; className?: string; compact?: boolean; }" />
+    <interface name="Citation" kind="type" path="src/types/ai-buddy.ts" signature="{ documentId: string; documentName: string; page: number; text: string; startOffset?: number; endOffset?: number; }" />
+    <interface name="getProjectDocumentChunks" kind="function" path="src/lib/chat/rag.ts" signature="(supabase, projectId, query, openaiApiKey) => Promise<{ chunks, confidence, documents, structuredContext? }>" />
+    <interface name="ConversationChunk" kind="type" path="src/lib/chat/rag.ts" signature="RetrievedChunk & { documentId: string; documentName: string; }" />
+  </interfaces>
+
+  <tests>
+    <standards>Use vitest with @testing-library/react for unit tests. Mock Supabase client. Use Playwright for E2E tests. Follow existing test patterns in __tests__/components/ai-buddy/. Use data-testid attributes for E2E selectors.</standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/documents/document-preview-modal.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-document-preview.test.ts</location>
+      <location>__tests__/e2e/ai-buddy-document-preview.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-17.3.1">Test DocumentCard onClick triggers openPreview with correct document</idea>
+      <idea ac="AC-17.3.1">Test DocumentPreviewModal renders with document name in title</idea>
+      <idea ac="AC-17.3.1">Test page navigation buttons work and are disabled at bounds</idea>
+      <idea ac="AC-17.3.2">Test SourceCitation onClick calls handler with documentId and page</idea>
+      <idea ac="AC-17.3.2">Test clicking citation opens preview modal at correct page</idea>
+      <idea ac="AC-17.3.3">Test getMultiDocumentChunks returns chunks from multiple documents</idea>
+      <idea ac="AC-17.3.4">Test getSemanticDocumentChunks uses lower per-doc limit for >10 docs</idea>
+      <idea ac="AC-17.3.5">Test citations in response include documentName field</idea>
+      <idea ac="AC-17.3.6">Test modal close resets zoom and page state</idea>
+      <idea ac="AC-17.3.6">E2E: zoom in, close, reopen - verify back to 100%</idea>
+    </ideas>
+  </tests>
+
+  <devNotes>
+    <note priority="high">DocumentViewer uses pdfUrl prop but we have file_url on Document type. May need adapter or different prop.</note>
+    <note priority="high">SourceCitation already has onClick prop that passes Citation object with documentId and page - use this for preview navigation.</note>
+    <note priority="medium">DocumentCard currently has no onClick prop - add it and propagate to DocumentPanel.</note>
+    <note priority="medium">AiBuddyContext already has isSearchOpen pattern - follow same for isPreviewOpen.</note>
+    <note priority="medium">match_multi_document_chunks requires migration file - use Supabase MCP apply_migration.</note>
+  </devNotes>
+
+  <patterns>
+    <pattern name="Modal in Layout" description="Add modal to layout.tsx, control via context state">
+      <example>
+        // In layout.tsx
+        <DocumentPreviewModal
+          open={isPreviewOpen}
+          onOpenChange={closePreview}
+          document={previewDocument}
+          initialPage={previewPage}
+        />
+      </example>
+    </pattern>
+    <pattern name="Context State for Modal" description="Add state and handlers to context">
+      <example>
+        // In ai-buddy-context.tsx
+        const [previewState, setPreviewState] = useState({
+          isOpen: false, document: null, page: 1
+        });
+        const openPreview = (document, page = 1) => setPreviewState({ isOpen: true, document, page });
+        const closePreview = () => setPreviewState({ isOpen: false, document: null, page: 1 });
+      </example>
+    </pattern>
+    <pattern name="Per-Document Limit RAG" description="Window function for diverse multi-doc retrieval">
+      <example>
+        WITH ranked_chunks AS (
+          SELECT *, ROW_NUMBER() OVER (PARTITION BY document_id ORDER BY similarity DESC) as doc_rank
+          FROM chunks
+        )
+        SELECT * FROM ranked_chunks WHERE doc_rank <= p_per_doc_limit
+        ORDER BY similarity DESC LIMIT p_total_limit
+      </example>
+    </pattern>
+  </patterns>
+</story-context>
