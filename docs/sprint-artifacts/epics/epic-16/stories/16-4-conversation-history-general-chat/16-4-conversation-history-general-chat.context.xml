@@ -1,0 +1,220 @@
+<story-context id="16-4-conversation-history-general-chat" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>4</storyId>
+    <title>Conversation History and General Chat</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-4-conversation-history-general-chat/16-4-conversation-history-general-chat.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to see my conversation history organized by date and be able to chat without selecting a project</iWant>
+    <soThat>I can easily find past conversations and have quick Q&amp;A sessions without creating project overhead</soThat>
+    <tasks>
+      <task id="T1">Create src/lib/ai-buddy/date-grouping.ts with groupConversationsByDate function</task>
+      <task id="T2">Unit tests for date grouping (Today, Yesterday, Previous 7 days, Older)</task>
+      <task id="T3">Create src/components/ai-buddy/conversation-group.tsx</task>
+      <task id="T4">Update chat-history-item.tsx with project name badge and relative timestamp</task>
+      <task id="T5">Component tests for ConversationGroup</task>
+      <task id="T6">Component tests for updated ChatHistoryItem</task>
+      <task id="T7">Update project-sidebar.tsx to use date-grouped conversation display</task>
+      <task id="T8">Ensure conversation filtering by project works correctly</task>
+      <task id="T9">Integration tests for sidebar conversation display</task>
+      <task id="T10">Verify New Chat button creates conversation with projectId: null</task>
+      <task id="T11">Update header display logic for general chat mode</task>
+      <task id="T12">Verify general conversations appear in Recent when no project filter</task>
+      <task id="T13">Test general chat can attach documents inline</task>
+      <task id="T14">Add Load more button to sidebar when nextCursor exists</task>
+      <task id="T15">Wire up pagination on button click</task>
+      <task id="T16">Test pagination loads additional conversations</task>
+      <task id="T17-T22">E2E tests for date grouping, conversation loading, general chat, pagination</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-16.4.1">Sidebar "Recent" section shows conversations grouped by date</criterion>
+    <criterion id="AC-16.4.2">Date groups: Today, Yesterday, Previous 7 days, Older</criterion>
+    <criterion id="AC-16.4.3">Each conversation shows title (first message excerpt), project name (if any), timestamp</criterion>
+    <criterion id="AC-16.4.4">Clicking conversation loads it in chat area</criterion>
+    <criterion id="AC-16.4.5">When project selected, only that project's conversations shown in Recent</criterion>
+    <criterion id="AC-16.4.6">Maximum 50 conversations loaded, with "Load more" pagination</criterion>
+    <criterion id="AC-16.4.7">"New Chat" button starts conversation without project association</criterion>
+    <criterion id="AC-16.4.8">Header shows "AI Buddy" without project name for general chats</criterion>
+    <criterion id="AC-16.4.9">General conversations appear in "Recent" section when no project selected</criterion>
+    <criterion id="AC-16.4.10">General conversations can have in-conversation document attachments</criterion>
+    <criterion id="AC-16.4.11">project_id is NULL for general conversations in database</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/tech-spec.md</path>
+        <title>Epic 16 Tech Spec</title>
+        <section>Story 16.4: Conversation History and General Chat</section>
+        <snippet>Date groups: Today, Yesterday, Previous 7 days, Older. General chat with null projectId. Load more pagination.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Data Architecture, Conversations API</section>
+        <snippet>ai_buddy_conversations table has nullable project_id. GET /conversations supports projectId filter and pagination cursor.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/ux-design/ux-design-specification.md</path>
+        <title>AI Buddy UX Design</title>
+        <section>ChatGPT-Style Interface, Projects as Organizational Units</section>
+        <snippet>Recent section shows conversations grouped by date. General chat available without project context.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/components/ai-buddy/chat-history-item.tsx</path>
+        <kind>component</kind>
+        <symbol>ChatHistoryItem</symbol>
+        <lines>1-119</lines>
+        <reason>MODIFY: Add projectName prop and display as badge. Already has relative timestamp via formatDistanceToNow.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/project-sidebar.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectSidebar</symbol>
+        <lines>140-180</lines>
+        <reason>MODIFY: Replace flat conversation list with date-grouped ConversationGroup components. Add "Load more" button.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-conversations.ts</path>
+        <kind>hook</kind>
+        <symbol>useConversations</symbol>
+        <lines>1-365</lines>
+        <reason>VERIFY: Already supports projectId filter (line 103) and pagination via cursor. Ensure re-fetch on projectId change.</reason>
+      </artifact>
+      <artifact>
+        <path>src/contexts/ai-buddy-context.tsx</path>
+        <kind>context</kind>
+        <symbol>AiBuddyContext</symbol>
+        <lines>69-91</lines>
+        <reason>VERIFY: General chat mode - ensure startNewConversation creates conversation with null projectId.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/ai-buddy/page.tsx</path>
+        <kind>page</kind>
+        <symbol>AiBuddyPage</symbol>
+        <lines>1-173</lines>
+        <reason>VERIFY: Header display for general chat. Ensure "AI Buddy" shown when no project selected.</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>Conversation</symbol>
+        <reason>REFERENCE: Conversation type has projectId (nullable), title, updatedAt fields needed for grouping.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <note>USE: isToday, isYesterday, differenceInDays for date grouping. formatDistanceToNow already used.</note>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <note>Icons: MessageSquare (existing), ChevronDown (load more)</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Date grouping in client using date-fns. Server returns conversations sorted by updatedAt DESC.</constraint>
+    <constraint type="architecture">Null projectId = General Chat. Explicitly use NULL in database, not empty string.</constraint>
+    <constraint type="architecture">Pagination: First 50 conversations, then "Load more" button fetches next page via cursor.</constraint>
+    <constraint type="pattern">Project filter: When activeProjectId is set, pass to useConversations. When null, show all conversations.</constraint>
+    <constraint type="pattern">Empty groups not displayed. Only render ConversationGroup if group has conversations.</constraint>
+    <constraint type="testing">Unit tests for date-grouping.ts. Component tests for ConversationGroup. E2E for full flows.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>groupConversationsByDate</name>
+      <kind>utility function</kind>
+      <signature>
+import { isToday, isYesterday, differenceInDays } from 'date-fns';
+
+interface ConversationGroup {
+  label: string;  // "Today" | "Yesterday" | "Previous 7 days" | "Older"
+  conversations: Conversation[];
+}
+
+function groupConversationsByDate(conversations: Conversation[]): ConversationGroup[]
+      </signature>
+      <path>src/lib/ai-buddy/date-grouping.ts (CREATE)</path>
+    </interface>
+    <interface>
+      <name>ConversationGroup component props</name>
+      <kind>component props</kind>
+      <signature>
+interface ConversationGroupProps {
+  label: string;
+  conversations: Conversation[];
+  activeConversationId: string | null;
+  onSelectConversation: (id: string) => void;
+  onDeleteConversation: (id: string) => void;
+}
+      </signature>
+      <path>src/components/ai-buddy/conversation-group.tsx (CREATE)</path>
+    </interface>
+    <interface>
+      <name>ChatHistoryItem extended props</name>
+      <kind>component props extension</kind>
+      <signature>
+interface ChatHistoryItemProps {
+  // existing props...
+  projectName?: string | null;  // NEW: Display as badge if present
+}
+      </signature>
+      <path>src/components/ai-buddy/chat-history-item.tsx</path>
+    </interface>
+    <interface>
+      <name>ProjectSidebar pagination props</name>
+      <kind>component props extension</kind>
+      <signature>
+interface ProjectSidebarProps {
+  // existing props...
+  hasMoreConversations?: boolean;  // NEW: Show "Load more" button
+  onLoadMoreConversations?: () => void;  // NEW: Pagination handler
+}
+      </signature>
+      <path>src/components/ai-buddy/project-sidebar.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses vitest for unit tests and @testing-library/react for component tests. E2E uses Playwright. Follow existing patterns in __tests__/components/ai-buddy/. Use data-testid for selectors.
+    </standards>
+    <locations>
+      <location>__tests__/lib/ai-buddy/date-grouping.test.ts (CREATE)</location>
+      <location>__tests__/components/ai-buddy/conversation-group.test.tsx (CREATE)</location>
+      <location>__tests__/components/ai-buddy/chat-history-item.test.tsx (UPDATE - project badge tests)</location>
+      <location>__tests__/e2e/ai-buddy-conversation-history.spec.ts (CREATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-16.4.1">Test sidebar renders ConversationGroup for each non-empty date group</idea>
+      <idea ac="AC-16.4.2">Test groupConversationsByDate correctly categorizes by Today/Yesterday/Previous 7 days/Older</idea>
+      <idea ac="AC-16.4.2">Test empty groups are not returned from groupConversationsByDate</idea>
+      <idea ac="AC-16.4.3">Test ChatHistoryItem displays project name badge when projectName prop provided</idea>
+      <idea ac="AC-16.4.3">Test ChatHistoryItem shows no badge when projectName is null</idea>
+      <idea ac="AC-16.4.4">E2E: Click conversation in Recent loads it in chat area</idea>
+      <idea ac="AC-16.4.5">Test useConversations filters by projectId when provided</idea>
+      <idea ac="AC-16.4.6">Test "Load more" button appears when nextCursor exists</idea>
+      <idea ac="AC-16.4.6">E2E: Click "Load more" appends additional conversations to list</idea>
+      <idea ac="AC-16.4.7">Test "New Chat" creates conversation with projectId: null</idea>
+      <idea ac="AC-16.4.8">E2E: General chat shows "AI Buddy" header without project name</idea>
+      <idea ac="AC-16.4.11">Integration: POST /chat without projectId creates conversation with project_id = NULL</idea>
+    </ideas>
+  </tests>
+</story-context>

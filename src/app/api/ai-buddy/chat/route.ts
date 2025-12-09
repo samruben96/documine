@@ -2,6 +2,7 @@
  * AI Buddy Chat API Route
  * Story 15.3: Streaming Chat API
  * Story 15.5: AI Response Quality & Attribution
+ * Story 17.1: Document Upload to Conversation with Status
  *
  * POST /api/ai-buddy/chat - Send a message and receive AI response (streaming)
  *
@@ -15,6 +16,9 @@
  * AC1-AC6: Source citations with SSE emission
  * AC7-AC14: Confidence indicators with SSE emission
  * AC15-AC20: Guardrail-aware responses via prompt builder
+ *
+ * Story 17.1 ACs:
+ * AC-17.1.4: AI references documents with page-level citations
  */
 
 import { z } from 'zod';
@@ -30,7 +34,32 @@ import {
   type DocumentContext,
 } from '@/lib/ai-buddy/prompt-builder';
 import { logGuardrailEvent, logMessageEvent } from '@/lib/ai-buddy/audit-logger';
+import {
+  getConversationAttachments,
+  getConversationAttachmentChunks,
+  getProjectDocumentChunks,
+  buildConversationPrompt,
+  conversationChunksToCitations,
+} from '@/lib/chat/rag';
+import type { ConfidenceLevel as RagConfidenceLevel } from '@/lib/chat/confidence';
 import type { ChatRequest, Citation, ConfidenceLevel } from '@/types/ai-buddy';
+
+/**
+ * Map RAG confidence levels to AI Buddy confidence levels
+ */
+function mapRagConfidenceToAiBuddy(ragConfidence: RagConfidenceLevel): ConfidenceLevel {
+  switch (ragConfidence) {
+    case 'high':
+      return 'high';
+    case 'needs_review':
+      return 'medium';
+    case 'not_found':
+    case 'conversational':
+      return 'low';
+    default:
+      return 'medium';
+  }
+}
 
 // Edge Runtime for low latency streaming (AC-15.3.2)
 export const runtime = 'edge';
@@ -313,9 +342,149 @@ export async function POST(request: Request): Promise<Response> {
       .order('created_at', { ascending: true })
       .limit(20);
 
-    // Placeholder for document context (future: RAG integration)
-    // For now, empty - will be populated when document attachments are processed
-    const documentContext: DocumentContext[] = [];
+    // Story 17.1: Check for conversation attachments and use RAG (AC-17.1.4)
+    let documentContext: DocumentContext[] = [];
+    let attachmentChunks: Awaited<ReturnType<typeof getConversationAttachmentChunks>> | null = null;
+
+    // Check if conversation has attachments
+    const conversationAttachments = await getConversationAttachments(supabase, activeConversationId);
+    const readyAttachments = conversationAttachments.filter((att) => att.status === 'ready');
+
+    if (readyAttachments.length > 0) {
+      // Retrieve relevant chunks from attached documents
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey) {
+        try {
+          attachmentChunks = await getConversationAttachmentChunks(
+            supabase,
+            activeConversationId,
+            message,
+            openaiKey
+          );
+
+          // Convert to DocumentContext for prompt builder
+          // Group chunks by document
+          const chunksByDoc = new Map<string, { documentName: string; chunks: Array<{ content: string; page?: number; similarity?: number }> }>();
+          for (const chunk of attachmentChunks.chunks) {
+            const existing = chunksByDoc.get(chunk.documentId);
+            const chunkData = {
+              content: chunk.content,
+              page: chunk.pageNumber,
+              similarity: chunk.similarityScore,
+            };
+            if (existing) {
+              existing.chunks.push(chunkData);
+            } else {
+              chunksByDoc.set(chunk.documentId, {
+                documentName: chunk.documentName,
+                chunks: [chunkData],
+              });
+            }
+          }
+
+          documentContext = Array.from(chunksByDoc.entries()).map(([docId, data]) => ({
+            documentId: docId,
+            documentName: data.documentName,
+            chunks: data.chunks,
+          }));
+
+          log.info('RAG context retrieved for conversation', {
+            conversationId: activeConversationId,
+            attachmentCount: readyAttachments.length,
+            chunkCount: attachmentChunks.chunks.length,
+            confidence: attachmentChunks.confidence,
+          });
+        } catch (ragError) {
+          log.error(
+            'Failed to retrieve RAG context',
+            ragError instanceof Error ? ragError : new Error(String(ragError)),
+            { conversationId: activeConversationId }
+          );
+          // Continue without RAG - will use general knowledge
+        }
+      }
+    }
+
+    // Story 17.2: Also retrieve project documents if projectId is provided (AC-17.2.7)
+    let projectDocumentContext: string | undefined;
+    if (projectId) {
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (openaiKey) {
+        try {
+          const projectChunks = await getProjectDocumentChunks(
+            supabase,
+            projectId,
+            message,
+            openaiKey
+          );
+
+          // Add project document chunks to document context
+          if (projectChunks.chunks.length > 0) {
+            const chunksByDoc = new Map<string, { documentName: string; chunks: Array<{ content: string; page?: number; similarity?: number }> }>();
+            for (const chunk of projectChunks.chunks) {
+              const existing = chunksByDoc.get(chunk.documentId);
+              const chunkData = {
+                content: chunk.content,
+                page: chunk.pageNumber,
+                similarity: chunk.similarityScore,
+              };
+              if (existing) {
+                existing.chunks.push(chunkData);
+              } else {
+                chunksByDoc.set(chunk.documentId, {
+                  documentName: chunk.documentName,
+                  chunks: [chunkData],
+                });
+              }
+            }
+
+            const projectDocs = Array.from(chunksByDoc.entries()).map(([docId, data]) => ({
+              documentId: docId,
+              documentName: data.documentName,
+              chunks: data.chunks,
+            }));
+
+            // Merge with conversation attachment context (avoid duplicates by docId)
+            const existingDocIds = new Set(documentContext.map((d) => d.documentId));
+            for (const doc of projectDocs) {
+              if (!existingDocIds.has(doc.documentId)) {
+                documentContext.push(doc);
+              }
+            }
+
+            // Update attachment chunks with project chunks if not already set
+            // (for confidence calculation later)
+            if (!attachmentChunks) {
+              attachmentChunks = {
+                chunks: projectChunks.chunks,
+                confidence: projectChunks.confidence,
+                attachments: projectChunks.documents,
+              };
+            }
+          }
+
+          // AC-17.2.7: Include structured extraction data from project documents
+          if (projectChunks.structuredContext) {
+            projectDocumentContext = projectChunks.structuredContext;
+          }
+
+          log.info('RAG context retrieved for project documents', {
+            projectId,
+            documentCount: projectChunks.documents.length,
+            chunkCount: projectChunks.chunks.length,
+            hasStructuredContext: !!projectChunks.structuredContext,
+            confidence: projectChunks.confidence,
+          });
+        } catch (ragError) {
+          log.error(
+            'Failed to retrieve project document RAG context',
+            ragError instanceof Error ? ragError : new Error(String(ragError)),
+            { projectId }
+          );
+          // Continue without project document RAG
+        }
+      }
+    }
 
     // Build system prompt with guardrails (AC15-AC20)
     const { systemPrompt } = buildSystemPrompt({
@@ -333,6 +502,8 @@ export async function POST(request: Request): Promise<Response> {
       guardrailCheckResult,
       documentContext,
       projectName,
+      // Story 17.2: Include structured extraction data from project documents (AC-17.2.7)
+      structuredExtractionContext: projectDocumentContext,
     });
 
     // Build messages for LLM
@@ -365,6 +536,10 @@ export async function POST(request: Request): Promise<Response> {
     const encoder = new TextEncoder();
     const finalConversationId = activeConversationId!;
     const hasDocumentContext = documentContext.length > 0;
+    // Story 17.1: Use RAG confidence if available (mapped to AI Buddy levels)
+    const mappedRagConfidence = attachmentChunks?.confidence
+      ? mapRagConfidenceToAiBuddy(attachmentChunks.confidence)
+      : null;
 
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -396,7 +571,8 @@ export async function POST(request: Request): Promise<Response> {
           const citations = extractCitationsFromResponse(fullResponse, documentContext);
 
           // Calculate confidence level (AC9-AC11)
-          const confidence = calculateConfidence(hasDocumentContext, citations, fullResponse);
+          // Story 17.1: Use RAG confidence if available, otherwise calculate from response
+          const confidence = mappedRagConfidence ?? calculateConfidence(hasDocumentContext, citations, fullResponse);
 
           // Emit sources event (AC5: SSE includes citation data)
           const sourcesEvent: AiBuddySSEEvent = { type: 'sources', citations };

@@ -18,6 +18,9 @@ export interface BoundingBox {
 /**
  * Source citation from RAG retrieval
  * Used for displaying clickable source links in chat messages
+ *
+ * Story 17.1: Extended to include documentId and documentName
+ * for AI Buddy conversation attachments (AC-17.1.4).
  */
 export interface SourceCitation {
   pageNumber: number;
@@ -25,6 +28,10 @@ export interface SourceCitation {
   chunkId: string;
   boundingBox?: BoundingBox;
   similarityScore?: number;
+  /** Optional: Document ID for conversation attachments */
+  documentId?: string;
+  /** Optional: Document name for conversation attachments */
+  documentName?: string;
 }
 
 /**

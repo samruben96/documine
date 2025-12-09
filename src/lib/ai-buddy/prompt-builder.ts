@@ -22,6 +22,8 @@ export interface PromptContext {
   documentContext?: DocumentContext[];
   projectName?: string;
   conversationHistory?: Array<{ role: string; content: string }>;
+  /** Story 17.2: Pre-formatted structured extraction data from project documents */
+  structuredExtractionContext?: string;
 }
 
 export interface DocumentContext {
@@ -181,6 +183,11 @@ Then provide any helpful context you can, while respecting this boundary.`);
   // Add project context if available
   if (context.projectName) {
     parts.push(`\n## Project Context\nThis conversation is part of the project: "${context.projectName}"`);
+  }
+
+  // Story 17.2: Add structured extraction context from project documents (AC-17.2.7)
+  if (context.structuredExtractionContext) {
+    parts.push(`\n## Structured Policy Data\nThe following structured data has been extracted from project documents. Use this for accurate coverage details, limits, and policy specifics:\n\n${context.structuredExtractionContext}`);
   }
 
   // Add E&O disclaimer reminder if enabled

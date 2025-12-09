@@ -195,3 +195,73 @@ export interface AuditLogResponse {
   logs: AuditLogEntry[];
   total: number;
 }
+
+// ============ Story 17.1: Document Attachment Types ============
+
+export type AttachmentStatus = 'pending' | 'uploading' | 'processing' | 'ready' | 'failed';
+
+export interface ConversationAttachment {
+  document_id: string;
+  attached_at: string;
+  document: {
+    id: string;
+    name: string;
+    file_type: string;
+    status: string;
+    page_count: number | null;
+  };
+}
+
+export interface PendingAttachment {
+  id: string;
+  file: File;
+  name: string;
+  status: AttachmentStatus;
+  progress?: number;
+  error?: string;
+  documentId?: string; // Set after upload completes
+}
+
+export interface AttachmentUploadResult {
+  documentId: string;
+  name: string;
+  status: string;
+}
+
+// ============ Attachment API Types ============
+
+export interface AttachmentListResponse {
+  attachments: ConversationAttachment[];
+}
+
+export interface AttachmentUploadResponse {
+  attachments: ConversationAttachment[];
+}
+
+// ============ Story 17.2: Project Document Types ============
+
+export interface ProjectDocument {
+  document_id: string;
+  attached_at: string;
+  document: {
+    id: string;
+    name: string;
+    file_type: string;
+    status: string;
+    page_count: number | null;
+    created_at: string;
+    extraction_data?: Record<string, unknown> | null; // AC-17.2.7: Comparison context
+  };
+}
+
+export interface ProjectDocumentListResponse {
+  documents: ProjectDocument[];
+}
+
+export interface AddProjectDocumentsRequest {
+  documentIds: string[];
+}
+
+export interface ProjectDocumentRemoveResponse {
+  removed: true;
+}

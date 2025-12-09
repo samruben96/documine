@@ -4,6 +4,7 @@
 /**
  * Project Sidebar Tests
  * Story 16.1: Project Creation & Sidebar
+ * Story 16.6: Conversation Management
  *
  * Tests for ProjectSidebar component.
  *
@@ -15,7 +16,61 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ProjectSidebar } from '@/components/ai-buddy/project-sidebar';
+import { AiBuddyProvider } from '@/contexts/ai-buddy-context';
 import type { Project, Conversation } from '@/types/ai-buddy';
+import type { ReactNode } from 'react';
+
+// Mock the hooks that require Supabase
+vi.mock('@/hooks/ai-buddy/use-conversations', () => ({
+  useConversations: () => ({
+    conversations: [],
+    activeConversation: null,
+    isLoading: false,
+    isLoadingConversation: false,
+    error: null,
+    nextCursor: null,
+    fetchConversations: vi.fn(),
+    loadConversation: vi.fn(),
+    createConversation: vi.fn(),
+    deleteConversation: vi.fn(),
+    moveConversation: vi.fn(),
+    searchConversations: vi.fn(),
+    clearActiveConversation: vi.fn(),
+    refresh: vi.fn(),
+    addConversation: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/ai-buddy/use-projects', () => ({
+  useProjects: () => ({
+    projects: [],
+    archivedProjects: [],
+    isLoading: false,
+    isMutating: false,
+    error: null,
+    fetchProjects: vi.fn(),
+    createProject: vi.fn(),
+    archiveProject: vi.fn(),
+    updateProject: vi.fn(),
+    restoreProject: vi.fn(),
+    fetchArchivedProjects: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/ai-buddy/use-active-project', () => ({
+  useActiveProject: () => ({
+    activeProject: null,
+    activeProjectId: null,
+    setActiveProject: vi.fn(),
+    clearActiveProject: vi.fn(),
+  }),
+}));
+
+// Wrapper component to provide context
+function TestWrapper({ children }: { children: ReactNode }) {
+  return <AiBuddyProvider>{children}</AiBuddyProvider>;
+}
 
 const mockProjects: Project[] = [
   {
@@ -62,7 +117,8 @@ describe('ProjectSidebar', () => {
       <ProjectSidebar
         projects={mockProjects}
         conversations={[]}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     expect(screen.getByText('Projects')).toBeInTheDocument();
@@ -76,7 +132,8 @@ describe('ProjectSidebar', () => {
       <ProjectSidebar
         projects={[]}
         conversations={[]}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     expect(screen.getByTestId('projects-empty-state')).toBeInTheDocument();
@@ -89,7 +146,8 @@ describe('ProjectSidebar', () => {
       <ProjectSidebar
         projects={[]}
         isLoadingProjects={true}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     expect(screen.getByTestId('projects-loading')).toBeInTheDocument();
@@ -104,7 +162,8 @@ describe('ProjectSidebar', () => {
         projects={[]}
         conversations={[]}
         onNewChat={handleNewChat}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     fireEvent.click(screen.getByTestId('new-chat-button'));
@@ -121,7 +180,8 @@ describe('ProjectSidebar', () => {
         projects={[]}
         conversations={[]}
         onNewProject={handleNewProject}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     fireEvent.click(screen.getByTestId('new-project-button'));
@@ -138,7 +198,8 @@ describe('ProjectSidebar', () => {
         projects={mockProjects}
         conversations={[]}
         onSelectProject={handleSelectProject}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     fireEvent.click(screen.getByTestId(`project-card-${mockProjects[0].id}`));
@@ -153,7 +214,8 @@ describe('ProjectSidebar', () => {
         projects={mockProjects}
         activeProjectId={mockProjects[0].id}
         conversations={[]}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     const activeCard = screen.getByTestId(`project-card-${mockProjects[0].id}`);
@@ -166,7 +228,8 @@ describe('ProjectSidebar', () => {
       <ProjectSidebar
         projects={[]}
         conversations={mockConversations}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     expect(screen.getByText('Recent')).toBeInTheDocument();
@@ -178,7 +241,8 @@ describe('ProjectSidebar', () => {
       <ProjectSidebar
         projects={[]}
         conversations={[]}
-      />
+      />,
+      { wrapper: TestWrapper }
     );
 
     expect(screen.getByText('No conversations yet')).toBeInTheDocument();

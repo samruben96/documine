@@ -25,6 +25,9 @@ export const AIB_ERROR_CODES = {
   AIB_101: { status: 400, message: 'Project name is required' },
   AIB_102: { status: 400, message: 'Project name exceeds 100 characters' },
   AIB_103: { status: 400, message: 'Project description exceeds 500 characters' },
+  // Project management error codes (Story 16.3)
+  AIB_104: { status: 404, message: 'Project not found' },
+  AIB_105: { status: 403, message: 'Not authorized to access this project' },
 } as const;
 
 export type AiBuddyErrorCode = keyof typeof AIB_ERROR_CODES;

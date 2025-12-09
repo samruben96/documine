@@ -27,9 +27,11 @@ import {
   type KeyboardEvent,
   type ChangeEvent,
 } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DocumentUploadZone } from './document-upload-zone';
+import { PendingAttachments } from './documents';
 
 /** Maximum character limit for AI Buddy messages */
 const MAX_CHARACTER_LIMIT = 4000;
@@ -41,8 +43,14 @@ const MAX_TEXTAREA_HEIGHT = 96;
 export interface ChatInputProps {
   /** Callback when user sends a message */
   onSend: (message: string) => void;
-  /** Optional callback for document attachment */
-  onAttach?: () => void;
+  /** Optional callback for document attachment - receives files from dropzone */
+  onAttach?: (files: File[]) => void;
+  /** Callback when remove button is clicked on pending attachment */
+  onRemoveAttachment?: (id: string) => void;
+  /** Callback when retry button is clicked on failed attachment */
+  onRetryAttachment?: (id: string) => void;
+  /** Pending attachments to display */
+  pendingAttachments?: import('@/types/ai-buddy').PendingAttachment[];
   /** Whether the input is disabled */
   disabled?: boolean;
   /** Placeholder text - defaults to "Message AI Buddy..." */
@@ -79,6 +87,9 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
     {
       onSend,
       onAttach,
+      onRemoveAttachment,
+      onRetryAttachment,
+      pendingAttachments = [],
       disabled = false,
       placeholder = 'Message AI Buddy...',
       maxLength = MAX_CHARACTER_LIMIT,
@@ -176,21 +187,22 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(
 
     return (
       <div className={cn('flex flex-col gap-1', className)}>
+        {/* Pending Attachments - AC-17.1.2 */}
+        <PendingAttachments
+          attachments={pendingAttachments}
+          onRemove={onRemoveAttachment}
+          onRetry={onRetryAttachment}
+        />
+
         <div className="flex items-end gap-2">
-          {/* Optional Attach Button - Task 5 */}
+          {/* Optional Attach Button - AC-17.1.1 */}
           {onAttach && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onAttach}
+            <DocumentUploadZone
+              mode="button"
+              onUpload={onAttach}
               disabled={isInputDisabled}
-              className="h-11 w-11 flex-shrink-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-              aria-label="Attach document"
-              data-testid="attach-button"
-            >
-              <Paperclip className="h-5 w-5" />
-            </Button>
+              maxFiles={5 - pendingAttachments.length}
+            />
           )}
 
           {/* Multi-line Textarea with Auto-resize - AC-15.1.1, AC-15.1.5 */}

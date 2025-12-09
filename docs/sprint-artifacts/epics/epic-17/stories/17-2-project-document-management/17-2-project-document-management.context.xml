@@ -1,0 +1,250 @@
+<story-context id="17-2-project-document-management" v="1.0">
+  <metadata>
+    <epicId>17</epicId>
+    <storyId>2</storyId>
+    <title>Project Document Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-17/stories/17-2-project-document-management/17-2-project-document-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy with an active Project</asA>
+    <iWant>to add documents to my Project that persist across all conversations</iWant>
+    <soThat>AI can reference my client's policies, applications, and quotes whenever I discuss that account</soThat>
+    <tasks>
+      <phase name="A: Verify Database">
+        <task id="T1">Verify ai_buddy_project_documents table exists with correct schema</task>
+        <task id="T2">Verify RLS policies for SELECT, INSERT, DELETE</task>
+        <task id="T3">Regenerate TypeScript types if needed</task>
+      </phase>
+      <phase name="B: API Endpoints">
+        <task id="T4">Create src/app/api/ai-buddy/projects/[id]/documents/route.ts</task>
+        <task id="T5">Implement GET handler to list project documents</task>
+        <task id="T6">Implement POST handler for add from library (JSON body with documentIds)</task>
+        <task id="T7">Implement POST handler for file upload (multipart/form-data)</task>
+        <task id="T8">Create src/app/api/ai-buddy/projects/[id]/documents/[documentId]/route.ts</task>
+        <task id="T9">Implement DELETE handler using verify-then-service pattern</task>
+        <task id="T10">API tests for all endpoints</task>
+      </phase>
+      <phase name="C: Hook Implementation">
+        <task id="T11">Create use-project-documents.ts hook</task>
+        <task id="T12">Implement list, add, upload, remove mutations</task>
+        <task id="T13">Add Supabase Realtime subscription for document status</task>
+        <task id="T14">Add optimistic updates for remove operation</task>
+        <task id="T15">Unit tests for hook</task>
+      </phase>
+      <phase name="D: UI Components">
+        <task id="T16">Create DocumentPanel component (collapsible right panel)</task>
+        <task id="T17">Create DocumentCard component with status and remove button</task>
+        <task id="T18">Create AddDocumentMenu component (dropdown with Upload/Library options)</task>
+        <task id="T19">Create DocumentLibraryPicker modal with search and multi-select</task>
+        <task id="T20">Integrate DocumentPanel into AI Buddy page layout</task>
+        <task id="T21">Component tests for all new components</task>
+      </phase>
+      <phase name="E: RAG Integration">
+        <task id="T22">Add getProjectDocumentChunks() to rag.ts</task>
+        <task id="T23">Extend chat API to include project document chunks in context</task>
+        <task id="T24">Verify citations include document name and page for project docs</task>
+        <task id="T25">Add extraction_data to project document response (AC-17.2.7)</task>
+        <task id="T26">Integration test for RAG with project documents</task>
+      </phase>
+      <phase name="F: E2E Testing">
+        <task id="T27">E2E test: Click Add → shows Upload/Library options</task>
+        <task id="T28">E2E test: Upload file adds to project document list</task>
+        <task id="T29">E2E test: Select from Library shows searchable modal</task>
+        <task id="T30">E2E test: Add library document appears in list immediately</task>
+        <task id="T31">E2E test: Remove document with confirmation</task>
+        <task id="T32">E2E test: Ask question, AI cites project document</task>
+        <task id="T33">E2E test: Historical citations remain valid after removal</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-17.2.1" testable="true">Given I am viewing a Project, when I click "Add Document", then I see options for "Upload New" and "Select from Library".</criterion>
+    <criterion id="AC-17.2.2" testable="true">Given I upload a document to a project, when processing completes, then it appears in the project's document list and is available for all project conversations.</criterion>
+    <criterion id="AC-17.2.3" testable="true">Given I click "Select from Library", when I search/filter my docuMINE documents, then I can select existing documents without re-uploading.</criterion>
+    <criterion id="AC-17.2.4" testable="true">Given I select a library document, when I add it, then it links to the project (not duplicated) and AI can reference it immediately.</criterion>
+    <criterion id="AC-17.2.5" testable="true">Given I click remove (X) on a project document, when I confirm, then the document is removed from project context.</criterion>
+    <criterion id="AC-17.2.6" testable="true">Given I remove a document, when I view past conversations, then historical citations remain valid (link to original document).</criterion>
+    <criterion id="AC-17.2.7" testable="true">Given I have documents from a previous Comparison, when I add them to a project, then AI has access to the extraction context (carrier info, coverages, etc).</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md" title="Epic 17 Tech Spec" section="Story 17.2: Project Document Management">
+        Authoritative specification for project document CRUD, library picker, RAG integration. Defines AC-17.2.1 through AC-17.2.7 with API contracts and data models.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-17/epic.md" title="Epic 17 Overview" section="Stories">
+        Epic overview with FR14 (remove docs), FR21 (upload to project), FR65 (docuMINE library access), FR66 (comparison context).
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="RLS Service Client Pattern">
+        Verify-then-service pattern for DELETE operations to work around Edge Runtime RLS issues. Required for T9.
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="File Upload Pattern">
+        Standard pattern for Supabase Storage uploads with document record creation and processing job triggering.
+      </doc>
+      <doc path="docs/architecture/rag-pipeline-architecture-implemented.md" title="RAG Pipeline" section="Current Production Pipeline">
+        Hybrid search + Cohere reranking architecture. getConversationAttachmentChunks pattern to follow for getProjectDocumentChunks.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-17/stories/17-1-document-upload-conversation-status/17-1-document-upload-conversation-status.md" title="Story 17.1" section="Dev Notes">
+        Completed story with patterns for: DocumentUploadZone, useConversationAttachments hook, attachments API, RAG integration.
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Existing Scaffolds to Replace -->
+      <file path="src/components/ai-buddy/document-panel.tsx" kind="component" reason="Stub from Epic 14. Replace with full implementation per story spec.">
+        <note>Lines 1-55: Basic scaffold with props interface. Replace entire file.</note>
+      </file>
+      <file path="src/components/ai-buddy/document-card.tsx" kind="component" reason="Stub from Epic 14. Replace with full implementation including status indicators and remove button.">
+        <note>Lines 1-60: Basic scaffold. Replace entire file.</note>
+      </file>
+
+      <!-- Existing Patterns to Follow -->
+      <file path="src/hooks/ai-buddy/use-conversation-attachments.ts" kind="hook" reason="Pattern for project documents hook. Copy mutation patterns, realtime subscription, optimistic updates.">
+        <symbol>useConversationAttachments</symbol>
+        <lines>75-430</lines>
+        <note>Full hook with pending state, upload mutation, realtime subscription. Follow this pattern for useProjectDocuments.</note>
+      </file>
+      <file path="src/components/ai-buddy/document-upload-zone.tsx" kind="component" reason="Reuse for project document uploads via onFilesSelected callback.">
+        <symbol>DocumentUploadZone</symbol>
+        <note>Already integrated in AI Buddy page. Can use same component for project uploads.</note>
+      </file>
+      <file path="src/app/api/ai-buddy/conversations/[id]/attachments/route.ts" kind="api" reason="Pattern for project documents API. Follow multipart handling and document record creation.">
+        <note>File upload handling, FormData parsing, document creation with processing job.</note>
+      </file>
+      <file path="src/lib/chat/rag.ts" kind="service" reason="Add getProjectDocumentChunks() following getConversationAttachmentChunks pattern.">
+        <symbol>getConversationAttachmentChunks</symbol>
+        <note>Lines 1-200: RAG pipeline. Add new function for project document chunks.</note>
+      </file>
+
+      <!-- Files to Modify -->
+      <file path="src/app/(dashboard)/ai-buddy/page.tsx" kind="page" reason="Add DocumentPanel to layout as collapsible right panel.">
+        <lines>1-231</lines>
+        <note>Add DocumentPanel alongside chat area. Pass activeProjectId to panel.</note>
+      </file>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api" reason="Extend RAG to include project document chunks before conversation attachments.">
+        <lines>1-100</lines>
+        <note>Add getProjectDocumentChunks call when projectId present.</note>
+      </file>
+      <file path="src/hooks/ai-buddy/index.ts" kind="barrel" reason="Export new useProjectDocuments hook.">
+        <note>Add export for use-project-documents.</note>
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" reason="Add ProjectDocument, DocumentLibraryItem types if not present.">
+        <note>Check existing types, add missing interfaces.</note>
+      </file>
+
+      <!-- Existing Infrastructure -->
+      <file path="src/types/database.types.ts" kind="types" reason="Contains ai_buddy_project_documents table type. Verify schema matches story requirements.">
+        <symbol>Database['public']['Tables']['ai_buddy_project_documents']</symbol>
+        <note>Junction table for project-document links.</note>
+      </file>
+      <file path="src/lib/ai-buddy/project-service.ts" kind="service" reason="May contain project-related utilities. Check for reusable functions.">
+        <note>Project CRUD operations from Epic 16.</note>
+      </file>
+      <file path="src/contexts/ai-buddy-context.tsx" kind="context" reason="Provides activeProjectId. May need to add project documents state if needed.">
+        <note>Context for AI Buddy state management.</note>
+      </file>
+      <file path="src/app/api/ai-buddy/projects/[id]/route.ts" kind="api" reason="Existing project API. Sibling route for documents.">
+        <note>Pattern for project-scoped API routes.</note>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="react-dropzone" version="^14.3.8" purpose="File upload drag-drop UI" />
+        <package name="@radix-ui/react-dialog" version="^1.1.15" purpose="DocumentLibraryPicker modal" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16" purpose="AddDocumentMenu component" />
+        <package name="@radix-ui/react-scroll-area" version="^1.2.10" purpose="Scrollable document list" />
+        <package name="@supabase/supabase-js" version="^2.84.0" purpose="Storage, Realtime, Database" />
+        <package name="lucide-react" version="^0.554.0" purpose="Icons (FileText, Plus, Search, Check, X)" />
+        <package name="zod" version="^4.1.13" purpose="API request validation" />
+      </node>
+      <note>@tanstack/react-query NOT in package.json. Use direct fetch pattern like existing hooks (useConversationAttachments).</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">Max 25 documents per project for MVP</constraint>
+    <constraint source="tech-spec">File types: PDF, PNG, JPG, JPEG only</constraint>
+    <constraint source="tech-spec">Max file size: 50MB per file</constraint>
+    <constraint source="implementation-patterns">Use verify-then-service pattern for DELETE operations</constraint>
+    <constraint source="implementation-patterns">Edge Runtime for API routes where possible</constraint>
+    <constraint source="tech-spec">RLS policies must allow SELECT/INSERT/DELETE for project owner only</constraint>
+    <constraint source="tech-spec">Removing document from project does NOT delete from storage/library</constraint>
+    <constraint source="story-17.1">Use same validation rules as conversation attachments</constraint>
+    <constraint source="existing-code">Follow useConversationAttachments hook pattern (no react-query, direct fetch)</constraint>
+    <constraint source="existing-code">DocumentUploadZone accepts onFilesSelected callback for file handling</constraint>
+  </constraints>
+
+  <interfaces>
+    <api name="GET /api/ai-buddy/projects/[id]/documents" kind="REST endpoint">
+      <signature>GET /api/ai-buddy/projects/{projectId}/documents</signature>
+      <response>{ data: { documents: ProjectDocument[] }, error: null }</response>
+      <path>src/app/api/ai-buddy/projects/[id]/documents/route.ts</path>
+    </api>
+    <api name="POST /api/ai-buddy/projects/[id]/documents" kind="REST endpoint">
+      <signature>POST /api/ai-buddy/projects/{projectId}/documents</signature>
+      <request>{ documentIds: string[] } OR multipart/form-data with files</request>
+      <response>{ data: { documents: ProjectDocument[] }, error: null }</response>
+      <errorCodes>AIB_401 (project not found), AIB_402 (document not found), AIB_403 (max exceeded), AIB_404 (already exists)</errorCodes>
+      <path>src/app/api/ai-buddy/projects/[id]/documents/route.ts</path>
+    </api>
+    <api name="DELETE /api/ai-buddy/projects/[id]/documents/[documentId]" kind="REST endpoint">
+      <signature>DELETE /api/ai-buddy/projects/{projectId}/documents/{documentId}</signature>
+      <response>{ data: { removed: true }, error: null }</response>
+      <path>src/app/api/ai-buddy/projects/[id]/documents/[documentId]/route.ts</path>
+    </api>
+    <function name="useProjectDocuments" kind="React Hook">
+      <signature>useProjectDocuments(projectId: string | null): UseProjectDocumentsReturn</signature>
+      <returns>{ documents, isLoading, addDocuments, uploadDocument, removeDocument, isAdding, isUploading, isRemoving }</returns>
+      <path>src/hooks/ai-buddy/use-project-documents.ts</path>
+    </function>
+    <function name="getProjectDocumentChunks" kind="function">
+      <signature>getProjectDocumentChunks(projectId: string, userId: string, query: string, limit?: number): Promise&lt;DocumentChunk[]&gt;</signature>
+      <path>src/lib/chat/rag.ts</path>
+    </function>
+    <component name="DocumentPanel" kind="React Component">
+      <signature>DocumentPanel({ projectId, className }: DocumentPanelProps)</signature>
+      <props>projectId: string | null, className?: string</props>
+      <path>src/components/ai-buddy/documents/document-panel.tsx</path>
+    </component>
+    <component name="DocumentLibraryPicker" kind="React Component">
+      <signature>DocumentLibraryPicker({ open, onOpenChange, excludeDocumentIds, onSelect, maxSelection })</signature>
+      <path>src/components/ai-buddy/documents/document-library-picker.tsx</path>
+    </component>
+    <type name="ProjectDocument" kind="TypeScript Interface">
+      <definition>{ document_id: string; attached_at: string; attached_by: string; document: { id, name, file_type, status, page_count, created_at, extraction_data? } }</definition>
+      <path>src/types/ai-buddy.ts</path>
+    </type>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests. Playwright for E2E. Testing Library for component tests.
+      Test files: __tests__/components/ai-buddy/documents/*.test.tsx, __tests__/hooks/ai-buddy/*.test.ts, __tests__/e2e/*.spec.ts
+      Follow existing patterns in __tests__/components/ai-buddy/ and __tests__/hooks/ai-buddy/.
+      Mock Supabase client for unit tests. Use MSW or fetch mocking for API tests.
+    </standards>
+    <locations>
+      <glob>__tests__/components/ai-buddy/documents/**/*.test.tsx</glob>
+      <glob>__tests__/hooks/ai-buddy/**/*.test.ts</glob>
+      <glob>__tests__/e2e/ai-buddy-project-documents.spec.ts</glob>
+    </locations>
+    <ideas>
+      <idea ac="AC-17.2.1">Test AddDocumentMenu renders both "Upload New" and "Select from Library" options</idea>
+      <idea ac="AC-17.2.2">Test POST with multipart creates document record and links to project</idea>
+      <idea ac="AC-17.2.3">Test DocumentLibraryPicker fetches documents, filters by search, allows multi-select</idea>
+      <idea ac="AC-17.2.4">Test POST with documentIds creates junction records without duplicating documents</idea>
+      <idea ac="AC-17.2.5">Test DELETE removes junction record but keeps document in library</idea>
+      <idea ac="AC-17.2.6">Test historical citations still resolve after document removal (link preserved)</idea>
+      <idea ac="AC-17.2.7">Test extraction_data included in project document response for quote documents</idea>
+      <idea>Test max 25 documents per project limit enforced</idea>
+      <idea>Test Supabase Realtime updates document status in UI</idea>
+      <idea>Test optimistic update for remove operation with rollback on error</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,236 @@
+<story-context id="16-3-project-management" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>3</storyId>
+    <title>Project Management - Rename and Archive</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-07</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-3-project-management/16-3-project-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to rename and archive my projects</iWant>
+    <soThat>I can keep my project list organized and relevant to my current work</soThat>
+    <tasks>
+      <task id="T1">Install shadcn context-menu component if not present</task>
+      <task id="T2">Create src/components/ai-buddy/project-context-menu.tsx with Rename/Archive options</task>
+      <task id="T3">Update project-card.tsx to wrap with context menu trigger</task>
+      <task id="T4">Add inline edit mode to project-card.tsx (isEditing state, Enter save, Escape cancel)</task>
+      <task id="T5">Unit tests for ProjectContextMenu</task>
+      <task id="T6">Unit tests for ProjectCard inline edit mode</task>
+      <task id="T7">Create src/app/api/ai-buddy/projects/[id]/route.ts with PATCH and DELETE handlers</task>
+      <task id="T8">Create restore endpoint logic</task>
+      <task id="T9">Integration tests for PATCH/DELETE endpoints</task>
+      <task id="T10">Add updateProject mutation to use-projects.ts</task>
+      <task id="T11">Add archiveProject mutation enhancements to use-projects.ts</task>
+      <task id="T12">Add restoreProject mutation to use-projects.ts</task>
+      <task id="T13">Unit tests for hook mutations</task>
+      <task id="T14">Create archive-confirmation-dialog.tsx</task>
+      <task id="T15">Create archived-projects-sheet.tsx</task>
+      <task id="T16">Add View Archived link to project-sidebar.tsx</task>
+      <task id="T17">Wire up archive confirmation dialog</task>
+      <task id="T18">Component tests for archive UI</task>
+      <task id="T19-T22">E2E tests for context menu, rename, archive, restore flows</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-16.3.1">Right-click on project card shows context menu with "Rename" and "Archive" options</criterion>
+    <criterion id="AC-16.3.2">Selecting "Rename" enables inline editing of project name</criterion>
+    <criterion id="AC-16.3.3">Enter saves renamed project, Escape cancels edit</criterion>
+    <criterion id="AC-16.3.4">Renamed project updates immediately (optimistic update)</criterion>
+    <criterion id="AC-16.3.5">Archive shows confirmation dialog "Archive [Project Name]?"</criterion>
+    <criterion id="AC-16.3.6">Confirming archive sets archived_at and removes project from main list</criterion>
+    <criterion id="AC-16.3.7">"View Archived" link shows archived projects with restore option</criterion>
+    <criterion id="AC-16.3.8">Restoring project clears archived_at and returns to main list</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/tech-spec.md</path>
+        <title>Epic 16 Tech Spec</title>
+        <section>Story 16.3: Project Management</section>
+        <snippet>Right-click context menu with Rename/Archive. Inline edit for rename. Confirmation dialog for archive. View Archived with restore.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Projects CRUD, API Contracts</section>
+        <snippet>PATCH /projects/[id] for rename, DELETE for archive (soft delete). Verify-Then-Service pattern for mutations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-16/stories/16-1-project-creation-sidebar/16-1-project-creation-sidebar.md</path>
+        <title>Story 16.1: Project Creation and Sidebar</title>
+        <section>Dev Notes, File List</section>
+        <snippet>project-card.tsx, use-projects.ts patterns. Optimistic updates. Error code pattern AIB_XXX.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>src/components/ai-buddy/project-card.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectCard</symbol>
+        <lines>1-117</lines>
+        <reason>MODIFY: Add context menu trigger wrapping, add inline edit mode (isEditing prop, Input for name, Enter/Escape handlers)</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/project-sidebar.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectSidebar</symbol>
+        <lines>1-184</lines>
+        <reason>MODIFY: Add "View Archived" link at bottom of projects section. Wire up archived sheet toggle.</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-projects.ts</path>
+        <kind>hook</kind>
+        <symbol>useProjects</symbol>
+        <lines>1-235</lines>
+        <reason>MODIFY: Add updateProject mutation (PATCH), enhance archiveProject with confirmation flow, add restoreProject mutation. All with optimistic updates.</reason>
+      </artifact>
+      <artifact>
+        <path>src/contexts/ai-buddy-context.tsx</path>
+        <kind>context</kind>
+        <symbol>AiBuddyContext</symbol>
+        <lines>109-140</lines>
+        <reason>REFERENCE: archiveProject callback clears active selection if archived project was active. Reuse this pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/ai-buddy/projects/route.ts</path>
+        <kind>API route</kind>
+        <symbol>GET, POST handlers</symbol>
+        <reason>REFERENCE: Existing projects route pattern. Use same response format for [id] route.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/ai-buddy/project-service.ts</path>
+        <kind>service</kind>
+        <symbol>ProjectService</symbol>
+        <reason>REFERENCE: Service layer pattern for database operations. Extend for update/archive/restore.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/dropdown-menu.tsx</path>
+        <kind>component</kind>
+        <symbol>DropdownMenu</symbol>
+        <reason>REFERENCE: Current menu implementation in project-card.tsx. Context menu will use similar pattern.</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@radix-ui/react-context-menu</package>
+        <version>via shadcn</version>
+        <note>INSTALL: npx shadcn@latest add context-menu</note>
+      </node>
+      <node>
+        <package>@radix-ui/react-alert-dialog</package>
+        <version>^1.1.15</version>
+        <note>EXISTS: Use for archive confirmation dialog</note>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <note>Icons: Pencil, Archive, RotateCcw (restore)</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Use shadcn context-menu component for right-click menu. Must work on both desktop and mobile (long-press).</constraint>
+    <constraint type="architecture">Verify-Then-Service Pattern: For PATCH/DELETE, verify ownership via RLS SELECT, then use service client for mutation.</constraint>
+    <constraint type="architecture">Soft Delete: Archive sets archived_at timestamp, never hard deletes. Required for compliance.</constraint>
+    <constraint type="pattern">Optimistic Updates: updateProject and archiveProject must update UI immediately, rollback on error.</constraint>
+    <constraint type="pattern">Error Codes: AIB_104 (not found), AIB_105 (unauthorized), AIB_102 (name too long).</constraint>
+    <constraint type="testing">Unit tests for context menu and inline edit. Integration tests for API. E2E for full flows.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>UpdateProjectRequest</name>
+      <kind>API request</kind>
+      <signature>
+interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+}
+      </signature>
+      <path>src/app/api/ai-buddy/projects/[id]/route.ts (CREATE)</path>
+    </interface>
+    <interface>
+      <name>PATCH /api/ai-buddy/projects/[id]</name>
+      <kind>REST endpoint</kind>
+      <signature>
+PATCH /api/ai-buddy/projects/[id]
+Request: { name?: string, description?: string }
+Response: { data: Project, error: null }
+Errors: AIB_104 (not found), AIB_105 (unauthorized), AIB_102 (name too long)
+      </signature>
+      <path>src/app/api/ai-buddy/projects/[id]/route.ts (CREATE)</path>
+    </interface>
+    <interface>
+      <name>DELETE /api/ai-buddy/projects/[id]</name>
+      <kind>REST endpoint</kind>
+      <signature>
+DELETE /api/ai-buddy/projects/[id]
+Response: { data: { success: true, archivedAt: string }, error: null }
+Errors: AIB_104 (not found), AIB_105 (unauthorized)
+      </signature>
+      <path>src/app/api/ai-buddy/projects/[id]/route.ts (CREATE)</path>
+    </interface>
+    <interface>
+      <name>ProjectCard inline edit props</name>
+      <kind>component props extension</kind>
+      <signature>
+interface ProjectCardProps {
+  // existing props...
+  isEditing?: boolean;
+  onStartEdit?: () => void;
+  onRename?: (newName: string) => void;
+  onCancelEdit?: () => void;
+}
+      </signature>
+      <path>src/components/ai-buddy/project-card.tsx</path>
+    </interface>
+    <interface>
+      <name>useProjects extended return</name>
+      <kind>hook return extension</kind>
+      <signature>
+interface UseProjectsReturn {
+  // existing...
+  updateProject: (id: string, input: UpdateProjectRequest) => Promise&lt;Project | null&gt;;
+  restoreProject: (id: string) => Promise&lt;void&gt;;
+  archivedProjects: Project[];
+  fetchArchivedProjects: () => Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/hooks/ai-buddy/use-projects.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses vitest for unit tests and @testing-library/react for component tests. E2E uses Playwright. Follow existing patterns in __tests__/components/ai-buddy/project-card.test.tsx. Use data-testid for E2E selectors.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/project-context-menu.test.tsx (CREATE)</location>
+      <location>__tests__/components/ai-buddy/project-card.test.tsx (UPDATE - inline edit tests)</location>
+      <location>__tests__/components/ai-buddy/archive-confirmation-dialog.test.tsx (CREATE)</location>
+      <location>__tests__/components/ai-buddy/archived-projects-sheet.test.tsx (CREATE)</location>
+      <location>__tests__/api/ai-buddy/projects-id.test.ts (CREATE)</location>
+      <location>__tests__/e2e/ai-buddy-project-management.spec.ts (CREATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-16.3.1">Test right-click on ProjectCard opens context menu with Rename and Archive items</idea>
+      <idea ac="AC-16.3.2">Test clicking Rename sets isEditing=true, shows input with current name</idea>
+      <idea ac="AC-16.3.3">Test Enter key in inline edit calls onRename with new value</idea>
+      <idea ac="AC-16.3.3">Test Escape key in inline edit calls onCancelEdit, restores original name</idea>
+      <idea ac="AC-16.3.4">Test updateProject mutation updates projects list optimistically</idea>
+      <idea ac="AC-16.3.5">Test Archive menu item opens confirmation dialog with project name</idea>
+      <idea ac="AC-16.3.6">Test confirming archive removes project from list, calls archiveProject</idea>
+      <idea ac="AC-16.3.7">E2E: Click "View Archived" opens sheet with archived projects</idea>
+      <idea ac="AC-16.3.8">E2E: Click Restore on archived project returns it to main list</idea>
+    </ideas>
+  </tests>
+</story-context>

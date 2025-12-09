@@ -323,11 +323,24 @@ describe('ChatInput', () => {
       expect(attachButton).toBeInTheDocument();
     });
 
-    it('calls onAttach when attach button is clicked', () => {
+    it('calls onAttach when files are selected via file input', async () => {
       render(<ChatInput onSend={mockOnSend} onAttach={mockOnAttach} />);
-      const attachButton = screen.getByTestId('attach-button');
-      fireEvent.click(attachButton);
-      expect(mockOnAttach).toHaveBeenCalled();
+
+      // Get the hidden file input (react-dropzone uses an input element)
+      const fileInput = screen.getByTestId('file-input') as HTMLInputElement;
+
+      // Create a mock file
+      const file = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
+
+      // Simulate file selection
+      await act(async () => {
+        fireEvent.change(fileInput, { target: { files: [file] } });
+      });
+
+      // onAttach should be called with the files
+      await waitFor(() => {
+        expect(mockOnAttach).toHaveBeenCalled();
+      });
     });
 
     it('attach button is disabled when isLoading is true', () => {

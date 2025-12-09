@@ -1,6 +1,8 @@
 /**
  * Project Sidebar Component
  * Story 16.1: Project Creation & Sidebar
+ * Story 16.3: Project Management - Rename & Archive
+ * Story 16.4: Conversation History & General Chat
  *
  * Sidebar for navigating projects and conversations.
  *
@@ -8,16 +10,21 @@
  * AC-16.1.11: Clicking a project switches to that project's context
  * AC-16.1.13: Empty state when no projects exist
  * AC-16.1.14: Mobile renders in Sheet overlay
+ * AC-16.3.7: "View Archived" link shows archived projects
+ * AC-16.4.1: Conversations grouped by date
+ * AC-16.4.6: "Load more" pagination
  */
 
 'use client';
 
-import { Plus, MessageSquare, Loader2, FolderPlus } from 'lucide-react';
+import { Plus, MessageSquare, Loader2, FolderPlus, Archive, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ChatHistoryItem } from './chat-history-item';
 import { ProjectCard } from './project-card';
+import { ConversationGroup } from './conversation-group';
+import { groupConversationsByDate, type ConversationGroup as ConversationGroupType } from '@/lib/ai-buddy/date-grouping';
 import type { Conversation, Project } from '@/types/ai-buddy';
+import { useMemo } from 'react';
 
 export interface ProjectSidebarProps {
   /** List of projects to display */
@@ -38,12 +45,22 @@ export interface ProjectSidebarProps {
   onNewProject?: () => void;
   /** Callback when a project is selected */
   onSelectProject?: (project: Project) => void;
-  /** Callback when a project is archived */
+  /** Callback when a project is archived (Story 16.3) */
   onArchiveProject?: (projectId: string) => void;
+  /** Callback when a project is renamed (Story 16.3) */
+  onRenameProject?: (projectId: string, newName: string) => void;
+  /** Callback when "View Archived" is clicked (Story 16.3) */
+  onViewArchived?: () => void;
   /** Callback when a conversation is selected */
   onSelectConversation?: (id: string) => void;
   /** Callback when a conversation is deleted */
   onDeleteConversation?: (id: string) => void;
+  /** Whether there are more conversations to load (Story 16.4) */
+  hasMoreConversations?: boolean;
+  /** Callback when "Load more" is clicked (Story 16.4) */
+  onLoadMoreConversations?: () => void;
+  /** Whether "Load more" is loading */
+  isLoadingMore?: boolean;
   className?: string;
 }
 
@@ -58,10 +75,27 @@ export function ProjectSidebar({
   onNewProject,
   onSelectProject,
   onArchiveProject,
+  onRenameProject,
+  onViewArchived,
   onSelectConversation,
   onDeleteConversation,
+  hasMoreConversations = false,
+  onLoadMoreConversations,
+  isLoadingMore = false,
   className,
 }: ProjectSidebarProps) {
+  // Story 16.4: Group conversations by date
+  const conversationGroups = useMemo<ConversationGroupType[]>(() => {
+    return groupConversationsByDate(conversations);
+  }, [conversations]);
+
+  // Create a map of project IDs to names for displaying badges
+  const projectNames = useMemo(() => {
+    const map = new Map<string, string>();
+    projects.forEach((p) => map.set(p.id, p.name));
+    return map;
+  }, [projects]);
+
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* New Chat Button */}
@@ -124,17 +158,33 @@ export function ProjectSidebar({
               </Button>
             </div>
           ) : (
-            <div className="space-y-1">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  isActive={project.id === activeProjectId}
-                  onClick={() => onSelectProject?.(project)}
-                  onArchive={onArchiveProject}
-                />
-              ))}
-            </div>
+            <>
+              <div className="space-y-1">
+                {projects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    isActive={project.id === activeProjectId}
+                    onClick={() => onSelectProject?.(project)}
+                    onArchive={onArchiveProject}
+                    onRename={onRenameProject}
+                  />
+                ))}
+              </div>
+              {/* AC-16.3.7: View Archived link */}
+              {onViewArchived && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onViewArchived}
+                  className="w-full justify-start text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] mt-2"
+                  data-testid="view-archived-button"
+                >
+                  <Archive className="h-3 w-3 mr-2" />
+                  View Archived
+                </Button>
+              )}
+            </>
           )}
         </div>
 
@@ -162,19 +212,38 @@ export function ProjectSidebar({
               </p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {conversations.map((conversation) => (
-                <ChatHistoryItem
-                  key={conversation.id}
-                  id={conversation.id}
-                  title={conversation.title || 'New conversation'}
-                  updatedAt={conversation.updatedAt}
-                  isActive={conversation.id === activeConversationId}
-                  onClick={() => onSelectConversation?.(conversation.id)}
-                  onDelete={onDeleteConversation}
+            <>
+              {/* AC-16.4.1: Date-grouped conversations */}
+              {conversationGroups.map((group) => (
+                <ConversationGroup
+                  key={group.label}
+                  label={group.label}
+                  conversations={group.conversations}
+                  activeConversationId={activeConversationId ?? null}
+                  onSelectConversation={(id) => onSelectConversation?.(id)}
+                  onDeleteConversation={(id) => onDeleteConversation?.(id)}
+                  projectNames={projectNames}
                 />
               ))}
-            </div>
+              {/* AC-16.4.6: Load more pagination */}
+              {hasMoreConversations && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onLoadMoreConversations}
+                  disabled={isLoadingMore}
+                  className="w-full justify-center text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] mt-2"
+                  data-testid="load-more-conversations"
+                >
+                  {isLoadingMore ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                  )}
+                  Load more
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>

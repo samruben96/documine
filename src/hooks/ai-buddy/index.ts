@@ -32,3 +32,13 @@ export {
   useConversationSearch,
   type ConversationSearchResult,
 } from './use-conversation-search';
+export {
+  useConversationAttachments,
+  type UseConversationAttachmentsOptions,
+  type UseConversationAttachmentsReturn,
+} from './use-conversation-attachments';
+export {
+  useProjectDocuments,
+  type UseProjectDocumentsOptions,
+  type UseProjectDocumentsReturn,
+} from './use-project-documents';

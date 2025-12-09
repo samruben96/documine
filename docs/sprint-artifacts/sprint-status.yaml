@@ -1002,7 +1002,13 @@ development_status:
   # FRs: FR3, FR4, FR6, FR11-19
   # Stories: 6 (consolidated from 9 for implementation efficiency - 2025-12-07)
   # Tech Spec: docs/sprint-artifacts/epics/epic-16/tech-spec.md
-  epic-16-ai-buddy-projects: contexted
+  # COMPLETE 2025-12-08: All 6 stories done (22 points)
+  # Key features: Project CRUD, context switching, conversation history, search, management
+  # RETROSPECTIVE 2025-12-08: docs/sprint-artifacts/retrospectives/epic-16-retrospective.md
+  # Key learnings: Story consolidation (9→6), PostgreSQL FTS, pattern reuse
+  # Grade: A - 100% delivery, 2000+ tests, excellent code quality
+  epic-16-ai-buddy-projects: done
+  epic-16-retrospective: completed
   # Story 16.1: Project Creation & Sidebar (FR11, FR17)
   # Merged from: Create Project + Project Sidebar
   # DRAFTED 2025-12-07: Story file at docs/sprint-artifacts/epics/epic-16/stories/16-1-project-creation-sidebar/16-1-project-creation-sidebar.md
@@ -1036,19 +1042,63 @@ development_status:
   16-5-conversation-search: done
   # Story 16.6: Conversation Management - Delete & Move (FR6, FR19)
   # Merged from: Delete Conversations + Move Conversation to Project
-  16-6-conversation-management: backlog
+  # READY 2025-12-08: Story + context at docs/sprint-artifacts/epics/epic-16/stories/16-6-conversation-management/
+  # IMPLEMENTED 2025-12-08: All 12 ACs complete + UX enhancements
+  # - API endpoints: DELETE (soft delete with audit log), PATCH (move to project)
+  # - Hook: moveConversation with optimistic updates
+  # - Context: Delete confirmation dialog, move confirmation handlers
+  # - UI: ConversationContextMenu, DeleteConversationDialog, MoveToProjectDialog
+  # - Navigation: Clears active conversation after delete
+  # - UX Enhancements: Ellipsis menu (visible on hover), enhanced project badge, project context indicators
+  # - E2E tests: ai-buddy-conversation-management.spec.ts
+  # - 2022 unit tests pass, build successful
+  16-6-conversation-management: done
 
   # Epic 17: AI Buddy Document Intelligence
   # Goal: Document upload, processing, AI-powered context
   # FRs: FR20-25, FR65, FR66
-  epic-17-ai-buddy-document-intelligence: backlog
-  17-1-document-upload-conversation: backlog
-  17-2-document-upload-project: backlog
-  17-3-document-processing-status: backlog
-  17-4-document-preview: backlog
-  17-5-multi-document-context: backlog
-  17-6-remove-project-documents: backlog
-  17-7-documine-document-integration: backlog
+  # Tech Spec: docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md
+  # Stories consolidated: 7 → 4 stories (merged for implementation efficiency)
+  # - 17.1: Document Upload to Conversation with Status (FR20, FR24)
+  # - 17.2: Project Document Management (FR21, FR14, FR65, FR66)
+  # - 17.3: Document Preview & Multi-Document Context (FR23, FR25)
+  # - 17.4: Document Processing Integration (FR22)
+  # Total Points: 15
+  epic-17-ai-buddy-document-intelligence: contexted
+  # Story 17.1: Document Upload to Conversation with Status
+  # READY 2025-12-08: Context generated, ready for development
+  # Story: docs/sprint-artifacts/epics/epic-17/stories/17-1-document-upload-conversation-status/17-1-document-upload-conversation-status.md
+  # Context: docs/sprint-artifacts/epics/epic-17/stories/17-1-document-upload-conversation-status/17-1-document-upload-conversation-status.context.xml
+  # IMPLEMENTED 2025-12-08: All 6 ACs complete
+  # - AC-17.1.1: Attach button opens file picker for PDF/images via DocumentUploadZone
+  # - AC-17.1.2: Max 5 files with pending attachments above input + remove buttons
+  # - AC-17.1.3: Status indicators: pending → uploading → processing → ready/failed
+  # - AC-17.1.4: AI references documents with page-level citations via RAG integration
+  # - AC-17.1.5: Drag-drop files onto chat area via react-dropzone
+  # - AC-17.1.6: Retry button for failed files via AttachmentChip component
+  # Database: ai_buddy_conversation_documents junction table with RLS
+  # API: POST/GET /api/ai-buddy/conversations/[id]/attachments
+  # Hooks: useConversationAttachments with Supabase Realtime subscriptions
+  # RAG: getConversationAttachmentChunks, buildConversationPrompt, conversationChunksToCitations
+  # Tests: 2022 unit tests pass, E2E spec created
+  17-1-document-upload-conversation-status: done
+  # Story 17.2: Project Document Management
+  # IMPLEMENTED 2025-12-08: All 7 ACs complete
+  # - AC-17.2.1: Add Document shows "Upload New" and "Select from Library" options via AddDocumentMenu
+  # - AC-17.2.2: Uploaded documents appear in project's document list via DocumentPanel
+  # - AC-17.2.3: Library documents searchable via DocumentLibraryPicker with search input
+  # - AC-17.2.4: Library documents link to project without duplication (ai_buddy_project_documents)
+  # - AC-17.2.5: Remove (X) removes from project context via confirmation dialog
+  # - AC-17.2.6: Historical citations remain valid (document stays in library)
+  # - AC-17.2.7: Documents with extraction_data show Quote badge, RAG includes structured context
+  # Database: ai_buddy_project_documents junction table (project_id, document_id, attached_at)
+  # API: GET/POST /api/ai-buddy/projects/[id]/documents, DELETE /api/ai-buddy/projects/[id]/documents/[documentId]
+  # Hooks: useProjectDocuments with optimistic updates, realtime status subscription
+  # RAG: getProjectDocumentChunks integrates project docs into chat context with structuredExtractionContext
+  # Tests: 44 unit tests (hook + components), E2E spec created, 2066+ tests pass
+  17-2-project-document-management: done
+  17-3-document-preview-multi-document-context: backlog
+  17-4-document-processing-integration: backlog
 
   # Epic 18: AI Buddy Personalization & Onboarding
   # Goal: Personalized AI experience from first interaction

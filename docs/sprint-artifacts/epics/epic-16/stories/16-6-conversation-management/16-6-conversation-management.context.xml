@@ -1,0 +1,162 @@
+<story-context id="16-6-conversation-management" v="1.0">
+  <metadata>
+    <epicId>16</epicId>
+    <storyId>6</storyId>
+    <title>Conversation Management - Delete &amp; Move</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-16/stories/16-6-conversation-management/16-6-conversation-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to delete conversations I no longer need and move conversations between projects</iWant>
+    <soThat>I can keep my conversation history organized and correct any misplaced conversations</soThat>
+    <tasks>
+      <phase name="A: API Endpoints">
+        <task id="T1">Create src/app/api/ai-buddy/conversations/[id]/route.ts - NOTE: File already exists with GET and DELETE, need to add PATCH</task>
+        <task id="T2">Implement DELETE handler with soft delete - NOTE: Already exists, needs audit logging</task>
+        <task id="T3">Implement PATCH handler for projectId updates</task>
+        <task id="T4">Add ownership verification (verify-then-service pattern)</task>
+        <task id="T5">Add audit logging for delete operations</task>
+        <task id="T6">Integration tests for API endpoints</task>
+      </phase>
+      <phase name="B: Hook Extensions">
+        <task id="T7">Add useDeleteConversation mutation - NOTE: deleteConversation already exists in use-conversations.ts</task>
+        <task id="T8">Add useMoveConversation mutation to use-conversations.ts</task>
+        <task id="T9">Handle cache invalidation after mutations</task>
+        <task id="T10">Toast notifications for success/error states</task>
+        <task id="T11">Unit tests for hooks</task>
+      </phase>
+      <phase name="C: Context Menu Component">
+        <task id="T12">Create conversation-context-menu.tsx</task>
+        <task id="T13">Create delete-conversation-dialog.tsx with confirmation</task>
+        <task id="T14">Create move-to-project-dialog.tsx with project selection</task>
+        <task id="T15">Integrate context menu into chat-history-item.tsx - NOTE: Currently uses DropdownMenu, switch to ContextMenu</task>
+        <task id="T16">Component tests for all new components</task>
+      </phase>
+      <phase name="D: Navigation Handling">
+        <task id="T17">Update ai-buddy-context.tsx for post-delete navigation</task>
+        <task id="T18">If active conversation is deleted, clear selection and show empty state</task>
+        <task id="T19">After move, conversation remains selected (context updated)</task>
+      </phase>
+      <phase name="E: E2E Testing">
+        <task id="T20">E2E test: Right-click opens context menu</task>
+        <task id="T21">E2E test: Delete with confirmation removes conversation</task>
+        <task id="T22">E2E test: Move to project updates conversation location</task>
+        <task id="T23">E2E test: Move to No Project (general chat)</task>
+        <task id="T24">E2E test: Deleting active conversation navigates away</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <group name="Delete Conversation (FR6)">
+      <criterion id="AC-16.6.1">Conversation menu includes "Delete" option</criterion>
+      <criterion id="AC-16.6.2">Delete shows confirmation dialog "Delete this conversation?"</criterion>
+      <criterion id="AC-16.6.3">Confirming delete sets deleted_at (soft delete)</criterion>
+      <criterion id="AC-16.6.4">Deleted conversation no longer visible to user</criterion>
+      <criterion id="AC-16.6.5">Audit log records deletion event with conversation_deleted action</criterion>
+      <criterion id="AC-16.6.6">After delete, user returned to AI Buddy home or project view</criterion>
+    </group>
+    <group name="Move to Project (FR19)">
+      <criterion id="AC-16.6.7">Conversation menu includes "Move to Project" option</criterion>
+      <criterion id="AC-16.6.8">Selecting project updates conversation's project_id</criterion>
+      <criterion id="AC-16.6.9">Moved conversation appears in target project's history</criterion>
+      <criterion id="AC-16.6.10">Toast shows "Moved to [Project Name]" confirmation</criterion>
+      <criterion id="AC-16.6.11">Future messages in moved conversation get project document context</criterion>
+      <criterion id="AC-16.6.12">Can move from project to "No Project" (general chat)</criterion>
+    </group>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture" snippet="Defines ai_buddy_conversations table with deleted_at column for soft delete. RLS policies filter deleted_at IS NULL. Includes audit_logs table pattern." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Implementation Patterns - Verify-Then-Service" snippet="Critical pattern for UPDATE/DELETE in Edge Runtime. Verify ownership via SELECT with browser client, then perform mutation with service client (bypasses RLS)." />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Security Architecture - Audit Logging" snippet="All significant actions must be logged to ai_buddy_audit_logs with user_id, agency_id, action, resource_type, resource_id, and metadata." />
+      <doc path="docs/sprint-artifacts/epics/epic-16/tech-spec.md" title="Epic 16 Tech Spec" section="Story 16.6" snippet="Defines API contracts: DELETE sets deleted_at, PATCH updates project_id. Error codes AIB_201-203 for not found, unauthorized, invalid project." />
+      <doc path="docs/sprint-artifacts/epics/epic-16/stories/16-3-project-management/16-3-project-management.md" title="Story 16.3" section="Context Menu Pattern" snippet="Reference implementation for ProjectContextMenu component using shadcn ContextMenu with Rename and Archive options. Pattern to follow for ConversationContextMenu." />
+      <doc path="docs/sprint-artifacts/epics/epic-16/stories/16-5-conversation-search/16-5-conversation-search.md" title="Story 16.5" section="Dev Agent Record" snippet="Recent learnings: Hook pattern with API calls, toast notifications, context integration for navigation. Barrel export reminder for new hooks." />
+    </docs>
+
+    <code>
+      <file path="src/app/api/ai-buddy/conversations/[id]/route.ts" kind="api-route" lines="1-242" reason="CRITICAL: Existing route with GET and DELETE handlers. DELETE already implements soft delete but needs audit logging. Add PATCH handler for move to project functionality." />
+      <file path="src/components/ai-buddy/chat-history-item.tsx" kind="component" lines="1-132" reason="MODIFY: Currently uses DropdownMenu for delete action. Need to replace with ContextMenu pattern and add Move to Project option." />
+      <file path="src/components/ai-buddy/project-context-menu.tsx" kind="component" lines="1-72" reason="REFERENCE PATTERN: Context menu implementation to follow. Uses ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem from shadcn." />
+      <file path="src/hooks/ai-buddy/use-conversations.ts" kind="hook" lines="1-387" reason="MODIFY: Add useMoveConversation mutation. Existing deleteConversation function at lines 247-277 handles optimistic updates - extend pattern for move operation." />
+      <file path="src/contexts/ai-buddy-context.tsx" kind="context" lines="1-335" reason="MODIFY: Add moveConversation handler. Handle navigation when conversation project changes. Existing patterns for project archiving at lines 186-196." />
+      <file path="src/components/ui/context-menu.tsx" kind="ui-component" lines="1-253" reason="REFERENCE: shadcn ContextMenu component with ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger for submenu pattern (useful for Move to Project submenu)." />
+      <file path="src/components/ai-buddy/archive-confirmation-dialog.tsx" kind="component" reason="REFERENCE PATTERN: Confirmation dialog pattern for destructive actions. Use similar pattern for delete-conversation-dialog.tsx" />
+      <file path="src/lib/supabase/server.ts" kind="library" reason="REFERENCE: createClient and createServiceClient exports for verify-then-service pattern." />
+      <file path="src/lib/ai-buddy/index.ts" kind="library" reason="REFERENCE: aiBuddySuccessResponse and aiBuddyErrorResponse helpers for API responses." />
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@radix-ui/react-context-menu" version="^2.2.16" />
+        <package name="@radix-ui/react-alert-dialog" version="^1.1.15" />
+        <package name="sonner" version="^2.0.7" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="date-fns" version="^4.1.0" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use verify-then-service pattern for API mutations: verify ownership with browser client SELECT, then mutate with service client</constraint>
+    <constraint type="pattern">Follow soft delete pattern with deleted_at timestamp - never hard delete conversations</constraint>
+    <constraint type="pattern">All delete operations must create audit log entry in ai_buddy_audit_logs table</constraint>
+    <constraint type="pattern">Use optimistic updates in hooks for better UX - update local state before API confirms</constraint>
+    <constraint type="pattern">Add new hooks to barrel export at src/hooks/ai-buddy/index.ts</constraint>
+    <constraint type="pattern">Use data-testid attributes for all interactive elements to support E2E testing</constraint>
+    <constraint type="testing">Integration tests required for API endpoints before component work</constraint>
+    <constraint type="testing">E2E tests with Playwright for user flows</constraint>
+    <constraint type="style">Follow existing component patterns in src/components/ai-buddy/</constraint>
+    <constraint type="rls">RLS policies filter deleted_at IS NOT NULL - ensure queries include deleted_at IS NULL filter</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="DELETE /api/ai-buddy/conversations/[id]" kind="REST endpoint" path="src/app/api/ai-buddy/conversations/[id]/route.ts">
+      <signature>DELETE - Soft delete conversation (sets deleted_at). Returns { data: { deleted: true }, error: null }</signature>
+      <note>Existing implementation needs audit logging added</note>
+    </interface>
+    <interface name="PATCH /api/ai-buddy/conversations/[id]" kind="REST endpoint" path="src/app/api/ai-buddy/conversations/[id]/route.ts">
+      <signature>PATCH { projectId: string | null } - Move conversation to project. Returns { data: Conversation, error: null }</signature>
+      <note>New endpoint to implement</note>
+    </interface>
+    <interface name="Conversation" kind="TypeScript type" path="src/types/ai-buddy.ts">
+      <signature>interface Conversation { id, agencyId, userId, projectId: string | null, title, deletedAt, createdAt, updatedAt, messageCount? }</signature>
+    </interface>
+    <interface name="ConversationContextMenuProps" kind="component props" path="src/components/ai-buddy/conversation-context-menu.tsx">
+      <signature>{ conversationId: string, conversationTitle: string, currentProjectId: string | null, children: ReactNode }</signature>
+    </interface>
+    <interface name="useMoveConversation" kind="hook return" path="src/hooks/ai-buddy/use-conversations.ts">
+      <signature>useMutation returning mutate({ conversationId, projectId }) with success/error handlers</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests with Vitest (vitest run). Component tests with React Testing Library. E2E tests with Playwright (@playwright/test). Mock fetch for API calls in unit tests. Use data-testid for element selection. Follow existing test patterns in __tests__/ directory structure.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/ - Component tests</location>
+      <location>__tests__/hooks/ai-buddy/ - Hook tests</location>
+      <location>__tests__/e2e/ - Playwright E2E tests</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-16.6.1">Component test: ConversationContextMenu renders with Delete and Move to Project options</idea>
+      <idea ac="AC-16.6.2">Component test: DeleteConversationDialog shows confirmation message with conversation title</idea>
+      <idea ac="AC-16.6.3">Integration test: DELETE /conversations/[id] sets deleted_at timestamp in database</idea>
+      <idea ac="AC-16.6.4">Integration test: GET /conversations excludes conversations with deleted_at set</idea>
+      <idea ac="AC-16.6.5">Integration test: DELETE /conversations/[id] creates audit log entry with action='conversation_deleted'</idea>
+      <idea ac="AC-16.6.6">E2E test: After deleting active conversation, user sees empty chat state</idea>
+      <idea ac="AC-16.6.7">Component test: Move to Project submenu shows list of user's projects</idea>
+      <idea ac="AC-16.6.8">Integration test: PATCH /conversations/[id] with projectId updates conversation's project_id</idea>
+      <idea ac="AC-16.6.9">E2E test: After moving conversation, it appears in target project's conversation list</idea>
+      <idea ac="AC-16.6.10">Component test: useMoveConversation shows toast with project name on success</idea>
+      <idea ac="AC-16.6.12">Integration test: PATCH /conversations/[id] with projectId=null sets project_id to null</idea>
+    </ideas>
+  </tests>
+</story-context>

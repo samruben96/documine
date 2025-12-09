@@ -1,6 +1,6 @@
 # Epic 17: AI Buddy Document Intelligence
 
-**Status:** Backlog
+**Status:** In Progress
 **Created:** 2025-12-07
 **Planning Docs:** `docs/features/ai-buddy/`
 **Additional Architecture:** `documine/docs/architecture`
@@ -16,6 +16,7 @@ AI can answer questions about user's specific policies, quotes, and applications
 
 ## Functional Requirements
 
+- **FR14:** Users can remove documents from Projects
 - **FR20:** Users can upload documents directly into a conversation for immediate context
 - **FR21:** Users can upload documents to a Project for persistent availability
 - **FR22:** System processes uploaded documents and makes content available for AI queries
@@ -25,17 +26,18 @@ AI can answer questions about user's specific policies, quotes, and applications
 - **FR65:** Documents uploaded to docuMINE are available in AI Buddy Projects
 - **FR66:** AI can reference previously analyzed documents from Document Comparison
 
-## Stories
+## Stories (Consolidated)
 
-| Story | Name | Description |
-|-------|------|-------------|
-| 17.1 | Document Upload (Conversation) | Attach documents to current conversation |
-| 17.2 | Document Upload (Project) | Upload documents for persistent project context |
-| 17.3 | Document Processing Status | Show upload/processing/ready status |
-| 17.4 | Document Preview | In-app document viewer with page navigation |
-| 17.5 | Multi-Document Context | RAG across multiple documents |
-| 17.6 | Remove Project Documents | Remove documents from project context |
-| 17.7 | docuMINE Integration | Access existing documents from library |
+Stories consolidated from 7 → 4 for implementation efficiency:
+
+| Story | Name | Points | Description | FRs |
+|-------|------|--------|-------------|-----|
+| 17.1 | Document Upload to Conversation with Status | 3 | Attach documents to current conversation with real-time processing status | FR20, FR24 |
+| 17.2 | Project Document Management | 5 | Upload to projects, library picker, remove documents | FR21, FR14, FR65, FR66 |
+| 17.3 | Document Preview & Multi-Document Context | 5 | In-app preview, citation navigation, multi-doc RAG | FR23, FR25 |
+| 17.4 | Document Processing Integration | 2 | LlamaParse integration, chunk embeddings, retry | FR22 |
+
+**Total Points:** 15
 
 ## Dependencies
 

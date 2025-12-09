@@ -1,0 +1,197 @@
+<story-context id="17-1-document-upload-conversation-status" v="1.0">
+  <metadata>
+    <epicId>17</epicId>
+    <storyId>17.1</storyId>
+    <title>Document Upload to Conversation with Status</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-17/stories/17-1-document-upload-conversation-status/17-1-document-upload-conversation-status.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>to attach documents directly to my conversation</iWant>
+    <soThat>the AI can reference them when answering my questions with accurate, sourced information</soThat>
+    <tasks>
+      <phase id="A" name="Database Migration">
+        <task id="T1">Create migration file for ai_buddy_conversation_documents table</task>
+        <task id="T2">Add RLS policies for SELECT, INSERT, DELETE</task>
+        <task id="T3">Apply migration to development and verify indexes</task>
+        <task id="T4">Regenerate TypeScript types (npm run generate-types)</task>
+      </phase>
+      <phase id="B" name="API Endpoints">
+        <task id="T5">Create src/app/api/ai-buddy/conversations/[id]/attachments/route.ts</task>
+        <task id="T6">Implement POST handler for file upload (multipart/form-data)</task>
+        <task id="T7">Implement GET handler to list conversation attachments</task>
+        <task id="T8">Add file type and size validation (PDF, PNG, JPG, 50MB)</task>
+        <task id="T9">Integration tests for API endpoints</task>
+      </phase>
+      <phase id="C" name="Hook Implementation">
+        <task id="T10">Create use-conversation-attachments.ts hook</task>
+        <task id="T11">Implement pending attachments state management</task>
+        <task id="T12">Implement upload mutation with progress tracking</task>
+        <task id="T13">Add Supabase Realtime subscription for document status</task>
+        <task id="T14">Unit tests for hook</task>
+      </phase>
+      <phase id="D" name="UI Components">
+        <task id="T15">Create DocumentUploadZone component with react-dropzone</task>
+        <task id="T16">Create AttachmentChip component with status indicator</task>
+        <task id="T17">Create PendingAttachments container component</task>
+        <task id="T18">Integrate attach button into ChatInput</task>
+        <task id="T19">Add drop zone wrapper to ChatPanel</task>
+        <task id="T20">Component tests for all new components</task>
+      </phase>
+      <phase id="E" name="RAG Integration">
+        <task id="T21">Add getConversationAttachmentChunks() to rag.ts</task>
+        <task id="T22">Extend chat API to include attachment chunks in context</task>
+        <task id="T23">Verify citations include document name for attachments</task>
+        <task id="T24">Integration test for RAG with attachments</task>
+      </phase>
+      <phase id="F" name="E2E Testing">
+        <task id="T25">E2E test: Click attach button opens file picker</task>
+        <task id="T26">E2E test: Drag-drop files shows pending attachments</task>
+        <task id="T27">E2E test: Send message with attachment triggers upload</task>
+        <task id="T28">E2E test: Processing status updates in real-time</task>
+        <task id="T29">E2E test: AI response cites attached document</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="AC-17.1.1">Given I am in a conversation, when I click the attach button (📎), then a file picker opens for PDF and image files (PDF, PNG, JPG, JPEG).</ac>
+    <ac id="AC-17.1.2">Given I select files (max 5), when I attach them, then they appear as pending attachments above the input with file names and remove buttons.</ac>
+    <ac id="AC-17.1.3">Given I send a message with attachments, when processing begins, then I see status indicator per file: Uploading → Processing → Ready (or Failed).</ac>
+    <ac id="AC-17.1.4">Given processing completes, when AI responds, then it can reference the attached documents with page-level citations.</ac>
+    <ac id="AC-17.1.5">Given I drag files onto the chat area, when I drop them, then they attach to the current message (same as attach button).</ac>
+    <ac id="AC-17.1.6">Given processing fails, when I see Failed status, then I can click retry to reprocess the document.</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md" title="Epic 17 Tech Spec" section="Story 17.1">
+        Authoritative source for ACs and implementation requirements. Defines document upload flow, data models, and API contracts.
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="File Upload Pattern, RLS Service Client Pattern">
+        Required patterns for file upload to Supabase Storage and safe UPDATE/DELETE operations with service client.
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="SSE Streaming Pattern" section="SSE Streaming Pattern for AI Responses">
+        Pattern for streaming AI responses with citations. Chat API already implements this - extend for attachment citations.
+      </doc>
+      <doc path="docs/architecture/rag-pipeline-architecture-implemented.md" title="RAG Pipeline Architecture">
+        Current production RAG pipeline. Add getConversationAttachmentChunks() following existing patterns.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture">
+        AI Buddy feature architecture including component hierarchy and state management patterns.
+      </doc>
+    </docs>
+
+    <code>
+      <file path="src/components/ai-buddy/chat-input.tsx" kind="component" lines="1-289" reason="MODIFY: Add attach button integration, already has onAttach prop and Paperclip import. Wire up DocumentUploadZone.">
+        <symbol>ChatInput</symbol>
+        <note>onAttach callback already defined but not wired to file picker. Integrate with new DocumentUploadZone.</note>
+      </file>
+      <file path="src/components/ai-buddy/document-upload-zone.tsx" kind="component" lines="1-72" reason="MODIFY: Scaffold exists from Epic 14. Upgrade with react-dropzone, file validation, and attach button mode.">
+        <symbol>DocumentUploadZone</symbol>
+        <note>Basic drag-drop exists. Replace with react-dropzone implementation per story spec.</note>
+      </file>
+      <file path="src/lib/chat/rag.ts" kind="service" lines="1-435" reason="MODIFY: Add getConversationAttachmentChunks() function to retrieve chunks from conversation attachments.">
+        <symbol>retrieveContext, buildPromptWithStructuredData</symbol>
+        <note>Follow existing retrieveContext pattern. New function queries ai_buddy_conversation_documents junction then document_chunks.</note>
+      </file>
+      <file path="src/lib/documents/service.ts" kind="service" lines="1-342" reason="REFERENCE: File upload pattern with createDocumentRecord and createProcessingJob. Reuse for conversation attachments.">
+        <symbol>createDocumentRecord, createProcessingJob</symbol>
+        <note>Use same pattern for uploading files attached to conversations.</note>
+      </file>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api" lines="1-120" reason="MODIFY: Extend to include conversation attachment chunks in RAG context. SSE patterns already established.">
+        <symbol>POST handler, formatSSEEvent</symbol>
+        <note>Add call to getConversationAttachmentChunks() and combine with existing context.</note>
+      </file>
+      <file path="src/hooks/ai-buddy/use-conversations.ts" kind="hook" lines="1-100" reason="REFERENCE: Hook patterns with useQuery/useMutation, cache invalidation, toast notifications.">
+        <symbol>useConversations</symbol>
+        <note>Follow same patterns for useConversationAttachments hook.</note>
+      </file>
+      <file path="src/hooks/ai-buddy/index.ts" kind="barrel" reason="MODIFY: Add export for new useConversationAttachments hook.">
+        <note>Standard barrel export pattern.</note>
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" lines="1-100" reason="MODIFY: Add ConversationAttachment and PendingAttachment types.">
+        <note>Follow existing interface patterns (camelCase, optional fields marked).</note>
+      </file>
+      <file path="src/contexts/ai-buddy-context.tsx" kind="context" reason="REFERENCE: State management patterns for AI Buddy.">
+        <note>May need to add pending attachments state if shared across components.</note>
+      </file>
+      <file path="src/app/api/ai-buddy/conversations/[id]/route.ts" kind="api" reason="REFERENCE: Verify-Then-Service pattern for mutations.">
+        <symbol>DELETE handler</symbol>
+        <note>Use same RLS workaround pattern for attachment DELETE operations.</note>
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="react-dropzone" version="^14.3.8" installed="true">Drag-and-drop file upload. Already installed.</package>
+        <package name="@tanstack/react-query" version="^5.x" installed="true">Data fetching. Part of existing stack (via use-conversations pattern).</package>
+        <package name="@supabase/supabase-js" version="^2.84.0" installed="true">Storage, Realtime, Database access.</package>
+      </npm>
+      <supabase>
+        <table name="documents" usage="Store uploaded document records">Existing table. Create records with status='processing'.</table>
+        <table name="document_chunks" usage="Store embeddings">Existing table. Query for RAG retrieval.</table>
+        <table name="processing_jobs" usage="Async processing queue">Existing table. Create jobs for processing.</table>
+        <table name="ai_buddy_conversation_documents" usage="NEW: Junction table linking conversations to documents">Create in migration.</table>
+      </supabase>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec" priority="high">File types limited to PDF, PNG, JPG, JPEG. Validate both client and server side.</constraint>
+    <constraint source="tech-spec" priority="high">Maximum file size 50MB. Enforce in client validation and API.</constraint>
+    <constraint source="tech-spec" priority="high">Maximum 5 files per message. Enforce in pending attachments state.</constraint>
+    <constraint source="architecture" priority="high">Use Verify-Then-Service pattern for DELETE operations (RLS workaround).</constraint>
+    <constraint source="architecture" priority="medium">Edge Runtime required for chat API (sub-500ms TTFB).</constraint>
+    <constraint source="architecture" priority="medium">All file paths in code should use project-relative format.</constraint>
+    <constraint source="story-16.6" priority="medium">Add new hooks to src/hooks/ai-buddy/index.ts barrel export.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/ai-buddy/conversations/[id]/attachments" kind="REST endpoint">
+      <signature>POST /api/ai-buddy/conversations/[id]/attachments (multipart/form-data)</signature>
+      <request>FormData with 'files' field containing File[]</request>
+      <response>{ data: { attachments: ConversationAttachment[] }, error: null }</response>
+      <errors>AIB_301 (conversation not found), AIB_302 (max attachments), AIB_303 (invalid type), AIB_304 (file too large)</errors>
+    </interface>
+    <interface name="GET /api/ai-buddy/conversations/[id]/attachments" kind="REST endpoint">
+      <signature>GET /api/ai-buddy/conversations/[id]/attachments</signature>
+      <response>{ data: { attachments: ConversationAttachment[] }, error: null }</response>
+    </interface>
+    <interface name="ConversationAttachment" kind="TypeScript type" path="src/types/ai-buddy.ts">
+      <signature>interface ConversationAttachment { document_id: string; attached_at: string; document: { id, name, file_type, status, page_count } }</signature>
+    </interface>
+    <interface name="PendingAttachment" kind="TypeScript type" path="src/types/ai-buddy.ts">
+      <signature>interface PendingAttachment { id: string; file: File; name: string; status: 'pending'|'uploading'|'processing'|'ready'|'failed'; progress?: number; error?: string }</signature>
+    </interface>
+    <interface name="getConversationAttachmentChunks" kind="function" path="src/lib/chat/rag.ts">
+      <signature>async function getConversationAttachmentChunks(conversationId: string, userId: string): Promise&lt;RetrievedChunk[]&gt;</signature>
+      <note>Query ai_buddy_conversation_documents junction, then document_chunks for those documents.</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Vitest for unit/integration tests and Playwright for E2E. Component tests use @testing-library/react. Mock Supabase client for isolation. Follow existing test patterns in __tests__/components/ai-buddy/ and __tests__/hooks/ai-buddy/.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/documents/document-upload-zone.test.tsx</location>
+      <location>__tests__/components/ai-buddy/documents/attachment-chip.test.tsx</location>
+      <location>__tests__/components/ai-buddy/documents/pending-attachments.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-conversation-attachments.test.ts</location>
+      <location>__tests__/e2e/ai-buddy-document-upload.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-17.1.1">Test attach button click triggers file input. Verify accepted file types.</idea>
+      <idea ac="AC-17.1.2">Test addPendingAttachments limits to 5 files. Verify remove button works.</idea>
+      <idea ac="AC-17.1.3">Mock upload mutation, verify status transitions: pending → uploading → processing → ready.</idea>
+      <idea ac="AC-17.1.4">Integration test: upload document, send message, verify citation includes document name.</idea>
+      <idea ac="AC-17.1.5">Test drag-drop with react-dropzone. Verify isDragActive state styling.</idea>
+      <idea ac="AC-17.1.6">Mock failed processing, verify retry button creates new processing job.</idea>
+    </ideas>
+  </tests>
+</story-context>

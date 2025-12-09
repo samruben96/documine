@@ -10,6 +10,7 @@ import { ProjectContextHeader } from '@/components/ai-buddy/project-context-head
 import { ArchiveConfirmationDialog } from '@/components/ai-buddy/archive-confirmation-dialog';
 import { ArchivedProjectsSheet } from '@/components/ai-buddy/archived-projects-sheet';
 import { ConversationSearch } from '@/components/ai-buddy/conversation-search';
+import { DocumentPanel } from '@/components/ai-buddy/documents/document-panel';
 import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
 
 /**
@@ -18,6 +19,7 @@ import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context'
  * Story 16.3: Project Management - Rename & Archive
  * Story 16.4: Conversation History & General Chat
  * Story 16.5: Conversation Search (FR4)
+ * Story 17.2: Project Document Management
  *
  * Light theme layout for AI Buddy feature with project and conversation sidebar.
  *
@@ -31,6 +33,7 @@ import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context'
  * AC-16.4.1: Date-grouped conversations
  * AC-16.4.6: Load more pagination
  * AC-16.5.1: Cmd/Ctrl+K opens search dialog
+ * AC-17.2.1: Document panel with Add Document menu (Upload/Library options)
  */
 
 interface AiBuddyLayoutProps {
@@ -184,28 +187,41 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
       </Sheet>
 
       {/* Main content area - AC 14.4.3 */}
-      <main className="flex-1 flex flex-col min-w-0 bg-slate-50">
-        {/* Mobile header with menu toggle - Story 16.2: AC-16.2.1, AC-16.2.2 */}
-        <div className="flex h-14 items-center px-4 border-b border-slate-200 bg-white lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            className="text-slate-700 hover:bg-slate-100"
-            data-testid="mobile-menu-button"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="ml-3">
-            <ProjectContextHeader
-              projectName={activeProject?.name}
-              isLoading={isLoadingProjects && !activeProject}
-            />
+      <main className="flex-1 flex min-w-0 bg-slate-50">
+        {/* Chat area container */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile header with menu toggle - Story 16.2: AC-16.2.1, AC-16.2.2 */}
+          <div className="flex h-14 items-center px-4 border-b border-slate-200 bg-white lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="text-slate-700 hover:bg-slate-100"
+              data-testid="mobile-menu-button"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <div className="ml-3">
+              <ProjectContextHeader
+                projectName={activeProject?.name}
+                isLoading={isLoadingProjects && !activeProject}
+              />
+            </div>
           </div>
+
+          {/* Page content */}
+          <div className="flex-1 overflow-hidden">{children}</div>
         </div>
 
-        {/* Page content */}
-        <div className="flex-1 overflow-hidden">{children}</div>
+        {/* Story 17.2: Document Panel - Right side panel for project documents */}
+        {/* AC-17.2.1: Shows Add Document with Upload/Library options */}
+        {/* Only visible on desktop (lg+) when a project is selected */}
+        {activeProjectId && (
+          <DocumentPanel
+            projectId={activeProjectId}
+            className="hidden lg:flex"
+          />
+        )}
       </main>
 
       {/* Project Create Dialog - AC-16.1.1 */}

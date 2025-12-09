@@ -101,6 +101,20 @@ interface AiBuddyContextValue extends UseConversationsReturn {
   setSearchOpen: (open: boolean) => void;
   /** Set active conversation by ID (for search result selection) */
   setActiveConversation: (conversationId: string) => void;
+
+  // Conversation management (Story 16.6)
+  /** Move a conversation to a different project */
+  moveConversation: (conversationId: string, projectId: string | null) => Promise<Conversation | null>;
+  /** Whether a conversation is being moved */
+  isMovingConversation: boolean;
+  /** Conversation to delete (for confirmation dialog) */
+  conversationToDelete: { id: string; title: string } | null;
+  /** Show delete confirmation dialog */
+  showDeleteConfirmation: (conversation: { id: string; title: string }) => void;
+  /** Close delete confirmation dialog */
+  closeDeleteConfirmation: () => void;
+  /** Confirm delete and perform operation */
+  confirmDelete: () => Promise<void>;
 }
 
 const AiBuddyContext = createContext<AiBuddyContextValue | null>(null);
@@ -126,6 +140,9 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
   const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // Story 16.6: Conversation management state
+  const [isMovingConversation, setIsMovingConversation] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<{ id: string; title: string } | null>(null);
 
   // Sync active project with projects list when projects load
   useEffect(() => {
@@ -264,6 +281,43 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     [projectsHook]
   );
 
+  // Story 16.6: Move conversation to project handler
+  const moveConversation = useCallback(
+    async (conversationId: string, targetProjectId: string | null): Promise<Conversation | null> => {
+      setIsMovingConversation(true);
+      try {
+        return await conversationsHook.moveConversation(conversationId, targetProjectId);
+      } finally {
+        setIsMovingConversation(false);
+      }
+    },
+    [conversationsHook]
+  );
+
+  // Story 16.6: Delete conversation confirmation handlers
+  const showDeleteConfirmation = useCallback(
+    (conversation: { id: string; title: string }) => {
+      setConversationToDelete(conversation);
+    },
+    []
+  );
+
+  const closeDeleteConfirmation = useCallback(() => {
+    setConversationToDelete(null);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    if (conversationToDelete) {
+      await conversationsHook.deleteConversation(conversationToDelete.id);
+      // AC-16.6.6: After delete, clear selection if it was the active conversation
+      if (selectedConversationId === conversationToDelete.id) {
+        setSelectedConversationId(null);
+        conversationsHook.clearActiveConversation();
+      }
+      setConversationToDelete(null);
+    }
+  }, [conversationToDelete, conversationsHook, selectedConversationId]);
+
   // Story 16.4: Load more conversations
   const loadMoreConversations = useCallback(async () => {
     if (conversationsHook.nextCursor && !isLoadingMore) {
@@ -316,6 +370,13 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     closeSearch,
     setSearchOpen: setIsSearchOpen,
     setActiveConversation,
+    // Conversation management (Story 16.6)
+    moveConversation,
+    isMovingConversation,
+    conversationToDelete,
+    showDeleteConfirmation,
+    closeDeleteConfirmation,
+    confirmDelete,
   };
 
   return (

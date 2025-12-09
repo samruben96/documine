@@ -42,6 +42,8 @@ export interface UseConversationsReturn {
   createConversation: (projectId?: string) => Promise<Conversation | null>;
   /** Delete a conversation (soft delete) */
   deleteConversation: (id: string) => Promise<void>;
+  /** Move a conversation to a different project (Story 16.6) */
+  moveConversation: (id: string, projectId: string | null) => Promise<Conversation | null>;
   /** Search conversations by title */
   searchConversations: (query: string) => Promise<Conversation[]>;
   /** Clear active conversation */
@@ -277,6 +279,98 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
   );
 
   /**
+   * Move a conversation to a different project
+   * Story 16.6: AC-16.6.8, AC-16.6.9, AC-16.6.12
+   *
+   * @param id - Conversation ID to move
+   * @param targetProjectId - Target project ID (null = general chat)
+   * @returns Updated conversation or null on failure
+   */
+  const moveConversation = useCallback(
+    async (id: string, targetProjectId: string | null): Promise<Conversation | null> => {
+      // Optimistic update - update project_id in local state
+      const previousConversations = [...conversations];
+      const previousActiveConversation = activeConversation
+        ? { ...activeConversation }
+        : null;
+
+      // Update the conversation in the list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, projectId: targetProjectId } : c
+        )
+      );
+
+      // Update active conversation if it's the one being moved
+      if (activeConversation?.conversation.id === id) {
+        setActiveConversation({
+          ...activeConversation,
+          conversation: {
+            ...activeConversation.conversation,
+            projectId: targetProjectId,
+          },
+        });
+      }
+
+      try {
+        const response = await fetch(`/api/ai-buddy/conversations/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: targetProjectId }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+          // Revert on failure
+          setConversations(previousConversations);
+          if (previousActiveConversation) {
+            setActiveConversation(previousActiveConversation);
+          }
+          throw new Error(result.error?.message ?? 'Failed to move conversation');
+        }
+
+        // Update with server response data
+        const updatedConversation: Conversation = {
+          id: result.data.id,
+          agencyId: result.data.agencyId,
+          userId: result.data.userId,
+          projectId: result.data.projectId,
+          title: result.data.title,
+          deletedAt: result.data.deletedAt,
+          createdAt: result.data.createdAt,
+          updatedAt: result.data.updatedAt,
+        };
+
+        // Replace with server data
+        setConversations((prev) =>
+          prev.map((c) => (c.id === id ? updatedConversation : c))
+        );
+
+        // Update active if it was moved
+        if (activeConversation?.conversation.id === id) {
+          setActiveConversation({
+            ...activeConversation,
+            conversation: updatedConversation,
+          });
+        }
+
+        return updatedConversation;
+      } catch (err) {
+        // Revert on error
+        setConversations(previousConversations);
+        if (previousActiveConversation) {
+          setActiveConversation(previousActiveConversation);
+        }
+        const error = err instanceof Error ? err : new Error('Failed to move conversation');
+        setError(error);
+        return null;
+      }
+    },
+    [conversations, activeConversation]
+  );
+
+  /**
    * Search conversations by title
    */
   const searchConversations = useCallback(
@@ -378,6 +472,7 @@ export function useConversations(options: UseConversationsOptions = {}): UseConv
     loadConversation,
     createConversation,
     deleteConversation,
+    moveConversation,
     searchConversations,
     clearActiveConversation,
     refresh,

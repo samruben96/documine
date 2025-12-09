@@ -11,6 +11,9 @@
  * Story 10.12: Enhanced with structured data from extraction_data
  * for field-specific queries (premium, carrier, dates, etc.)
  *
+ * Story 17.1: Added conversation attachment chunk retrieval
+ * for AI Buddy document context (AC-17.1.4).
+ *
  * @module @/lib/chat/rag
  */
 
@@ -431,4 +434,511 @@ export function buildPromptWithStructuredData(
   });
 
   return messages;
+}
+
+// ============================================================================
+// Story 17.1: Conversation Attachment RAG
+// ============================================================================
+
+/**
+ * Attachment info for RAG context
+ */
+export interface AttachmentInfo {
+  documentId: string;
+  documentName: string;
+  status: string;
+}
+
+/**
+ * Retrieved chunk with document context for AI Buddy conversations
+ */
+export interface ConversationChunk extends RetrievedChunk {
+  documentId: string;
+  documentName: string;
+}
+
+/**
+ * Get attachment info for a conversation.
+ *
+ * Story 17.1: Retrieves document IDs linked to the conversation.
+ *
+ * @param supabase - Supabase client
+ * @param conversationId - The conversation ID
+ * @returns Array of attachment info with document IDs and names
+ */
+export async function getConversationAttachments(
+  supabase: SupabaseClient<Database>,
+  conversationId: string
+): Promise<AttachmentInfo[]> {
+  const { data, error } = await supabase
+    .from('ai_buddy_conversation_documents')
+    .select(`
+      document_id,
+      documents!inner (
+        id,
+        filename,
+        status
+      )
+    `)
+    .eq('conversation_id', conversationId);
+
+  if (error) {
+    log.error(
+      'Failed to get conversation attachments',
+      new Error(error.message),
+      { conversationId }
+    );
+    return [];
+  }
+
+  return (data || []).map((att) => {
+    const doc = att.documents as unknown as {
+      id: string;
+      filename: string;
+      status: string;
+    };
+    return {
+      documentId: doc.id,
+      documentName: doc.filename,
+      status: doc.status,
+    };
+  });
+}
+
+/**
+ * Retrieve chunks from all conversation attachments.
+ *
+ * Story 17.1: AC-17.1.4 - AI references documents with page-level citations.
+ *
+ * @param supabase - Supabase client
+ * @param conversationId - The conversation ID
+ * @param query - The user's question
+ * @param openaiApiKey - OpenAI API key for embeddings
+ * @returns Retrieved chunks with document context
+ */
+export async function getConversationAttachmentChunks(
+  supabase: SupabaseClient<Database>,
+  conversationId: string,
+  query: string,
+  openaiApiKey: string
+): Promise<{ chunks: ConversationChunk[]; confidence: ConfidenceLevel; attachments: AttachmentInfo[] }> {
+  const startTime = Date.now();
+
+  // Get all attachments for the conversation
+  const attachments = await getConversationAttachments(supabase, conversationId);
+
+  // Filter to only ready documents
+  const readyAttachments = attachments.filter((att) => att.status === 'ready');
+
+  if (readyAttachments.length === 0) {
+    log.info('No ready attachments for conversation', { conversationId });
+    return {
+      chunks: [],
+      confidence: 'not_found',
+      attachments,
+    };
+  }
+
+  // Generate query embedding
+  const embeddings = await generateEmbeddings([query], openaiApiKey);
+  const queryEmbedding = embeddings[0];
+
+  if (!queryEmbedding) {
+    throw new Error('Failed to generate query embedding');
+  }
+
+  // Search across all attached documents
+  const allChunks: ConversationChunk[] = [];
+
+  for (const attachment of readyAttachments) {
+    try {
+      // Search for similar chunks in this document
+      const chunks = await searchSimilarChunks(
+        supabase,
+        attachment.documentId,
+        queryEmbedding,
+        query,
+        { limit: 5 } // Get top 5 from each document
+      );
+
+      // Add document context to each chunk
+      for (const chunk of chunks) {
+        allChunks.push({
+          ...chunk,
+          documentId: attachment.documentId,
+          documentName: attachment.documentName,
+        });
+      }
+    } catch (err) {
+      log.error(
+        'Failed to search document chunks',
+        err instanceof Error ? err : new Error(String(err)),
+        { documentId: attachment.documentId }
+      );
+    }
+  }
+
+  // Sort all chunks by similarity score and take top 10
+  allChunks.sort((a, b) => b.similarityScore - a.similarityScore);
+  const topChunks = allChunks.slice(0, 10);
+
+  // Rerank with Cohere if enabled
+  let finalChunks = topChunks;
+  if (isRerankerEnabled() && topChunks.length > 0) {
+    try {
+      const cohereApiKey = getCohereApiKey();
+      const reranked = await rerankChunks(query, topChunks, cohereApiKey, { topN: 5 });
+      // Preserve document context after reranking
+      finalChunks = reranked.map((chunk) => {
+        const original = topChunks.find((c) => c.id === chunk.id);
+        return {
+          ...chunk,
+          documentId: original?.documentId ?? '',
+          documentName: original?.documentName ?? '',
+        };
+      });
+    } catch (error) {
+      log.warn('Reranker unavailable, using top chunks', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      finalChunks = topChunks.slice(0, 5);
+    }
+  } else {
+    finalChunks = topChunks.slice(0, 5);
+  }
+
+  // Calculate confidence
+  const firstChunk = finalChunks[0];
+  const vectorScore = firstChunk?.similarityScore ?? null;
+  const rerankerScore = firstChunk?.rerankerScore;
+  const queryIntent = classifyIntent(query);
+  const confidence = calculateConfidence(vectorScore, rerankerScore, queryIntent);
+
+  const duration = Date.now() - startTime;
+  log.info('Conversation attachment chunks retrieved', {
+    conversationId,
+    documentCount: readyAttachments.length,
+    chunksRetrieved: finalChunks.length,
+    confidence,
+    duration,
+  });
+
+  return {
+    chunks: finalChunks,
+    confidence,
+    attachments,
+  };
+}
+
+/**
+ * Build prompt for AI Buddy with conversation attachment context.
+ *
+ * Story 17.1: AC-17.1.4 - Format context with document titles and page citations.
+ *
+ * @param query - The user's question
+ * @param chunks - Retrieved chunks from conversation attachments
+ * @param conversationHistory - Previous messages
+ * @returns Messages array for OpenAI chat completion
+ */
+export function buildConversationPrompt(
+  query: string,
+  chunks: ConversationChunk[],
+  conversationHistory: ChatMessage[]
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const promptMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+
+  // System prompt for AI Buddy (slightly different from document chat)
+  const aiBuddySystemPrompt = `You are AI Buddy, a knowledgeable insurance assistant for docuMINE.
+You help insurance professionals understand their policy documents and answer questions about coverage.
+
+PERSONALITY:
+- Friendly and professional
+- Clear and direct in your explanations
+- Helpful and thorough
+
+CRITICAL RULES:
+1. ONLY answer based on the provided document context - never make assumptions
+2. ALWAYS cite the document name and page number: "In [Document Name], page X..."
+3. If information isn't in the documents, say so honestly
+4. When quoting policy text, use quotation marks
+
+RESPONSE STYLE:
+- Start with a direct answer, then provide supporting details
+- Use "your" language to make it personal
+- Keep responses concise - 2-3 paragraphs max`;
+
+  promptMessages.push({
+    role: 'system',
+    content: aiBuddySystemPrompt,
+  });
+
+  // Build context from chunks, grouped by document
+  let contextPrompt = '';
+
+  if (chunks.length > 0) {
+    // Group chunks by document
+    const chunksByDocument = new Map<string, ConversationChunk[]>();
+    for (const chunk of chunks) {
+      const existing = chunksByDocument.get(chunk.documentId) || [];
+      existing.push(chunk);
+      chunksByDocument.set(chunk.documentId, existing);
+    }
+
+    contextPrompt = 'DOCUMENT CONTEXT:\n\n';
+
+    for (const [_docId, docChunks] of chunksByDocument) {
+      const docName = docChunks[0]?.documentName ?? 'Unknown Document';
+      contextPrompt += `--- ${docName} ---\n`;
+      contextPrompt += docChunks
+        .map((c) => `[Page ${c.pageNumber}]: ${c.content}`)
+        .join('\n\n');
+      contextPrompt += '\n\n';
+    }
+  } else {
+    contextPrompt = 'DOCUMENT CONTEXT: No relevant sections found in the attached documents.\n\n';
+  }
+
+  // Add conversation history
+  if (conversationHistory.length > 0) {
+    contextPrompt += 'CONVERSATION HISTORY:\n';
+    contextPrompt += conversationHistory
+      .slice(-10) // Last 10 messages
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n');
+    contextPrompt += '\n\n';
+  }
+
+  // Add user question
+  contextPrompt += `USER QUESTION: ${query}\n\n`;
+  contextPrompt += 'Please answer based on the documents above. Cite the document name and page numbers.';
+
+  promptMessages.push({
+    role: 'user',
+    content: contextPrompt,
+  });
+
+  return promptMessages;
+}
+
+/**
+ * Convert conversation chunks to source citations.
+ *
+ * Story 17.1: AC-17.1.4 - Include document ID and name in citations.
+ *
+ * @param chunks - Retrieved conversation chunks
+ * @returns Source citations for database storage
+ */
+export function conversationChunksToCitations(chunks: ConversationChunk[]): SourceCitation[] {
+  return chunks.map((chunk) => ({
+    pageNumber: chunk.pageNumber,
+    text: chunk.content.slice(0, 200) + (chunk.content.length > 200 ? '...' : ''),
+    chunkId: chunk.id,
+    boundingBox: chunk.boundingBox ?? undefined,
+    similarityScore: chunk.similarityScore,
+    documentId: chunk.documentId,
+    documentName: chunk.documentName,
+  }));
+}
+
+// ============================================================================
+// Story 17.2: Project Document RAG
+// ============================================================================
+
+/**
+ * Get document info for a project.
+ *
+ * Story 17.2: Retrieves document IDs linked to the project.
+ *
+ * @param supabase - Supabase client
+ * @param projectId - The project ID
+ * @returns Array of attachment info with document IDs and names
+ */
+export async function getProjectDocuments(
+  supabase: SupabaseClient<Database>,
+  projectId: string
+): Promise<AttachmentInfo[]> {
+  const { data, error } = await supabase
+    .from('ai_buddy_project_documents')
+    .select(`
+      document_id,
+      documents!inner (
+        id,
+        filename,
+        status,
+        extraction_data
+      )
+    `)
+    .eq('project_id', projectId);
+
+  if (error) {
+    log.error(
+      'Failed to get project documents',
+      new Error(error.message),
+      { projectId }
+    );
+    return [];
+  }
+
+  return (data || []).map((pd) => {
+    const doc = pd.documents as unknown as {
+      id: string;
+      filename: string;
+      status: string;
+      extraction_data: unknown;
+    };
+    return {
+      documentId: doc.id,
+      documentName: doc.filename,
+      status: doc.status,
+    };
+  });
+}
+
+/**
+ * Retrieve chunks from all project documents.
+ *
+ * Story 17.2: AC-17.2.7 - Project documents provide context for AI responses.
+ * Also includes structured extraction data from quote documents.
+ *
+ * @param supabase - Supabase client
+ * @param projectId - The project ID
+ * @param query - The user's question
+ * @param openaiApiKey - OpenAI API key for embeddings
+ * @returns Retrieved chunks with document context
+ */
+export async function getProjectDocumentChunks(
+  supabase: SupabaseClient<Database>,
+  projectId: string,
+  query: string,
+  openaiApiKey: string
+): Promise<{ chunks: ConversationChunk[]; confidence: ConfidenceLevel; documents: AttachmentInfo[]; structuredContext?: string }> {
+  const startTime = Date.now();
+
+  // Get all documents for the project
+  const documents = await getProjectDocuments(supabase, projectId);
+
+  // Filter to only ready documents
+  const readyDocuments = documents.filter((doc) => doc.status === 'ready');
+
+  if (readyDocuments.length === 0) {
+    log.info('No ready documents for project', { projectId });
+    return {
+      chunks: [],
+      confidence: 'not_found',
+      documents,
+    };
+  }
+
+  // Generate query embedding
+  const embeddings = await generateEmbeddings([query], openaiApiKey);
+  const queryEmbedding = embeddings[0];
+
+  if (!queryEmbedding) {
+    throw new Error('Failed to generate query embedding');
+  }
+
+  // Search across all project documents
+  const allChunks: ConversationChunk[] = [];
+
+  for (const document of readyDocuments) {
+    try {
+      // Search for similar chunks in this document
+      const chunks = await searchSimilarChunks(
+        supabase,
+        document.documentId,
+        queryEmbedding,
+        query,
+        { limit: 5 } // Get top 5 from each document
+      );
+
+      // Add document context to each chunk
+      for (const chunk of chunks) {
+        allChunks.push({
+          ...chunk,
+          documentId: document.documentId,
+          documentName: document.documentName,
+        });
+      }
+    } catch (err) {
+      log.error(
+        'Failed to search project document chunks',
+        err instanceof Error ? err : new Error(String(err)),
+        { documentId: document.documentId }
+      );
+    }
+  }
+
+  // Sort all chunks by similarity score and take top 10
+  allChunks.sort((a, b) => b.similarityScore - a.similarityScore);
+  const topChunks = allChunks.slice(0, 10);
+
+  // Rerank with Cohere if enabled
+  let finalChunks = topChunks;
+  if (isRerankerEnabled() && topChunks.length > 0) {
+    try {
+      const cohereApiKey = getCohereApiKey();
+      const reranked = await rerankChunks(query, topChunks, cohereApiKey, { topN: 5 });
+      // Preserve document context after reranking
+      finalChunks = reranked.map((chunk) => {
+        const original = topChunks.find((c) => c.id === chunk.id);
+        return {
+          ...chunk,
+          documentId: original?.documentId ?? '',
+          documentName: original?.documentName ?? '',
+        };
+      });
+    } catch (error) {
+      log.warn('Reranker unavailable for project docs, using top chunks', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      finalChunks = topChunks.slice(0, 5);
+    }
+  } else {
+    finalChunks = topChunks.slice(0, 5);
+  }
+
+  // AC-17.2.7: Also get structured extraction data from quote documents
+  let structuredContext: string | undefined;
+  try {
+    const structuredParts: string[] = [];
+    for (const document of readyDocuments) {
+      const extraction = await getStructuredExtractionData(supabase, document.documentId);
+      if (extraction) {
+        structuredParts.push(`\n--- ${document.documentName} (Extracted Data) ---`);
+        structuredParts.push(formatStructuredContext(extraction));
+      }
+    }
+    if (structuredParts.length > 0) {
+      structuredContext = structuredParts.join('\n');
+    }
+  } catch (err) {
+    log.warn('Failed to get structured extraction data for project', {
+      projectId,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+
+  // Calculate confidence
+  const firstChunk = finalChunks[0];
+  const vectorScore = firstChunk?.similarityScore ?? null;
+  const rerankerScore = firstChunk?.rerankerScore;
+  const queryIntent = classifyIntent(query);
+  const confidence = calculateConfidence(vectorScore, rerankerScore, queryIntent);
+
+  const duration = Date.now() - startTime;
+  log.info('Project document chunks retrieved', {
+    projectId,
+    documentCount: readyDocuments.length,
+    chunksRetrieved: finalChunks.length,
+    hasStructuredContext: !!structuredContext,
+    confidence,
+    duration,
+  });
+
+  return {
+    chunks: finalChunks,
+    confidence,
+    documents,
+    structuredContext,
+  };
 }

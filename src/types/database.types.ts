@@ -114,6 +114,39 @@ export type Database = {
           },
         ]
       }
+      ai_buddy_conversation_documents: {
+        Row: {
+          attached_at: string
+          conversation_id: string
+          document_id: string
+        }
+        Insert: {
+          attached_at?: string
+          conversation_id: string
+          document_id: string
+        }
+        Update: {
+          attached_at?: string
+          conversation_id?: string
+          document_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_conversation_documents_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_buddy_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_conversation_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_buddy_conversations: {
         Row: {
           agency_id: string
