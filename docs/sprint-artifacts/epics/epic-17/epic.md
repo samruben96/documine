@@ -28,7 +28,7 @@ AI can answer questions about user's specific policies, quotes, and applications
 
 ## Stories (Consolidated)
 
-Stories consolidated from 7 → 4 for implementation efficiency:
+Stories consolidated from 7 → 4 for implementation efficiency, plus Story 17.5 added for UI improvements:
 
 | Story | Name | Points | Description | FRs |
 |-------|------|--------|-------------|-----|
@@ -36,8 +36,9 @@ Stories consolidated from 7 → 4 for implementation efficiency:
 | 17.2 | Project Document Management | 5 | Upload to projects, library picker, remove documents | FR21, FR14, FR65, FR66 |
 | 17.3 | Document Preview & Multi-Document Context | 5 | In-app preview, citation navigation, multi-doc RAG | FR23, FR25 |
 | 17.4 | Document Processing Integration | 2 | LlamaParse integration, chunk embeddings, retry | FR22 |
+| 17.5 | ChatGPT-Style Project Navigation | 3 | Collapsible project folders with nested chats, hover/active states | UX |
 
-**Total Points:** 15
+**Total Points:** 18
 
 ## Dependencies
 

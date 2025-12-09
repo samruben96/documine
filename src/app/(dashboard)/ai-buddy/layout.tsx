@@ -13,6 +13,8 @@ import { ArchivedProjectsSheet } from '@/components/ai-buddy/archived-projects-s
 import { ConversationSearch } from '@/components/ai-buddy/conversation-search';
 import { DocumentPanel } from '@/components/ai-buddy/documents/document-panel';
 import { AiBuddyProvider, useAiBuddyContext } from '@/contexts/ai-buddy-context';
+import { OnboardingFlow } from '@/components/ai-buddy/onboarding';
+import { useOnboarding } from '@/hooks/ai-buddy';
 
 // Dynamic import for DocumentPreviewModal to avoid SSR issues with react-pdf
 const DocumentPreviewModal = dynamic(
@@ -28,8 +30,12 @@ const DocumentPreviewModal = dynamic(
  * Story 16.5: Conversation Search (FR4)
  * Story 17.2: Project Document Management
  * Story 17.3: Document Preview & Multi-Document Context
+ * Story 17.5: ChatGPT-Style Project Navigation
+ * Story 18.1: Onboarding Flow & Guided Start
  *
  * Light theme layout for AI Buddy feature with project and conversation sidebar.
+ *
+ * AC-18.1.1: Show onboarding modal for new users on first AI Buddy visit
  *
  * AC-16.1.1: New Project dialog opens
  * AC-16.1.8: Projects section in sidebar
@@ -43,6 +49,8 @@ const DocumentPreviewModal = dynamic(
  * AC-16.5.1: Cmd/Ctrl+K opens search dialog
  * AC-17.2.1: Document panel with Add Document menu (Upload/Library options)
  * AC-17.3.1: Click on document opens preview in modal with page navigation
+ * AC-17.5.1: New Chat defaults to standalone (no project)
+ * AC-17.5.5: New chat within project context
  */
 
 interface AiBuddyLayoutProps {
@@ -55,6 +63,21 @@ interface AiBuddyLayoutProps {
 function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Story 18.1: Onboarding flow (AC-18.1.1)
+  const {
+    shouldShowOnboarding,
+    completeOnboarding,
+    skipOnboarding,
+  } = useOnboarding();
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Show onboarding when shouldShowOnboarding becomes true
+  useEffect(() => {
+    if (shouldShowOnboarding) {
+      setIsOnboardingOpen(true);
+    }
+  }, [shouldShowOnboarding]);
+
   const {
     // Conversations
     conversations,
@@ -63,6 +86,7 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
     selectConversation,
     deleteConversation,
     startNewConversation,
+    startNewConversationInProject,
     hasMoreConversations,
     loadMoreConversations,
     isLoadingMore,
@@ -113,8 +137,15 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
 
   const [restoringProjectId, setRestoringProjectId] = useState<string | null>(null);
 
+  // AC-17.5.1: New Chat creates standalone conversation
   const handleNewChat = () => {
     startNewConversation();
+    setSidebarOpen(false);
+  };
+
+  // AC-17.5.5: New Chat in Project creates conversation with projectId
+  const handleNewChatInProject = (projectId: string) => {
+    startNewConversationInProject(projectId);
     setSidebarOpen(false);
   };
 
@@ -163,6 +194,7 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
   };
 
   // Sidebar content component - shared between desktop and mobile
+  // Story 17.5: Now supports ChatGPT-style project folders with nested conversations
   const sidebarContent = (
     <ProjectSidebar
       projects={projects}
@@ -172,6 +204,7 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
       isLoadingProjects={isLoadingProjects}
       isLoadingConversations={isLoadingConversations}
       onNewChat={handleNewChat}
+      onNewChatInProject={handleNewChatInProject}
       onNewProject={handleNewProject}
       onSelectProject={selectProject}
       onArchiveProject={handleArchiveProject}
@@ -273,6 +306,14 @@ function AiBuddyLayoutInner({ children }: AiBuddyLayoutProps) {
         open={isDocumentPreviewOpen}
         onOpenChange={setDocumentPreviewOpen}
         document={previewDocument}
+      />
+
+      {/* Onboarding Flow Modal - AC-18.1.1 */}
+      <OnboardingFlow
+        open={isOnboardingOpen}
+        onOpenChange={setIsOnboardingOpen}
+        onComplete={completeOnboarding}
+        onSkip={skipOnboarding}
       />
     </div>
   );

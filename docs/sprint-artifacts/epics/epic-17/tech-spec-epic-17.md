@@ -361,6 +361,28 @@ data: {"type":"sources","citations":[
 
 **AC-17.4.5:** Given a document fails processing, when I retry, then a new processing job is created.
 
+### Story 17.5: ChatGPT-Style Project Navigation
+
+**AC-17.5.1:** Given I click "New Chat" from the main sidebar, when the chat is created, then it is NOT associated with any project (project_id = null).
+
+**AC-17.5.2:** Given I view the sidebar, when I see the Projects section, then each project displays as a collapsible folder with folder icon and expand/collapse chevron.
+
+**AC-17.5.3:** Given I click on a project's folder icon or chevron, when the project expands, then I see all conversations belonging to that project nested below it (indented).
+
+**AC-17.5.4:** Given a project is expanded, when I view its nested conversations, then each chat shows title, optional preview text, and relative date.
+
+**AC-17.5.5:** Given I have expanded a project, when I see the project's chat list, then I see a "New chat in [ProjectName]" action that creates a chat pre-assigned to that project.
+
+**AC-17.5.6:** Given I hover over any sidebar item (project or chat), when my cursor is over the item, then it displays a visible hover background color.
+
+**AC-17.5.7:** Given I am viewing a specific chat or project, when that item is the current context, then it displays an active state (highlighted background, distinct from hover).
+
+**AC-17.5.8:** Given I click on a project name (not the expand icon), when the project is selected, then I navigate to that project's context and can start a new chat within it.
+
+**AC-17.5.9:** Given I have chats not associated with any project, when I view the sidebar, then standalone chats appear in a separate "Chats" or "Recent" section below projects.
+
+**AC-17.5.10:** Given I collapse a project, when I navigate elsewhere and return to the sidebar, then the project remains collapsed (session persistence).
+
 ## Traceability Mapping
 
 | AC | Spec Section | Component/API | Test Idea |
@@ -389,6 +411,16 @@ data: {"type":"sources","citations":[
 | AC-17.4.3 | APIs - Chat | RAG context | Mock project docs, verify in context |
 | AC-17.4.4 | APIs - Chat | RAG context | Mock attachments, verify in context |
 | AC-17.4.5 | Reliability | Retry flow | Fail processing, retry |
+| AC-17.5.1 | Services | `ProjectSidebar`, `onNewChat` | Click new chat, verify no project_id |
+| AC-17.5.2 | Services | `ProjectFolder` | Verify folder icon, chevron render |
+| AC-17.5.3 | Services | `ProjectFolder` | Click expand, verify nested chats |
+| AC-17.5.4 | Services | `ChatHistoryItem` | Verify title, date, preview |
+| AC-17.5.5 | Services | `ProjectFolder` | Click "New chat in X", verify project_id |
+| AC-17.5.6 | UI/UX | CSS hover states | Hover over items, verify background |
+| AC-17.5.7 | UI/UX | CSS active states | Select item, verify highlight |
+| AC-17.5.8 | Services | `ProjectFolder` | Click project name, verify navigation |
+| AC-17.5.9 | Services | `ProjectSidebar` | Verify standalone chats section |
+| AC-17.5.10 | Services | localStorage/context | Collapse, navigate, return - verify state |
 
 ## Risks, Assumptions, Open Questions
 
@@ -455,6 +487,7 @@ data: {"type":"sources","citations":[
 | 17.2 | Project Document Management | 5 | FR21, FR14, FR65, FR66 |
 | 17.3 | Document Preview & Multi-Document Context | 5 | FR23, FR25 |
 | 17.4 | Document Processing Integration | 2 | FR22 |
+| 17.5 | ChatGPT-Style Project Navigation | 3 | UX |
 
-**Total Points:** 15
+**Total Points:** 18
 **Total FRs Covered:** 8 (FR14, FR20-25, FR65, FR66)

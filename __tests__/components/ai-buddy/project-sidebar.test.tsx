@@ -5,12 +5,16 @@
  * Project Sidebar Tests
  * Story 16.1: Project Creation & Sidebar
  * Story 16.6: Conversation Management
+ * Story 17.5: ChatGPT-Style Project Navigation
  *
  * Tests for ProjectSidebar component.
  *
  * AC-16.1.8: Shows Projects section
  * AC-16.1.12: Projects sorted alphabetically
  * AC-16.1.13: Empty state when no projects
+ * AC-17.5.1: New Chat defaults to standalone
+ * AC-17.5.2: Projects display as collapsible folders
+ * AC-17.5.9: Standalone chats section
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -189,7 +193,7 @@ describe('ProjectSidebar', () => {
     expect(handleNewProject).toHaveBeenCalledTimes(1);
   });
 
-  // Project selection
+  // Project selection - Story 17.5: Now uses ProjectFolder with folder-header
   it('calls onSelectProject when project clicked', () => {
     const handleSelectProject = vi.fn();
 
@@ -202,12 +206,13 @@ describe('ProjectSidebar', () => {
       { wrapper: TestWrapper }
     );
 
-    fireEvent.click(screen.getByTestId(`project-card-${mockProjects[0].id}`));
+    // Click the folder header (project name) to select
+    fireEvent.click(screen.getByTestId(`folder-header-${mockProjects[0].id}`));
 
     expect(handleSelectProject).toHaveBeenCalledWith(mockProjects[0]);
   });
 
-  // Active project indicator
+  // Active project indicator - Story 17.5: Now uses ProjectFolder
   it('marks active project', () => {
     render(
       <ProjectSidebar
@@ -218,8 +223,8 @@ describe('ProjectSidebar', () => {
       { wrapper: TestWrapper }
     );
 
-    const activeCard = screen.getByTestId(`project-card-${mockProjects[0].id}`);
-    expect(activeCard.className).toContain('bg-[var(--sidebar-active)]');
+    const activeFolder = screen.getByTestId(`project-folder-${mockProjects[0].id}`);
+    expect(activeFolder.className).toContain('bg-[var(--sidebar-active)]');
   });
 
   // Conversations section
@@ -236,6 +241,7 @@ describe('ProjectSidebar', () => {
     expect(screen.getByText('Chat about coverage')).toBeInTheDocument();
   });
 
+  // Story 17.5: Empty state message changed for standalone chats
   it('shows empty conversations state', () => {
     render(
       <ProjectSidebar
@@ -245,6 +251,7 @@ describe('ProjectSidebar', () => {
       { wrapper: TestWrapper }
     );
 
-    expect(screen.getByText('No conversations yet')).toBeInTheDocument();
+    // AC-17.5.9: Now shows "No standalone chats" for empty Recent section
+    expect(screen.getByText('No standalone chats')).toBeInTheDocument();
   });
 });

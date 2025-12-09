@@ -2,6 +2,7 @@
  * AI Buddy Context Provider
  * Story 16.1: Project Creation & Sidebar (updated from 15.4)
  * Story 16.5: Conversation Search (FR4)
+ * Story 17.5: ChatGPT-Style Project Navigation
  *
  * Provides shared state between AI Buddy layout (sidebar) and page (chat).
  * Manages project selection, conversation selection, search, and coordination.
@@ -12,6 +13,8 @@
  * AC-15.4.8: Clicking conversation in sidebar loads that conversation's messages
  * AC-16.5.1: Cmd/Ctrl+K opens search dialog
  * AC-16.5.4: Clicking result opens that conversation
+ * AC-17.5.1: New Chat defaults to standalone (no project)
+ * AC-17.5.5: New chat within project context
  */
 
 'use client';
@@ -36,8 +39,12 @@ interface AiBuddyContextValue extends UseConversationsReturn {
   selectedConversationId: string | null;
   /** Select a conversation by ID */
   selectConversation: (id: string | null) => void;
-  /** Start a new conversation */
+  /** Start a new conversation (AC-17.5.1: standalone by default) */
   startNewConversation: () => void;
+  /** Start a new conversation within a specific project (AC-17.5.5) */
+  startNewConversationInProject: (projectId: string) => void;
+  /** Pending project ID for new chat (set when creating chat in project) */
+  pendingProjectId: string | null;
   /** Messages for the current conversation (from activeConversation) */
   currentMessages: Message[];
   /** Whether there are more conversations to load */
@@ -142,14 +149,19 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
   const projectsHook = useProjects({ autoFetch: true });
   const activeProjectHook = useActiveProject();
 
-  // Story 16.2: Pass activeProjectId to useConversations (AC-16.2.6)
-  // This enables project-scoped conversation filtering and automatic refresh on project switch
+  // Story 17.5: Fetch ALL conversations (don't filter by projectId)
+  // ChatGPT-style navigation requires all conversations to be available:
+  // - Project conversations shown nested under their project folder
+  // - Standalone conversations always visible in "Recent" section
+  // Filtering is done in ProjectSidebar based on conversation.projectId
   const conversationsHook = useConversations({
     autoFetch: true,
-    projectId: activeProjectHook.activeProjectId ?? undefined,
+    // Note: Removed projectId filter to support ChatGPT-style navigation (AC-17.5.9)
   });
 
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  // AC-17.5.5: Track pending project ID for new chats created within a project
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
   const [isArchivedSheetOpen, setIsArchivedSheetOpen] = useState(false);
   const [projectToArchive, setProjectToArchive] = useState<Project | null>(null);
@@ -189,10 +201,28 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     [conversationsHook]
   );
 
+  // AC-17.5.1: Start new standalone conversation (no project)
   const startNewConversation = useCallback(() => {
     setSelectedConversationId(null);
+    setPendingProjectId(null); // Clear any pending project
+    activeProjectHook.clearActiveProject(); // Clear active project for standalone chat
     conversationsHook.clearActiveConversation();
-  }, [conversationsHook]);
+  }, [conversationsHook, activeProjectHook]);
+
+  // AC-17.5.5: Start new conversation within a specific project
+  const startNewConversationInProject = useCallback(
+    (projectId: string) => {
+      setSelectedConversationId(null);
+      setPendingProjectId(projectId); // Set pending project for new chat
+      conversationsHook.clearActiveConversation();
+      // Also set this as the active project for proper context
+      const project = projectsHook.projects.find((p) => p.id === projectId);
+      if (project) {
+        activeProjectHook.setActiveProject(project);
+      }
+    },
+    [conversationsHook, projectsHook.projects, activeProjectHook]
+  );
 
   // AC-16.1.11: Clicking project switches context
   // Story 16.2: Clear conversation selection when switching projects (AC-16.2.6)
@@ -391,6 +421,8 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
     selectedConversationId,
     selectConversation,
     startNewConversation,
+    startNewConversationInProject,
+    pendingProjectId,
     currentMessages,
     hasMoreConversations: !!conversationsHook.nextCursor,
     loadMoreConversations,

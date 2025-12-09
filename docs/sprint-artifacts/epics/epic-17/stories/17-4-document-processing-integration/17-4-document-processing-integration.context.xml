@@ -1,0 +1,249 @@
+<story-context id="17-4-document-processing-integration" v="1.0">
+  <metadata>
+    <epicId>17</epicId>
+    <storyId>17.4</storyId>
+    <title>Document Processing Integration</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-17/stories/17-4-document-processing-integration/17-4-document-processing-integration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user of AI Buddy</asA>
+    <iWant>documents I upload to be automatically processed and indexed</iWant>
+    <soThat>the AI can answer questions about my documents with accurate, sourced responses</soThat>
+    <tasks>
+      <phase id="A" name="Verification of Existing Infrastructure">
+        <task id="T1">Verify LlamaParse Edge Function processes AI Buddy uploads correctly</task>
+        <task id="T2">Verify document_chunks are created with embeddings after processing</task>
+        <task id="T3">Verify processing status updates are visible in AI Buddy UI</task>
+        <task id="T4">Document any gaps or issues found</task>
+      </phase>
+      <phase id="B" name="RAG Integration Verification">
+        <task id="T5">Verify getProjectDocumentChunks includes completed project docs (AC-17.4.3)</task>
+        <task id="T6">Verify getConversationAttachmentChunks includes completed attachments (AC-17.4.4)</task>
+        <task id="T7">Verify chat API combines both sources correctly</task>
+        <task id="T8">Verify citations reference correct document names and pages</task>
+      </phase>
+      <phase id="C" name="Retry Functionality Verification">
+        <task id="T9">Verify retry endpoint works for AI Buddy documents (AC-17.4.5)</task>
+        <task id="T10">Verify retry button in AI Buddy UI triggers endpoint</task>
+        <task id="T11">Verify status updates after retry is triggered</task>
+      </phase>
+      <phase id="D" name="Testing">
+        <task id="T12">Create integration tests for processing flow</task>
+        <task id="T13">Create E2E test: Upload document -> Wait for processing -> Ask question</task>
+        <task id="T14">Create E2E test: Failed document -> Retry -> Verify success</task>
+        <task id="T15">Verify all existing tests still pass</task>
+      </phase>
+      <phase id="E" name="Gap Remediation (If Needed)">
+        <task id="T16">Fix any gaps identified in Phase A-C</task>
+        <task id="T17">Add missing integrations if needed</task>
+        <task id="T18">Update documentation</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-17.4.1">Given I upload a document, when it enters the processing queue, then the existing LlamaParse pipeline processes it.</criterion>
+    <criterion id="AC-17.4.2">Given processing is async, when job completes, then document_chunks and embeddings are available for RAG.</criterion>
+    <criterion id="AC-17.4.3">Given the chat API receives a message, when project documents exist, then it includes project document chunks in RAG retrieval.</criterion>
+    <criterion id="AC-17.4.4">Given conversation attachments exist, when querying, then attachment chunks are included in context.</criterion>
+    <criterion id="AC-17.4.5">Given a document fails processing, when I retry, then a new processing job is created.</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md" purpose="Technical specification for Epic 17" />
+      <doc path="docs/sprint-artifacts/epics/epic-17/stories/17-3-document-preview-multi-document-context/17-3-document-preview-multi-document-context.md" purpose="Previous story with RAG integration patterns" />
+    </docs>
+    <code>
+      <!-- RAG Pipeline - Core document retrieval functions -->
+      <file path="src/lib/chat/rag.ts" purpose="RAG pipeline with project/conversation document retrieval">
+        <key-functions>
+          <function name="getProjectDocumentChunks" lines="809-944">
+            <description>Retrieves chunks from all project documents for RAG context. Includes hybrid search, Cohere reranking, and structured extraction data.</description>
+            <signature>async function getProjectDocumentChunks(supabase, projectId, query, openaiApiKey): Promise&lt;{ chunks: ConversationChunk[]; confidence: ConfidenceLevel; documents: AttachmentInfo[]; structuredContext?: string }&gt;</signature>
+          </function>
+          <function name="getConversationAttachmentChunks" lines="519-631">
+            <description>Retrieves chunks from all conversation attachments for RAG context. Searches across multiple documents, reranks, calculates confidence.</description>
+            <signature>async function getConversationAttachmentChunks(supabase, conversationId, query, openaiApiKey): Promise&lt;{ chunks: ConversationChunk[]; confidence: ConfidenceLevel; attachments: AttachmentInfo[] }&gt;</signature>
+          </function>
+          <function name="getConversationAttachments" lines="469-506">
+            <description>Gets attachment info for a conversation, retrieves document IDs linked to the conversation.</description>
+            <signature>async function getConversationAttachments(supabase, conversationId): Promise&lt;AttachmentInfo[]&gt;</signature>
+          </function>
+          <function name="getProjectDocuments" lines="756-795">
+            <description>Gets document info for a project, retrieves document IDs linked to the project.</description>
+            <signature>async function getProjectDocuments(supabase, projectId): Promise&lt;AttachmentInfo[]&gt;</signature>
+          </function>
+        </key-functions>
+        <dependencies>
+          <import>generateEmbeddings from @/lib/openai/embeddings</import>
+          <import>searchSimilarChunks, getTopKChunks from ./vector-search</import>
+          <import>rerankChunks, isRerankerEnabled, getCohereApiKey from ./reranker</import>
+          <import>calculateConfidence from @/lib/chat/confidence</import>
+        </dependencies>
+      </file>
+
+      <!-- Chat API - Orchestrates RAG context building -->
+      <file path="src/app/api/ai-buddy/chat/route.ts" purpose="AI Buddy chat API with SSE streaming">
+        <key-sections>
+          <section name="Conversation Attachment RAG" lines="345-406">
+            <description>Checks for conversation attachments and retrieves RAG chunks using getConversationAttachmentChunks.</description>
+          </section>
+          <section name="Project Document RAG" lines="408-487">
+            <description>Retrieves project documents if projectId is provided using getProjectDocumentChunks. Merges with conversation attachment context.</description>
+          </section>
+          <section name="Confidence Mapping" lines="50-62">
+            <description>Maps RAG confidence levels to AI Buddy confidence levels (high, medium, low).</description>
+          </section>
+        </key-sections>
+        <flow>
+          <step>1. Validate request and authenticate user</step>
+          <step>2. Check rate limits</step>
+          <step>3. Verify project exists if projectId provided</step>
+          <step>4. Load guardrails for agency</step>
+          <step>5. Handle conversation (create new or verify existing)</step>
+          <step>6. Save user message</step>
+          <step>7. Get conversation history</step>
+          <step>8. Check for conversation attachments and use RAG (AC-17.1.4)</step>
+          <step>9. Retrieve project documents if projectId provided (AC-17.2.7)</step>
+          <step>10. Build system prompt with guardrails and document context</step>
+          <step>11. Stream response via SSE with citations and confidence</step>
+          <step>12. Save assistant message with sources and confidence</step>
+        </flow>
+      </file>
+
+      <!-- Retry Endpoint - Manual retry for failed documents -->
+      <file path="src/app/api/documents/[id]/retry/route.ts" purpose="Document retry API endpoint">
+        <key-sections>
+          <section name="POST handler" lines="29-238">
+            <description>Manual retry for failed documents. Validates user permissions, resets failed job or creates new job, updates document status to processing.</description>
+          </section>
+        </key-sections>
+        <flow>
+          <step>1. Validate authentication</step>
+          <step>2. Get user's agency</step>
+          <step>3. Verify document exists and belongs to user's agency</step>
+          <step>4. Get latest processing job for document</step>
+          <step>5. Verify job is in failed state</step>
+          <step>6. Reset existing failed job OR create new job</step>
+          <step>7. Update document status to processing</step>
+          <step>8. Return success</step>
+        </flow>
+      </file>
+
+      <!-- LlamaParse Edge Function - Document processing -->
+      <file path="supabase/functions/process-document/index.ts" purpose="LlamaParse Edge Function for document processing">
+        <key-capabilities>
+          <capability>Downloads document from Supabase storage</capability>
+          <capability>Parses document using LlamaParse</capability>
+          <capability>Creates document_chunks with text content</capability>
+          <capability>Generates embeddings using OpenAI</capability>
+          <capability>Updates document status on completion/failure</capability>
+          <capability>Handles retry via pg_cron triggering</capability>
+        </key-capabilities>
+        <processing-flow>
+          <step>1. Download file from storage</step>
+          <step>2. Call LlamaParse API for parsing</step>
+          <step>3. Poll for parsing completion</step>
+          <step>4. Chunk parsed content</step>
+          <step>5. Generate embeddings for each chunk</step>
+          <step>6. Store chunks with embeddings in document_chunks table</step>
+          <step>7. Update document status to 'ready'</step>
+        </processing-flow>
+      </file>
+    </code>
+    <dependencies>
+      <package name="@supabase/supabase-js" version="^2.84.0" purpose="Database, Storage, Realtime" />
+      <package name="cohere-ai" version="^7.20.0" purpose="Chunk reranking" />
+      <package name="openai" version="^6.9.1" purpose="Embeddings and LLM" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Reuse existing LlamaParse Edge Function - no modifications</constraint>
+    <constraint>Reuse existing documents, document_chunks, processing_jobs tables</constraint>
+    <constraint>Must filter to only 'ready' status documents for RAG queries</constraint>
+    <constraint>Must exclude 'failed' and 'processing' documents from RAG</constraint>
+    <constraint>Only users in the same agency can retry documents (RLS enforced)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface type="API" name="POST /api/ai-buddy/chat">
+      <description>Streaming chat endpoint. Accepts conversationId, projectId, message. Returns SSE events: chunk, sources, confidence, done, error.</description>
+      <input>{ conversationId?: string, projectId?: string, message: string, attachments?: Array }</input>
+      <output>SSE stream with AiBuddySSEEvent objects</output>
+    </interface>
+    <interface type="API" name="POST /api/documents/[id]/retry">
+      <description>Manual retry endpoint for failed documents. Resets processing job and document status.</description>
+      <input>Document ID in URL path</input>
+      <output>{ data: { success: boolean, documentId: string }, error: null } or error response</output>
+    </interface>
+    <interface type="Database" name="ai_buddy_conversation_documents">
+      <description>Links documents to conversations for attachment context.</description>
+      <columns>conversation_id, document_id</columns>
+    </interface>
+    <interface type="Database" name="ai_buddy_project_documents">
+      <description>Links documents to projects for project context.</description>
+      <columns>project_id, document_id</columns>
+    </interface>
+    <interface type="Database" name="document_chunks">
+      <description>Stores parsed document chunks with embeddings for vector search.</description>
+      <columns>id, document_id, chunk_index, content, embedding, page_number, bounding_box</columns>
+    </interface>
+    <interface type="Database" name="processing_jobs">
+      <description>Tracks document processing status for async pipeline.</description>
+      <columns>id, document_id, agency_id, status, stage, progress_percent, error_message, retry_count</columns>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Use Vitest for unit and integration tests</standard>
+      <standard>Use Playwright for E2E tests</standard>
+      <standard>Mock Supabase client for unit tests</standard>
+      <standard>Test with real Supabase for integration tests (local dev)</standard>
+    </standards>
+    <locations>
+      <location path="__tests__/integration/ai-buddy-document-processing.test.ts" purpose="Integration tests for processing flow" status="NEW" />
+      <location path="__tests__/e2e/ai-buddy-document-processing.spec.ts" purpose="E2E tests for upload-process-query flow" status="NEW" />
+    </locations>
+    <ideas>
+      <test-scenario name="Upload triggers processing job">
+        <description>Verify that uploading a document to AI Buddy creates a processing_job with correct document_id and agency_id</description>
+        <expected>Job created with status='pending', stage='queued'</expected>
+      </test-scenario>
+      <test-scenario name="Processing creates chunks">
+        <description>Verify that after processing completes, document_chunks table has entries for the document</description>
+        <expected>Chunks created with content and embeddings</expected>
+      </test-scenario>
+      <test-scenario name="Project documents in RAG context">
+        <description>Verify that chat with projectId includes project document chunks in context</description>
+        <expected>getProjectDocumentChunks returns relevant chunks, chat response cites document</expected>
+      </test-scenario>
+      <test-scenario name="Conversation attachments in RAG context">
+        <description>Verify that chat with attachments includes attachment chunks in context</description>
+        <expected>getConversationAttachmentChunks returns relevant chunks</expected>
+      </test-scenario>
+      <test-scenario name="Both sources combined">
+        <description>Verify that chat with both project and conversation docs has chunks from both</description>
+        <expected>Context includes chunks from both sources, no duplicates</expected>
+      </test-scenario>
+      <test-scenario name="Failed docs excluded">
+        <description>Verify that documents with status='failed' are not included in RAG query</description>
+        <expected>Only 'ready' status documents in readyDocuments filter</expected>
+      </test-scenario>
+      <test-scenario name="Retry creates new job">
+        <description>Verify that retrying a failed document creates new processing job</description>
+        <expected>Job status reset to 'pending', document status to 'processing'</expected>
+      </test-scenario>
+      <test-scenario name="Full upload-to-query flow">
+        <description>E2E: Upload PDF -> Wait for processing complete -> Ask question -> Answer cites PDF</description>
+        <expected>Response includes citation with document name and page number</expected>
+      </test-scenario>
+    </ideas>
+  </tests>
+</story-context>

@@ -89,14 +89,79 @@ export interface UserPermission {
 }
 
 export interface UserPreferences {
+  // Identity (FR26)
   displayName?: string;
   role?: 'producer' | 'csr' | 'manager' | 'other';
+
+  // Business context (FR27, FR28)
   linesOfBusiness?: string[];
   favoriteCarriers?: string[];
-  communicationStyle?: 'professional' | 'casual';
+
+  // Agency info (FR29)
   agencyName?: string;
   licensedStates?: string[];
+
+  // Communication (FR30)
+  communicationStyle?: 'professional' | 'casual';
+
+  // Onboarding status (FR57, FR62)
   onboardingCompleted?: boolean;
+  onboardingCompletedAt?: string;
+  onboardingSkipped?: boolean;
+  onboardingSkippedAt?: string;
+}
+
+// ============ Epic 18: Onboarding Options ============
+
+export const LINES_OF_BUSINESS = [
+  'Personal Auto',
+  'Homeowners',
+  'Commercial Auto',
+  'Commercial Property',
+  'General Liability',
+  'Workers Compensation',
+  'Professional Liability',
+  'Umbrella/Excess',
+  'Life Insurance',
+  'Health Insurance',
+] as const;
+
+export const COMMON_CARRIERS = [
+  'Progressive',
+  'Travelers',
+  'Hartford',
+  'Safeco',
+  'Liberty Mutual',
+  'Nationwide',
+  'State Farm',
+  'Allstate',
+  'USAA',
+  'Chubb',
+  'CNA',
+  'AmTrust',
+  'Employers',
+  'Markel',
+] as const;
+
+export const USER_ROLES = [
+  { value: 'producer', label: 'Producer/Agent' },
+  { value: 'csr', label: 'Customer Service Rep' },
+  { value: 'manager', label: 'Agency Manager' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  linesOfBusiness: [],
+  favoriteCarriers: [],
+  communicationStyle: 'professional',
+  onboardingCompleted: false,
+};
+
+export interface OnboardingState {
+  currentStep: 1 | 2 | 3;
+  isOpen: boolean;
+  isComplete: boolean;
+  data: Partial<UserPreferences>;
 }
 
 export interface AuditLogEntry {

@@ -30,18 +30,18 @@ AI Buddy knows the user and their preferences, making every interaction more rel
 - **FR61:** Users can skip onboarding and complete personalization later
 - **FR62:** Admins see onboarding completion status for their users
 
-## Stories
+## Stories (Consolidated)
 
-| Story | Name | Description |
-|-------|------|-------------|
-| 18.1 | Onboarding Flow | 3-step welcome modal (name/role, LOB, carriers) |
-| 18.2 | Skip Onboarding | Allow users to skip and complete later |
-| 18.3 | Preferences Management | Settings page for all AI Buddy preferences |
-| 18.4 | Agency Information | Agency name, licensed states, appointments |
-| 18.5 | Preference-Aware Responses | AI tailors responses to user preferences |
-| 18.6 | Reset Preferences | Reset all preferences to defaults |
-| 18.7 | Guided First Conversation | Personalized greeting with suggestions |
-| 18.8 | Admin Onboarding Status | Admin view of user onboarding completion |
+*Original 8 stories merged to 4 for implementation efficiency. See tech-spec-epic-18.md for details.*
+
+| Story | Name | Description | Points | Original Stories |
+|-------|------|-------------|--------|------------------|
+| 18.1 | Onboarding Flow & Guided Start | 3-step welcome modal + skip option + personalized greeting | 5 | 18.1, 18.2, 18.7 |
+| 18.2 | Preferences Management | Settings tab for all preferences + agency info + reset | 5 | 18.3, 18.4, 18.6 |
+| 18.3 | Preference-Aware AI Responses | AI uses preferences in responses (carriers, LOB, style) | 3 | 18.5 |
+| 18.4 | Admin Onboarding Status | Admin view of user onboarding completion | 2 | 18.8 |
+
+**Total Points:** 15
 
 ## Dependencies
 

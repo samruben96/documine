@@ -79,6 +79,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.59 0.2 255);
+  /* Story 17.5: Sidebar navigation hover/active states */
+  --sidebar-hover: oklch(0.96 0.01 255 / 50%); /* Light blue tint on hover */
+  --sidebar-active: oklch(0.92 0.03 255); /* Visible blue background when active */
+  /* AI Buddy specific */
+  --text-primary: oklch(0.145 0 0);
+  --text-muted: oklch(0.45 0 0);
+  --chat-border: oklch(0.922 0 0);
+  --accent-primary: oklch(0.59 0.2 255);
 }
 
 .dark {
@@ -116,6 +124,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.65 0.2 255);
+  /* Story 17.5: Sidebar navigation hover/active states */
+  --sidebar-hover: oklch(0.25 0.02 255 / 50%);
+  --sidebar-active: oklch(0.30 0.04 255);
+  /* AI Buddy specific */
+  --text-primary: oklch(0.985 0 0);
+  --text-muted: oklch(0.65 0 0);
+  --chat-border: oklch(1 0 0 / 10%);
+  --accent-primary: oklch(0.65 0.2 255);
 }
 
 @layer base {

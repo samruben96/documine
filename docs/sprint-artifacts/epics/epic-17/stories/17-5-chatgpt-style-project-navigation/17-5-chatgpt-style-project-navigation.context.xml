@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Story Context: 17-5 ChatGPT-Style Project Navigation
+  Generated: 2025-12-08
+  Epic: 17 - AI Buddy Document Intelligence
+
+  This context file provides all necessary information for implementing
+  the ChatGPT-style project navigation enhancement for AI Buddy.
+-->
+<story-context>
+  <metadata>
+    <story-id>17.5</story-id>
+    <story-key>17-5-chatgpt-style-project-navigation</story-key>
+    <title>ChatGPT-Style Project Navigation</title>
+    <epic>17 - AI Buddy Document Intelligence</epic>
+    <status>drafted</status>
+    <generated-date>2025-12-08</generated-date>
+    <priority>high</priority>
+    <points>3</points>
+  </metadata>
+
+  <story-summary>
+    <description>
+      Transform the AI Buddy sidebar from a simple two-section layout (Projects + Recent)
+      into a ChatGPT-style organization where projects appear as collapsible folders
+      containing their nested conversations. Standalone chats (not in any project)
+      appear in a separate section below projects.
+    </description>
+    <user-value>
+      Insurance agents can navigate conversations more intuitively with projects as
+      expandable folders, making it easy to find past chats and quickly start new
+      conversations within a specific project context.
+    </user-value>
+    <scope-notes>
+      - UI/UX transformation only - no backend API changes required
+      - Reuses existing data structures (projects, conversations)
+      - Maintains all existing functionality (create, archive, search, delete, move)
+      - Focus on sidebar navigation pattern change
+    </scope-notes>
+  </story-summary>
+
+  <!-- AUTHORITATIVE: These ACs match tech-spec-epic-17.md lines 364-384 -->
+  <acceptance-criteria>
+    <criterion id="AC-17.5.1">
+      <title>New Chat Defaults to Standalone</title>
+      <given>I click "New Chat" from the main sidebar</given>
+      <when>the chat is created</when>
+      <then>it is NOT associated with any project (project_id = null)</then>
+    </criterion>
+    <criterion id="AC-17.5.2">
+      <title>Projects Display as Collapsible Folders</title>
+      <given>I view the sidebar</given>
+      <when>I see the Projects section</when>
+      <then>each project displays as a collapsible folder with folder icon and expand/collapse chevron</then>
+    </criterion>
+    <criterion id="AC-17.5.3">
+      <title>Clicking Folder Icon Expands Project</title>
+      <given>I click on a project's folder icon or chevron</given>
+      <when>the project expands</when>
+      <then>I see all conversations belonging to that project nested below it (indented)</then>
+    </criterion>
+    <criterion id="AC-17.5.4">
+      <title>Nested Chats Show Within Project</title>
+      <given>a project is expanded</given>
+      <when>I view its nested conversations</when>
+      <then>each chat shows title, optional preview text, and relative date</then>
+    </criterion>
+    <criterion id="AC-17.5.5">
+      <title>New Chat Within Project Context</title>
+      <given>I have expanded a project</given>
+      <when>I see the project's chat list</when>
+      <then>I see a "New chat in [ProjectName]" action that creates a chat pre-assigned to that project</then>
+    </criterion>
+    <criterion id="AC-17.5.6">
+      <title>Hover States for Navigation</title>
+      <given>I hover over any sidebar item (project or chat)</given>
+      <when>my cursor is over the item</when>
+      <then>it displays a visible hover background color</then>
+    </criterion>
+    <criterion id="AC-17.5.7">
+      <title>Active States for Current Selection</title>
+      <given>I am viewing a specific chat or project</given>
+      <when>that item is the current context</when>
+      <then>it displays an active state (highlighted background, distinct from hover)</then>
+    </criterion>
+    <criterion id="AC-17.5.8">
+      <title>Project Click Navigates to Project View</title>
+      <given>I click on a project name (not the expand icon)</given>
+      <when>the project is selected</when>
+      <then>I navigate to that project's context and can start a new chat within it</then>
+    </criterion>
+    <criterion id="AC-17.5.9">
+      <title>Standalone Chats Section</title>
+      <given>I have chats not associated with any project</given>
+      <when>I view the sidebar</when>
+      <then>standalone chats appear in a separate "Chats" or "Recent" section below projects</then>
+    </criterion>
+    <criterion id="AC-17.5.10">
+      <title>Collapse Persists During Session</title>
+      <given>I collapse a project</given>
+      <when>I navigate elsewhere and return to the sidebar</when>
+      <then>the project remains collapsed (session persistence)</then>
+    </criterion>
+  </acceptance-criteria>
+
+  <technical-requirements>
+    <architecture-decisions>
+      <decision id="TD-17.5.1">
+        <title>Folder State Management</title>
+        <description>
+          Store expand/collapse state per project in React state (useState/useReducer).
+          For session persistence (AC-17.5.10), store in component state or context.
+          localStorage optional for cross-session persistence (not required by ACs).
+        </description>
+        <implementation>
+          Use a Set or object to track expanded project IDs.
+          Default behavior: all collapsed, or most recently active expanded.
+        </implementation>
+      </decision>
+      <decision id="TD-17.5.2">
+        <title>Conversation Grouping</title>
+        <description>
+          Group conversations by projectId for nested display.
+          Conversations with projectId = null go to standalone "Recent" section.
+        </description>
+        <implementation>
+          Filter existing conversations array by projectId.
+          Can be done in component or via useMemo for performance.
+        </implementation>
+      </decision>
+      <decision id="TD-17.5.3">
+        <title>Component Structure</title>
+        <description>
+          Create new ProjectFolder component to handle collapsible folder behavior.
+          Refactor ProjectSidebar to use folders instead of flat project list.
+        </description>
+        <components>
+          - ProjectFolder: Collapsible folder with project header + nested chats
+          - ProjectSidebar: Container managing folder list + standalone chats section
+        </components>
+      </decision>
+    </architecture-decisions>
+
+    <data-dependencies>
+      <dependency>
+        <source>projects via useProjects hook</source>
+        <fields>id, name, documentCount, archivedAt</fields>
+        <usage>Render folder headers with project info</usage>
+      </dependency>
+      <dependency>
+        <source>conversations via useConversations hook</source>
+        <fields>id, title, projectId, updatedAt</fields>
+        <usage>Group and display within appropriate folders or standalone section</usage>
+      </dependency>
+      <dependency>
+        <source>activeProjectId via useActiveProject hook</source>
+        <fields>activeProjectId</fields>
+        <usage>Determine active state styling and default expansion</usage>
+      </dependency>
+      <dependency>
+        <source>activeConversationId from context</source>
+        <fields>activeConversationId</fields>
+        <usage>Highlight currently active conversation</usage>
+      </dependency>
+    </data-dependencies>
+
+    <api-changes>
+      <note>No API changes required - reuses existing endpoints</note>
+      <existing-endpoints>
+        <endpoint>GET /api/ai-buddy/projects - fetch projects list</endpoint>
+        <endpoint>GET /api/ai-buddy/conversations - fetch conversations</endpoint>
+        <endpoint>POST /api/ai-buddy/conversations - create new conversation (accepts projectId)</endpoint>
+      </existing-endpoints>
+    </api-changes>
+  </technical-requirements>
+
+  <existing-code-analysis>
+    <file path="src/components/ai-buddy/project-sidebar.tsx">
+      <purpose>Current sidebar with separate Projects and Recent sections</purpose>
+      <current-structure>
+        - "New Chat" button at top
+        - "Projects" section with ProjectCard list
+        - "View Archived" link
+        - "Recent" section with ConversationGroup (date-grouped)
+        - "Load more" pagination for conversations
+      </current-structure>
+      <required-changes>
+        - Replace flat ProjectCard list with ProjectFolder components
+        - Add expand/collapse state management
+        - Keep "New Chat" button (AC-17.5.1: creates standalone chat)
+        - Keep "Recent" section for standalone chats (AC-17.5.9)
+        - Pass projectId when creating chat within project (AC-17.5.5)
+      </required-changes>
+      <key-props>
+        onNewChat, onSelectProject, onSelectConversation, projects, conversations,
+        activeProjectId, activeConversationId
+      </key-props>
+    </file>
+
+    <file path="src/components/ai-buddy/project-card.tsx">
+      <purpose>Individual project item with inline edit and context menu</purpose>
+      <relevant-code>
+        - Inline rename functionality (isEditing state)
+        - Context menu (archive, rename)
+        - Document count badge
+        - Active state styling when project.id === activeProjectId
+      </relevant-code>
+      <required-changes>
+        - Adapt to folder header role inside ProjectFolder
+        - Add expand/collapse chevron icon
+        - Add folder icon (Folder/FolderOpen from lucide-react)
+        - Keep context menu functionality
+      </required-changes>
+    </file>
+
+    <file path="src/components/ai-buddy/chat-history-item.tsx">
+      <purpose>Conversation item with context menu and actions</purpose>
+      <relevant-code>
+        - Delete and Move actions via dropdown/context menu
+        - Project badge display (when project assigned)
+        - Relative timestamp formatting (formatRelativeDate)
+        - Active state styling
+      </relevant-code>
+      <required-changes>
+        - Remove project badge when nested inside a project folder (implied by folder)
+        - Keep project badge for standalone chats section
+        - Adjust indentation for nested display (add variant prop or ml-6)
+        - Maintain all existing functionality
+      </required-changes>
+    </file>
+
+    <file path="src/components/ai-buddy/conversation-group.tsx">
+      <purpose>Date-grouped conversation section (Today, Yesterday, etc.)</purpose>
+      <relevant-code>
+        - Groups conversations by date label
+        - Renders ChatHistoryItem for each conversation
+        - Collapsible with header showing label
+      </relevant-code>
+      <required-changes>
+        - Keep for standalone chats section (AC-17.5.9)
+        - Optional: use within expanded projects for date sub-grouping
+      </required-changes>
+    </file>
+
+    <file path="src/contexts/ai-buddy-context.tsx">
+      <purpose>Shared state provider for AI Buddy</purpose>
+      <relevant-code>
+        - Manages projects, conversations, activeProject
+        - Provides selectProject, selectConversation callbacks
+        - Handles search, archive, delete operations
+      </relevant-code>
+      <required-changes>
+        - Optionally add expandedProjectIds state for session persistence
+        - Or keep expand state local to ProjectSidebar component
+      </required-changes>
+    </file>
+
+    <file path="src/hooks/ai-buddy/use-conversations.ts">
+      <purpose>Conversations CRUD and filtering hook</purpose>
+      <relevant-code>
+        - fetchConversations with projectId filter
+        - createConversation accepts projectId parameter
+        - moveConversation for project assignment
+      </relevant-code>
+      <required-changes>
+        - Ensure createConversation works with projectId = null (AC-17.5.1)
+        - Ensure createConversation works with specific projectId (AC-17.5.5)
+        - No other changes needed
+      </required-changes>
+    </file>
+
+    <file path="src/lib/ai-buddy/date-grouping.ts">
+      <purpose>Date grouping utility for conversations</purpose>
+      <relevant-code>
+        groupConversationsByDate(conversations) returns grouped array
+      </relevant-code>
+      <required-changes>None - reuse as-is for standalone chats section</required-changes>
+    </file>
+  </existing-code-analysis>
+
+  <implementation-guidance>
+    <task-mapping>
+      <!-- Maps story tasks to implementation details -->
+      <task id="1" title="Refactor ProjectSidebar Component" acs="17.5.2, 17.5.3, 17.5.6, 17.5.7">
+        <steps>
+          <step>Add expandedProjectIds state (Set or Record)</step>
+          <step>Create toggleProject(id) function</step>
+          <step>Replace ProjectCard list with ProjectFolder components</step>
+          <step>Keep standalone chats section using ConversationGroup</step>
+          <step>Apply hover/active state CSS variables</step>
+        </steps>
+      </task>
+      <task id="2" title="Create ProjectFolder Component" acs="17.5.2, 17.5.3, 17.5.4, 17.5.5">
+        <file-to-create>src/components/ai-buddy/project-folder.tsx</file-to-create>
+        <props>
+          project: Project,
+          isExpanded: boolean,
+          isActive: boolean,
+          conversations: Conversation[],
+          activeConversationId: string | null,
+          onToggle: () => void,
+          onSelectProject: () => void,
+          onSelectConversation: (id: string) => void,
+          onNewChatInProject: () => void,
+          onArchive: (id: string) => void,
+          onRename: (id: string, name: string) => void,
+          onDeleteConversation: (id: string) => void
+        </props>
+        <structure>
+          <![CDATA[
+<div data-testid={`project-folder-${project.id}`}>
+  {/* Folder Header */}
+  <div className="flex items-center gap-2 p-2 hover:bg-[var(--sidebar-hover)] cursor-pointer">
+    <button onClick={onToggle}>
+      {isExpanded ? <ChevronDown /> : <ChevronRight />}
+    </button>
+    <FolderOpen className="h-4 w-4" />
+    <span onClick={onSelectProject}>{project.name}</span>
+    <ProjectContextMenu onArchive onRename />
+  </div>
+
+  {/* Expanded Content */}
+  {isExpanded && (
+    <div className="ml-6">
+      {/* New chat in project action (AC-17.5.5) */}
+      <button onClick={onNewChatInProject}>
+        <Plus /> New chat in {project.name}
+      </button>
+
+      {/* Nested conversations (AC-17.5.3, 17.5.4) */}
+      {conversations.map(conv => (
+        <ChatHistoryItem
+          key={conv.id}
+          conversation={conv}
+          isActive={conv.id === activeConversationId}
+          onClick={() => onSelectConversation(conv.id)}
+          showProjectBadge={false}
+          indented
+        />
+      ))}
+
+      {conversations.length === 0 && (
+        <p className="text-xs text-muted">No conversations yet</p>
+      )}
+    </div>
+  )}
+</div>
+          ]]>
+        </structure>
+      </task>
+      <task id="3" title="Update Conversation Filtering" acs="17.5.4, 17.5.9">
+        <steps>
+          <step>Filter conversations by projectId for each folder</step>
+          <step>Filter conversations where projectId === null for standalone section</step>
+          <step>Use useMemo for performance optimization</step>
+        </steps>
+        <code-example>
+          <![CDATA[
+const conversationsByProject = useMemo(() => {
+  const grouped = new Map<string | null, Conversation[]>();
+  conversations.forEach(conv => {
+    const key = conv.projectId ?? null;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(conv);
+  });
+  return grouped;
+}, [conversations]);
+
+const standaloneConversations = conversationsByProject.get(null) ?? [];
+          ]]>
+        </code-example>
+      </task>
+      <task id="4" title="New Chat Default Behavior" acs="17.5.1">
+        <steps>
+          <step>Verify onNewChat handler does NOT set projectId</step>
+          <step>Ensure createConversation API accepts undefined/null projectId</step>
+          <step>Add onNewChatInProject handler that passes projectId (AC-17.5.5)</step>
+        </steps>
+      </task>
+      <task id="5" title="Click Behavior Implementation" acs="17.5.3, 17.5.8">
+        <steps>
+          <step>Chevron/folder icon click: toggle expand/collapse only</step>
+          <step>Project name click: navigate to project context + optionally expand</step>
+          <step>Nested chat click: navigate to that conversation</step>
+        </steps>
+      </task>
+      <task id="6" title="Visual Polish and States" acs="17.5.6, 17.5.7, 17.5.10">
+        <steps>
+          <step>Define hover state: hover:bg-[var(--sidebar-hover)]</step>
+          <step>Define active state: bg-[var(--sidebar-active)] or ring-1 ring-accent</step>
+          <step>Add transition for expand/collapse animation</step>
+          <step>Store expand state in component state (session persistence)</step>
+        </steps>
+        <css-variables>
+          --sidebar-hover: rgba(accent, 0.1)
+          --sidebar-active: rgba(accent, 0.2)
+        </css-variables>
+      </task>
+      <task id="7" title="Unit Tests">
+        <test-file>__tests__/components/ai-buddy/project-folder.test.tsx</test-file>
+        <test-cases>
+          <case>Renders folder header with project name and icons</case>
+          <case>Clicking chevron toggles expansion</case>
+          <case>Shows conversations when expanded</case>
+          <case>Hides conversations when collapsed</case>
+          <case>Shows "New chat in X" action when expanded</case>
+          <case>Shows empty state when no conversations</case>
+          <case>Applies hover styles on mouseenter</case>
+          <case>Applies active styles when isActive=true</case>
+          <case>Context menu triggers onArchive and onRename</case>
+        </test-cases>
+      </task>
+      <task id="8" title="E2E Tests">
+        <test-file>__tests__/e2e/ai-buddy/project-navigation.spec.ts</test-file>
+        <test-cases>
+          <case>AC-17.5.1: New Chat creates standalone conversation</case>
+          <case>AC-17.5.2: Projects display as folders with icons</case>
+          <case>AC-17.5.3: Clicking folder expands to show conversations</case>
+          <case>AC-17.5.4: Expanded folder shows chat details</case>
+          <case>AC-17.5.5: "New chat in X" creates with projectId</case>
+          <case>AC-17.5.8: Clicking project name navigates to project</case>
+          <case>AC-17.5.9: Standalone chats in separate section</case>
+          <case>AC-17.5.10: Collapse state persists on navigation</case>
+        </test-cases>
+      </task>
+    </task-mapping>
+
+    <component-hierarchy>
+      <![CDATA[
+<!-- Proposed component structure after implementation -->
+<ProjectSidebar>
+  <div className="p-4 border-b">
+    <Button onClick={onNewChat}>+ New Chat</Button>  <!-- AC-17.5.1: standalone -->
+  </div>
+
+  <div className="flex-1 overflow-y-auto">
+    <!-- Projects as Folders Section -->
+    <div className="p-4 border-b">
+      <p className="text-xs uppercase">Projects</p>
+      {projects.map(project => (
+        <ProjectFolder
+          key={project.id}
+          project={project}
+          isExpanded={expandedIds.has(project.id)}
+          isActive={project.id === activeProjectId}
+          conversations={conversationsByProject.get(project.id) ?? []}
+          onToggle={() => toggleExpand(project.id)}
+          onSelectProject={() => selectProject(project)}
+          onNewChatInProject={() => createConversation(project.id)}
+          ...
+        />
+      ))}
+      <ViewArchivedLink />
+    </div>
+
+    <!-- Standalone Chats Section (AC-17.5.9) -->
+    <div className="p-4">
+      <p className="text-xs uppercase">Recent</p>
+      {groupConversationsByDate(standaloneConversations).map(group => (
+        <ConversationGroup key={group.label} {...group} />
+      ))}
+      <LoadMoreButton />
+    </div>
+  </div>
+</ProjectSidebar>
+      ]]>
+    </component-hierarchy>
+  </implementation-guidance>
+
+  <dependencies>
+    <runtime>
+      <package name="lucide-react" version="^0.554.0">
+        ChevronRight, ChevronDown, Folder, FolderOpen, Plus icons
+      </package>
+    </runtime>
+    <existing-hooks>
+      <hook name="useProjects" path="src/hooks/ai-buddy/use-projects.ts">Projects list</hook>
+      <hook name="useConversations" path="src/hooks/ai-buddy/use-conversations.ts">Conversations list with createConversation</hook>
+      <hook name="useActiveProject" path="src/hooks/ai-buddy/use-active-project.ts">Active project state</hook>
+    </existing-hooks>
+    <utilities>
+      <utility name="cn" path="@/lib/utils">Class name merging</utility>
+      <utility name="groupConversationsByDate" path="@/lib/ai-buddy/date-grouping">Date grouping for standalone section</utility>
+    </utilities>
+  </dependencies>
+
+  <testing-requirements>
+    <unit-tests>
+      <test-file>__tests__/components/ai-buddy/project-folder.test.tsx</test-file>
+      <pattern>Use @vitest-environment happy-dom</pattern>
+      <mocks>
+        Mock useProjects, useConversations for isolation.
+        Use renderWithProviders wrapper with AiBuddyProvider.
+      </mocks>
+      <data-testids>
+        project-folder-{id}, folder-header-{id}, folder-chevron-{id},
+        folder-content-{id}, new-chat-in-project-{id}
+      </data-testids>
+    </unit-tests>
+
+    <integration-tests>
+      <test-file>__tests__/components/ai-buddy/project-sidebar.test.tsx (update)</test-file>
+      <test-cases>
+        <case>Renders ProjectFolder for each project</case>
+        <case>Groups conversations correctly by projectId</case>
+        <case>Standalone conversations appear in Recent section</case>
+        <case>New Chat button triggers onNewChat without projectId</case>
+      </test-cases>
+    </integration-tests>
+
+    <e2e-tests>
+      <test-file>__tests__/e2e/ai-buddy/project-navigation.spec.ts</test-file>
+      <coverage>All 10 acceptance criteria</coverage>
+    </e2e-tests>
+  </testing-requirements>
+
+  <ui-ux-specifications>
+    <visual-design>
+      <folder-header>
+        <layout>flex row: chevron(16px) | folder-icon(16px) | name | context-menu-trigger</layout>
+        <spacing>p-2 gap-2</spacing>
+        <hover>bg-[var(--sidebar-hover)] with transition-colors</hover>
+        <active>bg-[var(--sidebar-active)] when activeProjectId matches</active>
+      </folder-header>
+      <nested-conversation>
+        <indentation>ml-6 (24px indent under folder)</indentation>
+        <project-badge>Hidden (context implied by folder)</project-badge>
+      </nested-conversation>
+      <expand-collapse-animation>
+        <chevron>transform rotate-90 when expanded</chevron>
+        <content>transition-all duration-200 ease-in-out</content>
+      </expand-collapse-animation>
+    </visual-design>
+
+    <chatgpt-reference>
+      <![CDATA[
+Sidebar Structure (ChatGPT pattern):
+├── + New chat (standalone - AC-17.5.1)
+├── Search chats (Cmd+K)
+├── Projects Section
+│   ├── 📁 Client comms (collapsed)
+│   │   └── [Click expands - AC-17.5.3:]
+│   │       ├── + New chat in Client comms (AC-17.5.5)
+│   │       ├── Use cases for HawkSoft... (Dec 8)
+│   │       ├── Email with AI proposal (Dec 8)
+│   │       └── Email follow up draft (Dec 5)
+│   ├── 📁 Wedding (collapsed)
+│   └── 📁 N8N Automations (collapsed)
+└── Recent (standalone chats - AC-17.5.9)
+    ├── Insurance prompt revision
+    └── FAQ spreadsheet creation
+      ]]>
+    </chatgpt-reference>
+  </ui-ux-specifications>
+
+  <files-to-create>
+    <file path="src/components/ai-buddy/project-folder.tsx">
+      Collapsible project folder component with nested conversations
+    </file>
+    <file path="__tests__/components/ai-buddy/project-folder.test.tsx">
+      Unit tests for ProjectFolder component
+    </file>
+    <file path="__tests__/e2e/ai-buddy/project-navigation.spec.ts">
+      E2E tests for ChatGPT-style navigation
+    </file>
+  </files-to-create>
+
+  <files-to-modify>
+    <file path="src/components/ai-buddy/project-sidebar.tsx">
+      Refactor to use ProjectFolder components instead of flat ProjectCard list.
+      Add expandedProjectIds state management.
+      Group conversations by projectId.
+    </file>
+    <file path="src/components/ai-buddy/chat-history-item.tsx">
+      Add indented variant prop for nested display.
+      Conditionally hide project badge when inside a folder.
+    </file>
+    <file path="__tests__/components/ai-buddy/project-sidebar.test.tsx">
+      Update tests for new folder structure
+    </file>
+  </files-to-modify>
+
+  <out-of-scope>
+    <item>Backend API changes - reuse existing endpoints</item>
+    <item>Database schema changes - reuse existing tables</item>
+    <item>Drag-and-drop reordering of folders</item>
+    <item>Nested folders (folders within folders)</item>
+    <item>Cross-session persistence (localStorage) - only session persistence required</item>
+    <item>Keyboard navigation (not in ACs - nice-to-have)</item>
+  </out-of-scope>
+
+  <related-stories>
+    <story id="16.1" title="Project Creation &amp; Sidebar">
+      Foundation - project CRUD and current sidebar implementation
+    </story>
+    <story id="16.4" title="Conversation History &amp; General Chat">
+      Date grouping, pagination - reuse for standalone section
+    </story>
+    <story id="16.6" title="Conversation Management - Delete &amp; Move">
+      Move to project - essential for folder organization
+    </story>
+  </related-stories>
+</story-context>

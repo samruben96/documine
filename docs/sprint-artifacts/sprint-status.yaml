@@ -1058,13 +1058,17 @@ development_status:
   # Goal: Document upload, processing, AI-powered context
   # FRs: FR20-25, FR65, FR66
   # Tech Spec: docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md
-  # Stories consolidated: 7 → 4 stories (merged for implementation efficiency)
-  # - 17.1: Document Upload to Conversation with Status (FR20, FR24)
-  # - 17.2: Project Document Management (FR21, FR14, FR65, FR66)
-  # - 17.3: Document Preview & Multi-Document Context (FR23, FR25)
-  # - 17.4: Document Processing Integration (FR22)
-  # Total Points: 15
-  epic-17-ai-buddy-document-intelligence: contexted
+  # Stories: 5 (added 17.5 ChatGPT-style navigation mid-epic based on user feedback)
+  # - 17.1: Document Upload to Conversation with Status (FR20, FR24) - 5 pts
+  # - 17.2: Project Document Management (FR21, FR14, FR65, FR66) - 5 pts
+  # - 17.3: Document Preview & Multi-Document Context (FR23, FR25) - 5 pts
+  # - 17.4: Document Processing Integration (FR22) - 2 pts
+  # - 17.5: ChatGPT-Style Project Navigation - 3 pts (added 2025-12-08)
+  # Total Points: 20
+  # COMPLETE 2025-12-08: All 5 stories done, 20 points delivered
+  # Key achievement: Leveraged existing infrastructure (LlamaParse, RAG) for 1-day delivery
+  epic-17-ai-buddy-document-intelligence: done
+  epic-17-retrospective: completed
   # Story 17.1: Document Upload to Conversation with Status
   # READY 2025-12-08: Context generated, ready for development
   # Story: docs/sprint-artifacts/epics/epic-17/stories/17-1-document-upload-conversation-status/17-1-document-upload-conversation-status.md
@@ -1103,20 +1107,73 @@ development_status:
   # RAG: getMultiDocumentChunks, getSemanticDocumentChunks with per-doc limits
   # Database: match_multi_document_chunks function
   17-3-document-preview-multi-document-context: done
-  17-4-document-processing-integration: backlog
+  # Story 17.4: Document Processing Integration
+  # DRAFTED 2025-12-08: Story file at docs/sprint-artifacts/epics/epic-17/stories/17-4-document-processing-integration/
+  # Verifies LlamaParse pipeline integration, RAG context building, retry functionality
+  # IMPLEMENTED 2025-12-08: VERIFICATION COMPLETE - no new code required
+  # - All existing infrastructure from Epic 11, 13, Stories 17.1-17.3 verified working
+  # - LlamaParse Edge Function processes AI Buddy uploads correctly
+  # - RAG integration retrieves project and conversation document chunks
+  # - Retry functionality available for failed documents
+  # - 13 unit tests created (__tests__/lib/chat/rag-ai-buddy.test.ts)
+  # - E2E tests created (__tests__/e2e/ai-buddy/document-processing.spec.ts)
+  17-4-document-processing-integration: done
+  # Story 17.5: ChatGPT-Style Project Navigation
+  # NEW 2025-12-08: UI improvements for project/chat organization
+  # Features: Collapsible project folders, nested chats, hover/active states
+  # Inspiration: ChatGPT project organization UI
+  # DRAFTED 2025-12-08: Story file at docs/sprint-artifacts/epics/epic-17/stories/17-5-chatgpt-style-project-navigation/
+  # DONE 2025-12-08: Implemented ChatGPT-style navigation with:
+  # - ProjectFolder component with expand/collapse
+  # - Conversations nested under projects
+  # - Standalone chats in separate "Recent" section
+  # - All 10 ACs verified
+  17-5-chatgpt-style-project-navigation: done
 
   # Epic 18: AI Buddy Personalization & Onboarding
   # Goal: Personalized AI experience from first interaction
   # FRs: FR26-32, FR57-62
-  epic-18-ai-buddy-personalization-onboarding: backlog
-  18-1-onboarding-flow: backlog
-  18-2-skip-onboarding: backlog
-  18-3-user-preferences-management: backlog
-  18-4-agency-information: backlog
-  18-5-preference-aware-responses: backlog
-  18-6-reset-preferences: backlog
-  18-7-guided-first-conversation: backlog
-  18-8-admin-onboarding-status: backlog
+  # Tech Spec: docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md
+  # Stories CONSOLIDATED 2025-12-08: 8 → 4 stories for implementation efficiency
+  # Total Points: 15 (reduced from ~20)
+  epic-18-ai-buddy-personalization-onboarding: contexted
+  # Story 18.1: Onboarding Flow & Guided Start (Merged: 18.1 + 18.2 + 18.7)
+  # 3-step welcome modal + skip option + personalized greeting
+  # Covers: FR57-61
+  # Points: 5
+  # READY 2025-12-08: Context at docs/sprint-artifacts/epics/epic-18/stories/18-1-onboarding-flow-guided-start/18-1-onboarding-flow-guided-start.context.xml
+  # IMPLEMENTED 2025-12-08: All 10 ACs complete
+  # - AC-18.1.1: First-time onboarding modal with welcome step
+  # - AC-18.1.2: Name input + optional role selector
+  # - AC-18.1.3: Lines of Business chip selection (min 1 required)
+  # - AC-18.1.4: Favorite Carriers chip selection (optional)
+  # - AC-18.1.6: Personalized greeting with name + LOB reference
+  # - AC-18.1.7: LOB-specific suggestions after onboarding
+  # - AC-18.1.8: Skip onboarding option (available on all steps)
+  # - AC-18.1.10: Back navigation preserves selections
+  # Database: ai_buddy_preferences JSONB column on users table
+  # API: GET/PATCH /api/ai-buddy/preferences
+  # Components: OnboardingFlow, ProgressSteps, ChipSelect
+  # Hooks: useOnboarding, usePreferences
+  # Lib: personalized-greeting.ts with LOB_SUGGESTIONS
+  # Tests: 49 unit tests (component + hook + lib) + E2E spec
+  # CODE REVIEWED 2025-12-08: APPROVED - all 10 ACs verified
+  18-1-onboarding-flow-guided-start: done
+  # Story 18.2: Preferences Management (Merged: 18.3 + 18.4 + 18.6)
+  # Settings tab for all preferences + agency info + reset
+  # Covers: FR26-32
+  # Points: 5
+  18-2-preferences-management: backlog
+  # Story 18.3: Preference-Aware AI Responses (was 18.5)
+  # AI uses preferences in responses (carriers, LOB, style)
+  # Covers: FR31
+  # Points: 3
+  18-3-preference-aware-responses: backlog
+  # Story 18.4: Admin Onboarding Status (was 18.8)
+  # Admin view of user onboarding completion
+  # Covers: FR62
+  # Points: 2
+  18-4-admin-onboarding-status: backlog
 
   # Epic 19: AI Buddy Guardrails & Compliance
   # Goal: Admin-controlled guardrails for E&O protection

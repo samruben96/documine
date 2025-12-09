@@ -17,6 +17,7 @@ export {
   type UseActiveProjectReturn,
 } from './use-active-project';
 export { usePreferences, type UsePreferencesReturn } from './use-preferences';
+export { useOnboarding, type UseOnboardingReturn } from './use-onboarding';
 export { useGuardrails, type UseGuardrailsReturn } from './use-guardrails';
 export {
   useAuditLogs,

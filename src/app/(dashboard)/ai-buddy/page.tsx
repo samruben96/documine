@@ -7,13 +7,16 @@ import { ChatMessageList } from '@/components/ai-buddy/chat-message-list';
 import { DocumentUploadZone } from '@/components/ai-buddy/document-upload-zone';
 import { useChat } from '@/hooks/ai-buddy/use-chat';
 import { useConversationAttachments } from '@/hooks/ai-buddy/use-conversation-attachments';
+import { usePreferences } from '@/hooks/ai-buddy/use-preferences';
 import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
+import { generatePersonalizedGreeting } from '@/lib/ai-buddy/personalized-greeting';
 
 /**
  * AI Buddy Main Page
  * Story 15.4: Conversation Persistence (updated from 14.4, 15.1, 15.2)
  * Story 17.1: Document Upload to Conversation with Status
  * Story 17.3: Document Preview & Multi-Document Context
+ * Story 18.1: Onboarding Flow & Guided Start
  *
  * AC-15.4.1: New conversation created automatically on first message
  * AC-15.4.2: Conversation title auto-generated from first 50 characters
@@ -22,6 +25,8 @@ import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
  * AC-17.1.1: Attach button opens file picker for PDF/images
  * AC-17.1.5: Drag files onto chat area to attach
  * AC-17.3.2: Click citation opens document preview to exact page
+ * AC-18.1.6: Personalized greeting includes name and LOB reference
+ * AC-18.1.7: LOB-specific suggestions relevant to selected lines of business
  */
 
 const quickActions = [
@@ -59,6 +64,10 @@ export default function AiBuddyPage() {
     // Story 17.3: Document preview from citations (AC-17.3.2)
     openCitationPreview,
   } = useAiBuddyContext();
+
+  // Story 18.1: Get user preferences for personalized greeting (AC-18.1.6, AC-18.1.7)
+  const { preferences } = usePreferences();
+  const greeting = generatePersonalizedGreeting(preferences);
 
   // useChat with conversation ID and project ID from context
   // Story 16.2: Pass activeProjectId so new conversations are scoped to project (AC-16.2.3, AC-16.2.5)
@@ -168,41 +177,63 @@ export default function AiBuddyPage() {
               </div>
             )}
 
-            {/* Welcome section */}
+            {/* Welcome section - AC-18.1.6: Personalized greeting */}
             <div className="text-center max-w-xl mx-auto mb-12">
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
                 <Bot className="h-8 w-8 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-semibold text-slate-900 mb-3">
-                {activeProject ? `Chat with ${activeProject.name}` : 'Welcome to AI Buddy'}
+              <h1 className="text-2xl font-semibold text-slate-900 mb-3" data-testid="welcome-title">
+                {activeProject
+                  ? `Chat with ${activeProject.name}`
+                  : preferences?.displayName
+                    ? `Hi ${preferences.displayName}!`
+                    : 'Welcome to AI Buddy'}
               </h1>
-              <p className="text-slate-600 text-base">
+              <p className="text-slate-600 text-base" data-testid="welcome-message">
                 {activeProject
                   ? `Ask questions about ${activeProject.name}'s documents and policies. Your conversation will be saved to this project.`
-                  : 'Your knowledgeable insurance colleague. Ask questions about policies, get coverage analysis, or help comparing quotes for your clients.'}
+                  : greeting.message}
               </p>
             </div>
 
-            {/* Quick action cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
+            {/* Quick action cards - AC-18.1.7: LOB-specific suggestions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full" data-testid="quick-actions">
+              {/* If user has preferences with LOB, show personalized suggestions */}
+              {preferences?.onboardingCompleted && greeting.suggestions.length > 0 ? (
+                greeting.suggestions.slice(0, 3).map((suggestion, index) => (
                   <button
-                    key={action.title}
-                    onClick={() => handleQuickAction(action.prompt)}
+                    key={suggestion}
+                    onClick={() => handleQuickAction(suggestion)}
                     className="p-4 rounded-lg border border-slate-200 bg-white text-left hover:border-emerald-300 hover:bg-emerald-50 transition-colors group shadow-sm"
+                    data-testid={`suggestion-${index}`}
                   >
-                    <Icon className="h-5 w-5 text-slate-500 group-hover:text-emerald-600 mb-2" />
-                    <h3 className="font-medium text-slate-900 text-sm mb-1">
-                      {action.title}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      {action.description}
+                    <Sparkles className="h-5 w-5 text-slate-500 group-hover:text-emerald-600 mb-2" />
+                    <p className="text-sm text-slate-900 line-clamp-2">
+                      {suggestion}
                     </p>
                   </button>
-                );
-              })}
+                ))
+              ) : (
+                // Default quick actions for users who haven't onboarded
+                quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.title}
+                      onClick={() => handleQuickAction(action.prompt)}
+                      className="p-4 rounded-lg border border-slate-200 bg-white text-left hover:border-emerald-300 hover:bg-emerald-50 transition-colors group shadow-sm"
+                    >
+                      <Icon className="h-5 w-5 text-slate-500 group-hover:text-emerald-600 mb-2" />
+                      <h3 className="font-medium text-slate-900 text-sm mb-1">
+                        {action.title}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {action.description}
+                      </p>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         )}

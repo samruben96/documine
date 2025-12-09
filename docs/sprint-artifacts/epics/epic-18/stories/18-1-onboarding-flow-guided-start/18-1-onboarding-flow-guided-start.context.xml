@@ -1,0 +1,134 @@
+<story-context id="18-1-onboarding-flow-guided-start" v="1.0">
+  <metadata>
+    <epicId>18</epicId>
+    <storyId>1</storyId>
+    <title>Onboarding Flow & Guided Start</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-08</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-18/stories/18-1-onboarding-flow-guided-start/18-1-onboarding-flow-guided-start.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>new AI Buddy user</asA>
+    <iWant>to complete a quick personalization flow and receive a personalized greeting</iWant>
+    <soThat>AI Buddy knows my role, lines of business, and favorite carriers from the start</soThat>
+    <tasks>
+      <task id="1" ac="18.1.5">Implement Preferences API - GET/PATCH routes with service client pattern</task>
+      <task id="2" ac="18.1.5">Implement usePreferences Hook - React Query integration</task>
+      <task id="3" ac="18.1.1,18.1.2,18.1.10">Create OnboardingFlow Component - 3-step modal wizard</task>
+      <task id="4" ac="18.1.3,18.1.4">Create ChipSelect Component - multi-select toggleable chips</task>
+      <task id="5" ac="18.1.1">Create ProgressSteps Component - step indicators</task>
+      <task id="6" ac="18.1.1,18.1.8,18.1.9">Implement useOnboarding Hook - onboarding state management</task>
+      <task id="7" ac="18.1.1">Integrate Onboarding in AI Buddy Layout</task>
+      <task id="8" ac="18.1.3">Step 2 - Lines of Business Selection</task>
+      <task id="9" ac="18.1.4">Step 3 - Favorite Carriers Selection</task>
+      <task id="10" ac="18.1.8">Skip Flow Implementation</task>
+      <task id="11" ac="18.1.6,18.1.7">Personalized Greeting Generation</task>
+      <task id="12" ac="18.1.6">Display Greeting in Chat</task>
+      <task id="13" ac="18.1.5">Extended UserPreferences Type</task>
+      <task id="14" ac="all">Unit Tests</task>
+      <task id="15" ac="all">E2E Tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="18.1.1">First-Time Onboarding Modal - new user sees modal with Step 1</ac>
+    <ac id="18.1.2">Step 1 - Name and Role - enter name, select role, click Continue</ac>
+    <ac id="18.1.3">Step 2 - Lines of Business - chip grid, multi-select, min 1 required</ac>
+    <ac id="18.1.4">Step 3 - Favorite Carriers - select carriers, click Start Chatting</ac>
+    <ac id="18.1.5">Preferences Persistence - saved to DB, onboardingCompleted = true</ac>
+    <ac id="18.1.6">Personalized Greeting - greeting includes name and LOB reference</ac>
+    <ac id="18.1.7">LOB-Specific Suggestions - suggestions relevant to selected LOBs</ac>
+    <ac id="18.1.8">Skip Onboarding - modal closes, onboardingSkipped = true, generic greeting</ac>
+    <ac id="18.1.9">No Re-Display After Skip - returning user doesn't see modal</ac>
+    <ac id="18.1.10">Back Navigation - return to previous step, selections preserved</ac>
+    <ac id="18.1.11">Time to Complete - less than 2 minutes</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="Onboarding" snippet="FR57-62: Quick personalization flow (&lt;2 min), collects name/LOB/carriers, guided first conversation, personalized suggestions, skip option"/>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Data Architecture" snippet="ai_buddy_preferences JSONB column on users table, stores displayName, role, linesOfBusiness, favoriteCarriers, onboardingCompleted"/>
+      <doc path="docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md" title="Epic 18 Tech Spec" section="Story 18.1" snippet="3-step modal wizard: Welcome/Name/Role, LOB chip-select, Carriers chip-select. Skip link on each step. Personalized greeting generation."/>
+      <doc path="docs/sprint-artifacts/epics/epic-18/epic.md" title="Epic 18 Overview" section="Stories" snippet="Story 18.1 merges original 18.1, 18.2, 18.7 into consolidated onboarding implementation. 5 points."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="RLS Service Client Pattern" snippet="Use verify-then-service pattern for UPDATE/DELETE in Edge Runtime - verify via SELECT with RLS, then use service client for mutation"/>
+    </docs>
+
+    <code>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="UserPreferences, LINES_OF_BUSINESS, COMMON_CARRIERS, USER_ROLES, OnboardingState, DEFAULT_USER_PREFERENCES" lines="91-165" reason="Types already defined for preferences and onboarding - extend as needed"/>
+      <file path="src/hooks/ai-buddy/use-preferences.ts" kind="hook" symbol="usePreferences" lines="1-41" reason="STUB - needs full implementation with React Query and API calls"/>
+      <file path="src/app/api/ai-buddy/preferences/route.ts" kind="api-route" symbol="GET, PATCH" lines="1-53" reason="STUB - needs implementation of preferences CRUD with Supabase"/>
+      <file path="src/app/(dashboard)/ai-buddy/layout.tsx" kind="layout" symbol="AiBuddyLayout, AiBuddyLayoutInner" lines="1-303" reason="Integration point - add OnboardingFlow modal after AiBuddyProvider"/>
+      <file path="src/lib/ai-buddy/prompt-builder.ts" kind="service" symbol="buildUserContext" lines="220-259" reason="Already parses preferences for AI prompts - use for greeting generation pattern"/>
+      <file path="src/contexts/ai-buddy-context.tsx" kind="context" symbol="AiBuddyProvider, useAiBuddyContext" reason="Pattern reference for state management - onboarding state may integrate here"/>
+      <file path="src/components/ai-buddy/project-create-dialog.tsx" kind="component" reason="Pattern reference for shadcn Dialog modal implementation"/>
+      <file path="src/components/ui/dialog.tsx" kind="ui" reason="shadcn Dialog component - use for OnboardingFlow modal"/>
+      <file path="src/lib/supabase/server.ts" kind="service" symbol="createClient, createServiceClient" reason="Supabase client pattern - use service client for UPDATE operations"/>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@radix-ui/react-dialog" version="^1.1.15" reason="Modal dialog component"/>
+        <package name="@radix-ui/react-label" version="^2.1.8" reason="Form labels"/>
+        <package name="class-variance-authority" version="^0.7.1" reason="Component variants for chip states"/>
+        <package name="lucide-react" version="^0.554.0" reason="Icons for steps and UI elements"/>
+        <package name="react-hook-form" version="^7.68.0" reason="Form state management"/>
+        <package name="zod" version="^4.1.13" reason="Schema validation"/>
+        <package name="@supabase/supabase-js" version="^2.84.0" reason="Database operations"/>
+      </node>
+      <testing>
+        <package name="vitest" version="^4.0.14" reason="Unit testing framework"/>
+        <package name="@testing-library/react" version="^16.3.0" reason="React component testing"/>
+        <package name="@playwright/test" version="^1.57.0" reason="E2E testing"/>
+      </testing>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="Preferences API - GET" kind="REST endpoint" signature="GET /api/ai-buddy/preferences -> { data: { preferences: UserPreferences } }" path="src/app/api/ai-buddy/preferences/route.ts"/>
+    <interface name="Preferences API - PATCH" kind="REST endpoint" signature="PATCH /api/ai-buddy/preferences { ...Partial&lt;UserPreferences&gt; } -> { data: { preferences: UserPreferences } }" path="src/app/api/ai-buddy/preferences/route.ts"/>
+    <interface name="UsePreferencesReturn" kind="hook interface" signature="{ preferences, isLoading, error, updatePreferences, resetPreferences }" path="src/hooks/ai-buddy/use-preferences.ts"/>
+    <interface name="UseOnboardingReturn" kind="hook interface" signature="{ shouldShowOnboarding, isLoading, completeOnboarding(prefs), skipOnboarding() }" path="src/hooks/ai-buddy/use-onboarding.ts (NEW)"/>
+    <interface name="OnboardingFlowProps" kind="component props" signature="{ open, onComplete(prefs), onSkip, onOpenChange }" path="src/components/ai-buddy/onboarding/onboarding-flow.tsx (NEW)"/>
+    <interface name="ChipSelectProps" kind="component props" signature="{ options, selected, onChange, minSelection?, label, className? }" path="src/components/ai-buddy/onboarding/chip-select.tsx (NEW)"/>
+    <interface name="ProgressStepsProps" kind="component props" signature="{ currentStep, totalSteps, labels? }" path="src/components/ai-buddy/onboarding/progress-steps.tsx (NEW)"/>
+    <interface name="generatePersonalizedGreeting" kind="function" signature="(preferences: UserPreferences) => string" path="src/lib/ai-buddy/personalized-greeting.ts (NEW)"/>
+    <interface name="getSuggestionsForLOB" kind="function" signature="(lob: string) => string[]" path="src/lib/ai-buddy/personalized-greeting.ts (NEW)"/>
+  </interfaces>
+
+  <constraints>
+    <constraint source="architecture">Use verify-then-service pattern for PATCH/UPDATE operations in API routes</constraint>
+    <constraint source="architecture">Preferences stored in users.ai_buddy_preferences JSONB column</constraint>
+    <constraint source="dev-notes">No database migration required - column already exists</constraint>
+    <constraint source="prd">Onboarding flow must complete in less than 2 minutes</constraint>
+    <constraint source="tech-spec">Step 2 requires at least 1 LOB selection before Continue</constraint>
+    <constraint source="tech-spec">Step 3 carriers are optional (0 or more)</constraint>
+    <constraint source="story-17.5">Use variant="default" for primary CTA buttons (blue bg, white text)</constraint>
+    <constraint source="story-17.5">Reuse CSS variables --sidebar-hover and --sidebar-active for hover states</constraint>
+    <constraint source="architecture">Modal open &lt; 200ms, step transition &lt; 100ms, save preferences &lt; 500ms</constraint>
+  </constraints>
+
+  <tests>
+    <standards>Vitest for unit tests with @testing-library/react. Playwright for E2E. Test files in __tests__/ mirroring src/ structure. Each hook and component gets dedicated test file. Mock Supabase client and API responses.</standards>
+    <locations>
+      <dir>__tests__/hooks/ai-buddy/*.test.ts</dir>
+      <dir>__tests__/components/ai-buddy/onboarding/*.test.tsx</dir>
+      <dir>__tests__/e2e/ai-buddy/*.spec.ts</dir>
+      <dir>__tests__/lib/ai-buddy/*.test.ts</dir>
+    </locations>
+    <ideas>
+      <test ac="18.1.1">Test OnboardingFlow opens on first visit (shouldShowOnboarding = true)</test>
+      <test ac="18.1.2">Test Step 1 name input and role dropdown enable Continue button</test>
+      <test ac="18.1.3">Test ChipSelect allows multi-select, Continue disabled if none selected</test>
+      <test ac="18.1.4">Test Step 3 allows 0 selections, Start Chatting calls completeOnboarding</test>
+      <test ac="18.1.5">Test PATCH preferences saves to DB and sets onboardingCompleted</test>
+      <test ac="18.1.6">Test generatePersonalizedGreeting includes displayName</test>
+      <test ac="18.1.7">Test getSuggestionsForLOB returns LOB-specific suggestions</test>
+      <test ac="18.1.8">Test Skip sets onboardingSkipped, closes modal</test>
+      <test ac="18.1.9">Test shouldShowOnboarding returns false when skipped</test>
+      <test ac="18.1.10">Test Back button returns to previous step with state preserved</test>
+      <test ac="18.1.11">E2E: Measure onboarding completion time &lt; 2 minutes</test>
+    </ideas>
+  </tests>
+</story-context>
