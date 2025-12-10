@@ -1,0 +1,276 @@
+<story-context id="23-3-prompt-input-ui" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>3</storyId>
+    <title>Prompt Input UI</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-3-prompt-input-ui/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>a text input to describe what report I want (optional)</iWant>
+    <soThat>the AI can generate a customized report, or automatically analyze my data if I leave it blank</soThat>
+    <tasks>
+      <task id="1" ac="1,2">
+        <title>PromptInput Component</title>
+        <subtasks>
+          <subtask>Create src/components/reporting/prompt-input.tsx</subtask>
+          <subtask>Multi-line textarea with appropriate sizing (min-h-[100px])</subtask>
+          <subtask>Placeholder text explaining auto-analysis option</subtask>
+          <subtask>Character count indicator (optional, max ~500 chars)</subtask>
+          <subtask>Proper disabled state during analysis/generation</subtask>
+          <subtask>Integrate with shadcn/ui Textarea component</subtask>
+        </subtasks>
+      </task>
+      <task id="2" ac="3">
+        <title>Suggested Prompts Chips</title>
+        <subtasks>
+          <subtask>Create src/components/reporting/suggested-prompts.tsx</subtask>
+          <subtask>Render 3-5 clickable chips from suggestedPrompts array</subtask>
+          <subtask>Clicking a chip populates the textarea</subtask>
+          <subtask>Visual feedback on hover/click (scale, color)</subtask>
+          <subtask>Accessible keyboard navigation</subtask>
+        </subtasks>
+      </task>
+      <task id="3" ac="4,5,6">
+        <title>ReportingPage Integration</title>
+        <subtasks>
+          <subtask>Update src/app/(dashboard)/reporting/page.tsx</subtask>
+          <subtask>Add state management for: sourceId, analysisData, prompt, isAnalyzing, analysisError</subtask>
+          <subtask>Call /api/reporting/analyze after successful upload</subtask>
+          <subtask>Display PromptInput and SuggestedPrompts after analysis completes</subtask>
+          <subtask>Generate Report button with proper enabled/disabled logic</subtask>
+          <subtask>Error alert if analysis fails</subtask>
+        </subtasks>
+      </task>
+      <task id="4" ac="4,5,6">
+        <title>useReportingAnalysis Hook</title>
+        <subtasks>
+          <subtask>Create src/hooks/use-reporting-analysis.ts</subtask>
+          <subtask>Encapsulate analyze API call</subtask>
+          <subtask>Return { analyze, data, isLoading, error, reset }</subtask>
+          <subtask>Handle abort on unmount</subtask>
+        </subtasks>
+      </task>
+      <task id="5" ac="4,5,6">
+        <title>UI Flow &amp; State Machine</title>
+        <subtasks>
+          <subtask>Initial: Show FileUploader only</subtask>
+          <subtask>Uploading: FileUploader with progress</subtask>
+          <subtask>Analyzing: Show "Analyzing your data..." spinner</subtask>
+          <subtask>Ready: Show PromptInput + SuggestedPrompts + Generate button</subtask>
+          <subtask>Generating: Disabled state during generation</subtask>
+          <subtask>Allow uploading new file to reset flow</subtask>
+        </subtasks>
+      </task>
+      <task id="6" ac="1-6">
+        <title>Unit Tests</title>
+        <subtasks>
+          <subtask>Test PromptInput renders with placeholder</subtask>
+          <subtask>Test PromptInput onChange updates value</subtask>
+          <subtask>Test SuggestedPrompts renders chips from array</subtask>
+          <subtask>Test clicking chip calls onSelect callback</subtask>
+          <subtask>Test useReportingAnalysis hook states</subtask>
+          <subtask>Test ReportingPage state transitions</subtask>
+        </subtasks>
+      </task>
+      <task id="7" ac="3,4,5">
+        <title>Integration Test</title>
+        <subtasks>
+          <subtask>E2E: Upload file → wait for analysis → see suggested prompts</subtask>
+          <subtask>E2E: Click suggested prompt → verify textarea populated</subtask>
+          <subtask>E2E: Generate button enabled after analysis completes</subtask>
+          <subtask>E2E: Verify button disabled during analysis</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.3.1">Text input field for optional report description with multi-line support</criterion>
+    <criterion id="AC-23.3.2">Placeholder text explains auto-analysis option (e.g., "Describe the report you want, or leave blank for AI to analyze automatically")</criterion>
+    <criterion id="AC-23.3.3">Suggested prompts from analysis API are clickable chips that populate the input</criterion>
+    <criterion id="AC-23.3.4">"Generate Report" button enabled after file upload completes (prompt is optional)</criterion>
+    <criterion id="AC-23.3.5">Loading state shown while analysis is in progress (between upload and ready state)</criterion>
+    <criterion id="AC-23.3.6">Clear error handling if analysis fails</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/tech-spec.md</path>
+        <title>Epic 23 Technical Specification: Flexible AI Reports</title>
+        <section>Prompt Input (Story 23.3)</section>
+        <snippet>Text input field for optional report description, placeholder explains auto-analysis, suggested prompts are clickable chips, Generate button enabled after upload.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>API Response Format</section>
+        <snippet>Success: { data: T, error: null }. Error: { data: null, error: { code, message, details } }. All API responses follow this structure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/stories/23-2-data-analysis-pipeline/story.md</path>
+        <title>Story 23.2: Data Analysis Pipeline (Completed)</title>
+        <section>Dev Agent Record</section>
+        <snippet>AnalyzeResponse returns sourceId, status, columns, rowCount, suggestedPrompts. POST /api/reporting/analyze triggers after successful upload.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/app/(dashboard)/reporting/page.tsx</path>
+        <kind>page</kind>
+        <symbol>ReportingPage</symbol>
+        <lines>1-157</lines>
+        <reason>Main page to integrate PromptInput and SuggestedPrompts components. Already has basic textarea and suggested prompts placeholder.</reason>
+      </file>
+      <file>
+        <path>src/app/api/reporting/analyze/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST /api/reporting/analyze</symbol>
+        <lines>1-239</lines>
+        <reason>Analyze API endpoint - returns AnalyzeResponse with suggestedPrompts array that powers SuggestedPrompts component.</reason>
+      </file>
+      <file>
+        <path>src/types/reporting.ts</path>
+        <kind>types</kind>
+        <symbol>AnalyzeResponse, ColumnInfo, ParsedData</symbol>
+        <lines>283-296</lines>
+        <reason>TypeScript interfaces for analyze API response including suggestedPrompts: string[].</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/file-uploader.tsx</path>
+        <kind>component</kind>
+        <symbol>FileUploader</symbol>
+        <reason>Existing file upload component with onUploadComplete(sourceId, filename) callback - integration point for triggering analysis.</reason>
+      </file>
+      <file>
+        <path>src/lib/reporting/data-analyzer.ts</path>
+        <kind>service</kind>
+        <symbol>analyzeColumnTypes, generateSuggestedPrompts</symbol>
+        <reason>Data analysis service that generates the suggestedPrompts array using AI (GPT-4o via OpenRouter).</reason>
+      </file>
+      <file>
+        <path>src/components/ui/textarea.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Textarea</symbol>
+        <lines>1-19</lines>
+        <reason>shadcn/ui Textarea component - base for PromptInput component.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/button.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Button</symbol>
+        <reason>shadcn/ui Button component for Generate Report button and chip styling.</reason>
+      </file>
+      <file>
+        <path>src/hooks/use-processing-progress.ts</path>
+        <kind>hook</kind>
+        <symbol>useProcessingProgress</symbol>
+        <lines>218-703</lines>
+        <reason>Reference hook pattern: useState, useCallback, useRef, abort handling, API call encapsulation.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>react</package>
+        <version>19.2.0</version>
+        <usage>useState, useCallback, useRef, useEffect for hook implementation</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Loader2 for loading spinner, Sparkles for chips, AlertCircle for errors</usage>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <usage>Toast notifications for error alerts</usage>
+      </node>
+      <node>
+        <package>class-variance-authority</package>
+        <version>^0.7.1</version>
+        <usage>cva for chip variant styling</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use shadcn/ui components (Textarea, Button, Alert) - no custom base components</constraint>
+    <constraint type="pattern">Follow API response format: { data: T, error: null } or { data: null, error: { code, message } }</constraint>
+    <constraint type="pattern">Hook pattern: return { action, data, isLoading, error, reset } for async operations</constraint>
+    <constraint type="pattern">Use cn() utility from @/lib/utils for conditional class merging</constraint>
+    <constraint type="accessibility">Chips must be keyboard navigable (Tab + Enter/Space to select)</constraint>
+    <constraint type="ux">Prompt length recommendation: ~500 characters max for reasonable AI processing</constraint>
+    <constraint type="state">New file upload should clear previous analysis state (reset flow)</constraint>
+    <constraint type="state">Suggested prompts always 3-5 from analysis API - fallback handled server-side</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>FileUploader.onUploadComplete</name>
+      <kind>callback</kind>
+      <signature>(sourceId: string, filename: string) => void</signature>
+      <path>src/components/reporting/file-uploader.tsx</path>
+    </interface>
+    <interface>
+      <name>POST /api/reporting/analyze</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { sourceId: string } → Response: { data: AnalyzeResponse, error: null }</signature>
+      <path>src/app/api/reporting/analyze/route.ts</path>
+    </interface>
+    <interface>
+      <name>AnalyzeResponse</name>
+      <kind>type</kind>
+      <signature>{ sourceId: string; status: 'ready'; columns: ColumnInfo[]; rowCount: number; suggestedPrompts: string[] }</signature>
+      <path>src/types/reporting.ts:290-296</path>
+    </interface>
+    <interface>
+      <name>PromptInput (new)</name>
+      <kind>component props</kind>
+      <signature>{ value: string; onChange: (value: string) => void; disabled?: boolean; placeholder?: string; maxLength?: number }</signature>
+      <path>src/components/reporting/prompt-input.tsx (to create)</path>
+    </interface>
+    <interface>
+      <name>SuggestedPrompts (new)</name>
+      <kind>component props</kind>
+      <signature>{ prompts: string[]; onSelect: (prompt: string) => void; disabled?: boolean }</signature>
+      <path>src/components/reporting/suggested-prompts.tsx (to create)</path>
+    </interface>
+    <interface>
+      <name>useReportingAnalysis (new)</name>
+      <kind>hook</kind>
+      <signature>() => { analyze: (sourceId: string) => Promise&lt;void&gt;; data: AnalyzeResponse | null; isLoading: boolean; error: string | null; reset: () => void }</signature>
+      <path>src/hooks/use-reporting-analysis.ts (to create)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest + React Testing Library for unit/integration tests. Use Playwright for E2E tests.
+      Mock Supabase client and fetch calls. Test components in isolation with @testing-library/user-event for user interactions.
+      Follow existing test patterns in __tests__/ directory structure.
+    </standards>
+    <locations>
+      <location>__tests__/components/reporting/prompt-input.test.tsx</location>
+      <location>__tests__/components/reporting/suggested-prompts.test.tsx</location>
+      <location>__tests__/hooks/use-reporting-analysis.test.ts</location>
+      <location>__tests__/e2e/reporting-analyze.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.3.1">Test PromptInput renders textarea with multi-line support (min-h-[100px] class)</idea>
+      <idea ac="AC-23.3.2">Test placeholder text contains "leave blank" and "automatically" keywords</idea>
+      <idea ac="AC-23.3.3">Test SuggestedPrompts: clicking chip calls onSelect with prompt text</idea>
+      <idea ac="AC-23.3.3">Test SuggestedPrompts: renders correct number of chips (3-5)</idea>
+      <idea ac="AC-23.3.4">Test ReportingPage: Generate button disabled before analysis complete</idea>
+      <idea ac="AC-23.3.4">Test ReportingPage: Generate button enabled after analysis ready</idea>
+      <idea ac="AC-23.3.5">Test ReportingPage: loading spinner shown during analysis (isAnalyzing state)</idea>
+      <idea ac="AC-23.3.6">Test ReportingPage: error alert rendered when analysisError is set</idea>
+      <idea ac="AC-23.3.6">Test useReportingAnalysis: error state set on API failure</idea>
+      <idea ac="accessibility">Test SuggestedPrompts: chips are focusable and activatable with keyboard</idea>
+    </ideas>
+  </tests>
+</story-context>

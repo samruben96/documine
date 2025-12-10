@@ -1,7 +1,7 @@
 # Sprint Status - docuMINE
 # ========================
 # Generated: 2025-11-28
-# Last Updated: 2025-12-09 (Story 21.5 review)
+# Last Updated: 2025-12-10 (Story 23.2 complete)
 # Project: docuMINE
 # Tracking: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
@@ -271,18 +271,55 @@ development_status:
   # Standardize gap-6 and space-y-6 across pages
   # DONE 2025-12-09: All ACs complete, card grids standardized to gap-6
   22-4-spacing-standardization: done
-  epic-22-retrospective: optional
+  epic-22-retrospective: completed  # docs/sprint-artifacts/retrospectives/epic-22-retro-2025-12-09.md
 
   # =====================================================
-  # EPIC 23+: CUSTOM REPORTING (After UI Polish)
+  # EPIC 23: FLEXIBLE AI REPORTS
   # =====================================================
-  # User uploads raw data, AI normalizes and reports
+  # **PIVOTED 2025-12-10**: From commission-specific to universal data reports
+  # Upload any data file → Optional prompt → AI-generated insights
   # Planning docs: docs/features/reporting/
-  # Duration: ~3-4 weeks
-  epic-23-custom-reporting: backlog
-  # Scope:
-  # - File upload for Excel/CSV/PDF
-  # - AI column detection and normalization
-  # - Structured data storage
-  # - Natural language querying via AI Buddy
-  # - Chart and report generation
+  # Tech Spec: docs/sprint-artifacts/epics/epic-23/tech-spec.md
+  # Stories: 8 (31 points total)
+  # Migration: simplify_reporting_for_flexible_ai (dropped commission_records, column_mapping_templates)
+  epic-23-flexible-ai-reports: contexted
+  # Story 23.1: File Upload Infrastructure (DONE)
+  # Upload Excel/CSV/PDF, store in Supabase Storage
+  # DONE 2025-12-10: All 8 tasks complete, 27 unit tests, E2E tests
+  # - Database: commission_data_sources (with parsed_data, expires_at columns)
+  # - Storage: reporting bucket with agency-scoped RLS
+  # - API: /api/reporting/upload with validation and audit logging
+  # - UI: FileUploader component with react-dropzone, progress tracking
+  # - Navigation: Reporting added to header and mobile bottom nav
+  # - UPDATED: Generic "data file" labels (not commission-specific)
+  23-1-file-upload-infrastructure: done
+  # Story 23.2: Data Analysis Pipeline (5 pts)
+  # Parse Excel/CSV/PDF, AI detects column types, suggests prompts
+  # DONE 2025-12-10: All ACs complete, 49 tests, schema issues fixed
+  # - Migration 20251210180000_fix_reporting_schema.sql applied
+  # - Added column_count column, added 'ready' to status constraint
+  23-2-data-analysis-pipeline: done
+  # Story 23.3: Prompt Input UI (2 pts)
+  # Optional text input for custom report description
+  # DONE 2025-12-10: All ACs complete, 78 tests, REVIEW APPROVED
+  # - PromptInput: multi-line textarea with char count, accessibility
+  # - SuggestedPrompts: clickable chips with hover effects
+  # - useReportingAnalysis: async hook with abort handling
+  # - ReportingPage: 5-state flow (initial → analyzing → ready → generating → error)
+  23-3-prompt-input-ui: done
+  # Story 23.4: AI Report Generation (8 pts)
+  # Generate insights, summaries, chart configs from data + prompt
+  23-4-ai-report-generation: backlog
+  # Story 23.5: Charts & Visualization (5 pts)
+  # Recharts integration for bar/line/pie/area charts
+  23-5-charts-visualization: backlog
+  # Story 23.6: Interactive Data Table (3 pts)
+  # Sortable, filterable table with pagination
+  23-6-interactive-data-table: backlog
+  # Story 23.7: PDF/Excel Export (5 pts)
+  # Download reports as PDF or Excel
+  23-7-pdf-excel-export: backlog
+  # Story 23.8: UI Polish & Testing (3 pts)
+  # Final polish, accessibility, comprehensive tests
+  23-8-ui-polish-testing: backlog
+  epic-23-retrospective: optional
