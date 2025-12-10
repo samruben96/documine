@@ -1,0 +1,96 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>22</epicId>
+    <storyId>2</storyId>
+    <title>Admin Panel Skeletons</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-22/stories/story-22.2-admin-panel-skeletons.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>admin user viewing Admin panels</asA>
+    <iWant>see skeleton loading states while data loads</iWant>
+    <soThat>I have consistent loading feedback across all admin views</soThat>
+    <tasks>
+      <task id="1">Create shared admin-panel-skeleton.tsx with configurable options</task>
+      <task id="2">Update UserManagementPanel to show skeleton during loading</task>
+      <task id="3">Verify UsageAnalyticsPanel has proper skeleton/loading coverage</task>
+      <task id="4">Update AuditLogPanel to show skeleton during loading</task>
+      <task id="5">Write unit tests for AdminPanelSkeleton component</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-22.2.1" title="Shared Admin Skeleton">
+      <item>Create admin-panel-skeleton.tsx with configurable options</item>
+      <item>Support table skeleton (rows configurable, default 5)</item>
+      <item>Support search header skeleton</item>
+      <item>Reusable across all admin panels</item>
+    </criterion>
+    <criterion id="AC-22.2.2" title="User Management Panel">
+      <item>UserManagementPanel shows skeleton while loading users</item>
+      <item>Skeleton shows search bar + table structure</item>
+      <item>Smooth transition to actual content</item>
+    </criterion>
+    <criterion id="AC-22.2.3" title="Usage Analytics Panel">
+      <item>Already has some loading - verify skeleton pattern</item>
+      <item>Fix any gaps in loading state coverage</item>
+      <item>Ensure chart area has proper skeleton</item>
+    </criterion>
+    <criterion id="AC-22.2.4" title="Audit Log Panel">
+      <item>AuditLogPanel shows skeleton while loading logs</item>
+      <item>Skeleton shows filters + table structure</item>
+      <item>Smooth transition to actual content</item>
+    </criterion>
+    <criterion id="AC-22.2.5" title="Tests">
+      <item>Unit test for AdminPanelSkeleton component</item>
+      <item>Integration tests for each panel's loading state</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-22/tech-spec.md" title="Epic 22 Tech Spec" section="Admin Panel Skeletons" snippet="Create shared admin-panel-skeleton.tsx with configurable rows and columns. Apply to UserManagementPanel, UsageAnalyticsPanel, AuditLogPanel." />
+    </docs>
+    <code>
+      <file path="src/components/admin/user-management-panel.tsx" kind="component" symbol="UserManagementPanel" lines="129-143" reason="Has loading skeleton - verify and enhance" />
+      <file path="src/components/admin/analytics/usage-analytics-panel.tsx" kind="component" symbol="UsageAnalyticsPanel" reason="Has loading states - verify coverage" />
+      <file path="src/components/admin/audit-log/audit-log-panel.tsx" kind="component" symbol="AuditLogPanel" lines="35-63" reason="Has PanelSkeleton - verify pattern" />
+      <file path="src/components/settings/team-tab-skeleton.tsx" kind="component" symbol="TeamTabSkeleton" reason="Pattern reference for table skeleton" />
+      <file path="src/components/ui/skeleton.tsx" kind="component" symbol="Skeleton" reason="Base skeleton component" />
+      <file path="src/components/ui/table.tsx" kind="component" symbol="Table, TableHeader, TableBody, TableRow, TableCell" reason="Table components for skeleton structure" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="tailwindcss" version="4.x" />
+        <package name="lucide-react" version="*" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Follow established TeamTabSkeleton pattern</constraint>
+    <constraint>Create reusable AdminPanelSkeleton with configurable props</constraint>
+    <constraint>Default 5 rows for table skeletons</constraint>
+    <constraint>Support search header and filter skeletons</constraint>
+    <constraint>No new dependencies</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="AdminPanelSkeletonProps" kind="interface" signature="{ showSearch?: boolean; rows?: number; columns?: number }" path="src/components/admin/admin-panel-skeleton.tsx" />
+  </interfaces>
+
+  <tests>
+    <standards>Vitest with React Testing Library. Test file pattern: __tests__/components/admin/{name}.test.tsx.</standards>
+    <locations>
+      <location>__tests__/components/admin/admin-panel-skeleton.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-22.2.1">Test AdminPanelSkeleton renders with default props</idea>
+      <idea acId="AC-22.2.1">Test configurable rows prop changes skeleton row count</idea>
+      <idea acId="AC-22.2.1">Test showSearch prop toggles search skeleton</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -260,7 +260,9 @@ development_status:
   22-1-settings-tab-skeletons: done
   # Story 22.2: Admin Panel Skeletons (3 pts) - P0
   # Add skeleton loaders to Admin sub-panels
-  22-2-admin-panel-skeletons: drafted
+  # DONE 2025-12-09: Shared AdminPanelSkeleton created, 11 tests passing
+  # Note: Existing admin panels already have good loading states
+  22-2-admin-panel-skeletons: done
   # Story 22.3: View Transitions & Chart Fix (2 pts) - P1
   # Subtle fade-in transitions, fix Recharts warning
   22-3-view-transitions-chart-fix: drafted
