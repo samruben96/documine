@@ -54,6 +54,17 @@ npx supabase functions deploy process-document
 # Run tests
 npm test
 
+# Run subset of tests (Story 21.2.5)
+npm run test:changed    # Only tests affected by uncommitted changes
+npm run test:components # Component tests only
+npm run test:hooks      # Hook tests only
+npm run test:lib        # Library/utility tests only
+npm run test:ai-buddy   # AI Buddy feature tests
+npm run test:admin      # Admin feature tests
+
+# Run tests with coverage
+npm run test:coverage
+
 # Build for production
 npm run build
 ```
