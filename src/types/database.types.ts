@@ -62,7 +62,7 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_buddy_audit_logs: {
+      agency_audit_logs: {
         Row: {
           action: string
           agency_id: string
@@ -107,6 +107,45 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_buddy_audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission: Database["public"]["Enums"]["agency_permission"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: Database["public"]["Enums"]["agency_permission"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: Database["public"]["Enums"]["agency_permission"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_permissions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -243,57 +282,6 @@ export type Database = {
           },
         ]
       }
-      ai_buddy_invitations: {
-        Row: {
-          accepted_at: string | null
-          agency_id: string
-          cancelled_at: string | null
-          email: string
-          expires_at: string
-          id: string
-          invited_at: string
-          invited_by: string
-          role: string
-        }
-        Insert: {
-          accepted_at?: string | null
-          agency_id: string
-          cancelled_at?: string | null
-          email: string
-          expires_at?: string
-          id?: string
-          invited_at?: string
-          invited_by: string
-          role?: string
-        }
-        Update: {
-          accepted_at?: string | null
-          agency_id?: string
-          cancelled_at?: string | null
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_at?: string
-          invited_by?: string
-          role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_buddy_invitations_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_buddy_invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_buddy_messages: {
         Row: {
           agency_id: string
@@ -344,45 +332,6 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ai_buddy_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_buddy_permissions: {
-        Row: {
-          granted_at: string
-          granted_by: string | null
-          id: string
-          permission: Database["public"]["Enums"]["ai_buddy_permission"]
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          permission: Database["public"]["Enums"]["ai_buddy_permission"]
-          user_id: string
-        }
-        Update: {
-          granted_at?: string
-          granted_by?: string | null
-          id?: string
-          permission?: Database["public"]["Enums"]["ai_buddy_permission"]
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_buddy_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_buddy_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1087,7 +1036,22 @@ export type Database = {
           user_id: string | null
           user_name: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_conversations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_conversations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_buddy_usage_daily: {
         Row: {
@@ -1098,7 +1062,15 @@ export type Database = {
           documents_uploaded: number | null
           total_messages: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_conversations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -1162,7 +1134,7 @@ export type Database = {
         }[]
       }
       process_next_document_job: { Args: never; Returns: undefined }
-      refresh_ai_buddy_usage_daily: { Args: Record<string, never>; Returns: undefined }
+      refresh_ai_buddy_usage_daily: { Args: never; Returns: undefined }
       reset_stuck_processing_jobs: { Args: never; Returns: undefined }
       search_conversations: {
         Args: { p_limit?: number; p_query: string; p_user_id: string }
@@ -1177,11 +1149,17 @@ export type Database = {
           project_name: string
         }[]
       }
+      transfer_ownership: {
+        Args: {
+          p_agency_id: string
+          p_current_owner_id: string
+          p_new_owner_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
-      ai_buddy_confidence_level: "high" | "medium" | "low"
-      ai_buddy_message_role: "user" | "assistant" | "system"
-      ai_buddy_permission:
+      agency_permission:
         | "use_ai_buddy"
         | "manage_own_projects"
         | "manage_users"
@@ -1191,6 +1169,8 @@ export type Database = {
         | "manage_billing"
         | "transfer_ownership"
         | "delete_agency"
+      ai_buddy_confidence_level: "high" | "medium" | "low"
+      ai_buddy_message_role: "user" | "assistant" | "system"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1318,9 +1298,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      ai_buddy_confidence_level: ["high", "medium", "low"],
-      ai_buddy_message_role: ["user", "assistant", "system"],
-      ai_buddy_permission: [
+      agency_permission: [
         "use_ai_buddy",
         "manage_own_projects",
         "manage_users",
@@ -1331,6 +1309,8 @@ export const Constants = {
         "transfer_ownership",
         "delete_agency",
       ],
+      ai_buddy_confidence_level: ["high", "medium", "low"],
+      ai_buddy_message_role: ["user", "assistant", "system"],
     },
   },
 } as const
