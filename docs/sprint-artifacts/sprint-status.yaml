@@ -253,7 +253,7 @@ development_status:
   # Decided: Epic 20-21 retrospective (2025-12-09)
   # Tech Spec: docs/sprint-artifacts/epics/epic-22/tech-spec.md
   # Stories: 4 (10 points total)
-  epic-22-ui-polish: contexted
+  epic-22-ui-polish: done
   # Story 22.1: Settings Tab Skeletons (3 pts) - P0
   # Add skeleton loaders to BrandingTab and UsageTab
   # DONE 2025-12-09: All ACs complete, 14 tests passing
@@ -269,7 +269,9 @@ development_status:
   22-3-view-transitions-chart-fix: done
   # Story 22.4: Spacing Standardization (2 pts) - P2
   # Standardize gap-6 and space-y-6 across pages
-  22-4-spacing-standardization: ready-for-dev
+  # DONE 2025-12-09: All ACs complete, card grids standardized to gap-6
+  22-4-spacing-standardization: done
+  epic-22-retrospective: optional
 
   # =====================================================
   # EPIC 23+: CUSTOM REPORTING (After UI Polish)
