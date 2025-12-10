@@ -134,7 +134,8 @@ export default async function SettingsPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Story 22.3: AC-22.3.2 - Settings content fades in smoothly */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 view-fade-in">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
           <p className="text-sm text-slate-500 mt-1">

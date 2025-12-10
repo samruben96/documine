@@ -265,7 +265,8 @@ development_status:
   22-2-admin-panel-skeletons: done
   # Story 22.3: View Transitions & Chart Fix (2 pts) - P1
   # Subtle fade-in transitions, fix Recharts warning
-  22-3-view-transitions-chart-fix: drafted
+  # DONE 2025-12-09: View transitions added, Recharts already fixed
+  22-3-view-transitions-chart-fix: done
   # Story 22.4: Spacing Standardization (2 pts) - P2
   # Standardize gap-6 and space-y-6 across pages
   22-4-spacing-standardization: drafted

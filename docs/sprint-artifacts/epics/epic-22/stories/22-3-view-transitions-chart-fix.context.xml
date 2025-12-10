@@ -1,0 +1,92 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>22</epicId>
+    <storyId>3</storyId>
+    <title>View Transitions &amp; Chart Fix</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-22/stories/story-22.3-view-transitions-chart-fix.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user navigating the app</asA>
+    <iWant>smooth transitions between views</iWant>
+    <soThat>the app feels polished and professional</soThat>
+    <tasks>
+      <task id="1">Add transition utilities to globals.css</task>
+      <task id="2">Support fade-in for page content using Tailwind</task>
+      <task id="3">Apply transitions to Dashboard, Settings, Admin panels</task>
+      <task id="4">Fix Recharts ResponsiveContainer width/height warning</task>
+      <task id="5">Add reduced motion support</task>
+      <task id="6">Visual verification and console check</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-22.3.1" title="View Transition Utilities">
+      <item>Add transition utilities to globals.css</item>
+      <item>Support fade-in for page content</item>
+      <item>Use Tailwind built-in animation classes</item>
+      <item>No new dependencies (no framer-motion)</item>
+    </criterion>
+    <criterion id="AC-22.3.2" title="Apply Transitions">
+      <item>Dashboard page content fades in</item>
+      <item>Settings tab content transitions smoothly</item>
+      <item>Admin panel content transitions on sub-tab switch</item>
+      <item>Transitions are subtle (150-200ms)</item>
+    </criterion>
+    <criterion id="AC-22.3.3" title="Recharts Fix">
+      <item>Identify all ResponsiveContainer usages</item>
+      <item>Wrap in properly sized parent containers</item>
+      <item>No more console warnings about width/height</item>
+      <item>Charts still render correctly and responsively</item>
+    </criterion>
+    <criterion id="AC-22.3.4" title="Reduced Motion Support">
+      <item>Respect prefers-reduced-motion media query</item>
+      <item>Disable transitions for users who prefer reduced motion</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-22/tech-spec.md" title="Epic 22 Tech Spec" section="View Transitions" snippet="Add .view-fade-in animation with 200ms duration. Fix Recharts by wrapping ResponsiveContainer in sized div." />
+    </docs>
+    <code>
+      <file path="src/app/globals.css" kind="stylesheet" lines="137-210" reason="Add transition keyframes and utilities" />
+      <file path="src/components/admin/analytics/usage-trend-chart.tsx" kind="component" symbol="UsageTrendChart" reason="Contains ResponsiveContainer that may cause warning" />
+      <file path="src/app/(dashboard)/dashboard/page.tsx" kind="page" symbol="DashboardPage" reason="Apply fade-in transition" />
+      <file path="src/components/settings/settings-tabs-wrapper.tsx" kind="component" symbol="SettingsTabsWrapper" reason="Apply transition to tab content" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="tailwindcss" version="4.x" />
+        <package name="tw-animate-css" version="1.4.0" />
+        <package name="recharts" version="3.5.1" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>No new dependencies - use Tailwind only</constraint>
+    <constraint>Transitions must be subtle (150-200ms)</constraint>
+    <constraint>Respect prefers-reduced-motion</constraint>
+    <constraint>Charts must remain responsive</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="ResponsiveContainer" kind="component" signature="ResponsiveContainer({ width, height, children })" path="recharts" />
+  </interfaces>
+
+  <tests>
+    <standards>Visual verification in browser. Check console for Recharts warnings.</standards>
+    <locations>
+      <location>Manual visual testing</location>
+      <location>Browser console verification</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-22.3.3">Navigate to Settings > Admin > Usage Analytics and check console</idea>
+      <idea acId="AC-22.3.2">Verify page transitions feel smooth not jarring</idea>
+    </ideas>
+  </tests>
+</story-context>
