@@ -58,3 +58,10 @@ export {
   type UseGuardrailLogsReturn,
 } from './use-guardrail-logs';
 export { useDisclosure } from './use-disclosure';
+export {
+  useUserManagement,
+} from './use-user-management';
+export {
+  useUsageAnalytics,
+  type AnalyticsDateRange,
+} from './use-usage-analytics';

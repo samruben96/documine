@@ -28,6 +28,14 @@ export const AIB_ERROR_CODES = {
   // Project management error codes (Story 16.3)
   AIB_104: { status: 404, message: 'Project not found' },
   AIB_105: { status: 403, message: 'Not authorized to access this project' },
+  // User management error codes (Story 20.2)
+  AIB_009: { status: 409, message: 'Email already registered in agency' },
+  AIB_010: { status: 409, message: 'Pending invitation exists for this email' },
+  AIB_011: { status: 403, message: 'Cannot remove agency owner' },
+  AIB_012: { status: 403, message: 'Cannot demote last admin' },
+  AIB_013: { status: 403, message: 'Cannot change owner role' },
+  AIB_014: { status: 404, message: 'User not found in agency' },
+  AIB_015: { status: 404, message: 'Invitation not found' },
 } as const;
 
 export type AiBuddyErrorCode = keyof typeof AIB_ERROR_CODES;

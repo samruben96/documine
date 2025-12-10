@@ -15,7 +15,72 @@ export type Permission =
   | 'manage_own_projects'
   | 'manage_users'
   | 'configure_guardrails'
-  | 'view_audit_logs';
+  | 'view_audit_logs'
+  | 'view_usage_analytics'
+  | 'manage_billing'
+  | 'transfer_ownership'
+  | 'delete_agency';
+
+// ============ Story 20.2: Admin User Management Types ============
+
+export type UserRole = 'producer' | 'admin' | 'owner';
+export type AiBuddyStatus = 'active' | 'onboarding_pending' | 'inactive';
+
+/**
+ * Admin user representation for user management UI
+ * AC-20.2.1: Paginated user list with columns
+ */
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  aiBuddyStatus: AiBuddyStatus;
+  lastActiveAt: string | null;
+  onboardingCompleted: boolean;
+  isOwner: boolean;
+}
+
+/**
+ * Pending invitation for user management UI
+ * AC-20.2.4: Invitation expiration and display
+ */
+export interface AiBuddyInvitation {
+  id: string;
+  email: string;
+  role: 'producer' | 'admin';
+  invitedBy: string;
+  invitedAt: string;
+  expiresAt: string;
+  isExpired: boolean;
+}
+
+/**
+ * Default permissions by role
+ * AC-20.2.6: Change user role
+ */
+export const DEFAULT_PERMISSIONS: Record<UserRole, Permission[]> = {
+  producer: ['use_ai_buddy', 'manage_own_projects'],
+  admin: [
+    'use_ai_buddy',
+    'manage_own_projects',
+    'manage_users',
+    'configure_guardrails',
+    'view_audit_logs',
+    'view_usage_analytics',
+  ],
+  owner: [
+    'use_ai_buddy',
+    'manage_own_projects',
+    'manage_users',
+    'configure_guardrails',
+    'view_audit_logs',
+    'view_usage_analytics',
+    'manage_billing',
+    'transfer_ownership',
+    'delete_agency',
+  ],
+};
 
 // ============ Entity Types ============
 
@@ -560,4 +625,70 @@ export function deriveOnboardingStatus(
   if (onboardingCompleted) return 'completed';
   if (onboardingSkipped) return 'skipped';
   return 'not_started';
+}
+
+// ============ Story 20.3: Usage Analytics Types ============
+
+/**
+ * Date range period options for analytics filtering
+ * AC-20.3.3: Date range filter
+ */
+export type AnalyticsPeriod = 'week' | 'month' | '30days' | 'custom';
+
+/**
+ * Summary statistics for the analytics dashboard
+ * AC-20.3.1: Summary cards display
+ */
+export interface UsageSummary {
+  totalConversations: number;
+  activeUsers: number;
+  documentsUploaded: number;
+  messagesSent: number;
+  /** Comparison to previous period (percentage change) */
+  comparisonPeriod?: {
+    conversations: number;
+    users: number;
+    documents: number;
+    messages: number;
+  };
+}
+
+/**
+ * Per-user breakdown for the analytics table
+ * AC-20.3.2: Per-user breakdown table
+ */
+export interface UserUsageStats {
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  conversations: number;
+  messages: number;
+  documents: number;
+  lastActiveAt: string | null;
+}
+
+/**
+ * Daily trend data point for the chart
+ * AC-20.3.4: Line chart trends
+ */
+export interface UsageTrend {
+  date: string;
+  activeUsers: number;
+  conversations: number;
+  messages?: number;
+}
+
+/**
+ * Complete analytics response from the API
+ * AC-20.3.1 through AC-20.3.4
+ */
+export interface UsageAnalyticsResponse {
+  summary: UsageSummary;
+  byUser: UserUsageStats[];
+  trends: UsageTrend[];
+  period: {
+    type: AnalyticsPeriod;
+    startDate: string;
+    endDate: string;
+  };
 }

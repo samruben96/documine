@@ -106,15 +106,23 @@ export default async function SettingsPage() {
   const usageMetrics = isAdmin ? await getUsageMetrics() : null;
 
   // AC-19.2.3: Check if admin has view_audit_logs permission for enforcement log section
+  // AC-20.2.1: Check if admin has manage_users permission for user management section
+  // AC-20.3.1: Check if admin has view_usage_analytics permission for usage analytics section
   let hasViewAuditLogsPermission = false;
+  let hasManageUsersPermission = false;
+  let hasViewUsageAnalyticsPermission = false;
   if (isAdmin) {
-    const { data: permission } = await supabase
+    const { data: permissions } = await supabase
       .from('ai_buddy_permissions')
-      .select('id')
+      .select('permission')
       .eq('user_id', user.id)
-      .eq('permission', 'view_audit_logs')
-      .maybeSingle();
-    hasViewAuditLogsPermission = !!permission;
+      .in('permission', ['view_audit_logs', 'manage_users', 'view_usage_analytics']);
+
+    if (permissions) {
+      hasViewAuditLogsPermission = permissions.some(p => p.permission === 'view_audit_logs');
+      hasManageUsersPermission = permissions.some(p => p.permission === 'manage_users');
+      hasViewUsageAnalyticsPermission = permissions.some(p => p.permission === 'view_usage_analytics');
+    }
   }
 
   return (
@@ -174,11 +182,15 @@ export default async function SettingsPage() {
         {/* AC-18.2.1: AI Buddy preferences tab */}
         {/* AC-18.4.1, AC-18.4.5: Pass isAdmin for onboarding status section */}
         {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
+        {/* AC-20.2.1: Pass manage_users permission for user management section */}
+        {/* AC-20.3.1: Pass view_usage_analytics permission for usage analytics section */}
         <TabsContent value="ai-buddy">
           <AiBuddyPreferencesTab
             agencyName={userData.agency?.name || undefined}
             isAdmin={isAdmin}
             hasViewAuditLogsPermission={hasViewAuditLogsPermission}
+            hasManageUsersPermission={hasManageUsersPermission}
+            hasViewUsageAnalyticsPermission={hasViewUsageAnalyticsPermission}
           />
         </TabsContent>
       </SettingsTabsWrapper>

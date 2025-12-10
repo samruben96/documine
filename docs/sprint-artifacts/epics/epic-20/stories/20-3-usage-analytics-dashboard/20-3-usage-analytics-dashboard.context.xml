@@ -1,0 +1,392 @@
+<story-context id="bmad/bmm/story-context" v="1.0">
+  <metadata>
+    <epicId>20</epicId>
+    <storyId>3</storyId>
+    <title>Usage Analytics Dashboard</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-20/stories/20-3-usage-analytics-dashboard/story-20.3-usage-analytics-dashboard.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency administrator</asA>
+    <iWant>view usage analytics for my agency's AI Buddy usage</iWant>
+    <soThat>I can monitor adoption, identify active users, and understand usage trends over time</soThat>
+    <tasks>
+      <task id="1" ac="20.3.7">
+        <name>Database Setup</name>
+        <subtasks>
+          <item>Create materialized view `ai_buddy_usage_daily` for aggregated metrics</item>
+          <item>Add indexes for efficient date range queries</item>
+          <item>Create refresh function for materialized view</item>
+          <item>Document refresh strategy (manual trigger initially, cron later)</item>
+        </subtasks>
+      </task>
+      <task id="2" ac="20.3.1, 20.3.2, 20.3.3">
+        <name>API Route - Get Analytics</name>
+        <subtasks>
+          <item>Create `src/app/api/ai-buddy/admin/analytics/route.ts`</item>
+          <item>Implement GET with period filter (week, month, 30days, custom)</item>
+          <item>Return summary stats from materialized view</item>
+          <item>Return per-user breakdown with user details</item>
+          <item>Return trend data for chart (daily values)</item>
+          <item>Verify `view_usage_analytics` permission</item>
+        </subtasks>
+      </task>
+      <task id="3" ac="20.3.6">
+        <name>API Route - Export CSV</name>
+        <subtasks>
+          <item>Create `GET /api/ai-buddy/admin/analytics/export`</item>
+          <item>Accept date range parameters</item>
+          <item>Generate CSV with columns: date, user_email, user_name, conversations, messages, documents</item>
+          <item>Return as downloadable file with appropriate headers</item>
+          <item>Include agency name and export date in filename</item>
+        </subtasks>
+      </task>
+      <task id="4" ac="20.3.1">
+        <name>Summary Cards Component</name>
+        <subtasks>
+          <item>Create `src/components/ai-buddy/admin/analytics/usage-stat-card.tsx`</item>
+          <item>Design four cards: Conversations, Active Users, Documents, Messages</item>
+          <item>Include comparison to previous period (e.g., "+12% from last week")</item>
+          <item>Loading skeleton state</item>
+          <item>Use existing Card component from shadcn/ui</item>
+        </subtasks>
+      </task>
+      <task id="5" ac="20.3.4, 20.3.5">
+        <name>Trend Chart Component</name>
+        <subtasks>
+          <item>Create `src/components/ai-buddy/admin/analytics/usage-trend-chart.tsx`</item>
+          <item>Implement line chart using recharts library</item>
+          <item>Two lines: Active Users (primary), Conversations (secondary)</item>
+          <item>Custom tooltip with date and values</item>
+          <item>Responsive sizing</item>
+          <item>Legend below chart</item>
+        </subtasks>
+      </task>
+      <task id="6" ac="20.3.2">
+        <name>Per-User Breakdown Table</name>
+        <subtasks>
+          <item>Create `src/components/ai-buddy/admin/analytics/user-breakdown-table.tsx`</item>
+          <item>Columns: User name, Email, Conversations, Messages, Documents, Last Active</item>
+          <item>Sortable columns</item>
+          <item>Pagination if >10 users</item>
+          <item>Link to user in user management (if admin)</item>
+        </subtasks>
+      </task>
+      <task id="7" ac="20.3.3">
+        <name>Date Range Picker</name>
+        <subtasks>
+          <item>Create `src/components/ai-buddy/admin/analytics/date-range-picker.tsx`</item>
+          <item>Preset options: This week, This month, Last 30 days</item>
+          <item>Custom date range with calendar popover</item>
+          <item>Validate date range (end after start, not in future)</item>
+          <item>Default to "Last 30 days"</item>
+        </subtasks>
+      </task>
+      <task id="8" ac="All">
+        <name>Analytics Dashboard Panel</name>
+        <subtasks>
+          <item>Create `src/components/ai-buddy/admin/analytics/usage-analytics-panel.tsx`</item>
+          <item>Compose all components: cards, date picker, chart, table, export</item>
+          <item>Empty state when no data</item>
+          <item>Error state handling</item>
+          <item>Mobile responsive layout (stack on small screens)</item>
+        </subtasks>
+      </task>
+      <task id="9" ac="All">
+        <name>Analytics Hook</name>
+        <subtasks>
+          <item>Create `src/hooks/ai-buddy/use-usage-analytics.ts`</item>
+          <item>Fetch analytics data with date range</item>
+          <item>Derive summary stats, trend data, user breakdown</item>
+          <item>Handle loading and error states</item>
+          <item>Memoize expensive calculations</item>
+          <item>Implement export trigger function</item>
+        </subtasks>
+      </task>
+      <task id="10" ac="All">
+        <name>Admin Panel Integration</name>
+        <subtasks>
+          <item>Add Usage Analytics tab/section to Admin panel</item>
+          <item>Permission gate for `view_usage_analytics`</item>
+          <item>Navigation link in admin sidebar if applicable</item>
+        </subtasks>
+      </task>
+      <task id="11" ac="All">
+        <name>Unit Tests</name>
+        <subtasks>
+          <item>Create `__tests__/components/ai-buddy/admin/analytics/usage-stat-card.test.tsx`</item>
+          <item>Create `__tests__/components/ai-buddy/admin/analytics/usage-trend-chart.test.tsx`</item>
+          <item>Create `__tests__/components/ai-buddy/admin/analytics/user-breakdown-table.test.tsx`</item>
+          <item>Create `__tests__/components/ai-buddy/admin/analytics/date-range-picker.test.tsx`</item>
+          <item>Create `__tests__/hooks/ai-buddy/use-usage-analytics.test.ts`</item>
+        </subtasks>
+      </task>
+      <task id="12" ac="20.3.1, 20.3.3, 20.3.6">
+        <name>E2E Tests</name>
+        <subtasks>
+          <item>Create `__tests__/e2e/ai-buddy/usage-analytics.spec.ts`</item>
+          <item>Test: Admin can view summary cards with data</item>
+          <item>Test: Changing date range updates all metrics</item>
+          <item>Test: CSV export downloads file</item>
+          <item>Test: Empty state displays for new agency</item>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="20.3.1">
+      <given>an admin accesses the usage analytics dashboard</given>
+      <when>the page loads</when>
+      <then>they see summary cards showing: total conversations, active users, documents uploaded, and messages sent</then>
+    </ac>
+    <ac id="20.3.2">
+      <given>an admin is viewing usage analytics</given>
+      <when>they scroll to the breakdown section</when>
+      <then>they see a table showing metrics for each agency user (name, conversations, messages, documents, last active)</then>
+    </ac>
+    <ac id="20.3.3">
+      <given>an admin wants to filter analytics data</given>
+      <when>they select a date range (This week, This month, Last 30 days, Custom range)</when>
+      <then>all metrics and charts update to reflect the selected period</then>
+    </ac>
+    <ac id="20.3.4">
+      <given>an admin is viewing the dashboard</given>
+      <when>they look at the trends section</when>
+      <then>they see a line chart showing daily active users and conversations over the selected period</then>
+    </ac>
+    <ac id="20.3.5">
+      <given>an admin views the trend chart</given>
+      <when>they hover over a data point</when>
+      <then>a tooltip displays exact values for that day (date, active users, conversations)</then>
+    </ac>
+    <ac id="20.3.6">
+      <given>an admin wants to export usage data</given>
+      <when>they click the Export button</when>
+      <then>a CSV file is downloaded containing usage data for the selected date range</then>
+    </ac>
+    <ac id="20.3.7">
+      <given>an admin accesses the dashboard</given>
+      <when>the page loads</when>
+      <then>all data loads within 500ms using the materialized view</then>
+    </ac>
+    <ac id="20.3.8">
+      <given>an agency with no AI Buddy usage data</given>
+      <when>an admin views the analytics dashboard</when>
+      <then>an appropriate empty state message is displayed with guidance</then>
+    </ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/features/ai-buddy/prd.md</path>
+        <title>AI Buddy PRD</title>
+        <section>Admin Panel &amp; User Management (FR46, FR47)</section>
+        <snippet>FR46: Admins can view usage analytics (conversations per user, documents uploaded, active users). FR47: Admins can view a usage dashboard with trends over time.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-20.md</path>
+        <title>Epic 20 Tech Spec</title>
+        <section>Story 20.3: Usage Analytics Dashboard</section>
+        <snippet>Dashboard shows summary cards for total conversations, active users, documents uploaded, messages sent. Per-user breakdown, date range filter, line chart trends, CSV export. Performance target &lt;500ms using materialized view.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-20.md</path>
+        <title>Epic 20 Tech Spec</title>
+        <section>Usage Analytics Endpoints</section>
+        <snippet>GET /api/ai-buddy/admin/analytics returns summary, byUser array, and trends array. GET /api/ai-buddy/admin/analytics/export returns CSV file download.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-20.md</path>
+        <title>Epic 20 Tech Spec</title>
+        <section>Usage analytics materialized view</section>
+        <snippet>CREATE MATERIALIZED VIEW ai_buddy_usage_daily aggregating agency_id, date, active_users, conversations, total_messages from ai_buddy_conversations and messages.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-20/stories/20-2-admin-user-management/story-20.2-admin-user-management.md</path>
+        <title>Story 20.2 (Previous)</title>
+        <section>Dev Notes - Learnings</section>
+        <snippet>API Route Organization: Endpoints follow pattern src/app/api/ai-buddy/admin/{resource}/route.ts. Permission Checking: Use checkAiBuddyPermission helper. Hook Pattern: use-user-management.ts demonstrates state management with loading/error states.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/hooks/ai-buddy/use-user-management.ts</path>
+        <kind>hook</kind>
+        <symbol>useUserManagement</symbol>
+        <lines>1-275</lines>
+        <reason>Reference hook pattern for use-usage-analytics.ts - state management, pagination, sorting, error handling, API fetch patterns</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/admin/user-management-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>UserManagementPanel</symbol>
+        <lines>1-239</lines>
+        <reason>Reference panel composition pattern - Card layout, loading states, error handling, permission gating</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/ai-buddy/admin/users/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, POST, DELETE</symbol>
+        <lines>1-580</lines>
+        <reason>Reference API route pattern - auth check, permission check, service client usage, error response helpers</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/admin/user-table.tsx</path>
+        <kind>component</kind>
+        <symbol>UserTable</symbol>
+        <reason>Reference table component pattern for user-breakdown-table.tsx - sortable columns, pagination</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ai-buddy/admin/date-range-filter.tsx</path>
+        <kind>component</kind>
+        <symbol>DateRangeFilter</symbol>
+        <reason>Existing date range filter component - may be reusable or reference for date-range-picker.tsx</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/ai-buddy/errors.ts</path>
+        <kind>utility</kind>
+        <symbol>AIB_ERROR_CODES, aiBuddyErrorResponse</symbol>
+        <lines>1-107</lines>
+        <reason>Error code pattern for API routes - add analytics-specific codes if needed</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>Permission, AdminUser</symbol>
+        <lines>1-629</lines>
+        <reason>Existing types including 'view_usage_analytics' permission - add UsageStats, UsageTrend interfaces</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/supabase/server.ts</path>
+        <kind>utility</kind>
+        <symbol>createClient, createServiceClient</symbol>
+        <reason>Supabase client helpers - use service client for cross-user queries</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardHeader, CardTitle, CardContent</symbol>
+        <reason>shadcn/ui Card component for usage-stat-card.tsx</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/settings/ai-buddy-preferences-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AiBuddyPreferencesTab</symbol>
+        <reason>Integration point - add Usage Analytics section to admin panel</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/ai-buddy/index.ts</path>
+        <kind>index</kind>
+        <symbol>exports</symbol>
+        <reason>Export index - add use-usage-analytics export</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="node">
+        <package name="recharts" note="NOT YET INSTALLED - Need to add for line charts" />
+        <package name="date-fns" version="^4.1.0" />
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@tanstack/react-table" version="^8.21.3" note="For sortable tables" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="sonner" version="^2.0.7" note="Toast notifications" />
+        <package name="use-debounce" version="^10.0.6" />
+        <package name="vitest" version="^4.0.14" devOnly="true" />
+        <package name="@playwright/test" version="^1.57.0" devOnly="true" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow kebab-case for component files (usage-stat-card.tsx)</constraint>
+    <constraint type="pattern">Follow camelCase for hooks with `use` prefix (use-usage-analytics.ts)</constraint>
+    <constraint type="pattern">API routes under `/api/ai-buddy/admin/analytics/`</constraint>
+    <constraint type="pattern">Use Verify-Then-Service RLS pattern for mutations</constraint>
+    <constraint type="pattern">Use service client for cross-user queries</constraint>
+    <constraint type="performance">Dashboard must load in &lt;500ms using materialized view</constraint>
+    <constraint type="security">Permission gate for `view_usage_analytics` on all analytics endpoints</constraint>
+    <constraint type="security">Non-admin users receive 403 when accessing analytics endpoints</constraint>
+    <constraint type="ui">Use existing shadcn/ui components (Card, Table, Button, Popover, Calendar)</constraint>
+    <constraint type="ui">Mobile responsive layout - stack components on small screens</constraint>
+    <constraint type="testing">Maintain similar test coverage as Story 20.2 (136+ tests)</constraint>
+    <constraint type="error">Use AIB_ERROR_CODES pattern for error responses</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GET /api/ai-buddy/admin/analytics</name>
+      <kind>REST endpoint</kind>
+      <signature>GET ?period=(week|month|30days|custom)&amp;startDate=ISO&amp;endDate=ISO</signature>
+      <response>{summary: UsageStats, byUser: Array&lt;{user: AdminUser, stats: UsageStats}&gt;, trends: UsageTrend[]}</response>
+      <path>src/app/api/ai-buddy/admin/analytics/route.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/ai-buddy/admin/analytics/export</name>
+      <kind>REST endpoint</kind>
+      <signature>GET ?period=string&amp;startDate=ISO&amp;endDate=ISO</signature>
+      <response>CSV file download (Content-Disposition: attachment)</response>
+      <path>src/app/api/ai-buddy/admin/analytics/export/route.ts</path>
+    </interface>
+    <interface>
+      <name>UsageStats</name>
+      <kind>TypeScript interface</kind>
+      <signature>{ period: string; totalConversations: number; activeUsers: number; documentsUploaded: number; messagesSent: number; comparisonPeriod?: {...} }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>UsageTrend</name>
+      <kind>TypeScript interface</kind>
+      <signature>{ date: string; activeUsers: number; conversations: number; messages?: number }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>useUsageAnalytics</name>
+      <kind>React hook</kind>
+      <signature>(options?: {initialPeriod?: string}) =&gt; { summary, byUser, trends, isLoading, error, period, setPeriod, setDateRange, exportCsv }</signature>
+      <path>src/hooks/ai-buddy/use-usage-analytics.ts</path>
+    </interface>
+    <interface>
+      <name>ai_buddy_usage_daily</name>
+      <kind>Materialized view</kind>
+      <signature>agency_id, date, active_users, conversations, total_messages</signature>
+      <path>supabase/migrations/20251210_usage_analytics_view.sql</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with React Testing Library for unit tests. Use Playwright for E2E tests. Follow existing test patterns from Story 20.2 (136+ tests). Mock Supabase client in unit tests. Test loading, error, and empty states. Test permission gating. Aim for 80%+ coverage on new code.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/admin/analytics/*.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-usage-analytics.test.ts</location>
+      <location>__tests__/e2e/ai-buddy/usage-analytics.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="20.3.1">Test summary cards render correct values from mock data</idea>
+      <idea ac="20.3.1">Test loading skeleton renders while fetching</idea>
+      <idea ac="20.3.1">Test comparison percentages display correctly (+/- formatting)</idea>
+      <idea ac="20.3.2">Test per-user table renders all columns</idea>
+      <idea ac="20.3.2">Test sortable columns toggle direction</idea>
+      <idea ac="20.3.2">Test pagination works with >10 users</idea>
+      <idea ac="20.3.3">Test date range picker preset buttons work</idea>
+      <idea ac="20.3.3">Test custom date range validation (end > start)</idea>
+      <idea ac="20.3.3">Test changing period triggers data refetch</idea>
+      <idea ac="20.3.4">Test line chart renders with correct data</idea>
+      <idea ac="20.3.5">Test tooltip appears on hover with correct values</idea>
+      <idea ac="20.3.6">Test export button triggers CSV download</idea>
+      <idea ac="20.3.6">Test CSV contains correct headers and data format</idea>
+      <idea ac="20.3.7">Test API response time meets 500ms target (integration)</idea>
+      <idea ac="20.3.8">Test empty state renders when no data</idea>
+      <idea ac="20.3.8">Test empty state includes helpful guidance text</idea>
+      <idea ac="permission">Test 403 returned for non-admin users</idea>
+      <idea ac="permission">Test component hidden when lacking view_usage_analytics permission</idea>
+      <idea ac="error">Test error state renders with retry option</idea>
+      <idea ac="e2e">Test full user journey: load page -> change date range -> view chart -> export CSV</idea>
+    </ideas>
+  </tests>
+</story-context>

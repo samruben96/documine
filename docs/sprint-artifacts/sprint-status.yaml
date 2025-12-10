@@ -119,12 +119,12 @@ development_status:
   19-4-ai-disclosure-message: done
   epic-19-retrospective: completed
 
-  # Epic 20: AI Buddy Admin & Audit - CONTEXTED 2025-12-09
+  # Epic 20: AI Buddy Admin & Audit - IN PROGRESS 2025-12-09
   # User management, analytics, audit trail for compliance
   # Tech Spec: docs/sprint-artifacts/tech-spec-epic-20.md
   # FRs: FR42-56, FR64
-  # Stories: 7 (consolidated from 13)
-  # Total Points: 26
+  # Stories: 6 (consolidated from 13)
+  # Total Points: 25
   epic-20-ai-buddy-admin-audit: contexted
   # Story 20.1: Audit Log Infrastructure (3 pts)
   # Append-only RLS, immutability trigger, 7-year retention
@@ -137,25 +137,39 @@ development_status:
   # Story 20.2: Admin User Management (5 pts)
   # User list, invite, remove, role changes
   # FRs: FR42, FR43, FR44, FR45
-  20-2-admin-user-management: backlog
+  # Story 20.2 - DONE 2025-12-09: All ACs complete, 136+ tests, review approved
+  # - Paginated user list with name, email, role, status, last active
+  # - Search by name or email with debounce
+  # - Invite new user via email with role selection
+  # - Invitation expiration display (7 days)
+  # - Remove user access (soft delete)
+  # - Change user role (producer ↔ admin)
+  # - Cannot modify owner protection
+  # - Audit trail for all actions
+  20-2-admin-user-management: done
   # Story 20.3: Usage Analytics Dashboard (5 pts)
   # Summary cards, per-user breakdown, trend charts
   # FRs: FR46, FR47
-  20-3-usage-analytics-dashboard: backlog
+  # Story 20.3 - DONE 2025-12-09: All ACs complete, 55 unit tests + E2E tests
+  # - Summary cards with K/M formatting and trend indicators
+  # - Per-user breakdown table with sorting and pagination
+  # - Line chart trends with recharts and tooltips
+  # - Date range picker with presets (week, month, 30days)
+  # - CSV export with proper headers
+  # - Materialized view for <500ms performance
+  # - Empty state for new teams
+  # - Permission gating (view_usage_analytics)
+  20-3-usage-analytics-dashboard: done
   # Story 20.4: Audit Log Interface (5 pts)
   # Filterable table, transcript viewer, PDF/CSV export
   # FRs: FR50, FR51, FR52, FR53
   20-4-audit-log-interface: backlog
-  # Story 20.5: Owner Billing Management (3 pts)
-  # Stripe integration, subscription view
-  # FR: FR48
-  20-5-owner-billing-management: backlog
-  # Story 20.6: Ownership Transfer (3 pts)
-  # Transfer to admin with password confirmation
-  # FR: FR49
-  20-6-ownership-transfer: backlog
-  # Story 20.7: Feature Navigation Polish (2 pts)
+  # Story 20.5: Owner Management (5 pts) - CONSOLIDATED from 20.5 + 20.6
+  # Billing/subscription management + ownership transfer
+  # FRs: FR48, FR49
+  20-5-owner-management: backlog
+  # Story 20.6: Feature Navigation Polish (2 pts) - RENUMBERED from 20.7
   # State-preserving navigation between features
   # FR: FR64
-  20-7-feature-navigation-polish: backlog
+  20-6-feature-navigation-polish: backlog
   epic-20-retrospective: optional

@@ -238,3 +238,65 @@ log.info('RAG context retrieved', {
   rerankerUsed,
 });
 ```
+
+## AI Buddy Permissions RLS Policy Infinite Recursion (Story 20.3, 2025-12-09)
+
+**Issue:** Usage Analytics API returned 403 Forbidden even for users with `view_usage_analytics` permission. Postgres logs showed: "infinite recursion detected in policy for relation `ai_buddy_permissions`".
+
+**Root Cause:** The RLS policies on `ai_buddy_permissions` table had circular references:
+- "Admins can view agency permissions" policy checked if user has `manage_users` permission
+- This check queried the same `ai_buddy_permissions` table it was protecting
+- Result: infinite recursion when any permission check occurred
+
+**Problematic Policies Removed:**
+```sql
+-- These policies caused infinite recursion:
+DROP POLICY "Admins can view agency permissions" ON ai_buddy_permissions;
+DROP POLICY "Admins can manage agency permissions" ON ai_buddy_permissions;
+DROP POLICY "Admins can delete agency permissions" ON ai_buddy_permissions;
+```
+
+**Resolution:** Removed the recursive policies, keeping only the simple self-referential policy:
+```sql
+-- This policy is safe - no recursion
+CREATE POLICY "Users can view own permissions" ON ai_buddy_permissions
+  FOR SELECT USING (user_id = auth.uid());
+```
+
+**Files Changed:**
+- Database: Dropped 3 recursive RLS policies on `ai_buddy_permissions` table
+
+**Key Learning:** When creating RLS policies, avoid policies that query the same table they protect. If admin permission checks are needed, either:
+1. Use a separate function that bypasses RLS (`SECURITY DEFINER`)
+2. Store admin status in a different table (e.g., `users.role`)
+3. Use API-level permission checks instead of RLS for complex permission logic
+
+**Note:** The `users.role` column is also required to be `'admin'` for the Settings page to query permissions at all. Both conditions must be met:
+1. `users.role = 'admin'` (checked server-side in settings page)
+2. `ai_buddy_permissions` has `view_usage_analytics` entry (checked in API route)
+
+## Settings Page Whitespace Bug (AI Disclosure Editor, 2025-12-09)
+
+**Issue:** Large whitespace appeared at the bottom of the Settings page when viewing AI Buddy Admin tab, causing the page to be almost twice as tall as needed.
+
+**Root Cause:** The `sr-only` (screen reader only) class on a Label component uses `position: absolute`, but the parent container lacked `position: relative`. This caused the label to be positioned relative to a distant ancestor, extending the HTML element's scroll height to ~1730px instead of ~734px.
+
+**Problematic Element:**
+```tsx
+// In src/components/ai-buddy/admin/ai-disclosure-editor.tsx
+<div className="space-y-2">  {/* Missing position: relative */}
+  <Label htmlFor="ai-disclosure-message" className="sr-only">
+    AI Disclosure Message
+  </Label>
+```
+
+**Resolution:** Added `relative` class to the parent container:
+```tsx
+<div className="space-y-2 relative">
+  <Label htmlFor="ai-disclosure-message" className="sr-only">
+```
+
+**Files Changed:**
+- `src/components/ai-buddy/admin/ai-disclosure-editor.tsx` - Added `relative` class to sr-only label's parent
+
+**Key Learning:** When using `sr-only` (or any `position: absolute` element), ensure a positioned ancestor exists to contain it. Otherwise, the absolutely positioned element can extend the page layout unexpectedly.

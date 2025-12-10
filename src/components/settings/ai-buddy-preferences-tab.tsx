@@ -39,6 +39,8 @@ import { PreferencesForm } from '@/components/ai-buddy/preferences-form';
 import { usePreferences } from '@/hooks/ai-buddy/use-preferences';
 import { OnboardingStatusSection } from '@/components/ai-buddy/admin/onboarding-status-section';
 import { GuardrailAdminPanel } from '@/components/ai-buddy/admin/guardrail-admin-panel';
+import { UserManagementPanel } from '@/components/ai-buddy/admin/user-management-panel';
+import { UsageAnalyticsPanel } from '@/components/ai-buddy/admin/analytics/usage-analytics-panel';
 import { useSettings } from '@/contexts/settings-context';
 
 export interface AiBuddyPreferencesTabProps {
@@ -48,6 +50,10 @@ export interface AiBuddyPreferencesTabProps {
   isAdmin?: boolean;
   /** Whether the admin has view_audit_logs permission (AC-19.2.3) */
   hasViewAuditLogsPermission?: boolean;
+  /** Whether the admin has manage_users permission (AC-20.2.1) */
+  hasManageUsersPermission?: boolean;
+  /** Whether the admin has view_usage_analytics permission (AC-20.3.1) */
+  hasViewUsageAnalyticsPermission?: boolean;
 }
 
 type SubTab = 'personal' | 'admin';
@@ -59,7 +65,13 @@ type SubTab = 'personal' | 'admin';
  * Shows skeleton UI during loading.
  * Shows OnboardingStatusSection for admin users (AC-18.4.1, AC-18.4.5).
  */
-export function AiBuddyPreferencesTab({ agencyName, isAdmin = false, hasViewAuditLogsPermission = false }: AiBuddyPreferencesTabProps) {
+export function AiBuddyPreferencesTab({
+  agencyName,
+  isAdmin = false,
+  hasViewAuditLogsPermission = false,
+  hasManageUsersPermission = false,
+  hasViewUsageAnalyticsPermission = false,
+}: AiBuddyPreferencesTabProps) {
   const { preferences, isLoading, error, updatePreferences, resetPreferences, refetch } = usePreferences();
   const { setIsDirty, setOnSave } = useSettings();
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
@@ -318,6 +330,12 @@ export function AiBuddyPreferencesTab({ agencyName, isAdmin = false, hasViewAudi
             {/* AC-19.1.1, AC-19.1.12: Admin-only guardrails section */}
             {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
             <GuardrailAdminPanel isAdmin={isAdmin} hasViewAuditLogsPermission={hasViewAuditLogsPermission} />
+
+            {/* AC-20.2.1: Admin-only user management section */}
+            <UserManagementPanel hasManageUsersPermission={hasManageUsersPermission} />
+
+            {/* AC-20.3.1: Admin-only usage analytics section */}
+            <UsageAnalyticsPanel hasPermission={hasViewUsageAnalyticsPermission} />
           </div>
         )}
       </div>

@@ -1,10 +1,9 @@
 # Epic 20: AI Buddy Admin & Audit
 
-**Status:** Backlog
+**Status:** Contexted
 **Created:** 2025-12-07
+**Tech Spec:** `docs/sprint-artifacts/tech-spec-epic-20.md`
 **Planning Docs:** `docs/features/ai-buddy/`
-**Additional Architecture:** `documine/docs/architecture`
-
 
 ## Overview
 
@@ -33,37 +32,78 @@ Principals have full visibility and control over their agency's AI usage.
 - **FR56:** System retains audit logs for minimum required compliance period
 - **FR64:** Users can navigate between AI Buddy and Document Comparison seamlessly
 
-## Stories
+## Consolidated Stories (6 total, 25 points)
 
-| Story | Name | Description |
-|-------|------|-------------|
-| 20.1 | Admin User List | View all agency users with AI Buddy status |
-| 20.2 | Invite Users | Send email invitations to new users |
-| 20.3 | Remove Users | Remove users from agency (soft delete) |
-| 20.4 | Change User Roles | Producer ↔ Admin role changes |
-| 20.5 | Usage Analytics | Summary cards with conversation/user metrics |
-| 20.6 | Usage Dashboard Trends | Line charts showing usage over time |
-| 20.7 | Audit Log View | Filterable table of conversation entries |
-| 20.8 | Audit Log Transcript | Full read-only conversation view |
-| 20.9 | Audit Log Export | PDF and CSV export options |
-| 20.10 | Audit Log Immutability | Append-only RLS policies, 7-year retention |
-| 20.11 | Owner Billing Management | Subscription and payment management |
-| 20.12 | Transfer Ownership | Transfer agency ownership to another admin |
-| 20.13 | Feature Navigation Polish | Seamless navigation between features |
+| Story | Name | FRs | Points | Priority |
+|-------|------|-----|--------|----------|
+| 20.1 | Audit Log Infrastructure | FR54, FR55, FR56 | 3 | P0 (Blocker) |
+| 20.2 | Admin User Management | FR42, FR43, FR44, FR45 | 5 | P1 |
+| 20.3 | Usage Analytics Dashboard | FR46, FR47 | 5 | P1 |
+| 20.4 | Audit Log Interface | FR50, FR51, FR52, FR53 | 5 | P1 |
+| 20.5 | Owner Management | FR48, FR49 | 5 | P2 |
+| 20.6 | Feature Navigation Polish | FR64 | 2 | P2 |
+
+### Story Details
+
+**20.1: Audit Log Infrastructure** (3 pts) - P0
+- Append-only RLS policy (INSERT only, no UPDATE/DELETE)
+- Database trigger to prevent modifications
+- Indexes for efficient admin queries
+- 7-year retention policy documented
+
+**20.2: Admin User Management** (5 pts) - P1
+- Paginated user list with sorting/search
+- Email invitations via Supabase Auth magic link
+- User removal (soft delete) with confirmation
+- Role changes (Producer ↔ Admin) with validation
+
+**20.3: Usage Analytics Dashboard** (5 pts) - P1
+- Summary cards (conversations, active users, documents, messages)
+- Per-user breakdown table
+- Line chart trends over 30 days
+- Date range filtering and CSV export
+
+**20.4: Audit Log Interface** (5 pts) - P1
+- Filterable audit log table (user, date, keyword, guardrail events)
+- Transcript modal with full conversation view (read-only)
+- PDF export with compliance headers
+- CSV export with all metadata
+
+**20.5: Owner Management** (5 pts) - P2
+- Subscription and plan details with Stripe Customer Portal integration
+- Payment method display and invoice history
+- Ownership transfer to current admins
+- Password re-authentication for transfer
+- Atomic permission transfer with email notifications
+
+**20.6: Feature Navigation Polish** (2 pts) - P2
+- State-preserving navigation
+- Restore conversation context on return
+- Mobile navigation support
+
+## Recommended Implementation Order
+
+1. **20.1** - Audit Infrastructure (foundation for all admin features) ✅ DONE
+2. **20.2** - User Management (core admin functionality) ✅ DONE
+3. **20.3** - Usage Analytics Dashboard ✅ DONE
+4. **20.4** - Audit Log Interface (compliance-critical)
+5. **20.5** - Owner Management (billing + transfer)
+6. **20.6** - Navigation Polish
 
 ## Dependencies
 
-- Epic 19: AI Buddy Guardrails & Compliance
+- Epic 19: AI Buddy Guardrails & Compliance (DONE)
 
 ## Technical Notes
 
-- Audit logs are append-only (INSERT only RLS policy)
+- Audit logs are append-only (INSERT only RLS policy + trigger)
 - 7-year retention for insurance compliance
-- Usage analytics cached daily for performance
+- Usage analytics cached via materialized view (nightly refresh)
 - Owner-only access for billing and ownership transfer
+- Verify-Then-Service pattern for mutations
 
 ## References
 
 - PRD: `docs/features/ai-buddy/prd.md`
 - Architecture: `docs/features/ai-buddy/architecture.md`
-- Epic Breakdown: `docs/features/ai-buddy/epics.md` (Epic 7)
+- Tech Spec: `docs/sprint-artifacts/tech-spec-epic-20.md`

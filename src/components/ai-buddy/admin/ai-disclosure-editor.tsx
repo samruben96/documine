@@ -155,7 +155,7 @@ export function AIDisclosureEditor({
       {enabled && (
         <div className="space-y-3">
           {/* Textarea */}
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <Label htmlFor="ai-disclosure-message" className="sr-only">
               AI Disclosure Message
             </Label>

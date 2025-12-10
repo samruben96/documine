@@ -1,0 +1,262 @@
+<story-context id="20-2-admin-user-management" v="1.0">
+  <metadata>
+    <epicId>20</epicId>
+    <storyId>2</storyId>
+    <title>Admin User Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-20/stories/20-2-admin-user-management/story-20.2-admin-user-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency administrator</asA>
+    <iWant>manage users in my agency (view, invite, remove, change roles)</iWant>
+    <soThat>I can control who has access to AI Buddy and maintain proper role-based permissions</soThat>
+    <tasks>
+      <task id="1">Database Schema Updates - Review users table, create ai_buddy_invitations table, add RLS policies (AC: 20.2.3, 20.2.4)</task>
+      <task id="2">API Routes - User List with pagination, sorting, search, permission verification (AC: 20.2.1, 20.2.2, 20.2.9)</task>
+      <task id="3">API Routes - Invite User via email with 7-day expiry, audit logging (AC: 20.2.3, 20.2.8)</task>
+      <task id="4">API Routes - Remove User soft-delete, block owner removal, audit logging (AC: 20.2.5, 20.2.7, 20.2.8)</task>
+      <task id="5">API Routes - Change Role, block owner/last admin changes, audit logging (AC: 20.2.6, 20.2.7, 20.2.8)</task>
+      <task id="6">User Table Component with sortable columns, search, pagination (AC: 20.2.1, 20.2.2)</task>
+      <task id="7">Invite User Dialog with email validation, role selector, pending invitations (AC: 20.2.3, 20.2.4)</task>
+      <task id="8">Role Dropdown Component with disabled state for owner (AC: 20.2.6, 20.2.7)</task>
+      <task id="9">Remove User Dialog with confirmation and data retention warning (AC: 20.2.5, 20.2.7)</task>
+      <task id="10">User Management Hook with React Query queries and mutations (AC: All)</task>
+      <task id="11">Admin Page Integration with permission gating (AC: All)</task>
+      <task id="12">Unit Tests for all components, hooks, and API routes (AC: All)</task>
+      <task id="13">E2E Tests for invite, role change, remove user flows (AC: 20.2.3, 20.2.5, 20.2.6)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="20.2.1">Admin sees paginated list of all agency users with columns: name, email, role, AI Buddy status, last active</criterion>
+    <criterion id="20.2.2">Admin can sort by any column and search by name or email</criterion>
+    <criterion id="20.2.3">Admin can invite new user via email with role selection (Producer/Admin), invitation sent via Supabase Auth magic link</criterion>
+    <criterion id="20.2.4">Invitation expires after 7 days; pending invitations shown in UI</criterion>
+    <criterion id="20.2.5">Admin can remove user (soft delete); confirmation dialog warns about data retention</criterion>
+    <criterion id="20.2.6">Admin can change user role via dropdown; cannot demote last admin</criterion>
+    <criterion id="20.2.7">Cannot remove or demote agency owner; owner role shown as non-editable</criterion>
+    <criterion id="20.2.8">All user management actions logged to audit trail</criterion>
+    <criterion id="20.2.9">Non-admin users receive 403 when accessing user management endpoints</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/tech-spec-epic-20.md</path>
+        <title>Epic 20 Technical Specification</title>
+        <section>Story 20.2: Admin User Management</section>
+        <snippet>Defines API contracts for user list, invite, remove, and role change endpoints. Includes TypeScript interfaces AdminUser, UsageStats, error codes AIB_007-013.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/architecture.md</path>
+        <title>AI Buddy Architecture</title>
+        <section>Data Architecture, RLS Policies, Security Architecture</section>
+        <snippet>Defines ai_buddy_permissions table schema, RLS policies for admin access, permission check helper, DEFAULT_PERMISSIONS by role (producer, admin, owner).</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/ai-buddy/prd.md</path>
+        <title>AI Buddy PRD</title>
+        <section>Admin Panel &amp; User Management (FR42-49)</section>
+        <snippet>FR42: View all users. FR43: Invite via email. FR44: Remove users. FR45: Change roles. Defines Producer/Admin/Owner permission model.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-20/stories/20-1-audit-log-infrastructure/story-20.1-audit-log-infrastructure.md</path>
+        <title>Story 20.1 Audit Log Infrastructure (done)</title>
+        <section>Completion Notes, Learnings</section>
+        <snippet>Established immutability trigger, audit logger pattern in audit-logger.ts, test organization (14 tests). Use auditLog() helper for all actions.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/api/ai-buddy/admin/users/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, POST, DELETE</symbol>
+        <lines>1-74</lines>
+        <reason>Stub implementation exists - needs full implementation for user list, invite, remove endpoints</reason>
+      </file>
+      <file>
+        <path>src/lib/ai-buddy/audit-logger.ts</path>
+        <kind>service</kind>
+        <symbol>logAuditEvent, AuditAction</symbol>
+        <lines>1-263</lines>
+        <reason>Existing audit logging helper - use for user_invited, user_removed, role_changed actions. AuditAction type includes these.</reason>
+      </file>
+      <file>
+        <path>src/lib/ai-buddy/errors.ts</path>
+        <kind>utility</kind>
+        <symbol>AIB_ERROR_CODES, aiBuddyErrorResponse, aiBuddySuccessResponse</symbol>
+        <lines>1-99</lines>
+        <reason>Standard error handling pattern - add new codes AIB_009-013 for user management errors</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-admin-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>GuardrailAdminPanel</symbol>
+        <lines>1-277</lines>
+        <reason>Reference for admin panel patterns - Card layout, loading skeleton, error handling, permission gating (isAdmin prop)</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-guardrails.ts</path>
+        <kind>hook</kind>
+        <symbol>useGuardrails</symbol>
+        <lines>N/A</lines>
+        <reason>Reference for admin hook patterns - queries, mutations, React Query integration</reason>
+      </file>
+      <file>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>Permission, UserPermission, AuditLogEntry</symbol>
+        <lines>1-564</lines>
+        <reason>Type definitions - add AdminUser, UserRole types. Permission enum includes manage_users, view_audit_logs</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/20251207000000_ai_buddy_foundation.sql</path>
+        <kind>migration</kind>
+        <symbol>ai_buddy_permissions table, RLS policies</symbol>
+        <lines>133-353</lines>
+        <reason>Existing permissions table schema and RLS policies - reference for permission checking patterns</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/20251209000000_audit_log_immutability.sql</path>
+        <kind>migration</kind>
+        <symbol>prevent_audit_modification trigger</symbol>
+        <lines>1-59</lines>
+        <reason>Reference for migration patterns, audit log immutability enforcement</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/onboarding-status-table.tsx</path>
+        <kind>component</kind>
+        <symbol>OnboardingStatusTable</symbol>
+        <lines>N/A</lines>
+        <reason>Reference for user table patterns with status display</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Database queries, Auth invitations</purpose>
+      </node>
+      <node>
+        <package>@tanstack/react-table</package>
+        <version>^8.21.3</version>
+        <purpose>Sortable, paginated user table</purpose>
+      </node>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.68.0</version>
+        <purpose>Form validation for invite dialog</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Schema validation for API requests</purpose>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <purpose>Toast notifications for actions</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <purpose>Icons for UI components</purpose>
+      </node>
+      <node>
+        <package>use-debounce</package>
+        <version>^10.0.6</version>
+        <purpose>Debounced search input (300ms)</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Verify-Then-Service Pattern: Verify manage_users permission via SELECT first, then use service client for mutations</constraint>
+    <constraint type="pattern">Standard API response format: { data: T | null, error: AiBuddyApiError | null }</constraint>
+    <constraint type="pattern">Component files: kebab-case (user-table.tsx), Hooks: camelCase with use prefix (use-admin-users.ts)</constraint>
+    <constraint type="pattern">API routes under /api/ai-buddy/admin/ with permission verification middleware</constraint>
+    <constraint type="security">Owner cannot be removed or demoted - must block at API level (error AIB_011, AIB_013)</constraint>
+    <constraint type="security">Last admin cannot be demoted - must verify admin count before role change (error AIB_012)</constraint>
+    <constraint type="security">All mutations must log to audit trail using logAuditEvent helper</constraint>
+    <constraint type="data">Soft delete for user removal (set removed_at timestamp, don't actually delete)</constraint>
+    <constraint type="data">Invitations expire after 7 days (expires_at = now() + interval '7 days')</constraint>
+    <constraint type="ui">Use shadcn/ui components: Dialog, DropdownMenu, Input, Table, Button, Skeleton</constraint>
+    <constraint type="testing">80% unit test coverage target per tech spec</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GET /api/ai-buddy/admin/users</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { search?: string; sortBy?: 'name'|'email'|'role'|'lastActive'; sortOrder?: 'asc'|'desc'; page?: number; limit?: number } | Response: { data: { users: AdminUser[], total: number, page: number }, error: null }</signature>
+      <path>src/app/api/ai-buddy/admin/users/route.ts</path>
+    </interface>
+    <interface>
+      <name>POST /api/ai-buddy/admin/users/invite</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { email: string; role: 'producer'|'admin' } | Response: { data: { invitationId: string, expiresAt: string }, error: null } | Errors: AIB_009, AIB_010</signature>
+      <path>src/app/api/ai-buddy/admin/users/route.ts</path>
+    </interface>
+    <interface>
+      <name>DELETE /api/ai-buddy/admin/users/[userId]</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { userId: string } | Response: { data: { removed: true }, error: null } | Errors: AIB_011, AIB_007</signature>
+      <path>src/app/api/ai-buddy/admin/users/[userId]/route.ts</path>
+    </interface>
+    <interface>
+      <name>PATCH /api/ai-buddy/admin/users/[userId]/role</name>
+      <kind>REST endpoint</kind>
+      <signature>Request: { role: 'producer'|'admin' } | Response: { data: { user: AdminUser }, error: null } | Errors: AIB_012, AIB_013</signature>
+      <path>src/app/api/ai-buddy/admin/users/[userId]/role/route.ts</path>
+    </interface>
+    <interface>
+      <name>AdminUser</name>
+      <kind>TypeScript interface</kind>
+      <signature>{ id: string; email: string; name: string; role: 'producer'|'admin'|'owner'; aiBuddyStatus: 'active'|'onboarding_pending'|'inactive'; lastActiveAt: string|null; onboardingCompleted: boolean }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>useAdminUsers hook</name>
+      <kind>React hook</kind>
+      <signature>() => { users: AdminUser[]; total: number; isLoading: boolean; error: Error|null; inviteUser: (email, role) => Promise; removeUser: (userId) => Promise; changeRole: (userId, role) => Promise; refetch: () => void }</signature>
+      <path>src/hooks/ai-buddy/use-admin-users.ts</path>
+    </interface>
+    <interface>
+      <name>logAuditEvent</name>
+      <kind>function</kind>
+      <signature>(input: { agencyId: string; userId: string; conversationId?: string; action: AuditAction; metadata?: Record&lt;string, unknown&gt; }) => Promise&lt;void&gt;</signature>
+      <path>src/lib/ai-buddy/audit-logger.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing follows Vitest + React Testing Library patterns. Unit tests for components (render, interaction), hooks (mock supabase), API routes (mock request/response). Integration tests verify permission enforcement. E2E tests with Playwright for critical user journeys. 80% coverage target. Test files co-located in __tests__/ mirroring src/ structure.
+    </standards>
+    <locations>
+      <location>__tests__/components/ai-buddy/admin/user-table.test.tsx</location>
+      <location>__tests__/components/ai-buddy/admin/invite-user-dialog.test.tsx</location>
+      <location>__tests__/components/ai-buddy/admin/role-dropdown.test.tsx</location>
+      <location>__tests__/components/ai-buddy/admin/remove-user-dialog.test.tsx</location>
+      <location>__tests__/hooks/ai-buddy/use-admin-users.test.ts</location>
+      <location>__tests__/app/api/ai-buddy/admin/users.test.ts</location>
+      <location>__tests__/e2e/ai-buddy/admin-user-management.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="20.2.1">Test user table renders with correct columns, handles empty state, shows loading skeleton</idea>
+      <idea ac="20.2.2">Test column sorting toggles, search input debounces (300ms), pagination controls work</idea>
+      <idea ac="20.2.3">Test invite dialog validates email format, POST creates invitation, shows success toast</idea>
+      <idea ac="20.2.4">Test pending invitations display with expiration date, cancel invitation option</idea>
+      <idea ac="20.2.5">Test remove dialog shows data retention warning, DELETE soft-deletes user, confirmation required</idea>
+      <idea ac="20.2.6">Test role dropdown updates role, optimistic update with rollback on error</idea>
+      <idea ac="20.2.7">Test owner row has disabled role dropdown, disabled remove button</idea>
+      <idea ac="20.2.8">Test audit log entries created for invite, remove, role change actions</idea>
+      <idea ac="20.2.9">Test non-admin user receives 403 on GET/POST/DELETE/PATCH endpoints</idea>
+    </ideas>
+  </tests>
+</story-context>

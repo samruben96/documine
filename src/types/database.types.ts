@@ -243,6 +243,57 @@ export type Database = {
           },
         ]
       }
+      ai_buddy_invitations: {
+        Row: {
+          accepted_at: string | null
+          agency_id: string
+          cancelled_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_at: string
+          invited_by: string
+          role: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agency_id: string
+          cancelled_at?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by: string
+          role?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agency_id?: string
+          cancelled_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_buddy_invitations_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_buddy_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_buddy_messages: {
         Row: {
           agency_id: string
@@ -983,6 +1034,8 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          last_active_at: string | null
+          removed_at: string | null
           role: string
           updated_at: string
         }
@@ -993,6 +1046,8 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          last_active_at?: string | null
+          removed_at?: string | null
           role?: string
           updated_at?: string
         }
@@ -1003,6 +1058,8 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          last_active_at?: string | null
+          removed_at?: string | null
           role?: string
           updated_at?: string
         }
@@ -1018,7 +1075,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_buddy_usage_by_user: {
+        Row: {
+          agency_id: string | null
+          conversations: number | null
+          date: string | null
+          documents: number | null
+          last_active_at: string | null
+          messages: number | null
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
+      ai_buddy_usage_daily: {
+        Row: {
+          active_users: number | null
+          agency_id: string | null
+          conversations: number | null
+          date: string | null
+          documents_uploaded: number | null
+          total_messages: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_next_pending_job: {
@@ -1081,6 +1162,7 @@ export type Database = {
         }[]
       }
       process_next_document_job: { Args: never; Returns: undefined }
+      refresh_ai_buddy_usage_daily: { Args: Record<string, never>; Returns: undefined }
       reset_stuck_processing_jobs: { Args: never; Returns: undefined }
       search_conversations: {
         Args: { p_limit?: number; p_query: string; p_user_id: string }
@@ -1105,6 +1187,10 @@ export type Database = {
         | "manage_users"
         | "configure_guardrails"
         | "view_audit_logs"
+        | "view_usage_analytics"
+        | "manage_billing"
+        | "transfer_ownership"
+        | "delete_agency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1240,6 +1326,10 @@ export const Constants = {
         "manage_users",
         "configure_guardrails",
         "view_audit_logs",
+        "view_usage_analytics",
+        "manage_billing",
+        "transfer_ownership",
+        "delete_agency",
       ],
     },
   },
