@@ -11,6 +11,8 @@ import {
 } from '@/lib/rate-limit';
 import type { ComparisonData, DocumentSummary, QuoteExtraction, EXTRACTION_VERSION } from '@/types/compare';
 import type { Json } from '@/types/database.types';
+// Story 21.4: Audit logging for comparison actions
+import { logComparisonCreated } from '@/lib/admin';
 
 // Import extraction version to validate cached data
 import { EXTRACTION_VERSION as CURRENT_EXTRACTION_VERSION } from '@/types/compare';
@@ -365,6 +367,14 @@ export async function POST(request: NextRequest) {
       comparisonId,
       documentCount: documentIds.length,
     });
+
+    // Story 21.4 (AC-21.4.2): Log comparison creation to audit trail
+    await logComparisonCreated(
+      agencyId,
+      user.id,
+      comparisonId,
+      documentIds
+    );
 
     // Start extraction asynchronously (don't await - let it run in background)
     // The comparison page will poll for status updates

@@ -300,3 +300,87 @@ CREATE POLICY "Users can view own permissions" ON ai_buddy_permissions
 - `src/components/ai-buddy/admin/ai-disclosure-editor.tsx` - Added `relative` class to sr-only label's parent
 
 **Key Learning:** When using `sr-only` (or any `position: absolute` element), ensure a positioned ancestor exists to contain it. Otherwise, the absolutely positioned element can extend the page layout unexpectedly.
+
+## Admin Permission Checks Failing Due to RLS (Story 21.3-21.5, 2025-12-09)
+
+**Issue:** Admin tab sub-tabs (Users, Usage Analytics, Audit Log, AI Buddy) showed permission errors (403 Forbidden) even though the user had all required permissions in the database.
+
+**Symptoms:**
+- Settings page Admin tab visible but sub-tabs showed "Failed to load: {permission} required"
+- User Management: "Forbidden: manage_users permission required"
+- Usage Analytics: "view_usage_analytics permission required"
+- Guardrails Enforcement Log: "Failed to verify permissions"
+
+**Root Cause:** The RLS policy `Users can view own permissions` on `agency_permissions` table uses `auth.uid()` which doesn't resolve correctly in Next.js server contexts (API routes, server components). The `auth.uid()` call returns `null` instead of the authenticated user's ID, causing all permission checks to fail.
+
+**Affected Code Patterns:**
+```typescript
+// ❌ Bad - RLS auth.uid() fails in server context
+const supabase = await createClient();
+const { data: permissions } = await supabase
+  .from('agency_permissions')
+  .select('permission')
+  .eq('user_id', authUser.id);  // RLS blocks this even though user_id matches
+
+// ✅ Good - Service client bypasses RLS
+const serviceClient = createServiceClient();
+const { data: permissions } = await serviceClient
+  .from('agency_permissions')
+  .select('permission')
+  .eq('user_id', authUser.id);  // Works because RLS bypassed
+```
+
+**Resolution:** Updated all admin permission checks to use `createServiceClient()` instead of the regular `createClient()`. This is safe because:
+1. User authentication is verified first via `supabase.auth.getUser()`
+2. We only query permissions for the authenticated user's own `user_id`
+3. The service client bypasses RLS but the code still enforces proper authorization
+
+**Files Changed:**
+
+1. **`src/app/(dashboard)/settings/page.tsx`** (lines 118-124)
+   - Permissions query now uses `createServiceClient()` to fetch user permissions for Admin tab visibility
+
+2. **`src/app/api/admin/users/route.ts`** (GET, POST, DELETE handlers)
+   - All three handlers now use `createServiceClient()` for `manage_users` permission checks
+   - Service client initialized early, before permission check
+
+3. **`src/app/api/admin/analytics/route.ts`**
+   - Permission check for `view_usage_analytics` now uses `createServiceClient()`
+
+4. **`src/lib/auth/admin.ts`** (`requireAdminAuth()` function)
+   - Added `createServiceClient` import
+   - Step 4 permission check now uses service client
+   - This fixes ALL routes using `requireAdminAuth()` helper
+
+5. **`src/app/api/ai-buddy/admin/guardrails/logs/route.ts`**
+   - Uses `createServiceClient()` for audit log queries
+   - Changed `users!inner(email)` to `users(email)` (left join) to prevent 500 errors when user records don't exist
+
+**Key Learning:** In Next.js App Router with Supabase, RLS policies that use `auth.uid()` may not work reliably in server contexts because the auth context isn't always properly propagated. For permission checks in API routes:
+
+1. Always verify authentication first with `supabase.auth.getUser()`
+2. Use `createServiceClient()` for permission table queries
+3. Manually enforce authorization by checking the authenticated user's ID
+
+**Pattern for Admin API Routes:**
+```typescript
+export async function GET(request: NextRequest) {
+  // 1. Get authenticated user (regular client is fine for auth)
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return unauthorized();
+
+  // 2. Check permissions with service client (bypasses RLS)
+  const serviceClient = createServiceClient();
+  const { data: permissions } = await serviceClient
+    .from('agency_permissions')
+    .select('permission')
+    .eq('user_id', user.id);
+
+  const hasPermission = permissions?.some(p => p.permission === 'required_permission');
+  if (!hasPermission) return forbidden();
+
+  // 3. Proceed with service client for cross-user queries
+  // ... rest of handler
+}
+```

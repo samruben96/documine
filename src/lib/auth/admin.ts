@@ -7,7 +7,7 @@
  * @module @/lib/auth/admin
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export interface AdminAuthResult {
   success: true;
@@ -103,7 +103,9 @@ export async function requireAdminAuth(
 
   // Step 4: Check specific permission if required
   if (requiredPermission) {
-    const { data: permission, error: permissionError } = await supabase
+    // Use service client to bypass RLS issues with auth.uid()
+    const serviceClient = createServiceClient();
+    const { data: permission, error: permissionError } = await serviceClient
       .from('agency_permissions')
       .select('id')
       .eq('user_id', user.id)

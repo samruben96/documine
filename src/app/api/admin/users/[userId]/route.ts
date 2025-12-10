@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { AIB_ERROR_CODES, type AiBuddyErrorCode } from '@/lib/ai-buddy/errors';
-import { logAuditEvent } from '@/lib/ai-buddy/audit-logger';
+import { logAuditEvent } from '@/lib/admin/audit-logger';
 import type { Permission, UserRole } from '@/types/ai-buddy';
 
 /**

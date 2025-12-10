@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { AIB_ERROR_CODES, type AiBuddyErrorCode } from '@/lib/ai-buddy/errors';
-import { logAuditEvent } from '@/lib/ai-buddy/audit-logger';
+import { logAuditEvent } from '@/lib/admin/audit-logger';
 import type {
   AdminUser,
   AiBuddyInvitation,
@@ -84,8 +84,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Use service client to check permissions (bypasses RLS issues with auth.uid())
+    const serviceClient = createServiceClient();
+
     // Check manage_users permission from agency_permissions table
-    const { data: permissions } = await supabase
+    const { data: permissions } = await serviceClient
       .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
@@ -120,10 +123,7 @@ export async function GET(request: NextRequest) {
       params.sortColumn = 'name';
     }
 
-    // Use service client for cross-user queries
-    const serviceClient = createServiceClient();
-
-    // Build users query
+    // Build users query (serviceClient already initialized above)
     let usersQuery = serviceClient
       .from('users')
       .select(
@@ -319,8 +319,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use service client to check permissions (bypasses RLS issues with auth.uid())
+    const serviceClient = createServiceClient();
+
     // Check manage_users permission from agency_permissions
-    const { data: permissions } = await supabase
+    const { data: permissions } = await serviceClient
       .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
@@ -356,7 +359,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const serviceClient = createServiceClient();
+    // serviceClient already initialized above for permission check
     const normalizedEmail = body.email.toLowerCase().trim();
 
     // Check if email already exists in agency
@@ -476,8 +479,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Use service client to check permissions (bypasses RLS issues with auth.uid())
+    const serviceClient = createServiceClient();
+
     // Check manage_users permission from agency_permissions
-    const { data: permissions } = await supabase
+    const { data: permissions } = await serviceClient
       .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
@@ -504,7 +510,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const serviceClient = createServiceClient();
+    // serviceClient already initialized above
 
     // Verify target user exists and is in the same agency
     const { data: targetUser, error: targetError } = await serviceClient

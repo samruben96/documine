@@ -73,6 +73,8 @@ function SettingsTabsContent({ children, isAdmin }: SettingsTabsContentProps) {
           <TabsTrigger value="agency">Agency</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          {/* AC-21.3.3: Admin tab is only visible to users with admin permissions */}
+          {isAdmin && <TabsTrigger value="admin" data-testid="admin-tab">Admin</TabsTrigger>}
           {isAdmin && <TabsTrigger value="branding">Branding</TabsTrigger>}
           {isAdmin && <TabsTrigger value="usage">Usage</TabsTrigger>}
           <TabsTrigger value="ai-buddy" data-testid="ai-buddy-tab">AI Buddy</TabsTrigger>

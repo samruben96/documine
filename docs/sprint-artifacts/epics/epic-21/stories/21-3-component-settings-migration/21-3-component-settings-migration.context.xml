@@ -1,0 +1,399 @@
+<story-context id="21-3-component-settings-migration" v="1.0">
+  <metadata>
+    <epicId>21</epicId>
+    <storyId>3</storyId>
+    <title>Component &amp; Settings Migration</title>
+    <status>Draft</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-21/stories/21-3-component-settings-migration/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>the Admin panel to be a top-level Settings tab</iWant>
+    <soThat>I can manage users, view analytics, and access audit logs without navigating through AI Buddy settings</soThat>
+    <tasks>
+      <task id="1">Create `src/components/admin/` directory structure</task>
+      <task id="2">Move agency-wide components to `src/components/admin/`</task>
+      <task id="3">Create `src/hooks/admin/` directory with index.ts</task>
+      <task id="4">Move agency-wide hooks to `src/hooks/admin/`</task>
+      <task id="5">Create `src/lib/admin/` for shared utilities (audit-logger, errors)</task>
+      <task id="6">Create `src/components/settings/admin-tab.tsx` - new top-level admin tab</task>
+      <task id="7">Update `src/app/(dashboard)/settings/page.tsx` - add Admin tab</task>
+      <task id="8">Update `src/components/settings/ai-buddy-preferences-tab.tsx` - remove admin</task>
+      <task id="9">Update all imports across codebase</task>
+      <task id="10">Move test files to new locations</task>
+      <task id="11">Update test imports</task>
+      <task id="12">Run all tests, fix any failures</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-21.3.1" title="Components Moved to Admin Directory">
+      <given>admin components exist at `src/components/ai-buddy/admin/`</given>
+      <when>the migration is complete</when>
+      <then>agency-wide components are at `src/components/admin/`</then>
+      <and>AI Buddy specific components remain at `src/components/ai-buddy/admin/`</and>
+    </criterion>
+    <criterion id="AC-21.3.2" title="Hooks Moved to Admin Directory">
+      <given>admin hooks exist at `src/hooks/ai-buddy/`</given>
+      <when>the migration is complete</when>
+      <then>agency-wide hooks are at `src/hooks/admin/`</then>
+      <and>AI Buddy specific hooks remain at `src/hooks/ai-buddy/`</and>
+    </criterion>
+    <criterion id="AC-21.3.3" title="Admin Tab is Top-Level in Settings">
+      <given>admin functionality was a sub-tab under AI Buddy</given>
+      <when>the migration is complete</when>
+      <then>Settings page has a top-level "Admin" tab</then>
+      <and>Admin tab is only visible to users with admin permissions</and>
+      <and>Admin tab has sub-tabs: Users, Usage, Audit, Subscription</and>
+    </criterion>
+    <criterion id="AC-21.3.4" title="AI Buddy Tab Shows Preferences Only">
+      <given>AI Buddy tab had both Preferences and Admin sub-tabs</given>
+      <when>the migration is complete</when>
+      <then>AI Buddy tab only shows user preferences</then>
+      <and>no Admin sub-tab exists under AI Buddy</and>
+    </criterion>
+    <criterion id="AC-21.3.5" title="All Imports Updated">
+      <given>files imported from old component/hook locations</given>
+      <when>the migration is complete</when>
+      <then>all imports reference new paths</then>
+      <and>build succeeds with no errors</and>
+    </criterion>
+    <criterion id="AC-21.3.6" title="Tests Updated">
+      <given>tests exist for admin components and hooks</given>
+      <when>the migration is complete</when>
+      <then>test files are moved to new locations</then>
+      <and>all tests pass</and>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/tech-spec/index.md</path>
+        <title>Epic 21 Technical Specification</title>
+        <section>Implementation Details - Source Tree Changes</section>
+        <snippet>Defines exact file movements: components, hooks, lib files. Lists which files stay at ai-buddy/admin (guardrails, onboarding, disclosure) vs move to admin/.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/epic.md</path>
+        <title>Epic 21: Agency-Wide Admin Platform</title>
+        <section>Story Summaries - Story 21.3</section>
+        <snippet>Move agency-wide components and hooks to components/admin/ and hooks/admin/. Create top-level Admin tab in Settings. Simplify AI Buddy tab to preferences only.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/project-structure.md</path>
+        <title>Project Structure</title>
+        <section>Full Directory Layout</section>
+        <snippet>Defines standard component/hook organization under src/. Components grouped by feature folder, hooks in src/hooks/ with feature subfolders.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/stories/21-2.5-test-consolidation/story.md</path>
+        <title>Story 21.2.5: Test Suite Consolidation</title>
+        <section>Action Items</section>
+        <snippet>Note: When Story 21.3 completes, revisit AC-7 to remove redundant admin tests in `__tests__/components/ai-buddy/admin/`</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Settings Page - Primary modification target -->
+      <file>
+        <path>src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>1-205</lines>
+        <reason>Main settings page - must add new Admin tab, update tab structure. Currently has 7 tabs: Profile, Agency, Team, Billing, Branding (admin), Usage (admin), AI Buddy.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/settings-tabs-wrapper.tsx</path>
+        <kind>component</kind>
+        <symbol>SettingsTabsWrapper, SettingsTabsContent</symbol>
+        <lines>1-129</lines>
+        <reason>Controls tab navigation and unsaved changes modal. TabsList on lines 71-79 must be updated to include Admin tab.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/ai-buddy-preferences-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AiBuddyPreferencesTab</symbol>
+        <lines>1-357</lines>
+        <reason>Contains admin sub-tab that must be removed. Lines 316-351 contain the admin settings content that moves to new admin-tab.tsx.</reason>
+      </file>
+
+      <!-- Components to MOVE to src/components/admin/ -->
+      <file>
+        <path>src/components/ai-buddy/admin/user-management-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>UserManagementPanel</symbol>
+        <reason>Agency-wide user management - MOVE to src/components/admin/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/user-table.tsx</path>
+        <kind>component</kind>
+        <symbol>UserTable</symbol>
+        <reason>Agency-wide component - MOVE to src/components/admin/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/invite-user-dialog.tsx</path>
+        <kind>component</kind>
+        <symbol>InviteUserDialog</symbol>
+        <reason>Agency-wide component - MOVE to src/components/admin/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/role-change-dialog.tsx</path>
+        <kind>component</kind>
+        <symbol>RoleChangeDialog</symbol>
+        <reason>Agency-wide component - MOVE to src/components/admin/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/remove-user-dialog.tsx</path>
+        <kind>component</kind>
+        <symbol>RemoveUserDialog</symbol>
+        <reason>Agency-wide component - MOVE to src/components/admin/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/analytics/</path>
+        <kind>folder</kind>
+        <symbol>usage-analytics-panel.tsx, usage-stat-card.tsx, usage-trend-chart.tsx, date-range-picker.tsx, user-breakdown-table.tsx</symbol>
+        <reason>Agency-wide analytics folder - MOVE entire folder to src/components/admin/analytics/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/audit-log/</path>
+        <kind>folder</kind>
+        <symbol>audit-log-panel.tsx, audit-log-table.tsx, audit-filters.tsx, transcript-modal.tsx, export-button.tsx</symbol>
+        <reason>Agency-wide audit log folder - MOVE entire folder to src/components/admin/audit-log/</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/owner/</path>
+        <kind>folder</kind>
+        <symbol>owner-settings-panel.tsx, subscription-panel.tsx, transfer-ownership-dialog.tsx</symbol>
+        <reason>Agency-wide owner folder - MOVE entire folder to src/components/admin/owner/</reason>
+      </file>
+
+      <!-- Components to KEEP at src/components/ai-buddy/admin/ -->
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-admin-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>GuardrailAdminPanel</symbol>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-toggle-card.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-toggle-list.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-log-detail.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-enforcement-log.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/date-range-filter.tsx</path>
+        <kind>component</kind>
+        <reason>Used by guardrails - KEEP in place</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/restricted-topic-*.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place (3 files)</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/onboarding-status-*.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place (3 files)</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/ai-disclosure-editor.tsx</path>
+        <kind>component</kind>
+        <reason>AI Buddy specific - KEEP in place</reason>
+      </file>
+
+      <!-- Hooks to MOVE to src/hooks/admin/ -->
+      <file>
+        <path>src/hooks/ai-buddy/use-user-management.ts</path>
+        <kind>hook</kind>
+        <symbol>useUserManagement</symbol>
+        <reason>Agency-wide hook - MOVE to src/hooks/admin/</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-usage-analytics.ts</path>
+        <kind>hook</kind>
+        <symbol>useUsageAnalytics</symbol>
+        <reason>Agency-wide hook - MOVE to src/hooks/admin/</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-audit-logs.ts</path>
+        <kind>hook</kind>
+        <symbol>useAuditLogs</symbol>
+        <reason>Agency-wide hook - MOVE to src/hooks/admin/</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/use-owner-settings.ts</path>
+        <kind>hook</kind>
+        <symbol>useOwnerSettings</symbol>
+        <reason>Agency-wide hook - MOVE to src/hooks/admin/</reason>
+      </file>
+      <file>
+        <path>src/hooks/ai-buddy/index.ts</path>
+        <kind>barrel</kind>
+        <symbol>exports</symbol>
+        <lines>1-68</lines>
+        <reason>Must remove exports for moved hooks (useUserManagement, useUsageAnalytics, useAuditLogs lines 61-67)</reason>
+      </file>
+
+      <!-- Lib files to create/move -->
+      <file>
+        <path>src/lib/ai-buddy/audit-logger.ts</path>
+        <kind>utility</kind>
+        <symbol>auditLogger</symbol>
+        <reason>Agency-wide utility - MOVE to src/lib/admin/audit-logger.ts</reason>
+      </file>
+
+      <!-- API Routes (already migrated in 21.2) -->
+      <file>
+        <path>src/app/api/admin/users/route.ts</path>
+        <kind>api-route</kind>
+        <reason>User management API - already at new location from Story 21.2</reason>
+      </file>
+      <file>
+        <path>src/app/api/admin/analytics/route.ts</path>
+        <kind>api-route</kind>
+        <reason>Usage analytics API - already at new location from Story 21.2</reason>
+      </file>
+      <file>
+        <path>src/app/api/admin/audit-logs/route.ts</path>
+        <kind>api-route</kind>
+        <reason>Audit logs API - already at new location from Story 21.2</reason>
+      </file>
+      <file>
+        <path>src/app/api/admin/subscription/route.ts</path>
+        <kind>api-route</kind>
+        <reason>Subscription API - already at new location from Story 21.2</reason>
+      </file>
+      <file>
+        <path>src/app/api/admin/transfer-ownership/route.ts</path>
+        <kind>api-route</kind>
+        <reason>Ownership transfer API - already at new location from Story 21.2</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="next" version="16.0.7">Framework - App Router for routes and pages</package>
+        <package name="react" version="19.2.0">UI library</package>
+        <package name="typescript" version="5.x">Language</package>
+        <package name="@supabase/supabase-js" version="2.84.0">Database client</package>
+        <package name="vitest" version="4.0.14">Unit testing</package>
+        <package name="@playwright/test" version="1.57.0">E2E testing</package>
+        <package name="lucide-react">Icons (Shield, User, etc.)</package>
+        <package name="sonner">Toast notifications</package>
+      </npm>
+      <internal>
+        <module name="@/lib/supabase/">Database clients (client.ts, server.ts)</module>
+        <module name="@/components/ui/">shadcn/ui components (Tabs, Card, Button, Alert, AlertDialog)</module>
+        <module name="@/contexts/settings-context">Settings tab state management</module>
+      </internal>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="file-organization">
+      Agency-wide components go to src/components/admin/
+      AI Buddy specific components stay at src/components/ai-buddy/admin/
+      Follow existing barrel export pattern (index.ts) for new admin/ directories
+    </constraint>
+    <constraint type="imports">
+      Update all imports from @/components/ai-buddy/admin/ to @/components/admin/ for moved components
+      Update all imports from @/hooks/ai-buddy/ to @/hooks/admin/ for moved hooks
+      Keep AI Buddy specific imports unchanged
+    </constraint>
+    <constraint type="ui-structure">
+      New Settings tab order: Profile, Agency, Team, Billing, Admin (admin-only), Branding (admin-only), Usage (admin-only), AI Buddy
+      Admin tab sub-navigation: Users, Usage Analytics, Audit Log, Subscription
+      AI Buddy tab: Personal preferences only (no admin sub-tab)
+    </constraint>
+    <constraint type="testing">
+      Move tests to __tests__/components/admin/ and __tests__/hooks/admin/
+      After migration completes, remove redundant tests per Story 21.2.5 AC-7 advisory
+      All 2,796 tests must pass after migration
+    </constraint>
+    <constraint type="permissions">
+      Admin tab visible only to users with admin role
+      Individual sections within Admin tab gated by specific permissions (manage_users, view_usage_analytics, view_audit_logs, transfer_ownership)
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="AdminTab Component" kind="React Component">
+      <signature>export function AdminTab(props: AdminTabProps): JSX.Element</signature>
+      <path>src/components/settings/admin-tab.tsx (CREATE)</path>
+      <notes>New top-level admin tab component with sub-tabs for Users, Usage, Audit, Subscription</notes>
+    </interface>
+    <interface name="SettingsTabsWrapper" kind="React Component">
+      <signature>export function SettingsTabsWrapper({ children, defaultTab, isAdmin }: SettingsTabsWrapperProps)</signature>
+      <path>src/components/settings/settings-tabs-wrapper.tsx</path>
+      <notes>Must add Admin TabsTrigger to TabsList (line 71-79)</notes>
+    </interface>
+    <interface name="useUserManagement" kind="React Hook">
+      <signature>export function useUserManagement(): UseUserManagementReturn</signature>
+      <path>src/hooks/admin/use-user-management.ts (MOVE from ai-buddy/)</path>
+      <notes>Hook uses /api/admin/users endpoint (already updated in Story 21.2)</notes>
+    </interface>
+    <interface name="useUsageAnalytics" kind="React Hook">
+      <signature>export function useUsageAnalytics(options?: UseUsageAnalyticsOptions): UseUsageAnalyticsReturn</signature>
+      <path>src/hooks/admin/use-usage-analytics.ts (MOVE from ai-buddy/)</path>
+      <notes>Hook uses /api/admin/analytics endpoint (already updated in Story 21.2)</notes>
+    </interface>
+    <interface name="useAuditLogs" kind="React Hook">
+      <signature>export function useAuditLogs(options?: UseAuditLogsOptions): UseAuditLogsReturn</signature>
+      <path>src/hooks/admin/use-audit-logs.ts (MOVE from ai-buddy/)</path>
+      <notes>Hook uses /api/admin/audit-logs endpoint (already updated in Story 21.2)</notes>
+    </interface>
+    <interface name="useOwnerSettings" kind="React Hook">
+      <signature>export function useOwnerSettings(): UseOwnerSettingsReturn</signature>
+      <path>src/hooks/admin/use-owner-settings.ts (MOVE from ai-buddy/)</path>
+      <notes>Hook uses /api/admin/subscription and /api/admin/transfer-ownership endpoints</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with happy-dom for unit tests. Playwright for E2E tests.
+      Use `test.each()` for parameterized tests. Component tests focus on behavior, not render details.
+      Resource throttling configured: pool:'threads', maxConcurrency:5, maxThreads:4.
+    </standards>
+    <locations>
+      <location>__tests__/components/admin/ (CREATE - move from ai-buddy/admin/)</location>
+      <location>__tests__/hooks/admin/ (CREATE - move from ai-buddy/)</location>
+      <location>__tests__/e2e/admin/ (UPDATE existing admin E2E tests)</location>
+    </locations>
+    <ideas>
+      <idea acRef="AC-21.3.1">Verify agency-wide components render correctly from new location</idea>
+      <idea acRef="AC-21.3.2">Verify agency-wide hooks function correctly from new location</idea>
+      <idea acRef="AC-21.3.3">E2E: Admin tab visible to admin users, has correct sub-tabs</idea>
+      <idea acRef="AC-21.3.3">E2E: Admin tab NOT visible to non-admin users</idea>
+      <idea acRef="AC-21.3.4">Verify AI Buddy tab no longer shows admin sub-tab</idea>
+      <idea acRef="AC-21.3.5">Build succeeds (CI validation)</idea>
+      <idea acRef="AC-21.3.6">All 2,796 tests pass after file moves and import updates</idea>
+      <idea>After story completes: Remove redundant tests per Story 21.2.5 advisory</idea>
+    </ideas>
+  </tests>
+
+  <actionItems>
+    <item priority="high" source="Story 21.2.5">
+      After Story 21.3 completes, revisit AC-7 to remove redundant admin tests in `__tests__/components/ai-buddy/admin/`
+      These tests will be duplicated once files are moved to __tests__/components/admin/
+    </item>
+  </actionItems>
+</story-context>

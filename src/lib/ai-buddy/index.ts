@@ -44,14 +44,14 @@ export {
   buildGuardrailInstructions,
 } from './prompt-builder';
 
-// Audit logger
+// Audit logger - moved to @/lib/admin in Story 21.3
 export {
   type AuditAction,
   type AuditLogInput,
   logAuditEvent,
   queryAuditLogs,
   buildMessageMetadata,
-} from './audit-logger';
+} from '@/lib/admin/audit-logger';
 
 // Rate limiter
 export {

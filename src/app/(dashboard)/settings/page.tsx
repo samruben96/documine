@@ -9,7 +9,8 @@ import { BillingTab } from '@/components/settings/billing-tab';
 import { UsageTab } from '@/components/settings/usage-tab';
 import { BrandingTab } from '@/components/settings/branding-tab';
 import { AiBuddyPreferencesTab } from '@/components/settings/ai-buddy-preferences-tab';
-import { createClient } from '@/lib/supabase/server';
+import { AdminTab } from '@/components/settings/admin-tab';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { type PlanTier } from '@/lib/constants/plans';
 import { getUsageMetrics } from './actions';
@@ -114,7 +115,9 @@ export default async function SettingsPage() {
   let hasViewUsageAnalyticsPermission = false;
   let hasOwnerPermission = false;
   if (isAdmin) {
-    const { data: permissions } = await supabase
+    // Use service client to bypass RLS for permission check (user already authenticated)
+    const serviceClient = createServiceClient();
+    const { data: permissions } = await serviceClient
       .from('agency_permissions')
       .select('permission')
       .eq('user_id', user.id)
@@ -182,20 +185,26 @@ export default async function SettingsPage() {
           </TabsContent>
         )}
 
+        {/* AC-21.3.3: Admin tab is top-level with sub-tabs for Users, Usage, Audit, Subscription */}
+        {/* AC-21.3.3: Admin tab is only visible to users with admin permissions */}
+        {isAdmin && (
+          <TabsContent value="admin">
+            <AdminTab
+              hasManageUsersPermission={hasManageUsersPermission}
+              hasViewUsageAnalyticsPermission={hasViewUsageAnalyticsPermission}
+              hasViewAuditLogsPermission={hasViewAuditLogsPermission}
+              hasOwnerPermission={hasOwnerPermission}
+            />
+          </TabsContent>
+        )}
+
         {/* AC-18.2.1: AI Buddy preferences tab */}
-        {/* AC-18.4.1, AC-18.4.5: Pass isAdmin for onboarding status section */}
-        {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
-        {/* AC-20.2.1: Pass manage_users permission for user management section */}
-        {/* AC-20.3.1: Pass view_usage_analytics permission for usage analytics section */}
-        {/* AC-20.5.4: Pass transfer_ownership permission for owner management section */}
+        {/* AC-21.3.4: AI Buddy tab shows preferences only (admin moved to Admin tab) */}
         <TabsContent value="ai-buddy">
           <AiBuddyPreferencesTab
             agencyName={userData.agency?.name || undefined}
             isAdmin={isAdmin}
             hasViewAuditLogsPermission={hasViewAuditLogsPermission}
-            hasManageUsersPermission={hasManageUsersPermission}
-            hasViewUsageAnalyticsPermission={hasViewUsageAnalyticsPermission}
-            hasOwnerPermission={hasOwnerPermission}
           />
         </TabsContent>
       </SettingsTabsWrapper>

@@ -16,6 +16,8 @@ import { DocumentSelector } from '@/components/one-pager/document-selector';
 import { OnePagerForm, type OnePagerFormData } from '@/components/one-pager/one-pager-form';
 import { OnePagerPreview } from '@/components/one-pager/one-pager-preview';
 import { downloadOnePagerPdf } from '@/lib/one-pager/pdf-template';
+// Story 21.4: Audit logging for one-pager exports
+import { logOnePagerExportedAction } from './actions';
 
 /**
  * One-Pager Page Content
@@ -120,6 +122,13 @@ function OnePagerPageContent() {
         data.extractions,
         branding
       );
+
+      // Story 21.4 (AC-21.4.3): Log one-pager export to audit trail
+      await logOnePagerExportedAction({
+        sourceDocumentId: documentId ?? undefined,
+        sourceComparisonId: comparisonId ?? undefined,
+      });
+
       toast.success('One-pager downloaded successfully');
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -127,7 +136,7 @@ function OnePagerPageContent() {
     } finally {
       setIsDownloading(false);
     }
-  }, [data?.extractions, formData, branding]);
+  }, [data?.extractions, formData, branding, documentId, comparisonId]);
 
   // Navigate to comparison history to use existing comparison
   const handleUseComparison = useCallback(() => {

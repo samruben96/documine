@@ -1,7 +1,7 @@
 # Sprint Status - docuMINE
 # ========================
 # Generated: 2025-11-28
-# Last Updated: 2025-12-09
+# Last Updated: 2025-12-09 (Story 21.5 review)
 # Project: docuMINE
 # Tracking: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
@@ -214,15 +214,32 @@ development_status:
   # Move components/ai-buddy/admin/ → components/admin/
   # Add top-level Admin tab to Settings
   # Simplify AI Buddy tab to preferences only
-  21-3-component-settings-migration: drafted
+  # DONE 2025-12-09: All components/hooks/lib migrated, Admin tab created
+  # - Moved 20 test files, all 273 admin tests pass
+  # - AC-7 review complete: No redundant tests found
+  21-3-component-settings-migration: done
   # Story 21.4: Extend Audit Logging (S)
   # Add action types for documents, comparisons, one-pagers, chat
   # Update audit log UI for all action types
-  21-4-extend-audit-logging: drafted
+  # DONE 2025-12-09: All ACs complete - REVIEW APPROVED
+  # - 8 new action types added to audit logger
+  # - Document actions logged (upload, delete, modify)
+  # - Comparison actions logged (create, export)
+  # - One-pager actions logged (generate, export)
+  # - Document chat sessions logged (new conversation)
+  # - Audit log UI shows all action types with icons and badges
+  # - Action category filtering in audit log
+  21-4-extend-audit-logging: done
   # Story 21.5: Extend Usage Tracking (S)
   # Track usage across all features
   # Feature breakdown in analytics dashboard
-  21-5-extend-usage-tracking: drafted
+  # DONE 2025-12-09: All ACs complete
+  # - Usage analytics tracks Documents, Comparisons, One-Pagers, Doc Chat
+  # - Feature breakdown in dashboard with stat cards
+  # - Trend chart with Primary/All Features toggle
+  # - User breakdown table with per-feature columns
+  # - Export includes all features
+  21-5-extend-usage-tracking: done
   # Story 21.2.5: Test Suite Consolidation (Team Discussion)
   # 2,796 tests across 175 files - brutal on local dev
   # Needs team input on consolidation strategy

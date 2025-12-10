@@ -1,16 +1,13 @@
 /**
  * AI Buddy Preferences Tab Component
  * Story 18.2: Preferences Management
- * Story 18.4: Admin Onboarding Status
- * Story 19.1: Guardrail Admin UI
+ * Story 21.3: Component & Settings Migration
  *
  * AC-18.2.1: Dedicated settings tab for AI Buddy preferences
  * AC-18.2.2: Load and display current preferences
- * AC-18.4.1: Admin section for onboarding status (when isAdmin=true)
+ * AC-21.3.4: AI Buddy tab shows personal preferences only
  *
- * Layout: Two sub-tabs on left side
- * - "My AI Buddy" - Personal settings (all users)
- * - "AI Buddy Admin" - Team controls (admin only)
+ * Note: Admin functionality (guardrails, onboarding) moved to Admin tab > AI Buddy sub-tab per Story 21.3.
  */
 
 'use client';
@@ -31,56 +28,36 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertCircle, User, Shield, RotateCcw, Loader2 } from 'lucide-react';
+import { AlertCircle, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 import { PreferencesForm } from '@/components/ai-buddy/preferences-form';
 import { usePreferences } from '@/hooks/ai-buddy/use-preferences';
-import { OnboardingStatusSection } from '@/components/ai-buddy/admin/onboarding-status-section';
-import { GuardrailAdminPanel } from '@/components/ai-buddy/admin/guardrail-admin-panel';
-import { UserManagementPanel } from '@/components/ai-buddy/admin/user-management-panel';
-import { UsageAnalyticsPanel } from '@/components/ai-buddy/admin/analytics/usage-analytics-panel';
-import { AuditLogPanel } from '@/components/ai-buddy/admin/audit-log/audit-log-panel';
-import { OwnerSettingsPanel } from '@/components/ai-buddy/admin/owner';
 import { useSettings } from '@/contexts/settings-context';
 
 export interface AiBuddyPreferencesTabProps {
   /** Agency name to display (read-only) */
   agencyName?: string;
-  /** Whether the current user is an admin (AC-18.4.5) */
+  /** Whether the current user is an admin (unused, kept for API compatibility) */
   isAdmin?: boolean;
-  /** Whether the admin has view_audit_logs permission (AC-19.2.3) */
+  /** Whether the admin has view_audit_logs permission (unused, kept for API compatibility) */
   hasViewAuditLogsPermission?: boolean;
-  /** Whether the admin has manage_users permission (AC-20.2.1) */
-  hasManageUsersPermission?: boolean;
-  /** Whether the admin has view_usage_analytics permission (AC-20.3.1) */
-  hasViewUsageAnalyticsPermission?: boolean;
-  /** Whether the current user has transfer_ownership permission (AC-20.5.4) */
-  hasOwnerPermission?: boolean;
 }
 
-type SubTab = 'personal' | 'admin';
-
 /**
- * Settings tab container for AI Buddy preferences
+ * Settings tab container for AI Buddy personal preferences
  *
  * Fetches preferences on mount and passes to PreferencesForm.
  * Shows skeleton UI during loading.
- * Shows OnboardingStatusSection for admin users (AC-18.4.1, AC-18.4.5).
+ *
+ * Note: Admin functionality (guardrails, onboarding) moved to Admin tab > AI Buddy sub-tab per Story 21.3.
  */
 export function AiBuddyPreferencesTab({
   agencyName,
-  isAdmin = false,
-  hasViewAuditLogsPermission = false,
-  hasManageUsersPermission = false,
-  hasViewUsageAnalyticsPermission = false,
-  hasOwnerPermission = false,
 }: AiBuddyPreferencesTabProps) {
   const { preferences, isLoading, error, updatePreferences, resetPreferences, refetch } = usePreferences();
   const { setIsDirty, setOnSave } = useSettings();
   const [hasInitialLoaded, setHasInitialLoaded] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('personal');
   const [isResetting, setIsResetting] = useState(false);
   const [formIsDirty, setFormIsDirty] = useState(false);
   const formSaveRef = useRef<(() => void) | null>(null);
@@ -133,11 +110,6 @@ export function AiBuddyPreferencesTab({
   if (!hasInitialLoaded && isLoading) {
     return (
       <div className="mt-6 space-y-6" data-testid="preferences-loading">
-        {/* Sub-tabs skeleton */}
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-32" />
-          <Skeleton className="h-10 w-36" />
-        </div>
         {/* Identity skeleton */}
         <Card>
           <CardHeader>
@@ -212,143 +184,68 @@ export function AiBuddyPreferencesTab({
   // Preferences loaded
   if (preferences) {
     return (
-      <div className="mt-6" data-testid="preferences-tab">
-        {/* Sub-tabs navigation */}
-        <div className="flex gap-2 mb-6 border-b" data-testid="ai-buddy-sub-tabs">
-          <button
-            onClick={() => setActiveSubTab('personal')}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
-              activeSubTab === 'personal'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-            )}
-            data-testid="subtab-personal"
-          >
-            <User className="h-4 w-4" />
-            My AI Buddy
-          </button>
-          {isAdmin && (
-            <button
-              onClick={() => setActiveSubTab('admin')}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
-                activeSubTab === 'admin'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
-              )}
-              data-testid="subtab-admin"
-            >
-              <Shield className="h-4 w-4" />
-              AI Buddy Admin
-            </button>
-          )}
-        </div>
+      <div className="mt-6 space-y-6 pb-6" data-testid="preferences-tab">
+        {/* Reset Personal Settings - at the top */}
+        <Card data-testid="reset-personal-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" />
+              Reset My AI Buddy Settings
+            </CardTitle>
+            <CardDescription>
+              These are your personal AI Buddy settings. Resetting will clear your preferences
+              and show the onboarding flow again. This only affects your account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={isLoading || isResetting}
+                  data-testid="reset-personal-btn"
+                >
+                  {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Reset My Preferences
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Your AI Buddy Preferences?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will clear all your personal preferences (name, role, lines of business,
+                    carriers, communication style) and show the onboarding flow again.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleResetPersonalSettings}
+                    disabled={isResetting}
+                    data-testid="confirm-reset-personal-btn"
+                  >
+                    {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Reset My Preferences
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
 
-        {/* Personal Settings Tab */}
-        {activeSubTab === 'personal' && (
-          <div className="space-y-6" data-testid="personal-settings-content">
-            {/* Reset Personal Settings - at the top */}
-            <Card data-testid="reset-personal-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RotateCcw className="h-5 w-5" />
-                  Reset My AI Buddy Settings
-                </CardTitle>
-                <CardDescription>
-                  These are your personal AI Buddy settings. Resetting will clear your preferences
-                  and show the onboarding flow again. This only affects your account.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      disabled={isLoading || isResetting}
-                      data-testid="reset-personal-btn"
-                    >
-                      {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Reset My Preferences
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Reset Your AI Buddy Preferences?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will clear all your personal preferences (name, role, lines of business,
-                        carriers, communication style) and show the onboarding flow again.
-                        This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleResetPersonalSettings}
-                        disabled={isResetting}
-                        data-testid="confirm-reset-personal-btn"
-                      >
-                        {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Reset My Preferences
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardContent>
-            </Card>
-
-            {/* Preferences Form (without the reset button at the bottom) */}
-            <PreferencesForm
-              preferences={preferences}
-              agencyName={agencyName}
-              onSave={updatePreferences}
-              onReset={resetPreferences}
-              isLoading={isLoading}
-              hideResetButton
-              onDirtyChange={handleDirtyChange}
-              onSaveRef={handleSaveRef}
-            />
-          </div>
-        )}
-
-        {/* Admin Settings Tab */}
-        {activeSubTab === 'admin' && isAdmin && (
-          <div className="space-y-6" data-testid="admin-settings-content">
-            {/* Admin Settings Header */}
-            <Card data-testid="admin-settings-header">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Team AI Buddy Controls
-                </CardTitle>
-                <CardDescription>
-                  As an admin, you can configure AI Buddy settings that apply to everyone on your team.
-                  Changes here affect all users in your agency.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            {/* AC-18.4.1, AC-18.4.5: Admin-only onboarding status section */}
-            <OnboardingStatusSection isAdmin={isAdmin} />
-
-            {/* AC-19.1.1, AC-19.1.12: Admin-only guardrails section */}
-            {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
-            <GuardrailAdminPanel isAdmin={isAdmin} hasViewAuditLogsPermission={hasViewAuditLogsPermission} />
-
-            {/* AC-20.2.1: Admin-only user management section */}
-            <UserManagementPanel hasManageUsersPermission={hasManageUsersPermission} />
-
-            {/* AC-20.3.1: Admin-only usage analytics section */}
-            <UsageAnalyticsPanel hasPermission={hasViewUsageAnalyticsPermission} />
-
-            {/* AC-20.4.1 through AC-20.4.10: Audit log interface */}
-            <AuditLogPanel hasPermission={hasViewAuditLogsPermission} />
-
-            {/* AC-20.5.1 through AC-20.5.11: Owner management (subscription + transfer) */}
-            <OwnerSettingsPanel hasOwnerPermission={hasOwnerPermission} />
-          </div>
-        )}
+        {/* Preferences Form (without the reset button at the bottom) */}
+        <PreferencesForm
+          preferences={preferences}
+          agencyName={agencyName}
+          onSave={updatePreferences}
+          onReset={resetPreferences}
+          isLoading={isLoading}
+          hideResetButton
+          onDirtyChange={handleDirtyChange}
+          onSaveRef={handleSaveRef}
+        />
       </div>
     );
   }

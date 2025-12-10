@@ -77,12 +77,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     endDate.setHours(23, 59, 59, 999);
   }
 
-  const supabase = await createClient();
+  // Use service client to bypass RLS for cross-table queries
+  const { createServiceClient } = await import('@/lib/supabase/server');
+  const serviceClient = createServiceClient();
 
   // Build query for guardrail_triggered events
-  let query = supabase
+  // Use left join (users) instead of inner join (users!inner) to handle orphaned records
+  let query = serviceClient
     .from('agency_audit_logs')
-    .select('*, users!inner(email)', { count: 'exact' })
+    .select('*, users(email)', { count: 'exact' })
     .eq('agency_id', auth.agencyId)
     .eq('action', 'guardrail_triggered')
     .order('logged_at', { ascending: false });

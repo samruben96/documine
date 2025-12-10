@@ -19,11 +19,7 @@ export {
 export { usePreferences, type UsePreferencesReturn } from './use-preferences';
 export { useOnboarding, type UseOnboardingReturn } from './use-onboarding';
 export { useGuardrails, type UseGuardrailsReturn, type ResetSection } from './use-guardrails';
-export {
-  useAuditLogs,
-  type UseAuditLogsOptions,
-  type UseAuditLogsReturn,
-} from './use-audit-logs';
+// useAuditLogs moved to @/hooks/admin - Story 21.3
 export {
   useConversations,
   type UseConversationsOptions,
@@ -58,10 +54,4 @@ export {
   type UseGuardrailLogsReturn,
 } from './use-guardrail-logs';
 export { useDisclosure } from './use-disclosure';
-export {
-  useUserManagement,
-} from './use-user-management';
-export {
-  useUsageAnalytics,
-  type AnalyticsDateRange,
-} from './use-usage-analytics';
+// useUserManagement, useUsageAnalytics, useOwnerSettings moved to @/hooks/admin - Story 21.3

@@ -1,8 +1,10 @@
 /**
  * Agency Admin Usage Analytics Export API
  * Story 21.2: API Route Migration (moved from ai-buddy/admin/analytics/export)
+ * Story 21.5: Extended for multi-feature usage export
  *
  * GET - Export usage data as CSV file
+ * Includes: AI Buddy, Documents, Comparisons, One-Pagers, Document Chat
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -99,10 +101,10 @@ export async function GET(request: NextRequest) {
 
     const agencyName = agency?.name || 'agency';
 
-    // Fetch per-user breakdown data
+    // Fetch per-user breakdown data from AI Buddy view
     const { data: usageData, error: usageError } = await serviceClient
       .from('ai_buddy_usage_by_user')
-      .select('date, user_email, user_name, conversations, messages, documents')
+      .select('date, user_id, user_email, user_name, conversations, messages, documents')
       .eq('agency_id', agencyId)
       .gte('date', startDate.toISOString().split('T')[0])
       .lte('date', endDate.toISOString().split('T')[0])
@@ -117,11 +119,95 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate CSV content
-    const headers = ['Date', 'User Email', 'User Name', 'Conversations', 'Messages', 'Documents'];
+    // Story 21.5: Fetch comparisons per user per day
+    const { data: comparisonsData } = await serviceClient
+      .from('comparisons')
+      .select('user_id, created_at')
+      .eq('agency_id', agencyId)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    // Group comparisons by user + date
+    const comparisonsByUserDay = new Map<string, number>();
+    (comparisonsData || []).forEach((row) => {
+      if (row.user_id && row.created_at) {
+        const dateStr = row.created_at.split('T')[0] as string;
+        const key = `${row.user_id}|${dateStr}`;
+        comparisonsByUserDay.set(key, (comparisonsByUserDay.get(key) || 0) + 1);
+      }
+    });
+
+    // Story 21.5: Fetch one-pagers per user per day
+    const { data: onePagerData } = await serviceClient
+      .from('agency_audit_logs')
+      .select('user_id, logged_at')
+      .eq('agency_id', agencyId)
+      .eq('action', 'one_pager_generated')
+      .gte('logged_at', startDate.toISOString())
+      .lte('logged_at', endDate.toISOString());
+
+    // Group one-pagers by user + date
+    const onePagersByUserDay = new Map<string, number>();
+    (onePagerData || []).forEach((row) => {
+      if (row.user_id && row.logged_at) {
+        const dateStr = row.logged_at.split('T')[0] as string;
+        const key = `${row.user_id}|${dateStr}`;
+        onePagersByUserDay.set(key, (onePagersByUserDay.get(key) || 0) + 1);
+      }
+    });
+
+    // Story 21.5: Fetch document chats per user per day
+    const { data: docChatData } = await serviceClient
+      .from('conversations')
+      .select('user_id, created_at')
+      .eq('agency_id', agencyId)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    // Group document chats by user + date
+    const docChatsByUserDay = new Map<string, number>();
+    (docChatData || []).forEach((row) => {
+      if (row.user_id && row.created_at) {
+        const dateStr = row.created_at.split('T')[0] as string;
+        const key = `${row.user_id}|${dateStr}`;
+        docChatsByUserDay.set(key, (docChatsByUserDay.get(key) || 0) + 1);
+      }
+    });
+
+    // Story 21.5: Fetch documents per user per day
+    const { data: docsData } = await serviceClient
+      .from('documents')
+      .select('uploaded_by, created_at')
+      .eq('agency_id', agencyId)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString());
+
+    // Group documents by user + date
+    const docsByUserDay = new Map<string, number>();
+    (docsData || []).forEach((row) => {
+      if (row.uploaded_by && row.created_at) {
+        const dateStr = row.created_at.split('T')[0] as string;
+        const key = `${row.uploaded_by}|${dateStr}`;
+        docsByUserDay.set(key, (docsByUserDay.get(key) || 0) + 1);
+      }
+    });
+
+    // Generate CSV content with extended columns
+    const headers = [
+      'Date',
+      'User Email',
+      'User Name',
+      'AI Buddy Conversations',
+      'AI Buddy Messages',
+      'Documents Uploaded',
+      'Comparisons Created',
+      'One-Pagers Generated',
+      'Document Chat Sessions',
+    ];
     const csvRows = [headers.join(',')];
 
     (usageData || []).forEach((row) => {
+      const key = row.user_id ? `${row.user_id}|${row.date}` : '';
       csvRows.push(
         [
           escapeCsvField(row.date),
@@ -129,7 +215,10 @@ export async function GET(request: NextRequest) {
           escapeCsvField(row.user_name),
           escapeCsvField(row.conversations),
           escapeCsvField(row.messages),
-          escapeCsvField(row.documents),
+          escapeCsvField(key ? docsByUserDay.get(key) || 0 : row.documents),
+          escapeCsvField(key ? comparisonsByUserDay.get(key) || 0 : 0),
+          escapeCsvField(key ? onePagersByUserDay.get(key) || 0 : 0),
+          escapeCsvField(key ? docChatsByUserDay.get(key) || 0 : 0),
         ].join(',')
       );
     });

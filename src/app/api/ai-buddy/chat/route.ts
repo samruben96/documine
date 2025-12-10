@@ -33,7 +33,7 @@ import {
   calculateConfidence,
   type DocumentContext,
 } from '@/lib/ai-buddy/prompt-builder';
-import { logGuardrailEvent, logMessageEvent } from '@/lib/ai-buddy/audit-logger';
+import { logGuardrailEvent, logMessageEvent } from '@/lib/admin/audit-logger';
 import {
   getConversationAttachments,
   getConversationAttachmentChunks,

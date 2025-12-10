@@ -1,0 +1,284 @@
+<story-context id="21-4-extend-audit-logging" v="1.0">
+  <metadata>
+    <epicId>21</epicId>
+    <storyId>4</storyId>
+    <title>Extend Audit Logging</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-21/stories/21-4-extend-audit-logging/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>audit logs to capture actions from ALL features</iWant>
+    <soThat>I have a complete view of what users are doing across document uploads, comparisons, one-pagers, and AI Buddy</soThat>
+    <tasks>
+      <task id="1">Move src/lib/ai-buddy/audit-logger.ts to src/lib/admin/audit-logger.ts</task>
+      <task id="2">Add new action types to audit logger: document_uploaded, document_deleted, document_modified, comparison_created, comparison_exported, one_pager_generated, one_pager_exported, document_chat_started</task>
+      <task id="3">Integrate audit logging in src/app/api/documents/ routes</task>
+      <task id="4">Integrate audit logging in src/app/api/compare/ routes</task>
+      <task id="5">Integrate audit logging in one-pager generation (if exists)</task>
+      <task id="6">Integrate audit logging in document chat routes</task>
+      <task id="7">Update audit log table component to display new action types with icons/labels</task>
+      <task id="8">Update audit filters to include new action types</task>
+      <task id="9">Test all integrations</task>
+      <task id="10">Update audit log export to include new action types</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-21.4.1">
+      <title>Document Actions Logged</title>
+      <given>a user uploads, deletes, or modifies a document</given>
+      <when>the action completes</when>
+      <then>an audit log entry is created with action type document_uploaded, document_deleted, or document_modified</then>
+      <and>the entry includes document ID and filename in metadata</and>
+    </criterion>
+    <criterion id="AC-21.4.2">
+      <title>Comparison Actions Logged</title>
+      <given>a user creates or exports a comparison</given>
+      <when>the action completes</when>
+      <then>an audit log entry is created with action type comparison_created or comparison_exported</then>
+      <and>the entry includes comparison ID and document IDs in metadata</and>
+    </criterion>
+    <criterion id="AC-21.4.3">
+      <title>One-Pager Actions Logged</title>
+      <given>a user generates or exports a one-pager</given>
+      <when>the action completes</when>
+      <then>an audit log entry is created with action type one_pager_generated or one_pager_exported</then>
+      <and>the entry includes relevant document/comparison IDs in metadata</and>
+    </criterion>
+    <criterion id="AC-21.4.4">
+      <title>Document Chat Actions Logged</title>
+      <given>a user starts a document chat session</given>
+      <when>the session begins</when>
+      <then>an audit log entry is created with action type document_chat_started</then>
+      <and>the entry includes document ID and conversation ID in metadata</and>
+    </criterion>
+    <criterion id="AC-21.4.5">
+      <title>Audit Log UI Shows All Actions</title>
+      <given>audit logs from multiple features exist</given>
+      <when>an admin views the audit log</when>
+      <then>all action types are displayed with appropriate labels</then>
+      <and>filtering works across all action types</and>
+    </criterion>
+    <criterion id="AC-21.4.6">
+      <title>Audit Logger Service Relocated</title>
+      <given>audit logger was at src/lib/ai-buddy/audit-logger.ts</given>
+      <when>the migration is complete</when>
+      <then>it exists at src/lib/admin/audit-logger.ts</then>
+      <and>it supports all new action types</and>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/tech-spec/index.md</path>
+        <title>Epic 21 Tech Spec - Agency-Wide Admin Platform</title>
+        <section>Phase 4: Extend Audit Logging</section>
+        <snippet>Add new action types to agency_audit_logs: document_uploaded, document_deleted, comparison_created, comparison_exported, one_pager_generated, one_pager_exported, chat_session_started. Update audit logger service.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/epic.md</path>
+        <title>Epic 21 Overview</title>
+        <section>Story 21.4: Extend Audit Logging</section>
+        <snippet>Add audit action types for document uploads, comparisons, one-pagers, and document chat. Update audit log UI to display and filter all action types.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/index.md</path>
+        <title>Architecture Overview</title>
+        <section>API Contracts, Data Architecture</section>
+        <snippet>Defines API patterns, data architecture, RLS policies. Audit logs are append-only, immutable with 7-year retention for insurance compliance.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>API Response Format, RLS Service Client Pattern</section>
+        <snippet>Patterns for API responses, database queries, and RLS-based service patterns used throughout the codebase.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/stories/21-3-component-settings-migration/story.md</path>
+        <title>Story 21.3 - Component Migration</title>
+        <section>Prerequisites</section>
+        <snippet>Moved admin components to src/components/admin/, hooks to src/hooks/admin/, lib to src/lib/admin/. This story depends on 21.3 completion.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/admin/audit-logger.ts</path>
+        <kind>service</kind>
+        <symbol>logAuditEvent, AuditAction type</symbol>
+        <lines>1-266</lines>
+        <reason>Primary file to extend with new action types (document_uploaded, comparison_created, etc.)</reason>
+      </file>
+      <file>
+        <path>src/lib/admin/index.ts</path>
+        <kind>module-export</kind>
+        <symbol>audit-logger exports</symbol>
+        <lines>1-19</lines>
+        <reason>Entry point exporting audit logger functions; may need updates if new exports added</reason>
+      </file>
+      <file>
+        <path>src/app/api/documents/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>PATCH handler</symbol>
+        <lines>36-169</lines>
+        <reason>Document modification endpoint - add audit logging for document_modified action</reason>
+      </file>
+      <file>
+        <path>src/app/api/compare/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST handler (comparison creation)</symbol>
+        <lines>212-386</lines>
+        <reason>Comparison creation endpoint - add audit logging for comparison_created action</reason>
+      </file>
+      <file>
+        <path>src/app/api/compare/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, DELETE handlers</symbol>
+        <lines>1-177</lines>
+        <reason>Single comparison operations - export logging may be added here or in separate export route</reason>
+      </file>
+      <file>
+        <path>src/app/api/chat/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>POST handler (chat streaming)</symbol>
+        <lines>55-100</lines>
+        <reason>Document chat endpoint - add audit logging for document_chat_started action</reason>
+      </file>
+      <file>
+        <path>src/components/admin/audit-log/audit-log-table.tsx</path>
+        <kind>component</kind>
+        <symbol>AuditLogTable</symbol>
+        <lines>1-357</lines>
+        <reason>UI component displaying audit entries - needs new action type labels and icons</reason>
+      </file>
+      <file>
+        <path>src/components/admin/audit-log/audit-filters.tsx</path>
+        <kind>component</kind>
+        <symbol>AuditFilters, AuditLogFilters interface</symbol>
+        <lines>1-284</lines>
+        <reason>Filter controls - may need action type filter dropdown for new action types</reason>
+      </file>
+      <file>
+        <path>src/components/admin/audit-log/export-button.tsx</path>
+        <kind>component</kind>
+        <symbol>ExportButton</symbol>
+        <reason>Export functionality - must handle new action types in CSV/PDF export</reason>
+      </file>
+      <file>
+        <path>supabase/functions/process-document/index.ts</path>
+        <kind>edge-function</kind>
+        <symbol>document processing</symbol>
+        <reason>Document upload processing - may need audit logging call for document_uploaded</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Database client for audit log operations</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Request validation in API routes</purpose>
+      </node>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <purpose>Date formatting in audit log table</purpose>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <purpose>Icons for action types in audit log UI</purpose>
+      </node>
+      <node>
+        <package>recharts</package>
+        <version>^3.5.1</version>
+        <purpose>Charts in analytics (related to audit data visualization)</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">
+      <rule>Audit logs are append-only, immutable - INSERT only via RLS policy</rule>
+      <rule>7-year retention for insurance compliance</rule>
+      <rule>Database trigger prevents UPDATE/DELETE even with service role</rule>
+    </constraint>
+    <constraint type="pattern">
+      <rule>Use logAuditEvent() function from src/lib/admin/audit-logger.ts</rule>
+      <rule>Audit failures must not throw - catch errors and log silently</rule>
+      <rule>Include agencyId, userId, action, metadata in all audit entries</rule>
+    </constraint>
+    <constraint type="api">
+      <rule>Follow existing API response format: { data, error } pattern</rule>
+      <rule>Use createClient() from @/lib/supabase/server for server-side DB access</rule>
+      <rule>Verify user authentication and agency membership before logging</rule>
+    </constraint>
+    <constraint type="testing">
+      <rule>Unit tests with mocked Supabase client in __tests__/lib/admin/</rule>
+      <rule>E2E tests for audit log UI in __tests__/e2e/admin/</rule>
+      <rule>Component tests in __tests__/components/admin/audit-log/</rule>
+    </constraint>
+    <constraint type="code-style">
+      <rule>TypeScript strict mode - no implicit any</rule>
+      <rule>'use client' directive for client components</rule>
+      <rule>Use existing AuditAction union type - extend with new action types</rule>
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>logAuditEvent</name>
+      <kind>function</kind>
+      <signature>async function logAuditEvent(input: AuditLogInput): Promise&lt;void&gt;</signature>
+      <path>src/lib/admin/audit-logger.ts:53</path>
+    </interface>
+    <interface>
+      <name>AuditAction</name>
+      <kind>type</kind>
+      <signature>type AuditAction = 'message_sent' | 'message_received' | 'guardrail_triggered' | 'conversation_created' | ... (extend with new actions)</signature>
+      <path>src/lib/admin/audit-logger.ts:18-35</path>
+    </interface>
+    <interface>
+      <name>AuditLogInput</name>
+      <kind>interface</kind>
+      <signature>interface AuditLogInput { agencyId: string; userId: string; conversationId?: string; action: AuditAction; metadata?: Record&lt;string, unknown&gt;; }</signature>
+      <path>src/lib/admin/audit-logger.ts:37-43</path>
+    </interface>
+    <interface>
+      <name>AuditLogTableEntry</name>
+      <kind>interface</kind>
+      <signature>Audit log entry for table display (id, loggedAt, userEmail, userName, projectName, conversationTitle, messageCount, guardrailEventCount)</signature>
+      <path>src/app/api/admin/audit-logs/route.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Vitest 4.0.14 for unit tests with happy-dom environment and Playwright 1.57.0 for E2E tests. Mock Supabase client for isolated unit tests. Use vi.mock() for module mocking. Tests should verify audit logging calls without hitting actual database. Component tests use @testing-library/react with user-event for interactions. Follow existing audit logger test patterns in __tests__/lib/admin/audit-log-immutability.test.ts.
+    </standards>
+    <locations>
+      <location>__tests__/lib/admin/audit-logger.test.ts - extend for new action types</location>
+      <location>__tests__/lib/admin/audit-log-immutability.test.ts - existing immutability tests</location>
+      <location>__tests__/components/admin/audit-log/audit-log-table.test.tsx - UI tests</location>
+      <location>__tests__/e2e/admin/audit-log.spec.ts - E2E integration tests</location>
+    </locations>
+    <ideas>
+      <idea acRef="AC-21.4.1">Test that document upload/delete/modify triggers correct audit action with document ID and filename in metadata</idea>
+      <idea acRef="AC-21.4.2">Test that comparison creation logs comparison_created with comparison ID and document IDs array</idea>
+      <idea acRef="AC-21.4.3">Test one-pager generation logs with document/comparison context in metadata</idea>
+      <idea acRef="AC-21.4.4">Test document chat start logs document_chat_started with documentId and conversationId</idea>
+      <idea acRef="AC-21.4.5">E2E test: verify audit log table displays all new action types with appropriate icons/labels</idea>
+      <idea acRef="AC-21.4.5">E2E test: verify filters work for new action types</idea>
+      <idea acRef="AC-21.4.6">Verify AuditAction type includes all new actions and logAuditEvent accepts them</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -38,6 +38,8 @@ import {
 import { classifyIntent } from '@/lib/chat/intent';
 import { createChatStream } from '@/lib/chat/openai-stream';
 import type { SourceCitation } from '@/lib/chat/types';
+// Story 21.4: Audit logging for document chat actions
+import { logDocumentChatStarted } from '@/lib/admin';
 
 /**
  * Request validation schema per tech spec
@@ -152,12 +154,22 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Get or create conversation
-    const conversation = await getOrCreateConversation(
+    const { conversation, isNewConversation } = await getOrCreateConversation(
       supabase,
       documentId,
       user.id,
       agencyId
     );
+
+    // Story 21.4 (AC-21.4.4): Log document chat session start for new conversations
+    if (isNewConversation) {
+      await logDocumentChatStarted(
+        agencyId,
+        user.id,
+        documentId,
+        conversation.id
+      );
+    }
 
     // Save user message
     await saveUserMessage(supabase, conversation.id, agencyId, message);

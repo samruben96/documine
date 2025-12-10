@@ -1,0 +1,238 @@
+<story-context id="21-5-extend-usage-tracking" v="1.0">
+  <metadata>
+    <epicId>21</epicId>
+    <storyId>5</storyId>
+    <title>Extend Usage Tracking</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-21/stories/21-5-extend-usage-tracking/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency admin</asA>
+    <iWant>usage analytics to show activity across ALL features</iWant>
+    <soThat>I can understand how my team uses the entire docuMINE platform, not just AI Buddy</soThat>
+    <tasks>
+      <task id="1">Update src/app/api/admin/analytics/route.ts to query across features</task>
+      <task id="2">Add document counts (from documents table)</task>
+      <task id="3">Add comparison counts (from comparisons table)</task>
+      <task id="4">Add one-pager counts (from agency_audit_logs where action='one_pager_generated')</task>
+      <task id="5">Add document chat counts (from conversations table)</task>
+      <task id="6">Update src/components/admin/analytics/usage-analytics-panel.tsx to show feature breakdown</task>
+      <task id="7">Update src/components/admin/analytics/usage-stat-card.tsx for multi-feature display</task>
+      <task id="8">Update trend chart to aggregate or break down by feature</task>
+      <task id="9">Update user breakdown table to show per-feature usage</task>
+      <task id="10">Update export functionality to include all features</task>
+      <task id="11">Test with various date ranges</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-21.5.1" title="Document Upload Usage Tracked">
+      <given>the usage analytics dashboard</given>
+      <when>an admin views usage</when>
+      <then>document upload counts are displayed AND they can see uploads per user</then>
+    </criterion>
+    <criterion id="AC-21.5.2" title="Comparison Usage Tracked">
+      <given>the usage analytics dashboard</given>
+      <when>an admin views usage</when>
+      <then>comparison creation counts are displayed AND they can see comparisons per user</then>
+    </criterion>
+    <criterion id="AC-21.5.3" title="One-Pager Usage Tracked">
+      <given>the usage analytics dashboard</given>
+      <when>an admin views usage</when>
+      <then>one-pager generation counts are displayed AND they can see one-pagers per user</then>
+    </criterion>
+    <criterion id="AC-21.5.4" title="Document Chat Usage Tracked">
+      <given>the usage analytics dashboard</given>
+      <when>an admin views usage</when>
+      <then>document chat session counts are displayed AND they can see sessions per user</then>
+    </criterion>
+    <criterion id="AC-21.5.5" title="Feature Breakdown in Dashboard">
+      <given>usage data exists for multiple features</given>
+      <when>an admin views the analytics dashboard</when>
+      <then>they see a breakdown by feature (AI Buddy, Documents, Comparison, etc.) AND trend charts show activity across all features</then>
+    </criterion>
+    <criterion id="AC-21.5.6" title="Export Includes All Features">
+      <given>usage data exists for multiple features</given>
+      <when>an admin exports usage data</when>
+      <then>the export includes all feature usage AND the CSV has clear feature categorization</then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/tech-spec/index.md</path>
+        <title>Epic 21 Tech Spec - Agency-Wide Admin Platform</title>
+        <section>Story 21.5: Extend Usage Tracking</section>
+        <snippet>Update usage analytics to track: Document uploads per user, Comparisons created, One-pagers generated, Document chat sessions, AI Buddy conversations (existing).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/data-architecture.md</path>
+        <title>Data Architecture</title>
+        <section>Core Tables</section>
+        <snippet>Documents, conversations, comparisons tables with agency_id scoping and RLS policies for multi-tenant data isolation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/api-contracts.md</path>
+        <title>API Contracts</title>
+        <section>Documents, Chat, Compare</section>
+        <snippet>API endpoints for document operations, chat conversations, and comparison creation - all scoped by agency.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/app/api/admin/analytics/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET /api/admin/analytics</symbol>
+        <lines>1-296</lines>
+        <reason>Primary API route to modify - currently queries only ai_buddy_usage_daily materialized view. Must extend to query documents, comparisons, conversations tables.</reason>
+      </file>
+      <file>
+        <path>src/app/api/admin/analytics/export/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET /api/admin/analytics/export</symbol>
+        <lines>1-166</lines>
+        <reason>Export endpoint - must add columns for all feature types in CSV output.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/usage-analytics-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageAnalyticsPanel</symbol>
+        <lines>1-259</lines>
+        <reason>Main analytics dashboard panel - needs feature breakdown section and updated stat cards.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/usage-stat-card.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageStatCard</symbol>
+        <reason>Stat card component - may need enhancement for multi-feature metrics or new cards.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/usage-trend-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageTrendChart</symbol>
+        <reason>Trend chart - needs to display multiple feature series or aggregate view.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/user-breakdown-table.tsx</path>
+        <kind>component</kind>
+        <symbol>UserBreakdownTable</symbol>
+        <reason>Per-user breakdown table - needs columns for each feature type usage.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/date-range-picker.tsx</path>
+        <kind>component</kind>
+        <symbol>AnalyticsDateRangePicker</symbol>
+        <reason>Date range picker - no changes needed, shared across all features.</reason>
+      </file>
+      <file>
+        <path>src/hooks/admin/use-usage-analytics.ts</path>
+        <kind>hook</kind>
+        <symbol>useUsageAnalytics</symbol>
+        <lines>1-229</lines>
+        <reason>Data fetching hook - may need type updates for new response shape with feature breakdown.</reason>
+      </file>
+      <file>
+        <path>src/types/ai-buddy.ts</path>
+        <kind>types</kind>
+        <symbol>UsageSummary, UserUsageStats, UsageTrend, UsageAnalyticsResponse</symbol>
+        <lines>630-695</lines>
+        <reason>Type definitions for analytics - need extension for feature breakdown fields.</reason>
+      </file>
+      <file>
+        <path>src/lib/admin/audit-logger.ts</path>
+        <kind>service</kind>
+        <symbol>logAuditEvent</symbol>
+        <reason>Audit logger - one-pager usage can be queried from agency_audit_logs where action='one_pager_generated'.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>recharts</package>
+        <version>^3.5.1</version>
+        <usage>Line charts for usage trends</usage>
+      </node>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <usage>Date manipulation for ranges and formatting</usage>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database queries for analytics aggregation</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons for feature type indicators</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance">Analytics API must maintain &lt;500ms response time per existing requirement. Consider adding feature-specific materialized views or efficient aggregate queries.</constraint>
+    <constraint type="architecture">Use service client for cross-table queries to bypass RLS when needed for aggregation. User-scoped client for permission checks.</constraint>
+    <constraint type="data-source">Query data from multiple tables: documents (uploads), comparisons, conversations (doc chat), agency_audit_logs (one-pagers), ai_buddy_* (existing).</constraint>
+    <constraint type="backward-compatible">Existing UsageAnalyticsResponse interface must remain backward compatible - add new fields rather than removing existing ones.</constraint>
+    <constraint type="testing">All moved components have existing tests in __tests__/components/admin/analytics/ - extend for new feature types.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>UsageSummary (extended)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface UsageSummary { totalConversations: number; activeUsers: number; documentsUploaded: number; messagesSent: number; comparisonsCreated?: number; onePagersGenerated?: number; documentChatSessions?: number; comparisonPeriod?: {...} }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>UserUsageStats (extended)</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface UserUsageStats { userId: string; userName: string | null; userEmail: string | null; conversations: number; messages: number; documents: number; comparisons?: number; onePagers?: number; documentChats?: number; lastActiveAt: string | null }</signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/admin/analytics</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/admin/analytics?period=30days|week|month|custom&amp;startDate=ISO&amp;endDate=ISO → UsageAnalyticsResponse</signature>
+      <path>src/app/api/admin/analytics/route.ts</path>
+    </interface>
+    <interface>
+      <name>GET /api/admin/analytics/export</name>
+      <kind>REST endpoint</kind>
+      <signature>GET /api/admin/analytics/export?period=...&amp;startDate=...&amp;endDate=... → CSV file with feature columns</signature>
+      <path>src/app/api/admin/analytics/export/route.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest 4.0.14 with happy-dom for unit tests. Playwright 1.57.0 for E2E.
+      Test files mirror source structure: __tests__/components/admin/analytics/*.test.tsx.
+      Use @testing-library/react for component tests with user-event for interactions.
+      Mock fetch calls to /api/admin/analytics with extended response shape.
+      Run with: npm run test:admin
+    </standards>
+    <locations>
+      <location>__tests__/components/admin/analytics/</location>
+      <location>__tests__/hooks/admin/use-usage-analytics.test.ts</location>
+      <location>__tests__/e2e/admin/usage-analytics.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-21.5.1">Test that document upload counts appear in summary card and user breakdown table</idea>
+      <idea acId="AC-21.5.2">Test that comparison counts display correctly with trend indicators</idea>
+      <idea acId="AC-21.5.3">Test one-pager counts derived from audit logs appear in dashboard</idea>
+      <idea acId="AC-21.5.4">Test document chat session counts distinct from AI Buddy conversations</idea>
+      <idea acId="AC-21.5.5">Test feature breakdown section renders all feature types with correct data</idea>
+      <idea acId="AC-21.5.5">Test trend chart can show multi-feature lines or aggregate view</idea>
+      <idea acId="AC-21.5.6">Test CSV export includes new columns: comparisons, one_pagers, document_chats</idea>
+      <idea acId="AC-21.5.6">Test export file has clear headers for each feature category</idea>
+      <idea general="true">Test empty state when no data for some features</idea>
+      <idea general="true">Test date range filtering applies to all feature queries</idea>
+      <idea general="true">Test API response time stays under 500ms with multiple table queries</idea>
+    </ideas>
+  </tests>
+</story-context>

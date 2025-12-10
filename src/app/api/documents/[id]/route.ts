@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { log } from '@/lib/utils/logger';
 import { z } from 'zod';
 import type { DocumentType } from '@/types';
+// Story 21.4: Audit logging for document modifications
+import { logDocumentModified } from '@/lib/admin';
 
 /**
  * Document API Endpoint (by ID)
@@ -144,11 +146,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const updatedFields = Object.keys(updateData).filter(k => k !== 'updated_at');
+
     log.info('Document updated', {
       documentId,
-      updatedFields: Object.keys(updateData).filter(k => k !== 'updated_at'),
+      updatedFields,
       userId: user.id,
     });
+
+    // Story 21.4 (AC-21.4.1): Log document modification to audit trail
+    // Get filename for audit log metadata
+    const { data: docDetails } = await supabase
+      .from('documents')
+      .select('filename')
+      .eq('id', documentId)
+      .single();
+
+    await logDocumentModified(
+      agencyId,
+      user.id,
+      documentId,
+      docDetails?.filename ?? 'unknown',
+      updatedFields
+    );
 
     return NextResponse.json({
       data: {

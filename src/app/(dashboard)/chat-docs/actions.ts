@@ -12,6 +12,8 @@ import { checkUploadRateLimit, getRateLimitInfo } from '@/lib/documents/rate-lim
 import { validateUploadFile } from '@/lib/validations/documents';
 import { revalidatePath } from 'next/cache';
 import type { Tables } from '@/types/database.types';
+// Story 21.4: Audit logging for document actions
+import { logDocumentUploaded, logDocumentDeleted, logDocumentModified } from '@/lib/admin';
 
 export type Document = Tables<'documents'>;
 
@@ -121,7 +123,17 @@ export async function uploadDocument(formData: FormData): Promise<{
     // 8. Create processing job to trigger Edge Function
     await createProcessingJob(documentId);
 
-    // 9. Revalidate documents page
+    // 9. Story 21.4 (AC-21.4.1): Log document upload to audit trail
+    await logDocumentUploaded(
+      agencyId,
+      user.id,
+      documentId,
+      file.name,
+      file.size,
+      file.type
+    );
+
+    // 10. Revalidate documents page
     revalidatePath('/documents');
 
     return { success: true, document };
@@ -152,13 +164,37 @@ export async function deleteDocumentAction(documentId: string): Promise<{
       return { success: false, error: 'Not authenticated' };
     }
 
-    // 2. Delete document (returns storage path)
+    // 2. Get user's agency_id and document details for audit logging
+    const { data: userData } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    // Get document details before deletion for audit log
+    const { data: document } = await supabase
+      .from('documents')
+      .select('filename')
+      .eq('id', documentId)
+      .single();
+
+    // 3. Delete document (returns storage path)
     const storagePath = await deleteDocumentService(supabase, documentId);
 
-    // 3. Delete from storage (non-blocking, errors logged but not thrown)
+    // 4. Delete from storage (non-blocking, errors logged but not thrown)
     await deleteDocumentFromStorage(supabase, storagePath);
 
-    // 4. Revalidate documents page
+    // 5. Story 21.4 (AC-21.4.1): Log document deletion to audit trail
+    if (userData?.agency_id) {
+      await logDocumentDeleted(
+        userData.agency_id,
+        user.id,
+        documentId,
+        document?.filename ?? 'unknown'
+      );
+    }
+
+    // 6. Revalidate documents page
     revalidatePath('/documents');
 
     return { success: true };
@@ -418,6 +454,14 @@ export async function createDocumentFromUpload(input: {
     // Create processing job to trigger Edge Function
     await createProcessingJob(input.documentId);
 
+    // Story 21.4 (AC-21.4.1): Log document upload to audit trail
+    await logDocumentUploaded(
+      userData.agency_id,
+      user.id,
+      input.documentId,
+      input.filename
+    );
+
     // Revalidate documents page
     revalidatePath('/documents');
 
@@ -614,6 +658,19 @@ export async function renameDocument(
       return { success: false, error: 'Not authenticated' };
     }
 
+    // Get user's agency_id and document details for audit logging
+    const { data: userData } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .single();
+
+    const { data: document } = await supabase
+      .from('documents')
+      .select('filename')
+      .eq('id', documentId)
+      .single();
+
     // Update display_name (RLS ensures agency isolation)
     const { error } = await supabase
       .from('documents')
@@ -623,6 +680,17 @@ export async function renameDocument(
     if (error) {
       console.error('Rename document failed:', error);
       return { success: false, error: 'Failed to rename document' };
+    }
+
+    // Story 21.4 (AC-21.4.1): Log document modification to audit trail
+    if (userData?.agency_id) {
+      await logDocumentModified(
+        userData.agency_id,
+        user.id,
+        documentId,
+        document?.filename ?? 'unknown',
+        ['display_name']
+      );
     }
 
     // Revalidate documents page

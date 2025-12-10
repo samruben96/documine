@@ -24,14 +24,14 @@ const CHARS_PER_TOKEN = 4;
  * @param documentId - The document ID
  * @param userId - The user ID
  * @param agencyId - The agency ID
- * @returns The conversation record
+ * @returns Object with conversation record and whether it was newly created
  */
 export async function getOrCreateConversation(
   supabase: SupabaseClient<Database>,
   documentId: string,
   userId: string,
   agencyId: string
-): Promise<Conversation> {
+): Promise<{ conversation: Conversation; isNewConversation: boolean }> {
   // Try to find existing conversation (most recent by updated_at)
   const { data: existing, error: findError } = await supabase
     .from('conversations')
@@ -44,12 +44,15 @@ export async function getOrCreateConversation(
 
   if (existing && !findError) {
     return {
-      id: existing.id,
-      agencyId: existing.agency_id,
-      documentId: existing.document_id,
-      userId: existing.user_id,
-      createdAt: new Date(existing.created_at),
-      updatedAt: new Date(existing.updated_at),
+      conversation: {
+        id: existing.id,
+        agencyId: existing.agency_id,
+        documentId: existing.document_id,
+        userId: existing.user_id,
+        createdAt: new Date(existing.created_at),
+        updatedAt: new Date(existing.updated_at),
+      },
+      isNewConversation: false,
     };
   }
 
@@ -86,12 +89,15 @@ export async function getOrCreateConversation(
             documentId,
           });
           return {
-            id: raceExisting.id,
-            agencyId: raceExisting.agency_id,
-            documentId: raceExisting.document_id,
-            userId: raceExisting.user_id,
-            createdAt: new Date(raceExisting.created_at),
-            updatedAt: new Date(raceExisting.updated_at),
+            conversation: {
+              id: raceExisting.id,
+              agencyId: raceExisting.agency_id,
+              documentId: raceExisting.document_id,
+              userId: raceExisting.user_id,
+              createdAt: new Date(raceExisting.created_at),
+              updatedAt: new Date(raceExisting.updated_at),
+            },
+            isNewConversation: false, // Race condition - someone else created it
           };
         }
       }
@@ -105,12 +111,15 @@ export async function getOrCreateConversation(
     log.info('Conversation created', { conversationId: created.id, documentId });
 
     return {
-      id: created.id,
-      agencyId: created.agency_id,
-      documentId: created.document_id,
-      userId: created.user_id,
-      createdAt: new Date(created.created_at),
-      updatedAt: new Date(created.updated_at),
+      conversation: {
+        id: created.id,
+        agencyId: created.agency_id,
+        documentId: created.document_id,
+        userId: created.user_id,
+        createdAt: new Date(created.created_at),
+        updatedAt: new Date(created.updated_at),
+      },
+      isNewConversation: true,
     };
   } catch (error) {
     log.error('Failed to create conversation', error instanceof Error ? error : new Error(String(error)), {

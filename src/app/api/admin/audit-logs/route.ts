@@ -71,6 +71,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const endDateStr = searchParams.get('endDate');
   const search = searchParams.get('search') || undefined;
   const hasGuardrailEventsStr = searchParams.get('hasGuardrailEvents');
+  const actionCategory = searchParams.get('actionCategory') || undefined; // Story 21.4
   const pageStr = searchParams.get('page');
   const limitStr = searchParams.get('limit');
 
@@ -143,6 +144,42 @@ export async function GET(request: NextRequest): Promise<Response> {
     // Filter by guardrail events if requested
     if (hasGuardrailEvents) {
       query = query.eq('action', 'guardrail_triggered');
+    }
+
+    // Story 21.4 (AC-21.4.5): Filter by action category
+    if (actionCategory && actionCategory !== 'all') {
+      const categoryActionMap: Record<string, string[]> = {
+        document: ['document_uploaded', 'document_deleted', 'document_modified'],
+        comparison: ['comparison_created', 'comparison_exported'],
+        'one-pager': ['one_pager_generated', 'one_pager_exported'],
+        chat: ['document_chat_started'],
+        'ai-buddy': [
+          'message_sent',
+          'message_received',
+          'guardrail_triggered',
+          'conversation_created',
+          'conversation_deleted',
+          'project_created',
+          'project_archived',
+          'document_attached',
+          'document_removed',
+          'preferences_updated',
+          'guardrails_configured',
+        ],
+        admin: [
+          'user_invited',
+          'user_removed',
+          'permission_granted',
+          'permission_revoked',
+          'ownership_transferred',
+          'ownership_transfer_failed',
+        ],
+      };
+
+      const actionsForCategory = categoryActionMap[actionCategory];
+      if (actionsForCategory && actionsForCategory.length > 0) {
+        query = query.in('action', actionsForCategory);
+      }
     }
 
     // Apply pagination
