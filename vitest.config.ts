@@ -7,6 +7,18 @@ export default defineConfig({
     environment: 'node',
     include: ['__tests__/**/*.test.ts', '__tests__/**/*.test.tsx'],
     setupFiles: ['./__tests__/setup.ts'],
+    // Resource throttling for machine usability (Story 21.2.5)
+    // Prevents machine freeze during test runs by limiting parallelism
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        minThreads: 1,
+        maxThreads: 4,
+      },
+    },
+    maxConcurrency: 5,
+    // Timeout increased slightly to accommodate throttled execution
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

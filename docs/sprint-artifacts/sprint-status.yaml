@@ -226,5 +226,5 @@ development_status:
   # Story 21.2.5: Test Suite Consolidation (Team Discussion)
   # 2,796 tests across 175 files - brutal on local dev
   # Needs team input on consolidation strategy
-  21-2.5-test-consolidation: backlog
+  21-2.5-test-consolidation: done
   epic-21-retrospective: optional

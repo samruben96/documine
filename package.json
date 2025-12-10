@@ -9,7 +9,13 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:changed": "vitest run --changed",
+    "test:components": "vitest run __tests__/components/",
+    "test:hooks": "vitest run __tests__/hooks/",
+    "test:lib": "vitest run __tests__/lib/",
+    "test:ai-buddy": "vitest run --dir __tests__/components/ai-buddy --dir __tests__/hooks/ai-buddy --dir __tests__/lib/ai-buddy",
+    "test:admin": "vitest run --dir __tests__/components/admin --dir __tests__/hooks/admin"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

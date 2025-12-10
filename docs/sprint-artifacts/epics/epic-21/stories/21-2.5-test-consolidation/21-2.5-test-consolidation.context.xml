@@ -1,0 +1,253 @@
+<story-context id="21-2.5-test-consolidation" v="1.0">
+  <metadata>
+    <epicId>21</epicId>
+    <storyId>2.5</storyId>
+    <title>Test Suite Consolidation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-21/stories/21-2.5-test-consolidation/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the test suite consolidated and optimized</iWant>
+    <soThat>my machine remains usable while tests run and I can easily run relevant subsets</soThat>
+    <tasks>
+      <phase name="Phase 1: Audit">
+        <task id="1.1">Coverage overlap analysis - identify tests with >80% overlapping coverage</task>
+        <task id="1.2">Resource profiling - identify top 10 slowest/most resource-intensive tests</task>
+        <task id="1.3">Test categorization - break down 175 files by type (unit, integration, component, hook, API, E2E)</task>
+        <task id="1.4">Produce recommendations document with consolidation targets and effort estimates</task>
+      </phase>
+      <phase name="Phase 2: Consolidation">
+        <task id="2.1">Configure Vitest resource throttling (maxWorkers, maxConcurrency, pool)</task>
+        <task id="2.2">Enable subset execution (--changed flag, tag patterns)</task>
+        <task id="2.3">Consolidate redundant tests using test.each() patterns</task>
+        <task id="2.4">Optimize CI pipeline (sharding, caching)</task>
+      </phase>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-1">
+      <title>Coverage Overlap Analysis</title>
+      <given>the current test suite</given>
+      <when>coverage analysis is complete</when>
+      <then>tests with >80% overlapping coverage are identified and documented in audit report</then>
+    </criterion>
+    <criterion id="AC-2">
+      <title>Resource-Heavy Tests Identified</title>
+      <given>the test profiling is complete</given>
+      <when>the audit report is produced</when>
+      <then>top 10 slowest/most resource-intensive tests documented with root causes</then>
+    </criterion>
+    <criterion id="AC-3">
+      <title>Test Categorization Complete</title>
+      <given>all 175 test files</given>
+      <when>categorization is complete</when>
+      <then>test counts broken down by type with resource usage per category</then>
+    </criterion>
+    <criterion id="AC-4">
+      <title>Recommendations Document Produced</title>
+      <given>the audit findings</given>
+      <when>analysis is complete</when>
+      <then>recommendations document with specific tests to consolidate, Phase 2 targets, quick wins, and effort estimates</then>
+    </criterion>
+    <criterion id="AC-5">
+      <title>Machine Remains Usable During Test Run</title>
+      <given>a developer runs npm test</given>
+      <when>the test suite executes</when>
+      <then>CPU &lt;80% sustained, IDE responsive, memory &lt;4GB</then>
+    </criterion>
+    <criterion id="AC-6">
+      <title>Subset Execution Enabled</title>
+      <given>a developer working on a specific feature</given>
+      <when>they want to run relevant tests</when>
+      <then>--changed flag and tag patterns available with documentation</then>
+    </criterion>
+    <criterion id="AC-7">
+      <title>Redundant Tests Consolidated</title>
+      <given>the audit identified redundant tests</given>
+      <when>consolidation is complete</when>
+      <then>overlapping tests merged, test.each() used, test count reduced (target TBD from audit)</then>
+    </criterion>
+    <criterion id="AC-8">
+      <title>CI Pipeline Optimized</title>
+      <given>the CI pipeline</given>
+      <when>tests run on PR</when>
+      <then>test sharding configured (if beneficial), caching optimized, CI time documented</then>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-21/tech-spec/index.md</path>
+        <title>Epic 21 Technical Specification</title>
+        <section>Testing Approach (lines 570-579)</section>
+        <snippet>Test framework: Vitest 4.0.14 (unit), Playwright 1.57.0 (E2E). All moved components must maintain existing test coverage. Test file paths update from ai-buddy/admin to admin locations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/development-environment.md</path>
+        <title>Development Environment</title>
+        <section>Development Workflow</section>
+        <snippet>Standard test command: npm test. Coverage command: npm run test:coverage.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>vitest.config.ts</path>
+        <kind>config</kind>
+        <symbol>defineConfig</symbol>
+        <lines>1-61</lines>
+        <reason>Main Vitest configuration - needs modification for resource throttling (maxWorkers, maxConcurrency, pool options)</reason>
+      </file>
+      <file>
+        <path>__tests__/setup.ts</path>
+        <kind>test-setup</kind>
+        <symbol>setup</symbol>
+        <lines>1-12</lines>
+        <reason>Test setup file with testing-library matchers and cleanup - foundation for any shared test utilities</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ai-buddy/</path>
+        <kind>test-directory</kind>
+        <symbol>ai-buddy-component-tests</symbol>
+        <lines>n/a</lines>
+        <reason>19 test files - prime consolidation candidate per team discussion. Tests added incrementally during Epics 14-20.</reason>
+      </file>
+      <file>
+        <path>__tests__/hooks/ai-buddy/</path>
+        <kind>test-directory</kind>
+        <symbol>ai-buddy-hook-tests</symbol>
+        <lines>n/a</lines>
+        <reason>15 test files - may have overlapping setup patterns suitable for test.each() consolidation</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ai-buddy/admin/</path>
+        <kind>test-directory</kind>
+        <symbol>admin-component-tests</symbol>
+        <lines>n/a</lines>
+        <reason>11+ test files across analytics, audit-log, owner sub-directories - recently migrated, may duplicate coverage</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/</path>
+        <kind>test-directory</kind>
+        <symbol>e2e-tests</symbol>
+        <lines>n/a</lines>
+        <reason>35 Playwright E2E specs - separate test runner, may overlap with component test coverage</reason>
+      </file>
+      <file>
+        <path>package.json</path>
+        <kind>manifest</kind>
+        <symbol>scripts</symbol>
+        <lines>6-12</lines>
+        <reason>Test scripts: test, test:watch, test:coverage - may need new scripts for subset execution</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="vitest" version="^4.0.14" purpose="unit test framework" />
+        <package name="@playwright/test" version="^1.57.0" purpose="e2e test framework" />
+        <package name="@testing-library/react" version="^16.3.0" purpose="react component testing" />
+        <package name="@testing-library/jest-dom" version="^6.9.1" purpose="jest-dom matchers" />
+        <package name="@testing-library/user-event" version="^14.6.1" purpose="user event simulation" />
+        <package name="@vitest/coverage-v8" version="^4.0.14" purpose="code coverage" />
+        <package name="happy-dom" version="^20.0.10" purpose="dom environment for component tests" />
+        <package name="jsdom" version="^27.2.0" purpose="alternative dom environment" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use Vitest configuration options for resource management (maxWorkers, maxConcurrency, pool: 'threads')</constraint>
+    <constraint type="pattern">Component tests use happy-dom environment (see environmentMatchGlobs in vitest.config.ts)</constraint>
+    <constraint type="pattern">Test files must follow naming: *.test.ts or *.test.tsx</constraint>
+    <constraint type="pattern">Test location: __tests__/ directory mirroring src/ structure</constraint>
+    <constraint type="standard">Coverage thresholds per-file for tested modules (see vitest.config.ts thresholds)</constraint>
+    <constraint type="scope">Do NOT change testing framework - staying with Vitest</constraint>
+    <constraint type="scope">Do NOT rewrite tests from scratch - consolidate existing</constraint>
+    <constraint type="scope">Do NOT add new test coverage - this is optimization only</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Vitest CLI</name>
+      <kind>CLI command</kind>
+      <signature>npm test [-- options]</signature>
+      <path>package.json:scripts.test</path>
+    </interface>
+    <interface>
+      <name>Vitest Coverage</name>
+      <kind>CLI command</kind>
+      <signature>npm run test:coverage</signature>
+      <path>package.json:scripts.test:coverage</path>
+    </interface>
+    <interface>
+      <name>Playwright E2E</name>
+      <kind>CLI command</kind>
+      <signature>npx playwright test [options]</signature>
+      <path>playwright.config.ts</path>
+    </interface>
+    <interface>
+      <name>Vitest Config</name>
+      <kind>configuration</kind>
+      <signature>defineConfig({ test: { maxWorkers, maxConcurrency, pool } })</signature>
+      <path>vitest.config.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest 4.0.14 for unit/component/hook tests with happy-dom environment for React components.
+      Playwright 1.57.0 for E2E tests.
+      Testing Library for component assertions with jest-dom matchers.
+      Coverage via v8 provider with per-file thresholds on critical modules (80% lines/functions/branches/statements).
+      Test cleanup after each test via testing-library cleanup().
+    </standards>
+    <locations>
+      <location pattern="__tests__/**/*.test.ts" type="unit/lib tests" />
+      <location pattern="__tests__/**/*.test.tsx" type="component tests" />
+      <location pattern="__tests__/e2e/**/*.spec.ts" type="e2e tests" />
+      <location pattern="__tests__/hooks/**/*.test.ts" type="hook tests" />
+      <location pattern="__tests__/components/**/*.test.tsx" type="component tests" />
+    </locations>
+    <ideas>
+      <idea acRef="AC-1">Run coverage analysis with vitest --coverage --reporter=json, compare file coverage to identify overlaps</idea>
+      <idea acRef="AC-2">Use vitest --reporter=verbose to capture test durations, identify top 10 slowest</idea>
+      <idea acRef="AC-3">Script to categorize tests by directory and file type, count by category</idea>
+      <idea acRef="AC-4">Generate markdown audit report with findings, recommendations, effort estimates</idea>
+      <idea acRef="AC-5">Add maxWorkers: '50%' and maxConcurrency: 5 to vitest.config.ts</idea>
+      <idea acRef="AC-6">Add test:changed script using vitest --changed flag, document in README</idea>
+      <idea acRef="AC-7">Identify hook tests with similar setup, consolidate with test.each() pattern</idea>
+      <idea acRef="AC-8">Configure GitHub Actions test sharding if beneficial based on audit</idea>
+    </ideas>
+  </tests>
+
+  <baseline>
+    <metric name="total_test_files">175</metric>
+    <metric name="total_tests">2,796</metric>
+    <metric name="ai_buddy_test_files">80</metric>
+    <metric name="admin_test_files">25</metric>
+    <metric name="hook_test_files">20</metric>
+    <metric name="e2e_spec_files">35</metric>
+    <metric name="full_run_time">~20 seconds</metric>
+    <metric name="current_issue">Machine freezes during test run</metric>
+  </baseline>
+
+  <testDistribution>
+    <category name="components/ai-buddy" files="19" consolidationPriority="HIGH" />
+    <category name="hooks/ai-buddy" files="15" consolidationPriority="HIGH" />
+    <category name="components/documents" files="13" consolidationPriority="MEDIUM" />
+    <category name="components/compare" files="12" consolidationPriority="MEDIUM" />
+    <category name="components/ai-buddy/admin" files="11" consolidationPriority="HIGH" />
+    <category name="lib/compare" files="8" consolidationPriority="LOW" />
+    <category name="lib/ai-buddy" files="8" consolidationPriority="MEDIUM" />
+    <category name="lib/chat" files="7" consolidationPriority="LOW" />
+    <category name="components/chat" files="6" consolidationPriority="LOW" />
+    <category name="e2e" files="35" consolidationPriority="MEDIUM" />
+  </testDistribution>
+</story-context>
