@@ -1,0 +1,183 @@
+<story-context id="20-4-audit-log-interface" v="1.0">
+  <metadata>
+    <epicId>20</epicId>
+    <storyId>4</storyId>
+    <title>Audit Log Interface</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-20/stories/20-4-audit-log-interface/story-20.4-audit-log-interface.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency administrator</asA>
+    <iWant>view, filter, and export the complete audit log of AI conversations</iWant>
+    <soThat>I can maintain compliance records, review agent interactions, and provide documentation for E&O protection</soThat>
+    <tasks>
+      <task id="1" ac="20.4.1,20.4.2,20.4.3">API Route - Get Audit Logs: Create filterable, paginated audit log endpoint</task>
+      <task id="2" ac="20.4.4,20.4.5,20.4.6">API Route - Get Transcript: Return full conversation with messages and guardrail events</task>
+      <task id="3" ac="20.4.7,20.4.8,20.4.9">API Route - Export: Generate PDF/CSV exports with compliance headers</task>
+      <task id="4" ac="20.4.1,20.4.3">Audit Log Table Component: Filterable table with pagination</task>
+      <task id="5" ac="20.4.2">Audit Filters Component: User, date, keyword, guardrail checkbox filters</task>
+      <task id="6" ac="20.4.4,20.4.5,20.4.6,20.4.10">Transcript Modal Component: Read-only conversation viewer</task>
+      <task id="7" ac="20.4.7">Export Button Component: PDF/CSV format selection with transcript option</task>
+      <task id="8" ac="20.4.8">PDF Export Template: Agency header, compliance statement, entries, transcripts</task>
+      <task id="9" ac="all">Audit Log Panel: Compose filters, table, export button</task>
+      <task id="10" ac="all">Audit Log Hook: State management for fetching and exporting</task>
+      <task id="11" ac="all">Admin Panel Integration: Add tab, permission gate</task>
+      <task id="12" ac="all">Unit Tests: Components and hook tests</task>
+      <task id="13" ac="all">E2E Tests: Admin workflow tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="20.4.1">Audit log table shows: date/time, user, project, conversation title, message count, guardrail events badge</criterion>
+    <criterion id="20.4.2">Filter by: user (dropdown), date range (pickers), keyword search (text), has guardrail events (checkbox)</criterion>
+    <criterion id="20.4.3">Results paginated at 25 per page with total count displayed</criterion>
+    <criterion id="20.4.4">Clicking entry opens transcript modal with full read-only conversation</criterion>
+    <criterion id="20.4.5">Transcript shows: role, content, timestamps, source citations, confidence badges</criterion>
+    <criterion id="20.4.6">Guardrail events highlighted with type and trigger info in transcript</criterion>
+    <criterion id="20.4.7">Export button offers PDF or CSV format selection</criterion>
+    <criterion id="20.4.8">PDF includes: agency header, export date, compliance statement, filtered entries, optional transcripts</criterion>
+    <criterion id="20.4.9">CSV includes: timestamp, user_email, user_name, action, conversation_id, metadata</criterion>
+    <criterion id="20.4.10">No edit or delete options visible - read-only enforcement</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-20.md" title="Epic 20 Tech Spec" section="Story 20.4: Audit Log Interface" snippet="Acceptance criteria AC-20.4.1 through AC-20.4.10 with API contracts, export flow, and performance targets" />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Audit Logging" snippet="Append-only audit logs with 7-year retention, RLS policies for admin-only access, immutability enforcement via triggers" />
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="API Response Format" snippet="Standard response format {data: T, error: null} for success, error codes AIB_xxx for failures" />
+      <doc path="docs/sprint-artifacts/epics/epic-20/stories/20-3-usage-analytics-dashboard/story-20.3-usage-analytics-dashboard.md" title="Story 20.3" section="Completion Notes List" snippet="Patterns for date utilities, permission checking, panel composition, export routes" />
+    </docs>
+    <code>
+      <file path="src/app/api/ai-buddy/admin/audit-logs/route.ts" kind="api-route" symbol="GET" reason="STUB - needs implementation for listing audit logs with filters and pagination" />
+      <file path="src/lib/ai-buddy/audit-logger.ts" kind="service" symbol="queryAuditLogs, exportAuditLogs" lines="145-263" reason="Existing query and export functions to extend - already implements filter logic" />
+      <file path="src/hooks/ai-buddy/use-audit-logs.ts" kind="hook" symbol="useAuditLogs" reason="STUB - needs full implementation with state, fetching, pagination, export" />
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="AuditLogEntry" lines="406-418" reason="Existing type - may need extension for transcript and guardrail event data" />
+      <file path="src/lib/ai-buddy/date-utils.ts" kind="utility" symbol="getDateRange, toISODateString" reason="REUSE - shared date range calculation for filter endpoints" />
+      <file path="src/components/ai-buddy/admin/analytics/date-range-picker.tsx" kind="component" symbol="AnalyticsDateRangePicker" reason="REUSE - date range picker component for audit log filters" />
+      <file path="src/components/ai-buddy/admin/guardrail-enforcement-log.tsx" kind="component" symbol="GuardrailEnforcementLog" reason="PATTERN - table with filters, row click, detail modal pattern to follow" />
+      <file path="src/components/ai-buddy/admin/guardrail-log-detail.tsx" kind="component" symbol="GuardrailLogDetail" reason="PATTERN - modal dialog pattern for showing details" />
+      <file path="src/app/api/ai-buddy/admin/analytics/export/route.ts" kind="api-route" symbol="GET" reason="PATTERN - CSV export route pattern to follow" />
+      <file path="src/app/api/ai-buddy/admin/users/route.ts" kind="api-route" symbol="GET" reason="PATTERN - paginated list with permission check pattern" />
+      <file path="src/components/ai-buddy/admin/user-table.tsx" kind="component" symbol="UserTable" reason="PATTERN - sortable table with pagination pattern" />
+      <file path="src/lib/ai-buddy/errors.ts" kind="utility" symbol="AIB_ERROR_CODES" reason="Error code constants for API responses" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="@react-pdf/renderer" version="^4.3.1" reason="PDF export generation - ALREADY INSTALLED" />
+        <package name="date-fns" version="^4.1.0" reason="Date formatting and calculations - ALREADY INSTALLED" />
+        <package name="recharts" version="^3.5.1" reason="Charts if needed for visual elements - ALREADY INSTALLED" />
+        <package name="lucide-react" version="latest" reason="Icons for UI - ALREADY INSTALLED" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Follow Verify-Then-Service RLS pattern for any mutations (though audit logs are read-only)</constraint>
+    <constraint type="architecture">Audit logs are immutable - database trigger prevents UPDATE/DELETE</constraint>
+    <constraint type="security">Verify view_audit_logs permission on all audit endpoints</constraint>
+    <constraint type="security">PDF exports must include agency header and compliance watermark</constraint>
+    <constraint type="performance">Audit log queries must complete in under 2 seconds</constraint>
+    <constraint type="performance">PDF export must complete in under 30 seconds</constraint>
+    <constraint type="performance">CSV export must complete in under 10 seconds</constraint>
+    <constraint type="ui">No edit or delete UI elements visible on audit content</constraint>
+    <constraint type="naming">Components: kebab-case files, PascalCase exports</constraint>
+    <constraint type="naming">API routes: /api/ai-buddy/admin/audit-logs/*</constraint>
+    <constraint type="testing">Unit tests required for all components and hooks</constraint>
+    <constraint type="testing">E2E tests for critical admin workflows</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/ai-buddy/admin/audit-logs" kind="REST">
+      <signature>
+        Query: userId?, startDate?, endDate?, search?, hasGuardrailEvents?, page?, limit?
+        Response: { data: { entries: AuditLogEntry[], total: number, page: number }, error: null }
+      </signature>
+      <path>src/app/api/ai-buddy/admin/audit-logs/route.ts</path>
+    </interface>
+    <interface name="GET /api/ai-buddy/admin/audit-logs/[conversationId]/transcript" kind="REST">
+      <signature>
+        Params: conversationId
+        Response: { data: { conversation: {...}, messages: Message[], guardrailEvents: GuardrailEvent[] }, error: null }
+      </signature>
+      <path>src/app/api/ai-buddy/admin/audit-logs/[conversationId]/transcript/route.ts</path>
+    </interface>
+    <interface name="POST /api/ai-buddy/admin/audit-logs/export" kind="REST">
+      <signature>
+        Body: { format: 'pdf' | 'csv', filters: AuditLogFilters, includeTranscripts?: boolean }
+        Response: { data: { downloadUrl: string, expiresAt: string }, error: null }
+      </signature>
+      <path>src/app/api/ai-buddy/admin/audit-logs/export/route.ts</path>
+    </interface>
+    <interface name="useAuditLogs" kind="hook">
+      <signature>
+        (options?: UseAuditLogsOptions) => {
+          logs: AuditLogEntry[];
+          isLoading: boolean;
+          error: Error | null;
+          totalCount: number;
+          hasMore: boolean;
+          filters: AuditLogFilters;
+          setFilters: (filters: AuditLogFilters) => void;
+          fetchTranscript: (conversationId: string) => Promise&lt;TranscriptData&gt;;
+          exportLogs: (format: 'pdf' | 'csv', includeTranscripts?: boolean) => Promise&lt;string&gt;;
+          loadMore: () => Promise&lt;void&gt;;
+        }
+      </signature>
+      <path>src/hooks/ai-buddy/use-audit-logs.ts</path>
+    </interface>
+    <interface name="AuditLogEntry (extended)" kind="typescript">
+      <signature>
+        interface AuditLogEntry {
+          id: string;
+          agencyId: string;
+          userId: string;
+          userName?: string;
+          userEmail?: string;
+          conversationId: string | null;
+          conversationTitle?: string;
+          projectName?: string;
+          action: string;
+          metadata: Record&lt;string, unknown&gt;;
+          loggedAt: string;
+          messageCount?: number;
+          guardrailEventCount?: number;
+        }
+      </signature>
+      <path>src/types/ai-buddy.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library for unit tests. Playwright for E2E tests.
+      Mock Supabase client for API route tests.
+      Test permission checks explicitly.
+      Follow existing patterns from Story 20.3 test files.
+      Target 80% code coverage for new components and hooks.
+    </standards>
+    <locations>
+      __tests__/components/ai-buddy/admin/audit-log/*.test.tsx
+      __tests__/hooks/ai-buddy/use-audit-logs.test.ts
+      __tests__/e2e/ai-buddy/admin/audit-logs.spec.ts
+    </locations>
+    <ideas>
+      <idea ac="20.4.1">Test table renders with all columns (date, user, project, title, count, badge)</idea>
+      <idea ac="20.4.2">Test each filter updates query params and refetches</idea>
+      <idea ac="20.4.2">Test keyword search debounces (300ms)</idea>
+      <idea ac="20.4.3">Test pagination controls show correct total and page numbers</idea>
+      <idea ac="20.4.4">Test row click opens transcript modal</idea>
+      <idea ac="20.4.5">Test transcript displays messages with role badges, citations, confidence</idea>
+      <idea ac="20.4.6">Test guardrail events highlighted in transcript</idea>
+      <idea ac="20.4.7">Test export dropdown shows PDF and CSV options</idea>
+      <idea ac="20.4.8">Test PDF export includes required sections</idea>
+      <idea ac="20.4.9">Test CSV export has correct columns</idea>
+      <idea ac="20.4.10">Test no edit/delete buttons rendered</idea>
+      <idea ac="permission">Test non-admin receives 403 error</idea>
+      <idea ac="empty">Test empty state displays correctly</idea>
+      <idea ac="error">Test error state with retry button</idea>
+    </ideas>
+  </tests>
+</story-context>

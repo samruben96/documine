@@ -41,6 +41,7 @@ import { OnboardingStatusSection } from '@/components/ai-buddy/admin/onboarding-
 import { GuardrailAdminPanel } from '@/components/ai-buddy/admin/guardrail-admin-panel';
 import { UserManagementPanel } from '@/components/ai-buddy/admin/user-management-panel';
 import { UsageAnalyticsPanel } from '@/components/ai-buddy/admin/analytics/usage-analytics-panel';
+import { AuditLogPanel } from '@/components/ai-buddy/admin/audit-log/audit-log-panel';
 import { useSettings } from '@/contexts/settings-context';
 
 export interface AiBuddyPreferencesTabProps {
@@ -336,6 +337,9 @@ export function AiBuddyPreferencesTab({
 
             {/* AC-20.3.1: Admin-only usage analytics section */}
             <UsageAnalyticsPanel hasPermission={hasViewUsageAnalyticsPermission} />
+
+            {/* AC-20.4.1 through AC-20.4.10: Audit log interface */}
+            <AuditLogPanel hasPermission={hasViewAuditLogsPermission} />
           </div>
         )}
       </div>

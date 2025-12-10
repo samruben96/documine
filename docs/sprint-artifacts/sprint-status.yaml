@@ -163,10 +163,20 @@ development_status:
   # Story 20.4: Audit Log Interface (5 pts)
   # Filterable table, transcript viewer, PDF/CSV export
   # FRs: FR50, FR51, FR52, FR53
-  20-4-audit-log-interface: backlog
+  # Story 20.4 - DONE 2025-12-09: All ACs complete, 98 unit tests + E2E
+  # - Audit log table with date, user, project, conversation, message count, guardrail badge
+  # - Multi-filter: user dropdown, date range, keyword search, guardrail checkbox
+  # - Paginated at 25/page with total count
+  # - Transcript modal (read-only) with messages, confidence badges, source citations
+  # - Guardrail events highlighted with type and trigger info
+  # - PDF export with agency header, compliance statement, optional transcripts
+  # - CSV export with all required columns
+  # - Permission gating (view_audit_logs)
+  20-4-audit-log-interface: done
   # Story 20.5: Owner Management (5 pts) - CONSOLIDATED from 20.5 + 20.6
   # Billing/subscription management + ownership transfer
   # FRs: FR48, FR49
+  # NOTE FROM SAM: Billing will be handled manually via invoices from Archway Computer. So anything to do with billing should note that, we do not need stripe or anything like that for now. I'm still happy to keep the tiered plan. 
   20-5-owner-management: backlog
   # Story 20.6: Feature Navigation Polish (2 pts) - RENUMBERED from 20.7
   # State-preserving navigation between features
