@@ -5,6 +5,7 @@ import { ProfileTab } from '@/components/settings/profile-tab';
 import { AgencyTab } from '@/components/settings/agency-tab';
 import { TeamTab } from '@/components/settings/team-tab';
 import { TeamTabSkeleton } from '@/components/settings/team-tab-skeleton';
+import { UsageTabSkeleton } from '@/components/settings/usage-tab-skeleton';
 import { BillingTab } from '@/components/settings/billing-tab';
 import { UsageTab } from '@/components/settings/usage-tab';
 import { BrandingTab } from '@/components/settings/branding-tab';

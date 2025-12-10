@@ -1,0 +1,103 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>22</epicId>
+    <storyId>1</storyId>
+    <title>Settings Tab Skeletons</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-22/stories/story-22.1-settings-tab-skeletons.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user navigating to Settings tabs</asA>
+    <iWant>see skeleton loading states while data loads</iWant>
+    <soThat>I know the app is working and content is coming</soThat>
+    <tasks>
+      <task id="1">Create branding-tab-skeleton.tsx component</task>
+      <task id="2">Create usage-tab-skeleton.tsx component</task>
+      <task id="3">Update BrandingTab to show skeleton while isLoading is true</task>
+      <task id="4">Update UsageTab to show skeleton while isLoading is true</task>
+      <task id="5">Write unit tests for both skeleton components</task>
+      <task id="6">Write integration tests for loading state transitions</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-22.1.1" title="BrandingTab Skeleton">
+      <item>Create branding-tab-skeleton.tsx component</item>
+      <item>Skeleton matches structure of BrandingTab (logo area, color pickers, tagline)</item>
+      <item>BrandingTab shows skeleton while isLoading is true</item>
+      <item>Smooth transition from skeleton to content</item>
+    </criterion>
+    <criterion id="AC-22.1.2" title="UsageTab Skeleton">
+      <item>Create usage-tab-skeleton.tsx component</item>
+      <item>Skeleton matches structure (date picker, stat cards, chart area, table)</item>
+      <item>UsageTab shows skeleton while isLoading is true</item>
+      <item>Smooth transition from skeleton to content</item>
+    </criterion>
+    <criterion id="AC-22.1.3" title="Pattern Consistency">
+      <item>Follow TeamTabSkeleton pattern exactly</item>
+      <item>Use Skeleton component from @/components/ui/skeleton</item>
+      <item>Realistic widths for text placeholders</item>
+      <item>3 placeholder rows for any tables</item>
+    </criterion>
+    <criterion id="AC-22.1.4" title="Tests">
+      <item>Unit tests for BrandingTabSkeleton renders correctly</item>
+      <item>Unit tests for UsageTabSkeleton renders correctly</item>
+      <item>Integration test: BrandingTab shows skeleton during loading</item>
+      <item>Integration test: UsageTab shows skeleton during loading</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-22/tech-spec.md" title="Epic 22 Tech Spec" section="Implementation Details" snippet="Skeleton loading states follow TeamTabSkeleton pattern. Use Skeleton component from ui/skeleton. Match component structure." />
+      <doc path="docs/sprint-artifacts/epics/epic-22/stories/story-22.1-settings-tab-skeletons.md" title="Story 22.1" section="Technical Notes" snippet="Files to create: branding-tab-skeleton.tsx, usage-tab-skeleton.tsx. Files to modify: branding-tab.tsx, usage-tab.tsx." />
+    </docs>
+    <code>
+      <file path="src/components/settings/team-tab-skeleton.tsx" kind="component" symbol="TeamTabSkeleton" reason="Primary pattern reference - copy structure for new skeletons" />
+      <file path="src/components/ui/skeleton.tsx" kind="component" symbol="Skeleton" reason="Base skeleton component to use" />
+      <file path="src/components/settings/branding-form.tsx" kind="component" symbol="BrandingForm" lines="137-145" reason="Contains isLoading state - update to use skeleton" />
+      <file path="src/components/settings/branding-tab.tsx" kind="component" symbol="BrandingTab" reason="Parent component - delegates loading to BrandingForm" />
+      <file path="src/components/settings/usage-tab.tsx" kind="component" symbol="UsageTab" reason="Receives props from server - may need Suspense for skeleton" />
+      <file path="src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" lines="176-186" reason="Settings page showing Branding and Usage tabs" />
+      <file path="src/hooks/use-agency-branding.ts" kind="hook" symbol="useAgencyBranding" reason="Hook with isLoading state for BrandingForm" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="tailwindcss" version="4.x" />
+        <package name="@radix-ui/react-slot" version="*" />
+        <package name="lucide-react" version="*" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Follow established TeamTabSkeleton pattern exactly</constraint>
+    <constraint>Use Skeleton component from @/components/ui/skeleton</constraint>
+    <constraint>No new dependencies - use existing Tailwind animate-pulse</constraint>
+    <constraint>Match actual component structure with skeleton placeholders</constraint>
+    <constraint>Use realistic widths for text placeholders (w-28, w-40, etc.)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Skeleton" kind="component" signature="Skeleton({ className, ...props }: React.ComponentProps&lt;'div'&gt;)" path="src/components/ui/skeleton.tsx" />
+    <interface name="useAgencyBranding" kind="hook" signature="useAgencyBranding(agencyId: string) => { branding, isLoading, error, updateBranding, uploadLogo, removeLogo }" path="src/hooks/use-agency-branding.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>Vitest with React Testing Library. Test file pattern: __tests__/components/{path}/{name}.test.tsx. Use happy-dom for DOM testing. Test skeleton renders correctly and loading state transitions.</standards>
+    <locations>
+      <location>__tests__/components/settings/branding-tab-skeleton.test.tsx</location>
+      <location>__tests__/components/settings/usage-tab-skeleton.test.tsx</location>
+      <location>__tests__/components/settings/branding-form.test.tsx</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-22.1.1">Test BrandingTabSkeleton renders Card with skeleton elements</idea>
+      <idea acId="AC-22.1.2">Test UsageTabSkeleton renders 4 card skeletons in grid</idea>
+      <idea acId="AC-22.1.3">Verify skeleton uses animate-pulse class</idea>
+      <idea acId="AC-22.1.4">Test BrandingForm shows BrandingTabSkeleton when isLoading is true</idea>
+    </ideas>
+  </tests>
+</story-context>

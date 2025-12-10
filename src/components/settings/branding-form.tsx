@@ -20,6 +20,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogoUpload } from './logo-upload';
 import { ColorPicker } from './color-picker';
+import { BrandingTabSkeleton } from './branding-tab-skeleton';
 import { useAgencyBranding, type AgencyBranding } from '@/hooks/use-agency-branding';
 import { useSettings } from '@/contexts/settings-context';
 
@@ -134,14 +135,9 @@ export function BrandingForm({ agencyId }: BrandingFormProps) {
     }
   }, [updateBranding, primaryColor, secondaryColor]);
 
+  // Story 22.1: AC-22.1.1 - Show skeleton while branding data loads
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-electric-blue" />
-        </CardContent>
-      </Card>
-    );
+    return <BrandingTabSkeleton />;
   }
 
   if (error) {

@@ -190,7 +190,7 @@ development_status:
   20-5-owner-management: done
   # Story 20.6: Moved to Epic 21 - Admin consolidation makes this redundant
   # Feature navigation polish scope incorporated into Epic 21
-  epic-20-retrospective: optional
+  epic-20-retrospective: completed  # Combined with Epic 21: docs/sprint-artifacts/retrospectives/epic-20-21-retrospective.md
 
   # =====================================================
   # EPIC 21: AGENCY-WIDE ADMIN PLATFORM
@@ -199,7 +199,7 @@ development_status:
   # Decided 2025-12-09 via Party Mode discussion
   # Tech Spec: docs/sprint-artifacts/epics/epic-21/tech-spec/index.md
   # Stories: 5
-  epic-21-agency-wide-admin-platform: contexted
+  epic-21-agency-wide-admin-platform: done
   # Story 21.1: Database Migration - Agency Admin Tables (S)
   # Rename ai_buddy_permissions → agency_permissions
   # Rename ai_buddy_audit_logs → agency_audit_logs
@@ -244,4 +244,40 @@ development_status:
   # 2,796 tests across 175 files - brutal on local dev
   # Needs team input on consolidation strategy
   21-2.5-test-consolidation: done
-  epic-21-retrospective: optional
+  epic-21-retrospective: completed  # Combined with Epic 20: docs/sprint-artifacts/retrospectives/epic-20-21-retrospective.md
+
+  # =====================================================
+  # EPIC 22: UI POLISH SPRINT
+  # =====================================================
+  # Quick win - address "clunky" UX feeling
+  # Decided: Epic 20-21 retrospective (2025-12-09)
+  # Tech Spec: docs/sprint-artifacts/epics/epic-22/tech-spec.md
+  # Stories: 4 (10 points total)
+  epic-22-ui-polish: contexted
+  # Story 22.1: Settings Tab Skeletons (3 pts) - P0
+  # Add skeleton loaders to BrandingTab and UsageTab
+  # DONE 2025-12-09: All ACs complete, 14 tests passing
+  22-1-settings-tab-skeletons: done
+  # Story 22.2: Admin Panel Skeletons (3 pts) - P0
+  # Add skeleton loaders to Admin sub-panels
+  22-2-admin-panel-skeletons: drafted
+  # Story 22.3: View Transitions & Chart Fix (2 pts) - P1
+  # Subtle fade-in transitions, fix Recharts warning
+  22-3-view-transitions-chart-fix: drafted
+  # Story 22.4: Spacing Standardization (2 pts) - P2
+  # Standardize gap-6 and space-y-6 across pages
+  22-4-spacing-standardization: drafted
+
+  # =====================================================
+  # EPIC 23+: CUSTOM REPORTING (After UI Polish)
+  # =====================================================
+  # User uploads raw data, AI normalizes and reports
+  # Planning docs: docs/features/reporting/
+  # Duration: ~3-4 weeks
+  epic-23-custom-reporting: backlog
+  # Scope:
+  # - File upload for Excel/CSV/PDF
+  # - AI column detection and normalization
+  # - Structured data storage
+  # - Natural language querying via AI Buddy
+  # - Chart and report generation
