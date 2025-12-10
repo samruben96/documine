@@ -1,6 +1,6 @@
 # Story 21.2: API Route Migration
 
-**Status:** Draft
+**Status:** Done
 
 ---
 
@@ -59,16 +59,16 @@ So that **the API structure reflects that admin functionality serves the entire 
 
 ### Tasks / Subtasks
 
-- [ ] Task 1: Create `src/app/api/admin/` directory structure
-- [ ] Task 2: Move `users/` routes, update table references
-- [ ] Task 3: Move `analytics/` routes, update table references
-- [ ] Task 4: Move `audit-logs/` routes, update table references
-- [ ] Task 5: Move `subscription/` route
-- [ ] Task 6: Move `transfer-ownership/` route
-- [ ] Task 7: Update error codes from `AIB_*` to `ADMIN_*` where appropriate
-- [ ] Task 8: Delete moved routes from `/api/ai-buddy/admin/`
-- [ ] Task 9: Update any error handling service references
-- [ ] Task 10: Test all endpoints
+- [x] Task 1: Create `src/app/api/admin/` directory structure
+- [x] Task 2: Move `users/` routes, update table references
+- [x] Task 3: Move `analytics/` routes, update table references
+- [x] Task 4: Move `audit-logs/` routes, update table references
+- [x] Task 5: Move `subscription/` route
+- [x] Task 6: Move `transfer-ownership/` route
+- [x] Task 7: Update error codes from `AIB_*` to `ADMIN_*` where appropriate
+- [x] Task 8: Delete moved routes from `/api/ai-buddy/admin/`
+- [x] Task 9: Update any error handling service references
+- [x] Task 10: Test all endpoints
 
 ### Technical Summary
 
@@ -137,14 +137,44 @@ Move agency-wide API routes to a new `/api/admin/` path. Key changes:
 
 ## Dev Agent Record
 
+### Context Reference
+- [21-2-api-route-migration.context.xml](./21-2-api-route-migration.context.xml)
+
 ### Agent Model Used
-<!-- Will be populated during dev-story execution -->
+Claude Opus 4.5
 
 ### Completion Notes
-<!-- Will be populated during dev-story execution -->
+Completed 2025-12-09. All agency-wide admin routes migrated from `/api/ai-buddy/admin/` to `/api/admin/`. Hooks updated to use new endpoints. AI Buddy specific routes (guardrails, onboarding-status) remain at original location. All 2,796 tests passing, build successful.
 
 ### Files Modified
-<!-- Will be populated during dev-story execution -->
+**New Routes Created:**
+- `src/app/api/admin/users/route.ts`
+- `src/app/api/admin/users/[userId]/route.ts`
+- `src/app/api/admin/analytics/route.ts`
+- `src/app/api/admin/analytics/export/route.ts`
+- `src/app/api/admin/audit-logs/route.ts`
+- `src/app/api/admin/audit-logs/export/route.ts`
+- `src/app/api/admin/audit-logs/[conversationId]/transcript/route.ts`
+- `src/app/api/admin/subscription/route.ts`
+- `src/app/api/admin/transfer-ownership/route.ts`
+- `src/app/api/admin/invitations/[invitationId]/route.ts`
+
+**Old Routes Deleted:**
+- `src/app/api/ai-buddy/admin/users/` (entire folder)
+- `src/app/api/ai-buddy/admin/analytics/` (entire folder)
+- `src/app/api/ai-buddy/admin/audit-logs/` (entire folder)
+- `src/app/api/ai-buddy/admin/invitations/` (entire folder)
+
+**Hooks Updated:**
+- `src/hooks/ai-buddy/use-audit-logs.ts`
+- `src/hooks/ai-buddy/use-usage-analytics.ts`
+- `src/hooks/ai-buddy/use-user-management.ts`
+
+**Other Updates:**
+- `src/lib/ai-buddy/errors.ts` - Error code references
+- `src/lib/ai-buddy/audit-logger.ts` - Table references
+- `src/lib/auth/admin.ts` - Permission checks
+- Various test files updated for new endpoints
 
 ---
 

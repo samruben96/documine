@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight, FileText, ShieldAlert, AlertCircle } from 'lucide-react';
-import type { AuditLogTableEntry } from '@/app/api/ai-buddy/admin/audit-logs/route';
+import type { AuditLogTableEntry } from '@/app/api/admin/audit-logs/route';
 
 export interface AuditLogTableProps {
   /** Audit log entries to display */

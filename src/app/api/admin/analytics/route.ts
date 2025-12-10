@@ -1,13 +1,8 @@
 /**
- * AI Buddy Admin Usage Analytics API
- * Story 20.3: Usage Analytics Dashboard
+ * Agency Admin Usage Analytics API
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/analytics)
  *
  * GET - Fetch usage analytics with date range filter
- * AC-20.3.1: Summary cards
- * AC-20.3.2: Per-user breakdown
- * AC-20.3.3: Date range filter
- * AC-20.3.4: Trend data for charts
- * AC-20.3.7: Performance target <500ms
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -62,7 +57,7 @@ function percentChange(current: number, previous: number): number {
 }
 
 /**
- * GET /api/ai-buddy/admin/analytics
+ * GET /api/admin/analytics
  * Fetch usage analytics with optional date range filter
  */
 export async function GET(request: NextRequest) {
@@ -92,9 +87,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check view_usage_analytics permission
+    // Check view_usage_analytics permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -122,7 +117,6 @@ export async function GET(request: NextRequest) {
     // NOTE: Materialized view refresh is handled by a scheduled cron job (not on every request)
     // to maintain <500ms response times. The refresh_ai_buddy_usage_daily() function
     // should be called via Supabase pg_cron or external scheduler (e.g., daily at midnight).
-    // See: supabase/migrations/20251210_usage_analytics_materialized_view.sql
 
     // ===== CURRENT PERIOD SUMMARY =====
     const { data: currentSummaryData } = await serviceClient
@@ -196,7 +190,7 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // ===== PER-USER BREAKDOWN (AC-20.3.2) =====
+    // ===== PER-USER BREAKDOWN =====
     const { data: userBreakdownData } = await serviceClient
       .from('ai_buddy_usage_by_user')
       .select('user_id, user_email, user_name, conversations, messages, documents, last_active_at')
@@ -235,7 +229,7 @@ export async function GET(request: NextRequest) {
       (a, b) => b.conversations - a.conversations
     );
 
-    // ===== TREND DATA (AC-20.3.4) =====
+    // ===== TREND DATA =====
     const { data: trendData } = await serviceClient
       .from('ai_buddy_usage_daily')
       .select('date, active_users, conversations, total_messages')
@@ -285,7 +279,7 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Log performance (AC-20.3.7)
+    // Log performance
     const duration = Date.now() - startTime;
     if (duration > 500) {
       console.warn(`Analytics API took ${duration}ms (target: <500ms)`);
@@ -293,7 +287,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error in GET /api/ai-buddy/admin/analytics:', error);
+    console.error('Error in GET /api/admin/analytics:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

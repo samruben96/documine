@@ -120,7 +120,7 @@ test.describe('Usage Analytics Dashboard', () => {
   test.describe('Error Handling', () => {
     test('displays error state with retry button on API failure', async ({ page }) => {
       // Mock API failure
-      await page.route('**/api/ai-buddy/admin/analytics**', (route) => {
+      await page.route('**/api/admin/analytics**', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',
@@ -146,7 +146,7 @@ test.describe('Usage Analytics Dashboard', () => {
   test.describe('Loading State', () => {
     test('shows loading skeletons while fetching data', async ({ page }) => {
       // Delay API response to observe loading state
-      await page.route('**/api/ai-buddy/admin/analytics**', async (route) => {
+      await page.route('**/api/admin/analytics**', async (route) => {
         await new Promise((resolve) => setTimeout(resolve, 500));
         route.fulfill({
           status: 200,

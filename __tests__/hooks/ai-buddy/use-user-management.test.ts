@@ -56,7 +56,7 @@ describe('useUserManagement', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/ai-buddy/admin/users')
+        expect.stringContaining('/api/admin/users')
       );
       expect(result.current.users).toEqual(mockUserResponse.users);
     });
@@ -216,7 +216,7 @@ describe('useUserManagement', () => {
         await result.current.inviteUser('new@example.com', 'producer');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/ai-buddy/admin/users', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'new@example.com', role: 'producer' }),
@@ -274,7 +274,7 @@ describe('useUserManagement', () => {
         await result.current.removeUser('user-1');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/ai-buddy/admin/users?userId=user-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/users?userId=user-1', {
         method: 'DELETE',
       });
     });
@@ -306,7 +306,7 @@ describe('useUserManagement', () => {
         await result.current.changeRole('user-1', 'producer');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/ai-buddy/admin/users/user-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/users/user-1', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'producer' }),
@@ -340,7 +340,7 @@ describe('useUserManagement', () => {
         await result.current.cancelInvitation('inv-1');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/ai-buddy/admin/invitations/inv-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/invitations/inv-1', {
         method: 'DELETE',
       });
     });
@@ -372,7 +372,7 @@ describe('useUserManagement', () => {
         await result.current.resendInvitation('inv-1');
       });
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/ai-buddy/admin/invitations/inv-1', {
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/invitations/inv-1', {
         method: 'POST',
       });
     });

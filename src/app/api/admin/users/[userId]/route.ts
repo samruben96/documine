@@ -1,8 +1,8 @@
 /**
- * AI Buddy Admin User Management - Individual User Operations
- * Story 20.2: Admin User Management
+ * Agency Admin User Management - Individual User Operations
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/users/[userId])
  *
- * PATCH - Change user role (AC-20.2.6)
+ * PATCH - Change user role
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -52,9 +52,8 @@ interface ChangeRoleRequest {
 }
 
 /**
- * PATCH /api/ai-buddy/admin/users/[userId]
+ * PATCH /api/admin/users/[userId]
  * Change a user's role
- * AC-20.2.6: Change user role
  */
 export async function PATCH(
   request: NextRequest,
@@ -91,9 +90,9 @@ export async function PATCH(
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -134,9 +133,9 @@ export async function PATCH(
       return errorResponse('AIB_014');
     }
 
-    // Get target user's current permissions
+    // Get target user's current permissions from agency_permissions
     const { data: targetPermissions } = await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', userId);
 
@@ -167,14 +166,14 @@ export async function PATCH(
       const userIds = agencyUsers?.map((u) => u.id) || [];
 
       const { data: allPerms } = await serviceClient
-        .from('ai_buddy_permissions')
+        .from('agency_permissions')
         .select('user_id, permission')
         .in('user_id', userIds)
         .eq('permission', 'manage_users');
 
       // Check which of these users are NOT owners
       const { data: ownerPerms } = await serviceClient
-        .from('ai_buddy_permissions')
+        .from('agency_permissions')
         .select('user_id')
         .in('user_id', userIds)
         .eq('permission', 'transfer_ownership');
@@ -188,9 +187,9 @@ export async function PATCH(
       }
     }
 
-    // Delete all existing permissions
+    // Delete all existing permissions from agency_permissions
     await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .delete()
       .eq('user_id', userId);
 
@@ -203,7 +202,7 @@ export async function PATCH(
     }));
 
     const { error: insertError } = await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .insert(permissionInserts);
 
     if (insertError) {
@@ -233,7 +232,7 @@ export async function PATCH(
       previousRole: currentRole,
     });
   } catch (error) {
-    console.error('Error in PATCH /api/ai-buddy/admin/users/[userId]:', error);
+    console.error('Error in PATCH /api/admin/users/[userId]:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

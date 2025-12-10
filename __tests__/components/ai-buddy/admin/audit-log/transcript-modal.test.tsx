@@ -15,7 +15,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { TranscriptModal } from '@/components/ai-buddy/admin/audit-log/transcript-modal';
-import type { TranscriptData } from '@/app/api/ai-buddy/admin/audit-logs/[conversationId]/transcript/route';
+import type { TranscriptData } from '@/app/api/admin/audit-logs/[conversationId]/transcript/route';
 
 // Mock fetch
 const mockFetch = vi.fn();

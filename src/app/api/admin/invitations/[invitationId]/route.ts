@@ -1,8 +1,8 @@
 /**
- * AI Buddy Admin Invitation Management
- * Story 20.2: Admin User Management
+ * Agency Admin Invitation Management
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/invitations/[invitationId])
  *
- * DELETE - Cancel invitation (AC-20.2.4)
+ * DELETE - Cancel invitation
  * POST - Resend invitation
  */
 
@@ -24,9 +24,8 @@ function errorResponse(code: AiBuddyErrorCode, customMessage?: string) {
 }
 
 /**
- * DELETE /api/ai-buddy/admin/invitations/[invitationId]
+ * DELETE /api/admin/invitations/[invitationId]
  * Cancel a pending invitation
- * AC-20.2.4: Cancel pending invitation
  */
 export async function DELETE(
   request: NextRequest,
@@ -63,9 +62,9 @@ export async function DELETE(
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -82,10 +81,10 @@ export async function DELETE(
 
     const serviceClient = createServiceClient();
 
-    // Verify invitation exists and belongs to agency
+    // Verify invitation exists and belongs to agency (from invitations table)
     const { data: invitation, error: invError } = await serviceClient
-      .from('ai_buddy_invitations')
-      .select('id, email, agency_id, accepted_at, cancelled_at')
+      .from('invitations')
+      .select('id, email, agency_id, status, accepted_at')
       .eq('id', invitationId)
       .eq('agency_id', currentUser.agency_id)
       .single();
@@ -95,17 +94,17 @@ export async function DELETE(
     }
 
     // Cannot cancel already accepted or cancelled invitation
-    if (invitation.accepted_at || invitation.cancelled_at) {
+    if (invitation.accepted_at || invitation.status !== 'pending') {
       return NextResponse.json(
         { error: 'Invitation has already been processed' },
         { status: 400 }
       );
     }
 
-    // Mark invitation as cancelled
+    // Mark invitation as cancelled using status column
     const { error: updateError } = await serviceClient
-      .from('ai_buddy_invitations')
-      .update({ cancelled_at: new Date().toISOString() })
+      .from('invitations')
+      .update({ status: 'cancelled' })
       .eq('id', invitationId);
 
     if (updateError) {
@@ -130,7 +129,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/ai-buddy/admin/invitations/[invitationId]:', error);
+    console.error('Error in DELETE /api/admin/invitations/[invitationId]:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -139,7 +138,7 @@ export async function DELETE(
 }
 
 /**
- * POST /api/ai-buddy/admin/invitations/[invitationId]/resend
+ * POST /api/admin/invitations/[invitationId]/resend
  * Resend an invitation (extends expiration)
  */
 export async function POST(
@@ -177,9 +176,9 @@ export async function POST(
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -196,10 +195,10 @@ export async function POST(
 
     const serviceClient = createServiceClient();
 
-    // Verify invitation exists and belongs to agency
+    // Verify invitation exists and belongs to agency (from invitations table)
     const { data: invitation, error: invError } = await serviceClient
-      .from('ai_buddy_invitations')
-      .select('id, email, role, agency_id, accepted_at, cancelled_at')
+      .from('invitations')
+      .select('id, email, role, agency_id, status, accepted_at')
       .eq('id', invitationId)
       .eq('agency_id', currentUser.agency_id)
       .single();
@@ -209,7 +208,7 @@ export async function POST(
     }
 
     // Cannot resend already accepted or cancelled invitation
-    if (invitation.accepted_at || invitation.cancelled_at) {
+    if (invitation.accepted_at || invitation.status !== 'pending') {
       return NextResponse.json(
         { error: 'Invitation has already been processed' },
         { status: 400 }
@@ -220,11 +219,12 @@ export async function POST(
     const newExpiresAt = new Date();
     newExpiresAt.setDate(newExpiresAt.getDate() + 7);
 
+    // Reset status to pending and extend expiration
     const { error: updateError } = await serviceClient
-      .from('ai_buddy_invitations')
+      .from('invitations')
       .update({
         expires_at: newExpiresAt.toISOString(),
-        invited_at: new Date().toISOString(),
+        status: 'pending',
       })
       .eq('id', invitationId);
 
@@ -256,7 +256,7 @@ export async function POST(
       expiresAt: newExpiresAt.toISOString(),
     });
   } catch (error) {
-    console.error('Error in POST /api/ai-buddy/admin/invitations/[invitationId]:', error);
+    console.error('Error in POST /api/admin/invitations/[invitationId]:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

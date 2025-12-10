@@ -106,7 +106,7 @@ export function useUserManagement(
         params.set('search', searchQuery);
       }
 
-      const response = await fetch(`/api/ai-buddy/admin/users?${params}`);
+      const response = await fetch(`/api/admin/users?${params}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -162,7 +162,7 @@ export function useUserManagement(
 
   // Invite user
   const inviteUser = useCallback(async (email: string, role: 'producer' | 'admin') => {
-    const response = await fetch('/api/ai-buddy/admin/users', {
+    const response = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, role }),
@@ -179,7 +179,7 @@ export function useUserManagement(
 
   // Remove user
   const removeUser = useCallback(async (userId: string) => {
-    const response = await fetch(`/api/ai-buddy/admin/users?userId=${userId}`, {
+    const response = await fetch(`/api/admin/users?userId=${userId}`, {
       method: 'DELETE',
     });
 
@@ -194,7 +194,7 @@ export function useUserManagement(
 
   // Change role
   const changeRole = useCallback(async (userId: string, newRole: 'producer' | 'admin') => {
-    const response = await fetch(`/api/ai-buddy/admin/users/${userId}`, {
+    const response = await fetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: newRole }),
@@ -211,7 +211,7 @@ export function useUserManagement(
 
   // Cancel invitation
   const cancelInvitation = useCallback(async (invitationId: string) => {
-    const response = await fetch(`/api/ai-buddy/admin/invitations/${invitationId}`, {
+    const response = await fetch(`/api/admin/invitations/${invitationId}`, {
       method: 'DELETE',
     });
 
@@ -226,7 +226,7 @@ export function useUserManagement(
 
   // Resend invitation
   const resendInvitation = useCallback(async (invitationId: string) => {
-    const response = await fetch(`/api/ai-buddy/admin/invitations/${invitationId}`, {
+    const response = await fetch(`/api/admin/invitations/${invitationId}`, {
       method: 'POST',
     });
 

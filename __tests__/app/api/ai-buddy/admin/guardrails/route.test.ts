@@ -48,7 +48,7 @@ describe('GET /api/ai-buddy/admin/guardrails', () => {
           upsert: mockUpsert,
         };
       }
-      if (table === 'ai_buddy_audit_logs') {
+      if (table === 'agency_audit_logs') {
         return {
           insert: mockInsert,
         };
@@ -160,7 +160,7 @@ describe('PATCH /api/ai-buddy/admin/guardrails', () => {
           upsert: mockUpsert,
         };
       }
-      if (table === 'ai_buddy_audit_logs') {
+      if (table === 'agency_audit_logs') {
         return {
           insert: mockInsert,
         };

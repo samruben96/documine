@@ -1,13 +1,9 @@
 /**
- * AI Buddy Admin Audit Logs Export API Route
- * Story 20.4: Audit Log Interface
+ * Agency Admin Audit Logs Export API Route
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/audit-logs/export)
  *
- * POST /api/ai-buddy/admin/audit-logs/export - Export audit logs as CSV or PDF
+ * POST /api/admin/audit-logs/export - Export audit logs as CSV or PDF
  * Admin only - requires view_audit_logs permission.
- *
- * AC-20.4.7: Export format selection (PDF or CSV)
- * AC-20.4.8: PDF includes agency header, export date, compliance statement, entries, optional transcripts
- * AC-20.4.9: CSV includes timestamp, user_email, user_name, action, conversation_id, metadata
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -43,7 +39,7 @@ function escapeCsvField(value: string | number | null | undefined): string {
 }
 
 /**
- * POST /api/ai-buddy/admin/audit-logs/export
+ * POST /api/admin/audit-logs/export
  * Export audit logs as CSV or PDF
  */
 export async function POST(request: NextRequest): Promise<Response> {
@@ -88,9 +84,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const agencyName = agency?.name || 'Unknown Agency';
 
-    // Build query with same filters as list endpoint
+    // Build query with same filters as list endpoint - query agency_audit_logs
     let query = serviceClient
-      .from('ai_buddy_audit_logs')
+      .from('agency_audit_logs')
       .select(`
         id,
         agency_id,
@@ -158,7 +154,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // Handle CSV export
-    // AC-20.4.9: CSV includes timestamp, user_email, user_name, action, conversation_id, metadata
     if (exportFormat === 'csv') {
       const headers = ['timestamp', 'user_email', 'user_name', 'action', 'conversation_id', 'metadata'];
       const csvRows = [headers.join(',')];
@@ -197,12 +192,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // Handle PDF export
-    // AC-20.4.8: PDF includes agency header, export date, compliance statement, entries, optional transcripts
+    // For PDF export, we'll return JSON data that the client will use to generate PDF
+    // This is because server-side PDF generation with @react-pdf/renderer requires additional setup
+    // The client will handle PDF generation using the PDF template component
     if (exportFormat === 'pdf') {
-      // For PDF export, we'll return JSON data that the client will use to generate PDF
-      // This is because server-side PDF generation with @react-pdf/renderer requires additional setup
-      // The client will handle PDF generation using the PDF template component
-
       let transcriptData: Record<string, unknown>[] = [];
 
       // If includeTranscripts is true, fetch conversation messages
@@ -256,7 +249,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           };
         }),
         transcripts: includeTranscripts ? transcriptData : null,
-        complianceStatement: 'AI Buddy Audit Log - CONFIDENTIAL - For internal compliance use only',
+        complianceStatement: 'Audit Log - CONFIDENTIAL - For internal compliance use only',
       };
 
       return NextResponse.json({
@@ -271,7 +264,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       { status: 400 }
     );
   } catch (error) {
-    console.error('Error in POST /api/ai-buddy/admin/audit-logs/export:', error);
+    console.error('Error in POST /api/admin/audit-logs/export:', error);
     return NextResponse.json(
       { data: null, error: { code: 'AIB_006', message: 'Internal server error' } },
       { status: 500 }

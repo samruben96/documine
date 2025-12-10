@@ -208,7 +208,8 @@ development_status:
   # Story 21.2: API Route Migration (S)
   # Move /api/ai-buddy/admin/* → /api/admin/*
   # Keep AI Buddy specific routes (guardrails, onboarding)
-  21-2-api-route-migration: drafted
+  # DONE 2025-12-09: All routes moved, hooks updated, tests passing
+  21-2-api-route-migration: done
   # Story 21.3: Component & Settings Migration (M)
   # Move components/ai-buddy/admin/ → components/admin/
   # Add top-level Admin tab to Settings
@@ -222,4 +223,8 @@ development_status:
   # Track usage across all features
   # Feature breakdown in analytics dashboard
   21-5-extend-usage-tracking: drafted
+  # Story 21.2.5: Test Suite Consolidation (Team Discussion)
+  # 2,796 tests across 175 files - brutal on local dev
+  # Needs team input on consolidation strategy
+  21-2.5-test-consolidation: backlog
   epic-21-retrospective: optional

@@ -134,7 +134,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // Log the change to audit log
-  await serviceClient.from('ai_buddy_audit_logs').insert({
+  await serviceClient.from('agency_audit_logs').insert({
     agency_id: auth.agencyId,
     user_id: auth.userId,
     action: 'guardrails_reset',

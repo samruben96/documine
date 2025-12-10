@@ -7,8 +7,8 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { AuditLogTableEntry } from '@/app/api/ai-buddy/admin/audit-logs/route';
-import type { TranscriptData } from '@/app/api/ai-buddy/admin/audit-logs/[conversationId]/transcript/route';
+import type { AuditLogTableEntry } from '@/app/api/admin/audit-logs/route';
+import type { TranscriptData } from '@/app/api/admin/audit-logs/[conversationId]/transcript/route';
 
 /**
  * Filter options for audit logs
@@ -168,7 +168,7 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}): UseAuditLogsRet
 
       try {
         const queryString = buildQueryString(currentFilters, currentPage);
-        const response = await fetch(`/api/ai-buddy/admin/audit-logs?${queryString}`);
+        const response = await fetch(`/api/admin/audit-logs?${queryString}`);
 
         if (!response.ok) {
           const errorData: ApiResponse = await response.json().catch(() => ({}));
@@ -220,7 +220,7 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}): UseAuditLogsRet
    * Fetch transcript for a conversation
    */
   const fetchTranscript = useCallback(async (conversationId: string): Promise<TranscriptData> => {
-    const response = await fetch(`/api/ai-buddy/admin/audit-logs/${conversationId}/transcript`);
+    const response = await fetch(`/api/admin/audit-logs/${conversationId}/transcript`);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -243,7 +243,7 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}): UseAuditLogsRet
     format: 'pdf' | 'csv',
     includeTranscripts: boolean = false
   ): Promise<string> => {
-    const response = await fetch('/api/ai-buddy/admin/audit-logs/export', {
+    const response = await fetch('/api/admin/audit-logs/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

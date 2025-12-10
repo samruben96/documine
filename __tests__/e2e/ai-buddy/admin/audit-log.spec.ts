@@ -112,7 +112,7 @@ test.describe('Audit Log Interface', () => {
 
     test('AC-20.4.3: shows pagination when entries exceed page size', async ({ page }) => {
       // Mock API response with many entries
-      await page.route('**/api/ai-buddy/admin/audit-logs**', (route) => {
+      await page.route('**/api/admin/audit-logs**', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -195,7 +195,7 @@ test.describe('Audit Log Interface', () => {
   test.describe('Transcript Modal', () => {
     test('AC-20.4.4, AC-20.4.10: transcript modal shows full conversation in read-only mode', async ({ page }) => {
       // Mock API response with entries that have conversations
-      await page.route('**/api/ai-buddy/admin/audit-logs', (route) => {
+      await page.route('**/api/admin/audit-logs', (route) => {
         if (route.request().method() === 'GET') {
           route.fulfill({
             status: 200,
@@ -229,7 +229,7 @@ test.describe('Audit Log Interface', () => {
       });
 
       // Mock transcript API
-      await page.route('**/api/ai-buddy/admin/audit-logs/conv-1/transcript', (route) => {
+      await page.route('**/api/admin/audit-logs/conv-1/transcript', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -300,7 +300,7 @@ test.describe('Audit Log Interface', () => {
 
     test('AC-20.4.5: transcript shows message details with confidence badges', async ({ page }) => {
       // Mock APIs
-      await page.route('**/api/ai-buddy/admin/audit-logs', (route) => {
+      await page.route('**/api/admin/audit-logs', (route) => {
         if (route.request().method() === 'GET') {
           route.fulfill({
             status: 200,
@@ -333,7 +333,7 @@ test.describe('Audit Log Interface', () => {
         }
       });
 
-      await page.route('**/api/ai-buddy/admin/audit-logs/conv-1/transcript', (route) => {
+      await page.route('**/api/admin/audit-logs/conv-1/transcript', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -402,7 +402,7 @@ test.describe('Audit Log Interface', () => {
 
     test('AC-20.4.6: transcript highlights guardrail events', async ({ page }) => {
       // Mock APIs with guardrail events
-      await page.route('**/api/ai-buddy/admin/audit-logs', (route) => {
+      await page.route('**/api/admin/audit-logs', (route) => {
         if (route.request().method() === 'GET') {
           route.fulfill({
             status: 200,
@@ -435,7 +435,7 @@ test.describe('Audit Log Interface', () => {
         }
       });
 
-      await page.route('**/api/ai-buddy/admin/audit-logs/conv-1/transcript', (route) => {
+      await page.route('**/api/admin/audit-logs/conv-1/transcript', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -518,7 +518,7 @@ test.describe('Audit Log Interface', () => {
   test.describe('Empty State', () => {
     test('shows empty state when no audit log entries exist', async ({ page }) => {
       // Mock API response with empty entries
-      await page.route('**/api/ai-buddy/admin/audit-logs**', (route) => {
+      await page.route('**/api/admin/audit-logs**', (route) => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -554,7 +554,7 @@ test.describe('Audit Log Interface', () => {
   test.describe('Error Handling', () => {
     test('displays error state with retry button on API failure', async ({ page }) => {
       // Mock API failure
-      await page.route('**/api/ai-buddy/admin/audit-logs**', (route) => {
+      await page.route('**/api/admin/audit-logs**', (route) => {
         route.fulfill({
           status: 500,
           contentType: 'application/json',

@@ -1,9 +1,8 @@
 /**
- * AI Buddy Admin Usage Analytics Export API
- * Story 20.3: Usage Analytics Dashboard
+ * Agency Admin Usage Analytics Export API
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/analytics/export)
  *
  * GET - Export usage data as CSV file
- * AC-20.3.6: CSV export with date range
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -37,7 +36,7 @@ function escapeCsvField(value: string | number | null): string {
 }
 
 /**
- * GET /api/ai-buddy/admin/analytics/export
+ * GET /api/admin/analytics/export
  * Export usage data as CSV file
  */
 export async function GET(request: NextRequest) {
@@ -65,9 +64,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check view_usage_analytics permission
+    // Check view_usage_analytics permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -142,10 +141,10 @@ export async function GET(request: NextRequest) {
 
     const csvContent = csvRows.join('\n');
 
-    // Generate filename with agency name and export date (AC-20.3.6)
+    // Generate filename with agency name and export date
     const exportDate = new Date().toISOString().split('T')[0];
     const sanitizedAgencyName = agencyName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    const filename = `${sanitizedAgencyName}_ai_buddy_usage_${exportDate}.csv`;
+    const filename = `${sanitizedAgencyName}_usage_${exportDate}.csv`;
 
     // Return as downloadable CSV
     return new NextResponse(csvContent, {
@@ -157,7 +156,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error in GET /api/ai-buddy/admin/analytics/export:', error);
+    console.error('Error in GET /api/admin/analytics/export:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

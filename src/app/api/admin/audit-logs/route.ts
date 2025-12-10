@@ -1,13 +1,9 @@
 /**
- * AI Buddy Admin Audit Logs API Route
- * Story 20.4: Audit Log Interface
+ * Agency Admin Audit Logs API Route
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/audit-logs)
  *
- * GET /api/ai-buddy/admin/audit-logs - Get agency audit logs with filters
+ * GET /api/admin/audit-logs - Get agency audit logs with filters
  * Admin only - requires view_audit_logs permission.
- *
- * AC-20.4.1: Returns entries for table display
- * AC-20.4.2: Supports filtering by user, date range, keyword, guardrail events
- * AC-20.4.3: Results paginated at 25 per page with total count
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,7 +12,6 @@ import { requireAdminAuth } from '@/lib/auth/admin';
 
 /**
  * Extended audit log entry with joined fields for table display
- * AC-20.4.1: Columns: date/time, user, project, conversation title, message count, guardrail badge
  */
 export interface AuditLogTableEntry {
   id: string;
@@ -36,7 +31,7 @@ export interface AuditLogTableEntry {
 }
 
 /**
- * GET /api/ai-buddy/admin/audit-logs
+ * GET /api/admin/audit-logs
  * Get agency audit logs with filters
  *
  * Query params:
@@ -79,7 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const pageStr = searchParams.get('page');
   const limitStr = searchParams.get('limit');
 
-  // Pagination defaults (AC-20.4.3: 25 per page)
+  // Pagination defaults (25 per page)
   const page = pageStr ? Math.max(1, parseInt(pageStr, 10)) : 1;
   const limit = limitStr ? Math.min(100, Math.max(1, parseInt(limitStr, 10))) : 25;
   const offset = (page - 1) * limit;
@@ -116,13 +111,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const serviceClient = createServiceClient();
 
   try {
-    // First, get unique conversations with their metadata for the agency
-    // We aggregate by conversation to show one row per conversation
-    // AC-20.4.1: Show conversation-level entries with message count and guardrail badge
-
-    // Step 1: Get base audit logs with user info
+    // Get base audit logs with user info from agency_audit_logs
     let query = serviceClient
-      .from('ai_buddy_audit_logs')
+      .from('agency_audit_logs')
       .select(`
         id,
         agency_id,
@@ -212,11 +203,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       }
     }
 
-    // Get guardrail event counts per conversation
+    // Get guardrail event counts per conversation from agency_audit_logs
     let guardrailCountsMap = new Map<string, number>();
     if (conversationIds.length > 0) {
       const { data: guardrailCounts } = await serviceClient
-        .from('ai_buddy_audit_logs')
+        .from('agency_audit_logs')
         .select('conversation_id')
         .eq('agency_id', auth.agencyId)
         .eq('action', 'guardrail_triggered')
@@ -256,7 +247,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
 
     // Apply keyword search filter (client-side for simplicity)
-    // AC-20.4.2: Keyword search
     let filteredEntries = entries;
     if (search && search.trim()) {
       const searchLower = search.toLowerCase().trim();
@@ -289,7 +279,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       error: null,
     });
   } catch (error) {
-    console.error('Error in GET /api/ai-buddy/admin/audit-logs:', error);
+    console.error('Error in GET /api/admin/audit-logs:', error);
     return NextResponse.json(
       { data: null, error: { code: 'AIB_006', message: 'Internal server error' } },
       { status: 500 }

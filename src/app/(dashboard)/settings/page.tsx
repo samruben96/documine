@@ -108,20 +108,23 @@ export default async function SettingsPage() {
   // AC-19.2.3: Check if admin has view_audit_logs permission for enforcement log section
   // AC-20.2.1: Check if admin has manage_users permission for user management section
   // AC-20.3.1: Check if admin has view_usage_analytics permission for usage analytics section
+  // AC-20.5.4: Check if user has transfer_ownership permission for owner management section
   let hasViewAuditLogsPermission = false;
   let hasManageUsersPermission = false;
   let hasViewUsageAnalyticsPermission = false;
+  let hasOwnerPermission = false;
   if (isAdmin) {
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', user.id)
-      .in('permission', ['view_audit_logs', 'manage_users', 'view_usage_analytics']);
+      .in('permission', ['view_audit_logs', 'manage_users', 'view_usage_analytics', 'transfer_ownership']);
 
     if (permissions) {
       hasViewAuditLogsPermission = permissions.some(p => p.permission === 'view_audit_logs');
       hasManageUsersPermission = permissions.some(p => p.permission === 'manage_users');
       hasViewUsageAnalyticsPermission = permissions.some(p => p.permission === 'view_usage_analytics');
+      hasOwnerPermission = permissions.some(p => p.permission === 'transfer_ownership');
     }
   }
 
@@ -184,6 +187,7 @@ export default async function SettingsPage() {
         {/* AC-19.2.3: Pass view_audit_logs permission for enforcement log section */}
         {/* AC-20.2.1: Pass manage_users permission for user management section */}
         {/* AC-20.3.1: Pass view_usage_analytics permission for usage analytics section */}
+        {/* AC-20.5.4: Pass transfer_ownership permission for owner management section */}
         <TabsContent value="ai-buddy">
           <AiBuddyPreferencesTab
             agencyName={userData.agency?.name || undefined}
@@ -191,6 +195,7 @@ export default async function SettingsPage() {
             hasViewAuditLogsPermission={hasViewAuditLogsPermission}
             hasManageUsersPermission={hasManageUsersPermission}
             hasViewUsageAnalyticsPermission={hasViewUsageAnalyticsPermission}
+            hasOwnerPermission={hasOwnerPermission}
           />
         </TabsContent>
       </SettingsTabsWrapper>

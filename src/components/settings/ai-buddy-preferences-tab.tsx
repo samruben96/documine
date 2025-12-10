@@ -42,6 +42,7 @@ import { GuardrailAdminPanel } from '@/components/ai-buddy/admin/guardrail-admin
 import { UserManagementPanel } from '@/components/ai-buddy/admin/user-management-panel';
 import { UsageAnalyticsPanel } from '@/components/ai-buddy/admin/analytics/usage-analytics-panel';
 import { AuditLogPanel } from '@/components/ai-buddy/admin/audit-log/audit-log-panel';
+import { OwnerSettingsPanel } from '@/components/ai-buddy/admin/owner';
 import { useSettings } from '@/contexts/settings-context';
 
 export interface AiBuddyPreferencesTabProps {
@@ -55,6 +56,8 @@ export interface AiBuddyPreferencesTabProps {
   hasManageUsersPermission?: boolean;
   /** Whether the admin has view_usage_analytics permission (AC-20.3.1) */
   hasViewUsageAnalyticsPermission?: boolean;
+  /** Whether the current user has transfer_ownership permission (AC-20.5.4) */
+  hasOwnerPermission?: boolean;
 }
 
 type SubTab = 'personal' | 'admin';
@@ -72,6 +75,7 @@ export function AiBuddyPreferencesTab({
   hasViewAuditLogsPermission = false,
   hasManageUsersPermission = false,
   hasViewUsageAnalyticsPermission = false,
+  hasOwnerPermission = false,
 }: AiBuddyPreferencesTabProps) {
   const { preferences, isLoading, error, updatePreferences, resetPreferences, refetch } = usePreferences();
   const { setIsDirty, setOnSave } = useSettings();
@@ -340,6 +344,9 @@ export function AiBuddyPreferencesTab({
 
             {/* AC-20.4.1 through AC-20.4.10: Audit log interface */}
             <AuditLogPanel hasPermission={hasViewAuditLogsPermission} />
+
+            {/* AC-20.5.1 through AC-20.5.11: Owner management (subscription + transfer) */}
+            <OwnerSettingsPanel hasOwnerPermission={hasOwnerPermission} />
           </div>
         )}
       </div>

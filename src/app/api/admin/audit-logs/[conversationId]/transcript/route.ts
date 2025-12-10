@@ -1,13 +1,9 @@
 /**
- * AI Buddy Admin Audit Logs Transcript API Route
- * Story 20.4: Audit Log Interface
+ * Agency Admin Audit Logs Transcript API Route
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/audit-logs/[conversationId]/transcript)
  *
- * GET /api/ai-buddy/admin/audit-logs/[conversationId]/transcript - Get full conversation transcript
+ * GET /api/admin/audit-logs/[conversationId]/transcript - Get full conversation transcript
  * Admin only - requires view_audit_logs permission.
- *
- * AC-20.4.4: Returns full read-only conversation transcript
- * AC-20.4.5: Messages show role, content, timestamps, source citations, confidence badges
- * AC-20.4.6: Guardrail events highlighted with type and trigger info
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,7 +13,6 @@ import type { Citation, ConfidenceLevel } from '@/types/ai-buddy';
 
 /**
  * Transcript message with full details
- * AC-20.4.5: role, content, timestamps, source citations, confidence badges
  */
 export interface TranscriptMessage {
   id: string;
@@ -30,7 +25,6 @@ export interface TranscriptMessage {
 
 /**
  * Guardrail event for highlighting in transcript
- * AC-20.4.6: type and trigger information
  */
 export interface TranscriptGuardrailEvent {
   id: string;
@@ -59,7 +53,7 @@ export interface TranscriptData {
 }
 
 /**
- * GET /api/ai-buddy/admin/audit-logs/[conversationId]/transcript
+ * GET /api/admin/audit-logs/[conversationId]/transcript
  * Get full conversation transcript with messages and guardrail events
  */
 export async function GET(
@@ -133,9 +127,9 @@ export async function GET(
       );
     }
 
-    // Get guardrail events for this conversation
+    // Get guardrail events for this conversation from agency_audit_logs
     const { data: guardrailLogs, error: guardrailError } = await serviceClient
-      .from('ai_buddy_audit_logs')
+      .from('agency_audit_logs')
       .select('id, metadata, logged_at')
       .eq('conversation_id', conversationId)
       .eq('action', 'guardrail_triggered')
@@ -192,7 +186,7 @@ export async function GET(
       error: null,
     });
   } catch (error) {
-    console.error('Error in GET /api/ai-buddy/admin/audit-logs/[conversationId]/transcript:', error);
+    console.error('Error in GET /api/admin/audit-logs/[conversationId]/transcript:', error);
     return NextResponse.json(
       { data: null, error: { code: 'AIB_006', message: 'Internal server error' } },
       { status: 500 }

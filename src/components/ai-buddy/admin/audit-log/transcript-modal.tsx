@@ -41,7 +41,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TranscriptData, TranscriptMessage, TranscriptGuardrailEvent } from '@/app/api/ai-buddy/admin/audit-logs/[conversationId]/transcript/route';
+import type { TranscriptData, TranscriptMessage, TranscriptGuardrailEvent } from '@/app/api/admin/audit-logs/[conversationId]/transcript/route';
 import type { Citation, ConfidenceLevel } from '@/types/ai-buddy';
 
 export interface TranscriptModalProps {
@@ -267,7 +267,7 @@ export function TranscriptModal({
     setError(null);
 
     try {
-      const response = await fetch(`/api/ai-buddy/admin/audit-logs/${conversationId}/transcript`);
+      const response = await fetch(`/api/admin/audit-logs/${conversationId}/transcript`);
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));

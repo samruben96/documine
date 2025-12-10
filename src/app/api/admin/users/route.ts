@@ -1,10 +1,10 @@
 /**
- * AI Buddy Admin User Management API
- * Story 20.2: Admin User Management
+ * Agency Admin User Management API
+ * Story 21.2: API Route Migration (moved from ai-buddy/admin/users)
  *
- * GET - List users with pagination, sorting, search (AC-20.2.1, AC-20.2.2)
- * POST - Invite new user (AC-20.2.3)
- * DELETE - Remove user access (AC-20.2.5)
+ * GET - List users with pagination, sorting, search
+ * POST - Invite new user
+ * DELETE - Remove user access
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -50,10 +50,8 @@ interface UserListResponse {
 }
 
 /**
- * GET /api/ai-buddy/admin/users
+ * GET /api/admin/users
  * List agency users with pagination, sorting, and search
- * AC-20.2.1: Paginated user list with columns
- * AC-20.2.2: Search by name or email
  */
 export async function GET(request: NextRequest) {
   try {
@@ -86,9 +84,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions table
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -143,7 +141,7 @@ export async function GET(request: NextRequest) {
       .eq('agency_id', currentUser.agency_id)
       .is('removed_at', null);
 
-    // Apply search filter (AC-20.2.2)
+    // Apply search filter
     if (params.search) {
       const searchPattern = `%${params.search}%`;
       usersQuery = usersQuery.or(
@@ -178,10 +176,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch permissions for all users
+    // Fetch permissions for all users from agency_permissions
     const userIds = users?.map((u) => u.id) || [];
     const { data: allPermissions } = await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('user_id, permission')
       .in('user_id', userIds);
 
@@ -193,9 +191,9 @@ export async function GET(request: NextRequest) {
       permissionMap.set(p.user_id, perms);
     });
 
-    // Check onboarding status for each user
+    // Check onboarding status for each user from agency_audit_logs
     const { data: onboardingStatuses } = await serviceClient
-      .from('ai_buddy_audit_logs')
+      .from('agency_audit_logs')
       .select('user_id')
       .in('user_id', userIds)
       .eq('action', 'onboarding_completed');
@@ -239,13 +237,13 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Fetch pending invitations (AC-20.2.4)
+    // Fetch pending invitations from invitations table
     const { data: invitations } = await serviceClient
-      .from('ai_buddy_invitations')
-      .select('id, email, role, invited_by, invited_at, expires_at')
+      .from('invitations')
+      .select('id, email, role, invited_by, created_at, expires_at')
       .eq('agency_id', currentUser.agency_id)
-      .is('accepted_at', null)
-      .is('cancelled_at', null);
+      .eq('status', 'pending')
+      .is('accepted_at', null);
 
     const now = new Date();
     const pendingInvitations: AiBuddyInvitation[] = (invitations || []).map(
@@ -254,7 +252,7 @@ export async function GET(request: NextRequest) {
         email: inv.email,
         role: inv.role as 'producer' | 'admin',
         invitedBy: inv.invited_by,
-        invitedAt: inv.invited_at,
+        invitedAt: inv.created_at,
         expiresAt: inv.expires_at,
         isExpired: new Date(inv.expires_at) < now,
       })
@@ -273,7 +271,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error in GET /api/ai-buddy/admin/users:', error);
+    console.error('Error in GET /api/admin/users:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -287,9 +285,8 @@ interface InviteUserRequest {
 }
 
 /**
- * POST /api/ai-buddy/admin/users
+ * POST /api/admin/users
  * Invite a new user to the agency
- * AC-20.2.3: Invite new user via email
  */
 export async function POST(request: NextRequest) {
   try {
@@ -322,9 +319,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -362,7 +359,7 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceClient();
     const normalizedEmail = body.email.toLowerCase().trim();
 
-    // Check if email already exists in agency (AC-20.2.3 validation)
+    // Check if email already exists in agency
     const { data: existingUser } = await serviceClient
       .from('users')
       .select('id')
@@ -375,9 +372,9 @@ export async function POST(request: NextRequest) {
       return errorResponse('AIB_009');
     }
 
-    // Check for existing pending invitation
+    // Check for existing pending invitation in invitations table
     const { data: existingInvitation } = await serviceClient
-      .from('ai_buddy_invitations')
+      .from('invitations')
       .select('id')
       .eq('agency_id', currentUser.agency_id)
       .eq('email', normalizedEmail)
@@ -394,7 +391,7 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     const { data: invitation, error: insertError } = await serviceClient
-      .from('ai_buddy_invitations')
+      .from('invitations')
       .insert({
         agency_id: currentUser.agency_id,
         email: normalizedEmail,
@@ -430,13 +427,13 @@ export async function POST(request: NextRequest) {
         id: invitation.id,
         email: invitation.email,
         role: invitation.role,
-        invitedAt: invitation.invited_at,
+        invitedAt: invitation.created_at,
         expiresAt: invitation.expires_at,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error in POST /api/ai-buddy/admin/users:', error);
+    console.error('Error in POST /api/admin/users:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -445,9 +442,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/ai-buddy/admin/users
- * Remove a user's AI Buddy access (soft delete)
- * AC-20.2.5: Remove user access
+ * DELETE /api/admin/users
+ * Remove a user's access (soft delete)
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -480,9 +476,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check manage_users permission
+    // Check manage_users permission from agency_permissions
     const { data: permissions } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', authUser.id);
 
@@ -523,9 +519,9 @@ export async function DELETE(request: NextRequest) {
       return errorResponse('AIB_014');
     }
 
-    // Check if target user is owner (cannot remove owner)
+    // Check if target user is owner (cannot remove owner) from agency_permissions
     const { data: targetPermissions } = await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('permission')
       .eq('user_id', userId);
 
@@ -552,9 +548,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Remove all AI Buddy permissions
+    // Remove all permissions from agency_permissions
     await serviceClient
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .delete()
       .eq('user_id', userId);
 
@@ -571,7 +567,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/ai-buddy/admin/users:', error);
+    console.error('Error in DELETE /api/admin/users:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

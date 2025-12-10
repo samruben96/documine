@@ -81,7 +81,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Build query for guardrail_triggered events
   let query = supabase
-    .from('ai_buddy_audit_logs')
+    .from('agency_audit_logs')
     .select('*, users!inner(email)', { count: 'exact' })
     .eq('agency_id', auth.agencyId)
     .eq('action', 'guardrail_triggered')

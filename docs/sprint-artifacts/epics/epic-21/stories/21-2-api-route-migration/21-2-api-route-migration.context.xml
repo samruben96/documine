@@ -1,0 +1,128 @@
+<story-context id="21-2-api-route-migration" v="1.0">
+  <metadata>
+    <epicId>21</epicId>
+    <storyId>2</storyId>
+    <title>API Route Migration</title>
+    <status>Draft</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-21/stories/21-2-api-route-migration/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>agency-wide admin API routes moved from `/api/ai-buddy/admin/` to `/api/admin/`</iWant>
+    <soThat>the API structure reflects that admin functionality serves the entire platform</soThat>
+    <tasks>
+      <task n="1">Create `src/app/api/admin/` directory structure</task>
+      <task n="2">Move `users/` routes, update table references</task>
+      <task n="3">Move `analytics/` routes, update table references</task>
+      <task n="4">Move `audit-logs/` routes, update table references</task>
+      <task n="5">Move `subscription/` route</task>
+      <task n="6">Move `transfer-ownership/` route</task>
+      <task n="7">Update error codes from `AIB_*` to `ADMIN_*` where appropriate</task>
+      <task n="8">Delete moved routes from `/api/ai-buddy/admin/`</task>
+      <task n="9">Update any error handling service references</task>
+      <task n="10">Test all endpoints</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-21.2.1">User Management Routes Moved - routes available at `/api/admin/users/`, reference `agency_permissions` table</criterion>
+    <criterion id="AC-21.2.2">Analytics Routes Moved - routes available at `/api/admin/analytics/`, export and date filtering work</criterion>
+    <criterion id="AC-21.2.3">Audit Log Routes Moved - routes available at `/api/admin/audit-logs/`, reference `agency_audit_logs` table</criterion>
+    <criterion id="AC-21.2.4">Subscription Routes Moved - routes available at `/api/admin/subscription/`</criterion>
+    <criterion id="AC-21.2.5">Transfer Ownership Routes Moved - routes available at `/api/admin/transfer-ownership/`, RPC function works with renamed tables</criterion>
+    <criterion id="AC-21.2.6">Old Routes Removed - `/api/ai-buddy/admin/` routes for agency-wide features deleted; AI Buddy specific routes (guardrails, onboarding-status) remain</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-21/tech-spec/index.md" title="Epic 21 Tech Spec" section="API Routes Migration" snippet="Move agency-wide API routes from /api/ai-buddy/admin/* to /api/admin/*. Keep AI Buddy specific routes in place." />
+      <doc path="docs/sprint-artifacts/epics/epic-21/epic.md" title="Epic 21 Overview" section="Story 21.2" snippet="Move agency-wide routes from `/api/ai-buddy/admin/*` to `/api/admin/*`. Update table references." />
+      <doc path="docs/architecture/api-contracts.md" title="API Contracts" section="Full" snippet="Defines API contract patterns for auth, documents, chat, compare endpoints." />
+      <doc path="docs/architecture/project-structure.md" title="Project Structure" section="Full" snippet="Standard Next.js App Router structure with src/app/api/ for API routes." />
+    </docs>
+    <code>
+      <!-- Routes to MOVE -->
+      <artifact path="src/app/api/ai-buddy/admin/users/route.ts" kind="api-route" symbol="GET, POST, DELETE" lines="1-580" reason="User management route - MOVE to /api/admin/users/. Update ai_buddy_permissions → agency_permissions, ai_buddy_invitations → invitations, ai_buddy_audit_logs → agency_audit_logs" />
+      <artifact path="src/app/api/ai-buddy/admin/users/[userId]/route.ts" kind="api-route" symbol="GET, PATCH, DELETE" reason="Individual user route - MOVE to /api/admin/users/[userId]/" />
+      <artifact path="src/app/api/ai-buddy/admin/analytics/route.ts" kind="api-route" symbol="GET" lines="1-302" reason="Usage analytics route - MOVE to /api/admin/analytics/. Update ai_buddy_permissions, ai_buddy_usage_daily, ai_buddy_conversations" />
+      <artifact path="src/app/api/ai-buddy/admin/analytics/export/route.ts" kind="api-route" symbol="GET" reason="Analytics export - MOVE to /api/admin/analytics/export/" />
+      <artifact path="src/app/api/ai-buddy/admin/audit-logs/route.ts" kind="api-route" symbol="GET" lines="1-298" reason="Audit logs route - MOVE to /api/admin/audit-logs/. Update ai_buddy_audit_logs → agency_audit_logs" />
+      <artifact path="src/app/api/ai-buddy/admin/audit-logs/export/route.ts" kind="api-route" symbol="GET" reason="Audit export - MOVE to /api/admin/audit-logs/export/" />
+      <artifact path="src/app/api/ai-buddy/admin/audit-logs/[conversationId]/transcript/route.ts" kind="api-route" symbol="GET" reason="Transcript route - MOVE to /api/admin/audit-logs/[conversationId]/transcript/" />
+      <artifact path="src/app/api/ai-buddy/admin/subscription/route.ts" kind="api-route" symbol="GET" lines="1-162" reason="Subscription info - MOVE to /api/admin/subscription/. Update ai_buddy_permissions → agency_permissions" />
+      <artifact path="src/app/api/ai-buddy/admin/transfer-ownership/route.ts" kind="api-route" symbol="GET, POST" lines="1-363" reason="Ownership transfer - MOVE to /api/admin/transfer-ownership/. Update ai_buddy_permissions → agency_permissions" />
+      <artifact path="src/app/api/ai-buddy/admin/invitations/[invitationId]/route.ts" kind="api-route" symbol="DELETE" reason="Invitation cancellation - MOVE to /api/admin/invitations/[invitationId]/" />
+
+      <!-- Routes to KEEP (AI Buddy specific) -->
+      <artifact path="src/app/api/ai-buddy/admin/guardrails/route.ts" kind="api-route" symbol="GET, PUT" reason="AI Buddy specific - KEEP in place" />
+      <artifact path="src/app/api/ai-buddy/admin/onboarding-status/route.ts" kind="api-route" symbol="GET" reason="AI Buddy specific - KEEP in place" />
+
+      <!-- Supporting lib files -->
+      <artifact path="src/lib/ai-buddy/errors.ts" kind="lib" symbol="AIB_ERROR_CODES, errorResponse, aiBuddyErrorResponse" lines="1-111" reason="Error codes referenced in routes. Routes will import from this or new /lib/admin/errors.ts" />
+      <artifact path="src/lib/ai-buddy/audit-logger.ts" kind="lib" symbol="logAuditEvent, AuditAction" lines="1-265" reason="Audit logging - inserts to ai_buddy_audit_logs. Will be updated in Story 21.3 to use agency_audit_logs" />
+      <artifact path="src/lib/ai-buddy/date-utils.ts" kind="lib" symbol="getDateRange" reason="Date utilities used by analytics route" />
+      <artifact path="src/lib/auth/admin.ts" kind="lib" symbol="requireAdminAuth" reason="Admin auth helper used by audit-logs route" />
+    </code>
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.7" />
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="zod" version="^4.1.13" />
+        <package name="resend" version="^6.5.2" />
+      </node>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14" />
+        <package name="@playwright/test" version="^1.57.0" />
+        <package name="@testing-library/react" version="^16.3.0" />
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">Database tables were renamed in Story 21.1: ai_buddy_permissions → agency_permissions, ai_buddy_audit_logs → agency_audit_logs</constraint>
+    <constraint source="tech-spec">AI Buddy specific routes (guardrails, onboarding-status) MUST remain at /api/ai-buddy/admin/</constraint>
+    <constraint source="tech-spec">AI Buddy specific tables (ai_buddy_conversations, ai_buddy_messages, ai_buddy_projects, ai_buddy_guardrails) remain unchanged</constraint>
+    <constraint source="architecture">All API routes use Next.js App Router conventions</constraint>
+    <constraint source="architecture">Use createClient() for user-scoped queries, createServiceClient() for cross-user queries</constraint>
+    <constraint source="architecture">TypeScript strict mode required</constraint>
+    <constraint source="dev-notes">Story 21.3 depends on this story completing - routes must be functional before component migration</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/admin/users" kind="REST endpoint" signature="GET /api/admin/users?page=1&pageSize=20&sortColumn=name&sortDirection=asc&search=" path="src/app/api/admin/users/route.ts" />
+    <interface name="POST /api/admin/users" kind="REST endpoint" signature="POST /api/admin/users { email: string, role: 'producer' | 'admin' }" path="src/app/api/admin/users/route.ts" />
+    <interface name="DELETE /api/admin/users" kind="REST endpoint" signature="DELETE /api/admin/users?userId=uuid" path="src/app/api/admin/users/route.ts" />
+    <interface name="GET /api/admin/analytics" kind="REST endpoint" signature="GET /api/admin/analytics?period=30days&startDate=&endDate=" path="src/app/api/admin/analytics/route.ts" />
+    <interface name="GET /api/admin/analytics/export" kind="REST endpoint" signature="GET /api/admin/analytics/export?format=csv&period=30days" path="src/app/api/admin/analytics/export/route.ts" />
+    <interface name="GET /api/admin/audit-logs" kind="REST endpoint" signature="GET /api/admin/audit-logs?userId=&startDate=&endDate=&search=&hasGuardrailEvents=&page=1&limit=25" path="src/app/api/admin/audit-logs/route.ts" />
+    <interface name="GET /api/admin/audit-logs/export" kind="REST endpoint" signature="GET /api/admin/audit-logs/export?format=csv&startDate=&endDate=" path="src/app/api/admin/audit-logs/export/route.ts" />
+    <interface name="GET /api/admin/subscription" kind="REST endpoint" signature="GET /api/admin/subscription" path="src/app/api/admin/subscription/route.ts" />
+    <interface name="GET /api/admin/transfer-ownership" kind="REST endpoint" signature="GET /api/admin/transfer-ownership" path="src/app/api/admin/transfer-ownership/route.ts" />
+    <interface name="POST /api/admin/transfer-ownership" kind="REST endpoint" signature="POST /api/admin/transfer-ownership { newOwnerId: string, confirmPassword: string }" path="src/app/api/admin/transfer-ownership/route.ts" />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with happy-dom. E2E tests use Playwright. Test files follow __tests__/ structure mirroring src/.
+      API routes tested via integration tests or E2E tests hitting actual endpoints.
+      Mock Supabase client for unit tests, use test database for E2E.
+    </standards>
+    <locations>
+      <location>__tests__/e2e/admin/ (new location after migration)</location>
+      <location>Manual API testing via curl or Postman</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-21.2.1">Test GET /api/admin/users returns users with agency_permissions lookup</idea>
+      <idea ac="AC-21.2.1">Test POST /api/admin/users creates invitation, logs to agency_audit_logs</idea>
+      <idea ac="AC-21.2.2">Test GET /api/admin/analytics returns usage data</idea>
+      <idea ac="AC-21.2.3">Test GET /api/admin/audit-logs queries agency_audit_logs table</idea>
+      <idea ac="AC-21.2.4">Test GET /api/admin/subscription returns subscription info</idea>
+      <idea ac="AC-21.2.5">Test POST /api/admin/transfer-ownership executes RPC and logs</idea>
+      <idea ac="AC-21.2.6">Test old routes at /api/ai-buddy/admin/users return 404</idea>
+      <idea ac="AC-21.2.6">Test AI Buddy routes still work at /api/ai-buddy/admin/guardrails</idea>
+    </ideas>
+  </tests>
+</story-context>

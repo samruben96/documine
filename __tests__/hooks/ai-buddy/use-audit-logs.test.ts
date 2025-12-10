@@ -17,7 +17,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAuditLogs } from '@/hooks/ai-buddy/use-audit-logs';
-import type { AuditLogTableEntry } from '@/app/api/ai-buddy/admin/audit-logs/route';
+import type { AuditLogTableEntry } from '@/app/api/admin/audit-logs/route';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -80,7 +80,7 @@ describe('useAuditLogs', () => {
 
       expect(mockFetch).toHaveBeenCalled();
       const callArg = mockFetch.mock.calls[0][0];
-      expect(callArg).toContain('/api/ai-buddy/admin/audit-logs');
+      expect(callArg).toContain('/api/admin/audit-logs');
     });
 
     it('populates logs after fetch', async () => {
@@ -299,7 +299,7 @@ describe('useAuditLogs', () => {
       const transcript = await result.current.fetchTranscript('conv-1');
 
       expect(mockFetch).toHaveBeenLastCalledWith(
-        '/api/ai-buddy/admin/audit-logs/conv-1/transcript'
+        '/api/admin/audit-logs/conv-1/transcript'
       );
       expect(transcript).toHaveProperty('conversation');
     });
@@ -347,7 +347,7 @@ describe('useAuditLogs', () => {
       const url = await result.current.exportLogs('csv');
 
       expect(mockFetch).toHaveBeenLastCalledWith(
-        '/api/ai-buddy/admin/audit-logs/export',
+        '/api/admin/audit-logs/export',
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"format":"csv"'),
@@ -376,7 +376,7 @@ describe('useAuditLogs', () => {
       const dataStr = await result.current.exportLogs('pdf');
 
       expect(mockFetch).toHaveBeenLastCalledWith(
-        '/api/ai-buddy/admin/audit-logs/export',
+        '/api/admin/audit-logs/export',
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('"format":"pdf"'),
@@ -405,7 +405,7 @@ describe('useAuditLogs', () => {
       await result.current.exportLogs('pdf', true);
 
       expect(mockFetch).toHaveBeenLastCalledWith(
-        '/api/ai-buddy/admin/audit-logs/export',
+        '/api/admin/audit-logs/export',
         expect.objectContaining({
           body: expect.stringContaining('"includeTranscripts":true'),
         })

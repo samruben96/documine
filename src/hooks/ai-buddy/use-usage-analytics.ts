@@ -124,7 +124,7 @@ export function useUsageAnalytics(
         params.set('endDate', dateRange.endDate.toISOString());
       }
 
-      const response = await fetch(`/api/ai-buddy/admin/analytics?${params}`);
+      const response = await fetch(`/api/admin/analytics?${params}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -162,7 +162,7 @@ export function useUsageAnalytics(
         params.set('endDate', dateRange.endDate.toISOString());
       }
 
-      const response = await fetch(`/api/ai-buddy/admin/analytics/export?${params}`);
+      const response = await fetch(`/api/admin/analytics/export?${params}`);
 
       if (!response.ok) {
         const errorData = await response.json();

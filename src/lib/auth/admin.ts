@@ -104,7 +104,7 @@ export async function requireAdminAuth(
   // Step 4: Check specific permission if required
   if (requiredPermission) {
     const { data: permission, error: permissionError } = await supabase
-      .from('ai_buddy_permissions')
+      .from('agency_permissions')
       .select('id')
       .eq('user_id', user.id)
       .eq('permission', requiredPermission)

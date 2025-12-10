@@ -30,7 +30,9 @@ export type AuditAction =
   | 'user_invited'
   | 'user_removed'
   | 'permission_granted'
-  | 'permission_revoked';
+  | 'permission_revoked'
+  | 'ownership_transferred'
+  | 'ownership_transfer_failed';
 
 export interface AuditLogInput {
   agencyId: string;
@@ -57,7 +59,7 @@ export async function logAuditEvent(input: AuditLogInput): Promise<void> {
       ? JSON.parse(JSON.stringify(input.metadata))
       : {};
 
-    const { error } = await supabase.from('ai_buddy_audit_logs').insert({
+    const { error } = await supabase.from('agency_audit_logs').insert({
       agency_id: input.agencyId,
       user_id: input.userId,
       conversation_id: input.conversationId ?? null,
@@ -156,7 +158,7 @@ export async function queryAuditLogs(params: {
   const supabase = await createClient();
 
   let query = supabase
-    .from('ai_buddy_audit_logs')
+    .from('agency_audit_logs')
     .select('*, users!inner(email)', { count: 'exact' })
     .eq('agency_id', params.agencyId)
     .order('logged_at', { ascending: false });

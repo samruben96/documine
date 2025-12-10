@@ -36,6 +36,11 @@ export const AIB_ERROR_CODES = {
   AIB_013: { status: 403, message: 'Cannot change owner role' },
   AIB_014: { status: 404, message: 'User not found in agency' },
   AIB_015: { status: 404, message: 'Invitation not found' },
+  // Ownership transfer error codes (Story 20.5)
+  AIB_016: { status: 400, message: 'No admins available for ownership transfer' },
+  AIB_017: { status: 403, message: 'Invalid password' },
+  AIB_018: { status: 400, message: 'Target user is not an admin' },
+  AIB_019: { status: 403, message: 'Only owner can transfer ownership' },
 } as const;
 
 export type AiBuddyErrorCode = keyof typeof AIB_ERROR_CODES;

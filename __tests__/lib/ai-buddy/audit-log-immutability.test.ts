@@ -58,7 +58,7 @@ describe('Audit Log INSERT Operations (AC-20.1.1)', () => {
 
     await logAuditEvent(input);
 
-    expect(mockSupabase.from).toHaveBeenCalledWith('ai_buddy_audit_logs');
+    expect(mockSupabase.from).toHaveBeenCalledWith('agency_audit_logs');
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         agency_id: 'test-agency-123',
@@ -338,7 +338,7 @@ describe('Immutability Enforcement Documentation (AC-20.1.2)', () => {
       trigger_timing: 'BEFORE',
       trigger_events: ['UPDATE', 'DELETE'],
       error_message: 'Audit logs are immutable - modifications not allowed',
-      applies_to: 'ai_buddy_audit_logs',
+      applies_to: 'agency_audit_logs',
       even_service_role_blocked: true,
     };
 

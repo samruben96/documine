@@ -20,7 +20,7 @@ import { ExportButton } from './export-button';
 import { useAuditLogs } from '@/hooks/ai-buddy/use-audit-logs';
 import { pdf } from '@react-pdf/renderer';
 import { AuditLogPdfDocument } from '@/lib/ai-buddy/admin/pdf-export-template';
-import type { AuditLogTableEntry } from '@/app/api/ai-buddy/admin/audit-logs/route';
+import type { AuditLogTableEntry } from '@/app/api/admin/audit-logs/route';
 
 export interface AuditLogPanelProps {
   /** Whether the user has view_audit_logs permission */
@@ -128,7 +128,7 @@ export function AuditLogPanel({
     const fetchUsers = async () => {
       setUsersLoading(true);
       try {
-        const response = await fetch('/api/ai-buddy/admin/users');
+        const response = await fetch('/api/admin/users');
         if (response.ok) {
           const data = await response.json();
           if (data.data?.users) {
@@ -179,7 +179,7 @@ export function AuditLogPanel({
       if (filters.search) params.set('search', filters.search);
       if (filters.hasGuardrailEvents) params.set('hasGuardrailEvents', 'true');
 
-      const response = await fetch('/api/ai-buddy/admin/audit-logs/export', {
+      const response = await fetch('/api/admin/audit-logs/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ export function AuditLogPanel({
   const handlePdfExport = useCallback(async (includeTranscripts: boolean) => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/ai-buddy/admin/audit-logs/export', {
+      const response = await fetch('/api/admin/audit-logs/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

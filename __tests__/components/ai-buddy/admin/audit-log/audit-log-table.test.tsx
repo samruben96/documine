@@ -14,7 +14,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AuditLogTable } from '@/components/ai-buddy/admin/audit-log/audit-log-table';
-import type { AuditLogTableEntry } from '@/app/api/ai-buddy/admin/audit-logs/route';
+import type { AuditLogTableEntry } from '@/app/api/admin/audit-logs/route';
 
 // Mock entry data
 const createMockEntry = (overrides: Partial<AuditLogTableEntry> = {}): AuditLogTableEntry => ({

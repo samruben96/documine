@@ -78,7 +78,7 @@ describe('useUsageAnalytics', () => {
       // Check that fetch was called with the analytics URL
       expect(mockFetch).toHaveBeenCalled();
       const callArg = mockFetch.mock.calls[0][0];
-      expect(callArg).toContain('/api/ai-buddy/admin/analytics');
+      expect(callArg).toContain('/api/admin/analytics');
     });
 
     it('populates summary data after fetch', async () => {

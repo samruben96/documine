@@ -1,0 +1,235 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>20</epicId>
+    <storyId>5</storyId>
+    <title>Owner Management</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-20/stories/20-5-owner-management/story-20.5-owner-management.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>agency owner</asA>
+    <iWant>to view my subscription plan details and transfer ownership to another admin</iWant>
+    <soThat>I can manage agency leadership transitions and understand my plan tier without needing external tools</soThat>
+    <tasks>
+      <task id="1" name="API Route - Get Agency Subscription">
+        <subtask>Create src/app/api/ai-buddy/admin/subscription/route.ts</subtask>
+        <subtask>Return plan name, billing cycle, seats used/max from agencies table</subtask>
+        <subtask>For owner: return full subscription details</subtask>
+        <subtask>For non-owner admin: return owner email only</subtask>
+        <subtask>For non-admin: return 403</subtask>
+      </task>
+      <task id="2" name="API Route - Transfer Ownership">
+        <subtask>Create src/app/api/ai-buddy/admin/transfer-ownership/route.ts</subtask>
+        <subtask>POST accepts: newOwnerId, confirmPassword</subtask>
+        <subtask>Verify current user is owner</subtask>
+        <subtask>Verify password via Supabase Auth re-authentication</subtask>
+        <subtask>Verify target user is admin</subtask>
+        <subtask>Execute atomic transaction (remove owner permission, grant to new user, demote current to admin)</subtask>
+        <subtask>Log ownership_transferred to audit trail</subtask>
+        <subtask>Trigger email notifications (both parties)</subtask>
+      </task>
+      <task id="3" name="Subscription Panel Component">
+        <subtask>Create src/components/ai-buddy/admin/owner/subscription-panel.tsx</subtask>
+        <subtask>Display plan card with: plan name, billing cycle, seat usage bar</subtask>
+        <subtask>Show "Contact Archway Computer for billing" message with mailto link</subtask>
+        <subtask>Non-owner view shows owner contact message</subtask>
+        <subtask>Loading skeleton state</subtask>
+      </task>
+      <task id="4" name="Transfer Ownership Dialog">
+        <subtask>Create src/components/ai-buddy/admin/owner/transfer-ownership-dialog.tsx</subtask>
+        <subtask>Admin list dropdown (filtered from user management)</subtask>
+        <subtask>Password input for confirmation</subtask>
+        <subtask>Warning text explaining consequences</subtask>
+        <subtask>Empty state when no admins available</subtask>
+        <subtask>Loading state during transfer</subtask>
+        <subtask>Success confirmation with redirect countdown</subtask>
+      </task>
+      <task id="5" name="Owner Settings Hook">
+        <subtask>Create src/hooks/ai-buddy/use-owner-settings.ts</subtask>
+        <subtask>Fetch subscription info</subtask>
+        <subtask>Fetch admin list for transfer</subtask>
+        <subtask>Execute transfer mutation</subtask>
+        <subtask>Handle loading/error/success states</subtask>
+      </task>
+      <task id="6" name="Integrate into Settings Page">
+        <subtask>Add Owner tab/section to Agency Settings (owner-only)</subtask>
+        <subtask>Add Subscription card to existing admin section (all admins)</subtask>
+        <subtask>Ensure permission checks at component level</subtask>
+      </task>
+      <task id="7" name="Email Notifications">
+        <subtask>Create email template for old owner: "Ownership transferred to {new_owner}"</subtask>
+        <subtask>Create email template for new owner: "You are now the owner of {agency_name}"</subtask>
+        <subtask>Send via Supabase Auth email or Resend</subtask>
+      </task>
+      <task id="8" name="Unit Tests">
+        <subtask>Create __tests__/components/ai-buddy/admin/owner/subscription-panel.test.tsx</subtask>
+        <subtask>Create __tests__/components/ai-buddy/admin/owner/transfer-ownership-dialog.test.tsx</subtask>
+        <subtask>Create __tests__/hooks/ai-buddy/use-owner-settings.test.ts</subtask>
+      </task>
+      <task id="9" name="E2E Tests">
+        <subtask>Create __tests__/e2e/ai-buddy/admin/owner-management.spec.ts</subtask>
+        <subtask>Test: Owner sees subscription panel</subtask>
+        <subtask>Test: Non-owner admin sees contact owner message</subtask>
+        <subtask>Test: Transfer flow - success path</subtask>
+        <subtask>Test: Transfer fails with wrong password</subtask>
+        <subtask>Test: Transfer blocked when no other admins</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="20.5.1">Given an owner accesses the Agency Settings page, When they view the Subscription section, Then they see: current plan name (e.g., "Professional"), billing cycle (monthly/annual), and seat allocation (used/max).</ac>
+    <ac id="20.5.2">Given an owner views the Subscription section, When they want to manage billing, Then they see a clear message: "For billing inquiries, plan changes, or payment questions, contact Archway Computer" with contact information or email link.</ac>
+    <ac id="20.5.3">Given a non-owner admin accesses Agency Settings, When they view the Subscription section, Then they see: "Contact agency owner ({owner_email}) for subscription information."</ac>
+    <ac id="20.5.4">Given an owner is in Agency Settings, When they view the Ownership section, Then they see a "Transfer Ownership" option.</ac>
+    <ac id="20.5.5">Given an owner initiates ownership transfer, When the transfer dialog opens, Then they see a list of current admins only (producers and non-admins excluded).</ac>
+    <ac id="20.5.6">Given an owner selects a transfer target, When they proceed, Then they must re-enter their password to confirm the transfer.</ac>
+    <ac id="20.5.7">Given a valid password is entered, When the transfer completes, Then: new owner receives owner permissions, old owner is demoted to admin role.</ac>
+    <ac id="20.5.8">Given a successful ownership transfer, When the transfer completes, Then both the old owner and new owner receive email notifications.</ac>
+    <ac id="20.5.9">Given any ownership transfer attempt (success or failure), When the action occurs, Then it is logged to the audit trail with both user IDs and outcome.</ac>
+    <ac id="20.5.10">Given an owner attempts transfer but no other admins exist, When they open the transfer dialog, Then they see: "Promote a user to admin first before transferring ownership."</ac>
+    <ac id="20.5.11">Given an ownership transfer is in progress, When any step fails, Then the entire transfer is rolled back - no partial transfers.</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/tech-spec-epic-20.md" title="Epic 20 Tech Spec" section="Story 20.5: Owner Management">
+        Contains API contracts for /api/ai-buddy/admin/billing, /api/ai-buddy/admin/transfer-ownership. Defines ACs 20.5.1-20.5.15 (original), TypeScript interfaces AdminUser, atomic transfer flow, error codes AIB_014/AIB_015/AIB_016.
+      </doc>
+      <doc path="docs/features/ai-buddy/prd.md" title="AI Buddy PRD" section="FR48-FR49">
+        FR48: Owners can manage billing and subscription settings. FR49: Owners can transfer ownership to another Admin. Permissions: Owner role has manage_billing, transfer_ownership, delete_agency permissions.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-20/epic.md" title="Epic 20 Overview" section="20.5">
+        Epic goal: Principals have full visibility and control. Story 20.5 delivers subscription display (simplified - no Stripe) and ownership transfer with atomic transaction.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Permissions Model">
+        Owner role extends Admin with: manage_billing, transfer_ownership, delete_agency. Follows Verify-Then-Service pattern for mutations.
+      </doc>
+    </docs>
+    <code>
+      <file path="src/components/settings/ai-buddy-preferences-tab.tsx" kind="component" symbol="AiBuddyPreferencesTab" reason="MODIFY: Add owner section to admin sub-tab. Currently has: OnboardingStatusSection, GuardrailAdminPanel, UserManagementPanel, UsageAnalyticsPanel, AuditLogPanel. Add SubscriptionPanel and TransferOwnershipDialog.">
+        <lines>311-343</lines>
+      </file>
+      <file path="src/hooks/ai-buddy/use-user-management.ts" kind="hook" symbol="useUserManagement" reason="REFERENCE: Pattern for admin data fetching, pagination, and mutations. Use similar patterns for use-owner-settings.ts.">
+        <lines>1-275</lines>
+      </file>
+      <file path="src/app/api/ai-buddy/admin/users/[userId]/route.ts" kind="api-route" symbol="PATCH" reason="REFERENCE: Permission checking pattern (manage_users check), service client usage, audit logging with logAuditEvent, error handling with AIB_ERROR_CODES.">
+        <lines>50-242</lines>
+      </file>
+      <file path="src/lib/ai-buddy/errors.ts" kind="utility" symbol="AIB_ERROR_CODES" reason="MODIFY: Add error codes AIB_016 (no admins for transfer), extend existing AIB_014 (invalid password), AIB_015 (target not admin).">
+        <lines>15-39</lines>
+      </file>
+      <file path="src/lib/ai-buddy/audit-logger.ts" kind="service" symbol="logAuditEvent" reason="USE: Log ownership_transferred action with metadata containing both user IDs.">
+        <lines>1-100</lines>
+      </file>
+      <file path="src/types/ai-buddy.ts" kind="types" symbol="Permission, UserRole, AdminUser, DEFAULT_PERMISSIONS" reason="REFERENCE: Permission types include manage_billing, transfer_ownership. UserRole includes owner. AdminUser has isOwner field.">
+        <lines>13-83</lines>
+      </file>
+      <file path="src/components/ai-buddy/admin/user-management-panel.tsx" kind="component" symbol="UserManagementPanel" reason="REFERENCE: Panel component pattern with permission gating, loading states, empty states. Use similar patterns for SubscriptionPanel.">
+        <lines>1-200</lines>
+      </file>
+      <file path="supabase/migrations/00001_initial_schema.sql" kind="schema" symbol="agencies" reason="REFERENCE: agencies table has subscription_tier (TEXT), seat_limit (INTEGER). May need to add billing_cycle column if not present.">
+        <lines>17-24</lines>
+      </file>
+      <file path="supabase/migrations/20251207000000_ai_buddy_foundation.sql" kind="schema" symbol="ai_buddy_permissions" reason="REFERENCE: Permission enum and table. Owner permissions: transfer_ownership, delete_agency are owner-exclusive.">
+        <lines>136-149</lines>
+      </file>
+      <file path="supabase/migrations/20251210000000_admin_user_management.sql" kind="migration" symbol="manage_billing permission" reason="REFERENCE: Added manage_billing to permission enum. Need to add transfer_ownership permission if not present.">
+        <lines>104-126</lines>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.x">Database queries, Auth re-authentication for password confirmation</package>
+        <package name="react" version="^18.x">Component framework</package>
+        <package name="sonner" version="^1.x">Toast notifications for success/error feedback</package>
+        <package name="lucide-react" version="^0.x">Icons (Shield, Crown, AlertTriangle)</package>
+      </node>
+      <shadcn>
+        <component name="Card">Subscription info display</component>
+        <component name="Dialog">Transfer ownership confirmation</component>
+        <component name="AlertDialog">Destructive action confirmation</component>
+        <component name="Select">Admin selection dropdown</component>
+        <component name="Input">Password input</component>
+        <component name="Button">Action buttons</component>
+        <component name="Skeleton">Loading states</component>
+        <component name="Progress">Seat usage bar</component>
+        <component name="Alert">Warning/info messages</component>
+      </shadcn>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="business">BILLING SIMPLIFICATION: All billing handled manually via Archway Computer invoices. No Stripe integration. Plan information is read-only display only.</constraint>
+    <constraint type="business">BILLING CONTACT: Use billing@archwaycomputer.com for billing inquiries.</constraint>
+    <constraint type="security">Owner transfer requires password re-authentication via Supabase Auth verifyPassword or signInWithPassword.</constraint>
+    <constraint type="security">Transfer must be atomic - use database transaction or RPC function to prevent partial transfers.</constraint>
+    <constraint type="data">Audit log entry must include: action=ownership_transferred, metadata with currentOwnerId, newOwnerId, outcome (success/failure).</constraint>
+    <constraint type="permission">Only users with transfer_ownership permission can access transfer functionality.</constraint>
+    <constraint type="permission">Only users with manage_billing permission can view full subscription details.</constraint>
+    <constraint type="pattern">Follow Verify-Then-Service RLS pattern: verify permissions at API level, use service client for mutations.</constraint>
+    <constraint type="error">Use consistent AIB_XXX error codes from src/lib/ai-buddy/errors.ts.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/ai-buddy/admin/subscription" kind="REST endpoint" path="src/app/api/ai-buddy/admin/subscription/route.ts">
+      <signature>
+        Response for owner: { plan: string, billingCycle: 'monthly' | 'annual', seatsUsed: number, maxSeats: number, billingContact: string }
+        Response for non-owner admin: { ownerEmail: string, message: 'Contact agency owner for subscription information' }
+        Errors: 401 (unauthenticated), 403 (non-admin)
+      </signature>
+    </interface>
+    <interface name="POST /api/ai-buddy/admin/transfer-ownership" kind="REST endpoint" path="src/app/api/ai-buddy/admin/transfer-ownership/route.ts">
+      <signature>
+        Request: { newOwnerId: string, confirmPassword: string }
+        Response: { transferred: true, newOwner: { id, email, name }, oldOwner: { id, email, name } }
+        Errors: AIB_001 (unauthenticated), AIB_002 (not owner), AIB_014 (invalid password), AIB_015 (target not admin), AIB_016 (no admins available)
+      </signature>
+    </interface>
+    <interface name="transfer_ownership RPC" kind="Supabase RPC function" path="supabase/migrations/YYYYMMDD_transfer_ownership.sql">
+      <signature>
+        CREATE OR REPLACE FUNCTION transfer_ownership(current_owner_id uuid, new_owner_id uuid, agency_id uuid) RETURNS void
+        Atomic transaction: removes owner permissions from current, grants to new, ensures old owner keeps admin permissions.
+        SECURITY DEFINER for bypassing RLS during atomic operation.
+      </signature>
+    </interface>
+    <interface name="useOwnerSettings" kind="React hook" path="src/hooks/ai-buddy/use-owner-settings.ts">
+      <signature>
+        Returns: { subscription, isLoading, error, admins, transferOwnership: (newOwnerId, password) => Promise }
+        subscription: { plan, billingCycle, seatsUsed, maxSeats } | { ownerEmail, isOwner: false }
+      </signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest + React Testing Library for unit tests. Playwright for E2E. Target 80%+ coverage.
+      Mock Supabase client for API route tests. Test atomic transfer using database transaction rollback.
+      E2E tests use authenticated fixtures with owner/admin/producer roles.
+    </standards>
+    <locations>
+      <location pattern="__tests__/components/ai-buddy/admin/owner/*.test.tsx">Component unit tests</location>
+      <location pattern="__tests__/hooks/ai-buddy/use-owner-settings.test.ts">Hook unit tests</location>
+      <location pattern="__tests__/e2e/ai-buddy/admin/owner-management.spec.ts">E2E tests</location>
+    </locations>
+    <ideas>
+      <test ac="20.5.1">SubscriptionPanel renders plan name, billing cycle, seats for owner</test>
+      <test ac="20.5.2">SubscriptionPanel shows Archway Computer contact info</test>
+      <test ac="20.5.3">SubscriptionPanel shows "contact owner" message for non-owner admin</test>
+      <test ac="20.5.4">TransferOwnershipDialog renders for owner</test>
+      <test ac="20.5.5">TransferOwnershipDialog only lists users with admin role, excludes producers</test>
+      <test ac="20.5.6">TransferOwnershipDialog requires password input before submit enabled</test>
+      <test ac="20.5.7">API: transfer_ownership updates permissions correctly - new owner gets owner perms, old owner demoted</test>
+      <test ac="20.5.8">API: transfer_ownership sends emails to both parties (mock email service)</test>
+      <test ac="20.5.9">API: transfer_ownership logs audit event with both user IDs</test>
+      <test ac="20.5.10">TransferOwnershipDialog shows "promote admin first" when no admins available</test>
+      <test ac="20.5.11">API: transfer_ownership rollback on partial failure - test with simulated DB error mid-transaction</test>
+      <test>E2E: Owner can view subscription panel and transfer ownership</test>
+      <test>E2E: Admin cannot see transfer ownership option</test>
+      <test>E2E: Producer cannot access owner management section</test>
+    </ideas>
+  </tests>
+</story-context>
