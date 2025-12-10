@@ -309,10 +309,23 @@ development_status:
   23-3-prompt-input-ui: done
   # Story 23.4: AI Report Generation (8 pts)
   # Generate insights, summaries, chart configs from data + prompt
-  23-4-ai-report-generation: backlog
+  # DONE 2025-12-10: All 8 tasks complete, 62+ unit tests, E2E tests
+  # - API: /api/reporting/generate with SSE streaming
+  # - Service: ReportGeneratorService with prompt building and validation
+  # - Hook: useReportGeneration with streaming state management
+  # - Component: ReportView with insights, charts, data table placeholders
+  # - Page: ReportingPage updated with generating/report states
+  # - Progress: Real-time SSE progress events (analyzing → generating → charting)
+  23-4-ai-report-generation: done
   # Story 23.5: Charts & Visualization (5 pts)
   # Recharts integration for bar/line/pie/area charts
-  23-5-charts-visualization: backlog
+  # DONE 2025-12-10: All 11 tasks complete, 35 unit tests
+  # - Component: ReportChart supporting bar/line/pie/area types
+  # - Multi-series: yKey accepts string or string[] for grouped/stacked charts
+  # - Accessibility: role="img" and aria-label on all chart containers
+  # - Error handling: Graceful fallback for empty/invalid data
+  # - Integration: Replaced ChartPlaceholder in ReportView
+  23-5-charts-visualization: done
   # Story 23.6: Interactive Data Table (3 pts)
   # Sortable, filterable table with pagination
   23-6-interactive-data-table: backlog

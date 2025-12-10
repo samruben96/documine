@@ -1,0 +1,234 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>5</storyId>
+    <title>Charts & Visualization</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-5-charts-visualization/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>interactive charts that visualize my data based on AI recommendations</iWant>
+    <soThat>I can quickly identify trends, patterns, and anomalies in my data without manual chart creation</soThat>
+    <tasks>
+      <task id="1" title="Create ReportChart Component" acs="1,2,3">
+        <subtask>Create src/components/reporting/report-chart.tsx</subtask>
+        <subtask>Implement chart type switch (bar, line, pie, area)</subtask>
+        <subtask>Map ChartConfig data to Recharts format</subtask>
+        <subtask>Add ResponsiveContainer wrapper for fluid sizing</subtask>
+        <subtask>Configure consistent color palette using shadcn/ui design tokens</subtask>
+      </task>
+      <task id="2" title="Implement Bar Chart" acs="1,2,3">
+        <subtask>Import BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend from Recharts</subtask>
+        <subtask>Support single-series and multi-series (yKey as string or string[])</subtask>
+        <subtask>Add hover tooltip with formatted values</subtask>
+        <subtask>Configure axis labels from ChartConfig xKey/yKey</subtask>
+      </task>
+      <task id="3" title="Implement Line Chart" acs="1,2,3">
+        <subtask>Import LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend from Recharts</subtask>
+        <subtask>Support single-line and multi-line charts</subtask>
+        <subtask>Add dot markers on data points</subtask>
+        <subtask>Configure smooth curves (type="monotone")</subtask>
+      </task>
+      <task id="4" title="Implement Pie Chart" acs="1,2,3">
+        <subtask>Import PieChart, Pie, Cell, Tooltip, Legend from Recharts</subtask>
+        <subtask>Map data to pie segments with value-based sizing</subtask>
+        <subtask>Add labels showing percentage or value</subtask>
+        <subtask>Configure color palette for segments</subtask>
+      </task>
+      <task id="5" title="Implement Area Chart" acs="1,2,3">
+        <subtask>Import AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend from Recharts</subtask>
+        <subtask>Support stacked area charts for multi-series</subtask>
+        <subtask>Configure gradient fills for visual appeal</subtask>
+        <subtask>Add hover interactions</subtask>
+      </task>
+      <task id="6" title="Replace ChartPlaceholder in ReportView" acs="4,5">
+        <subtask>Update src/components/reporting/report-view.tsx</subtask>
+        <subtask>Replace ChartPlaceholder with ReportChart component</subtask>
+        <subtask>Maintain responsive grid layout (md:grid-cols-2)</subtask>
+        <subtask>Pass chart config directly to ReportChart</subtask>
+      </task>
+      <task id="7" title="Mobile Responsiveness" acs="5">
+        <subtask>Test charts at various breakpoints (320px, 375px, 768px, 1024px)</subtask>
+        <subtask>Ensure ResponsiveContainer adapts to container width</subtask>
+        <subtask>Verify legend doesn't overflow on small screens</subtask>
+        <subtask>Consider hiding/simplifying axis labels on mobile</subtask>
+      </task>
+      <task id="8" title="Accessibility" acs="6">
+        <subtask>Add role="img" to chart containers</subtask>
+        <subtask>Add aria-label describing chart content</subtask>
+        <subtask>Ensure tooltips are keyboard accessible (focus trap)</subtask>
+        <subtask>Test with screen reader (VoiceOver/NVDA)</subtask>
+      </task>
+      <task id="9" title="Error Handling and Fallback" acs="7">
+        <subtask>Handle empty data array gracefully</subtask>
+        <subtask>Handle invalid/missing xKey or yKey</subtask>
+        <subtask>Display fallback message when chart cannot render</subtask>
+        <subtask>Log chart rendering errors to console for debugging</subtask>
+      </task>
+      <task id="10" title="Unit Tests" acs="1-7">
+        <subtask>Create __tests__/components/reporting/report-chart.test.tsx</subtask>
+        <subtask>Test each chart type renders correctly</subtask>
+        <subtask>Test multi-series data handling</subtask>
+        <subtask>Test empty/invalid data fallback</subtask>
+        <subtask>Test accessibility attributes present</subtask>
+        <subtask>Test responsive container behavior</subtask>
+      </task>
+      <task id="11" title="E2E Tests" acs="1,3,4">
+        <subtask>Update __tests__/e2e/report-generation.spec.ts</subtask>
+        <subtask>Verify charts render after report generation</subtask>
+        <subtask>Test hover interaction shows tooltip</subtask>
+        <subtask>Test multiple charts display in grid</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.5.1">AI-recommended chart types are rendered correctly (bar, line, pie, area)</criterion>
+    <criterion id="AC-23.5.2">Charts are implemented using Recharts library with proper data binding</criterion>
+    <criterion id="AC-23.5.3">Charts are interactive with hover tooltips showing data values</criterion>
+    <criterion id="AC-23.5.4">Multiple charts (2-4) can be displayed in a responsive grid layout</criterion>
+    <criterion id="AC-23.5.5">Charts are responsive and render correctly on mobile devices (min-width: 320px)</criterion>
+    <criterion id="AC-23.5.6">Charts have accessible labels and ARIA attributes for screen readers</criterion>
+    <criterion id="AC-23.5.7">Empty/invalid chart configs display graceful fallback UI</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/tech-spec.md</path>
+        <title>Epic 23 Tech Spec: Flexible AI Reports</title>
+        <section>Charts & Visualization (Story 23.5) - REVISED</section>
+        <snippet>AC-23.5.1: AI recommends appropriate chart types for data. AC-23.5.2: Bar, line, pie, area charts render with Recharts. AC-23.5.3: Charts are interactive (hover, click for details). AC-23.5.4: Multiple charts supported per report (2-4 typical). AC-23.5.5: Charts are responsive on mobile.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/stories/23-4-ai-report-generation/story.md</path>
+        <title>Story 23.4: AI Report Generation</title>
+        <section>Dev Agent Record</section>
+        <snippet>ChartPlaceholder component exists in report-view.tsx awaiting replacement with real charts. ChartConfig type defined in reporting.ts with structure: type, data, xKey, yKey (string or string[] for multi-series), title, description.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/uiux-architecture.md</path>
+        <title>UI/UX Architecture</title>
+        <section>Component Library (shadcn/ui)</section>
+        <snippet>All components built using shadcn/ui primitives. CSS variables used for theming: hsl(var(--primary)), hsl(var(--chart-2)), etc. for consistent color palette across components.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ChartPlaceholder</symbol>
+        <lines>168-194</lines>
+        <reason>Contains the ChartPlaceholder component that needs to be replaced with real ReportChart component. Also defines CHART_TYPE_CONFIG mapping chart types to icons/labels.</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportView</symbol>
+        <lines>231-339</lines>
+        <reason>Main report display component that renders chart grid in md:grid-cols-2 layout. Currently iterates over report.charts array passing to ChartPlaceholder.</reason>
+      </file>
+      <file>
+        <path>src/types/reporting.ts</path>
+        <kind>types</kind>
+        <symbol>ChartConfig</symbol>
+        <lines>324-332</lines>
+        <reason>TypeScript interface defining chart configuration structure: type ('bar'|'line'|'pie'|'area'), data (unknown[]), xKey, yKey (string|string[]), title, description.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/analytics/usage-trend-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageTrendChart</symbol>
+        <lines>1-315</lines>
+        <reason>Reference implementation of Recharts LineChart with ResponsiveContainer, custom tooltips, multi-series support, and loading/empty states. Demonstrates codebase patterns for charts.</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/report-generation.spec.ts</path>
+        <kind>test</kind>
+        <symbol>Report Generation E2E Tests</symbol>
+        <lines>229-250</lines>
+        <reason>E2E tests that check for chart-placeholder-* test IDs. Need to update to verify actual chart rendering and hover interactions.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardHeader, CardContent, CardTitle</symbol>
+        <reason>shadcn/ui Card components used for chart containers. Import and use for consistent styling.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>recharts</package>
+        <version>^3.5.1</version>
+        <usage>Chart library - import BarChart, LineChart, PieChart, AreaChart, ResponsiveContainer, Tooltip, Legend, XAxis, YAxis, CartesianGrid, Cell</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons for chart type indicators (BarChart3, LineChart, PieChart, AreaChart) - already used in report-view.tsx</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Tech Spec">Charts must use Recharts library (already installed at ^3.5.1)</constraint>
+    <constraint source="Tech Spec">Chart heights should be 250-350px for optimal dashboard display</constraint>
+    <constraint source="Tech Spec">Mobile min-width is 320px (iPhone SE)</constraint>
+    <constraint source="Dev Notes">Use CSS variables for colors: hsl(var(--primary)), hsl(var(--chart-2)), etc.</constraint>
+    <constraint source="Dev Notes">Always wrap charts in ResponsiveContainer with width="100%" height={number}</constraint>
+    <constraint source="Codebase Pattern">Follow existing chart patterns from usage-trend-chart.tsx for consistency</constraint>
+    <constraint source="Tech Spec">Support multi-series via yKey: string | string[] (each string becomes separate line/bar)</constraint>
+    <constraint source="Accessibility">Add role="img" and aria-label to chart containers for screen reader support</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ChartConfig</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ChartConfig { id?: string; type: 'bar' | 'line' | 'pie' | 'area'; data: unknown[]; xKey: string; yKey: string | string[]; title?: string; description?: string; }</signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>GeneratedReport.charts</name>
+      <kind>Array property</kind>
+      <signature>charts: ChartConfig[] - Array of 2-4 chart configurations generated by AI</signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>ReportViewProps</name>
+      <kind>Component props</kind>
+      <signature>interface ReportViewProps { report: GeneratedReport; onNewReport?: () => void; onExportPdf?: () => void; onExportExcel?: () => void; }</signature>
+      <path>src/components/reporting/report-view.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing framework: Vitest for unit tests, Playwright for E2E. Use @testing-library/react for component tests. Mock Recharts components that rely on DOM measurements (ResponsiveContainer). Test accessibility with toHaveAttribute checks for role and aria-label. Follow existing test patterns from __tests__/components/admin/analytics/ for chart testing approaches.
+    </standards>
+    <locations>
+      <location>__tests__/components/reporting/report-chart.test.tsx (NEW)</location>
+      <location>__tests__/e2e/report-generation.spec.ts (UPDATE)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.5.1">Test that each chart type (bar, line, pie, area) renders without errors when passed valid ChartConfig</idea>
+      <idea ac="AC-23.5.1">Test chart type switch logic correctly selects component based on config.type</idea>
+      <idea ac="AC-23.5.2">Test that data array is passed correctly to Recharts data prop</idea>
+      <idea ac="AC-23.5.2">Test xKey and yKey are used for dataKey props</idea>
+      <idea ac="AC-23.5.3">Test Tooltip component is rendered in chart (use getByRole or DOM query)</idea>
+      <idea ac="AC-23.5.4">Test multiple ReportChart components render in grid container</idea>
+      <idea ac="AC-23.5.5">Mock ResponsiveContainer and verify width="100%" prop passed</idea>
+      <idea ac="AC-23.5.6">Test chart container has role="img" attribute</idea>
+      <idea ac="AC-23.5.6">Test chart container has aria-label with chart title</idea>
+      <idea ac="AC-23.5.7">Test empty data array shows fallback UI with appropriate message</idea>
+      <idea ac="AC-23.5.7">Test missing xKey displays fallback with error description</idea>
+      <idea ac="AC-23.5.7">Test null/undefined data shows fallback gracefully</idea>
+      <idea ac="E2E">Update E2E to verify [data-testid="report-chart-*"] instead of chart-placeholder-*</idea>
+      <idea ac="E2E">Add E2E test for hovering chart and seeing tooltip content</idea>
+    </ideas>
+  </tests>
+</story-context>
