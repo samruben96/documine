@@ -119,13 +119,13 @@ development_status:
   19-4-ai-disclosure-message: done
   epic-19-retrospective: completed
 
-  # Epic 20: AI Buddy Admin & Audit - DONE 2025-12-09
+  # Epic 20: AI Buddy Admin & Audit - IN PROGRESS 2025-12-09
   # User management, analytics, audit trail for compliance
   # Tech Spec: docs/sprint-artifacts/tech-spec-epic-20.md
   # FRs: FR42-56, FR64
-  # Stories: 5 complete (20.6 moved to Epic 21)
-  # Total Points: 23
-  epic-20-ai-buddy-admin-audit: done
+  # Stories: 6 (consolidated from 13)
+  # Total Points: 25
+  epic-20-ai-buddy-admin-audit: contexted
   # Story 20.1: Audit Log Infrastructure (3 pts)
   # Append-only RLS, immutability trigger, 7-year retention
   # FRs: FR54, FR55, FR56
@@ -176,50 +176,10 @@ development_status:
   # Story 20.5: Owner Management (5 pts) - CONSOLIDATED from 20.5 + 20.6
   # Billing/subscription management + ownership transfer
   # FRs: FR48, FR49
-  # NOTE FROM SAM: Billing handled manually via Archway Computer invoices - no Stripe needed. Tiered plans remain (read-only display).
-  # Story 20.5 - DONE 2025-12-09: All ACs complete, 35 unit tests + E2E
-  # - Subscription panel with plan, billing cycle, seat allocation
-  # - Billing contact info with email link
-  # - Non-owner admin sees owner contact message
-  # - Transfer ownership dialog with two-step confirmation
-  # - Only admins listed as transfer targets
-  # - Password confirmation required
-  # - Atomic database transaction for transfer
-  # - Email notifications to old and new owner
-  # - Audit logging for ownership transfer
-  20-5-owner-management: done
-  # Story 20.6: Moved to Epic 21 - Admin consolidation makes this redundant
-  # Feature navigation polish scope incorporated into Epic 21
+  # NOTE FROM SAM: Billing will be handled manually via invoices from Archway Computer. So anything to do with billing should note that, we do not need stripe or anything like that for now. I'm still happy to keep the tiered plan. 
+  20-5-owner-management: backlog
+  # Story 20.6: Feature Navigation Polish (2 pts) - RENUMBERED from 20.7
+  # State-preserving navigation between features
+  # FR: FR64
+  20-6-feature-navigation-polish: backlog
   epic-20-retrospective: optional
-
-  # =====================================================
-  # EPIC 21: AGENCY-WIDE ADMIN PLATFORM
-  # =====================================================
-  # Consolidate admin from AI Buddy scope to agency-wide
-  # Decided 2025-12-09 via Party Mode discussion
-  # Tech Spec: docs/sprint-artifacts/epics/epic-21/tech-spec/index.md
-  # Stories: 5
-  epic-21-agency-wide-admin-platform: contexted
-  # Story 21.1: Database Migration - Agency Admin Tables (S)
-  # Rename ai_buddy_permissions → agency_permissions
-  # Rename ai_buddy_audit_logs → agency_audit_logs
-  # Merge ai_buddy_invitations → invitations
-  21-1-database-migration: done
-  # Story 21.2: API Route Migration (S)
-  # Move /api/ai-buddy/admin/* → /api/admin/*
-  # Keep AI Buddy specific routes (guardrails, onboarding)
-  21-2-api-route-migration: drafted
-  # Story 21.3: Component & Settings Migration (M)
-  # Move components/ai-buddy/admin/ → components/admin/
-  # Add top-level Admin tab to Settings
-  # Simplify AI Buddy tab to preferences only
-  21-3-component-settings-migration: drafted
-  # Story 21.4: Extend Audit Logging (S)
-  # Add action types for documents, comparisons, one-pagers, chat
-  # Update audit log UI for all action types
-  21-4-extend-audit-logging: drafted
-  # Story 21.5: Extend Usage Tracking (S)
-  # Track usage across all features
-  # Feature breakdown in analytics dashboard
-  21-5-extend-usage-tracking: drafted
-  epic-21-retrospective: optional
