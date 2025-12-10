@@ -21,8 +21,8 @@ describe('UsageTabSkeleton', () => {
   it('renders 4 stat card skeletons in grid', () => {
     const { container } = render(<UsageTabSkeleton />);
 
-    // Grid should have 2x2 = 4 cards
-    const grid = container.querySelector('.grid.gap-4');
+    // Grid should have 2x2 = 4 cards (Story 22.4: gap-6 for card grids)
+    const grid = container.querySelector('.grid.gap-6');
     expect(grid).toBeInTheDocument();
 
     // Each card has CardHeader and CardContent

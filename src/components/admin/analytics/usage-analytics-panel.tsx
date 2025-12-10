@@ -204,7 +204,8 @@ export function UsageAnalyticsPanel({
 
       <CardContent className="space-y-6">
         {/* Summary Cards - Primary Metrics (AC-20.3.1) */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Story 22.4: gap-6 for card grids */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <UsageStatCard
             title="AI Buddy Conversations"
             value={summary?.totalConversations || 0}
@@ -244,7 +245,8 @@ export function UsageAnalyticsPanel({
         </div>
 
         {/* Story 21.5: Additional Feature Metrics */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Story 22.4: gap-6 for card grids */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <UsageStatCard
             title="Comparisons Created"
             value={summary?.comparisonsCreated || 0}

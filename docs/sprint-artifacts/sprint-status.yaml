@@ -269,7 +269,7 @@ development_status:
   22-3-view-transitions-chart-fix: done
   # Story 22.4: Spacing Standardization (2 pts) - P2
   # Standardize gap-6 and space-y-6 across pages
-  22-4-spacing-standardization: drafted
+  22-4-spacing-standardization: ready-for-dev
 
   # =====================================================
   # EPIC 23+: CUSTOM REPORTING (After UI Polish)

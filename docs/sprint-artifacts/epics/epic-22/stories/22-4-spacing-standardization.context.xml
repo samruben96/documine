@@ -1,0 +1,81 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>22</epicId>
+    <storyId>4</storyId>
+    <title>Spacing Standardization</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-09</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-22/stories/story-22.4-spacing-standardization.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>user viewing the app</asA>
+    <iWant>consistent spacing throughout</iWant>
+    <soThat>the app feels cohesive and well-designed</soThat>
+    <tasks>
+      <task id="1">Audit all page layouts for grid gaps</task>
+      <task id="2">Document current spacing usage</task>
+      <task id="3">Standardize card grids to gap-6</task>
+      <task id="4">Standardize section spacing to space-y-6</task>
+      <task id="5">Visual verification across all pages</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-22.4.1" title="Audit Spacing Patterns">
+      <item>Review all page layouts for grid gaps</item>
+      <item>Document current spacing usage</item>
+      <item>Identify inconsistencies</item>
+    </criterion>
+    <criterion id="AC-22.4.2" title="Standardize Grid Gaps">
+      <item>Card grids: Standardize to gap-6</item>
+      <item>Dashboard tool cards: gap-6</item>
+      <item>Settings content grids: gap-6</item>
+      <item>Admin panel grids: gap-6</item>
+    </criterion>
+    <criterion id="AC-22.4.3" title="Standardize Section Spacing">
+      <item>Vertical sections: space-y-6</item>
+      <item>Card content: space-y-4 (tighter for card interiors)</item>
+      <item>Form fields: space-y-4</item>
+    </criterion>
+    <criterion id="AC-22.4.4" title="Visual Verification">
+      <item>All pages reviewed visually</item>
+      <item>Spacing feels consistent throughout</item>
+      <item>No layout breaks from changes</item>
+    </criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-22/tech-spec.md" title="Epic 22 Tech Spec" section="Spacing Standardization" snippet="Gap standards: gap-6 for card grids, space-y-6 for sections, space-y-4 for card content." />
+    </docs>
+    <code>
+      <file path="src/app/(dashboard)/dashboard/page.tsx" kind="page" symbol="DashboardPage" reason="Tool cards grid" />
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" symbol="DocumentsPage" reason="Document grid" />
+      <file path="src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" reason="Settings layout" />
+      <file path="src/components/admin/analytics/usage-analytics-panel.tsx" kind="component" symbol="UsageAnalyticsPanel" reason="Analytics grid" />
+    </code>
+    <dependencies />
+  </artifacts>
+
+  <constraints>
+    <constraint>gap-6 (24px) for card grids</constraint>
+    <constraint>space-y-6 (24px) for section spacing</constraint>
+    <constraint>space-y-4 (16px) for card content</constraint>
+    <constraint>No layout breaks from changes</constraint>
+  </constraints>
+
+  <interfaces />
+
+  <tests>
+    <standards>Visual verification. Run existing tests to ensure no breaks.</standards>
+    <locations>
+      <location>npm test (full suite)</location>
+      <location>Manual visual review</location>
+    </locations>
+    <ideas>
+      <idea acId="AC-22.4.4">Navigate through all pages and verify consistent spacing</idea>
+    </ideas>
+  </tests>
+</story-context>
