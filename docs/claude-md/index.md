@@ -15,20 +15,12 @@
   - [BMAD Workflow](./bmad-workflow.md)
   - [Supabase](./supabase.md)
   - [Document Processing](./document-processing.md)
-  - [Known Issues / Bug Fixes](./known-issues-bug-fixes.md)
-    - [LlamaParse Replaced by Docling (Story 4.8, 2025-11-30)](./known-issues-bug-fixes.md#llamaparse-replaced-by-docling-story-48-2025-11-30)
-    - [Epic 5 Chat Integration Bug Fixes (2025-12-01)](./known-issues-bug-fixes.md#epic-5-chat-integration-bug-fixes-2025-12-01)
-      - [1. Document Viewer Not Loading (Spinning Forever)](./known-issues-bug-fixes.md#1-document-viewer-not-loading-spinning-forever)
-      - [2. Vector Search 404 Error](./known-issues-bug-fixes.md#2-vector-search-404-error)
-      - [3. Chat Request Validation Error ()](./known-issues-bug-fixes.md#3-chat-request-validation-error)
-      - [4. Chat 500 Error - Client/Server Boundary Violation](./known-issues-bug-fixes.md#4-chat-500-error-clientserver-boundary-violation)
-    - [Streaming & AI Personality Fixes (Story 5.11, 2025-12-01)](./known-issues-bug-fixes.md#streaming-ai-personality-fixes-story-511-2025-12-01)
-      - [1. Streaming Memory Leaks & Debug Logs](./known-issues-bug-fixes.md#1-streaming-memory-leaks-debug-logs)
-      - [2. AI Personality Improvements](./known-issues-bug-fixes.md#2-ai-personality-improvements)
-      - [3. Greetings/General Questions Return "Not Found" (FIX-3)](./known-issues-bug-fixes.md#3-greetingsgeneral-questions-return-not-found-fix-3)
-    - [PDF "page-dimensions" Error Handling (Story 5.13, 2025-12-02)](./known-issues-bug-fixes.md#pdf-page-dimensions-error-handling-story-513-2025-12-02)
-    - [Conversation Loading 406 Error Fix (Story 6.1, 2025-12-02)](./known-issues-bug-fixes.md#conversation-loading-406-error-fix-story-61-2025-12-02)
-    - [Confidence Score Calculation Fix (Story 6.2, 2025-12-02)](./known-issues-bug-fixes.md#confidence-score-calculation-fix-story-62-2025-12-02)
+  - [Known Issues / Bug Fixes](./known-issues-bug-fixes.md) (sharded)
+    - [Document Processing](./known-issues/document-processing.md) - Docling, PDF parsing
+    - [Chat & AI](./known-issues/chat-ai.md) - RAG, streaming, confidence
+    - [Supabase & RLS](./known-issues/supabase-rls.md) - 406 errors, permissions
+    - [UI Fixes](./known-issues/ui-fixes.md) - Layout issues
+    - [Reporting](./known-issues/reporting.md) - Charts, data
   - [Playwright E2E Testing](./playwright-e2e-testing.md)
   - [OpenAI SDK Usage (Story 7.2, 2025-12-03)](./openai-sdk-usage-story-72-2025-12-03.md)
     - [Structured Outputs with zodResponseFormat](./openai-sdk-usage-story-72-2025-12-03.md#structured-outputs-with-zodresponseformat)
