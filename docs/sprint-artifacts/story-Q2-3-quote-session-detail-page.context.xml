@@ -1,0 +1,150 @@
+<story-context id="bmm/story-context" v="1.0">
+  <metadata>
+    <epicId>Q2</epicId>
+    <storyId>3</storyId>
+    <title>Quote Session Detail Page Structure</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-Q2-3-quote-session-detail-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to view and edit a quote session with organized tabs</iWant>
+    <soThat>I can enter all client information in a logical flow</soThat>
+    <tasks>
+      <task id="1" ac="1,5,7">Create detail page route and layout
+        <subtask>1.1 Create src/app/(dashboard)/quoting/[id]/page.tsx</subtask>
+        <subtask>1.2 Add back link component with ChevronLeft icon</subtask>
+        <subtask>1.3 Implement page header with prospect name and QuoteTypeBadge</subtask>
+        <subtask>1.4 Add StatusBadge to header showing computed session status</subtask>
+        <subtask>1.5 Add loading skeleton while session data fetches</subtask>
+      </task>
+      <task id="2" ac="1,6">Create useQuoteSession hook for single session
+        <subtask>2.1 Create src/hooks/quoting/use-quote-session.ts</subtask>
+        <subtask>2.2 Implement fetch logic using getQuoteSession() from service</subtask>
+        <subtask>2.3 Handle not-found case with redirect and toast</subtask>
+        <subtask>2.4 Return session data, loading state, and error state</subtask>
+      </task>
+      <task id="3" ac="1,3,4,5">Implement tab navigation with conditional rendering
+        <subtask>3.1 Use shadcn/ui Tabs component</subtask>
+        <subtask>3.2 Define tab list: Client Info, Property, Auto, Drivers, Carriers, Results</subtask>
+        <subtask>3.3 Conditional rendering: auto hides Property, home hides Auto/Drivers, bundle shows all</subtask>
+        <subtask>3.4 Set default active tab to "client-info"</subtask>
+        <subtask>3.5 Create placeholder content components for each tab</subtask>
+      </task>
+      <task id="4" ac="2">Implement tab completion indicators
+        <subtask>4.1 Create getTabCompletionStatus() utility function</subtask>
+        <subtask>4.2 Calculate completion based on clientData fields</subtask>
+        <subtask>4.3 Create TabTriggerWithIndicator component</subtask>
+        <subtask>4.4 Apply visual styling per UX spec</subtask>
+      </task>
+      <task id="5" ac="1">Create placeholder tab content components
+        <subtask>5.1-5.6 Create tabs: client-info, property, auto, drivers, carriers, results</subtask>
+        <subtask>5.7 Each placeholder shows section name + "Coming in [story ID]"</subtask>
+      </task>
+      <task id="6" ac="1,6">Add API route for single session fetch
+        <subtask>6.1 Create src/app/api/quoting/[id]/route.ts</subtask>
+        <subtask>6.2 Implement GET handler using getQuoteSession()</subtask>
+        <subtask>6.3 Return 404 if session not found</subtask>
+        <subtask>6.4 Include client_data in response</subtask>
+      </task>
+      <task id="7" ac="all">Testing
+        <subtask>7.1 Unit test: getTabCompletionStatus()</subtask>
+        <subtask>7.2 Unit test: conditional tab rendering</subtask>
+        <subtask>7.3 Component test: page loading states</subtask>
+        <subtask>7.4 Component test: back link navigation</subtask>
+        <subtask>7.5 E2E test: list to detail navigation</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="Q2.3-1">Page displays: back link, header (prospect name + badges), tab navigation (6 tabs), content area, status badge</criterion>
+    <criterion id="Q2.3-2">Tabs show completion indicators: checkmark when complete, count for multi-item sections</criterion>
+    <criterion id="Q2.3-3">Property tab hidden for Auto-only quotes (quote_type === 'auto')</criterion>
+    <criterion id="Q2.3-4">Auto and Drivers tabs hidden for Home-only quotes (quote_type === 'home')</criterion>
+    <criterion id="Q2.3-5">Client Info tab active by default on page load</criterion>
+    <criterion id="Q2.3-6">Invalid/not-found session ID redirects to /quoting with error toast</criterion>
+    <criterion id="Q2.3-7">Page loads within 2 seconds (performance target)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/features/quoting/architecture.md" title="Quoting Architecture" section="Project Structure" snippet="Detail page at src/app/(dashboard)/quoting/[id]/page.tsx. Components in src/components/quoting/tabs/. Service layer uses getQuoteSession() for data fetch."/>
+      <doc path="docs/features/quoting/ux-design.md" title="Quoting UX Design" section="9.2 Quote Session Detail" snippet="Tab-based layout with Client Info, Property, Auto, Drivers, Carriers, Results. Completion indicators show checkmarks and counts. Back link: ← Back to Quotes."/>
+      <doc path="docs/features/quoting/epics.md" title="Quoting Epics" section="Story Q2.3" snippet="Quote Session Detail Page Structure - enables viewing/editing quote session with organized tabs for logical data entry flow."/>
+      <doc path="docs/features/quoting/prd.md" title="Quoting PRD" section="User Experience Principles" snippet="Tab-based sections: Client Info → Property → Auto → Drivers. Auto-save on blur. Skip sections not applicable (home-only, auto-only)."/>
+    </docs>
+    <code>
+      <file path="src/lib/quoting/service.ts" kind="service" symbol="getQuoteSession" lines="209-235" reason="Existing service function to fetch single quote session - MUST REUSE"/>
+      <file path="src/lib/quoting/service.ts" kind="service" symbol="calculateSessionStatus" lines="34-72" reason="Status calculation logic for header badge display"/>
+      <file path="src/types/quoting.ts" kind="types" symbol="QuoteSession, QuoteClientData, QuoteType" reason="Type definitions for session entity and client data structure"/>
+      <file path="src/components/quoting/quote-type-badge.tsx" kind="component" symbol="QuoteTypeBadge" reason="Existing badge component for quote type - REUSE in header"/>
+      <file path="src/components/quoting/status-badge.tsx" kind="component" symbol="StatusBadge" reason="Existing badge component for status - REUSE in header"/>
+      <file path="src/hooks/quoting/use-quote-sessions.ts" kind="hook" symbol="useQuoteSessions" reason="Pattern reference for creating useQuoteSession hook"/>
+      <file path="src/app/(dashboard)/quoting/page.tsx" kind="page" symbol="QuotingPage" reason="Pattern reference for page structure and data fetching"/>
+      <file path="src/app/api/quoting/route.ts" kind="api" symbol="GET, POST" reason="Pattern reference for API route structure"/>
+      <file path="src/components/ui/tabs.tsx" kind="ui-component" symbol="Tabs, TabsList, TabsTrigger, TabsContent" reason="shadcn/ui Tabs component - USE FOR tab navigation"/>
+      <file path="src/app/(dashboard)/chat-docs/[id]/page.tsx" kind="page" symbol="DocumentDetailPage" reason="Pattern reference for [id] detail page with loading states and error handling"/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@radix-ui/react-tabs" version="^1.1.13">Tab navigation primitives</package>
+        <package name="lucide-react" version="^0.554.0">Icons: ChevronLeft, Check for back link and completion</package>
+        <package name="sonner" version="^2.0.7">Toast notifications for error handling</package>
+        <package name="next" version="^16.0.7">App router with useParams, useRouter</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Database client for session fetch</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use React Query pattern established in use-quote-sessions.ts for data fetching</constraint>
+    <constraint type="pattern">Follow detail page pattern from chat-docs/[id]/page.tsx: useParams, loading states, error handling</constraint>
+    <constraint type="layer">Components go in src/components/quoting/tabs/ directory</constraint>
+    <constraint type="layer">API route at src/app/api/quoting/[id]/route.ts</constraint>
+    <constraint type="testing">Unit tests for utility functions, component tests with mocked hooks, E2E for navigation</constraint>
+    <constraint type="security">RLS policies automatically scope session access to user's agency</constraint>
+    <constraint type="performance">Page load under 2 seconds - use loading skeleton during fetch</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="getQuoteSession" kind="function" path="src/lib/quoting/service.ts">
+      <signature>getQuoteSession(supabase: SupabaseClient, sessionId: string): Promise&lt;QuoteSession | null&gt;</signature>
+    </interface>
+    <interface name="QuoteSession" kind="type" path="src/types/quoting.ts">
+      <signature>{ id, agencyId, userId, prospectName, quoteType, status, clientData, createdAt, updatedAt, carrierCount? }</signature>
+    </interface>
+    <interface name="QuoteClientData" kind="type" path="src/types/quoting.ts">
+      <signature>{ personal?: PersonalInfo, property?: PropertyInfo, auto?: AutoInfo }</signature>
+    </interface>
+    <interface name="GET /api/quoting/[id]" kind="REST" path="src/app/api/quoting/[id]/route.ts">
+      <signature>GET → { data: QuoteSession, error: null } | { data: null, error: string } | 404</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing framework: Vitest + React Testing Library for unit/component tests, Playwright for E2E.
+      Pattern: Mock Supabase client and hooks. Test loading, success, and error states.
+      Coverage: Unit tests for utilities, component tests for UI logic, E2E for user flows.
+    </standards>
+    <locations>
+      <loc>__tests__/lib/quoting/ - utility function tests</loc>
+      <loc>__tests__/hooks/quoting/ - hook tests</loc>
+      <loc>__tests__/components/quoting/ - component tests</loc>
+      <loc>__tests__/e2e/quoting/ - E2E tests</loc>
+    </locations>
+    <ideas>
+      <idea ac="Q2.3-1">Test page renders all elements: back link, header, tabs, content area</idea>
+      <idea ac="Q2.3-2">Test getTabCompletionStatus returns correct status for various clientData states</idea>
+      <idea ac="Q2.3-3">Test Property tab not rendered when quoteType='auto'</idea>
+      <idea ac="Q2.3-4">Test Auto/Drivers tabs not rendered when quoteType='home'</idea>
+      <idea ac="Q2.3-5">Test Client Info tab is active on initial render</idea>
+      <idea ac="Q2.3-6">Test redirect and toast shown for invalid session ID</idea>
+      <idea ac="Q2.3-7">Test page load time with performance assertion</idea>
+    </ideas>
+  </tests>
+</story-context>
