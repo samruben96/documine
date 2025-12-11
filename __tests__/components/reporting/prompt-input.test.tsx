@@ -124,10 +124,11 @@ describe('PromptInput Component', () => {
       expect(textarea).toBeInTheDocument();
     });
 
-    it('has aria-describedby for character count', () => {
+    it('has aria-describedby for character count and validation', () => {
       render(<PromptInput {...defaultProps} />);
       const textarea = screen.getByRole('textbox');
-      expect(textarea).toHaveAttribute('aria-describedby', 'prompt-char-count');
+      // AC-23.8.5: aria-describedby includes both char count and validation error IDs
+      expect(textarea).toHaveAttribute('aria-describedby', 'prompt-char-count prompt-validation-error');
     });
 
     it('character count has live region for screen readers', () => {
@@ -142,6 +143,36 @@ describe('PromptInput Component', () => {
       render(<PromptInput {...defaultProps} className="custom-class" />);
       const textarea = screen.getByRole('textbox');
       expect(textarea).toHaveClass('custom-class');
+    });
+  });
+
+  describe('AC-23.8.5: Form validation', () => {
+    it('shows error message when over character limit', () => {
+      render(<PromptInput {...defaultProps} value={'x'.repeat(501)} maxLength={500} />);
+      expect(screen.getByRole('alert')).toHaveTextContent('Prompt is too long');
+    });
+
+    it('does not show error message when under limit', () => {
+      render(<PromptInput {...defaultProps} value={'x'.repeat(400)} maxLength={500} />);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('sets aria-invalid when over limit', () => {
+      render(<PromptInput {...defaultProps} value={'x'.repeat(501)} maxLength={500} />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('applies error border styling when over limit', () => {
+      render(<PromptInput {...defaultProps} value={'x'.repeat(501)} maxLength={500} />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveClass('border-red-500');
+    });
+
+    it('applies warning border styling when near limit', () => {
+      render(<PromptInput {...defaultProps} value={'x'.repeat(450)} maxLength={500} />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveClass('border-amber-400');
     });
   });
 });

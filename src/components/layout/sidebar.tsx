@@ -2,7 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
-import { Menu, X, PanelLeft, Bot } from 'lucide-react';
+import { Menu, X, PanelLeft, Bot, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -202,6 +202,13 @@ export function MobileBottomNav() {
         >
           <Bot className="h-5 w-5" />
           <span className="text-xs mt-0.5">AI Buddy</span>
+        </Link>
+        <Link
+          href="/reporting"
+          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800"
+        >
+          <BarChart3 className="h-5 w-5" />
+          <span className="text-xs mt-0.5">Reports</span>
         </Link>
         <Link
           href="/settings"

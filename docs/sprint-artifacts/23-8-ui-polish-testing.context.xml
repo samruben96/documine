@@ -1,0 +1,221 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>8</storyId>
+    <title>UI Polish &amp; Testing</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-8-ui-polish-testing/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>a polished, accessible, and thoroughly tested reporting interface</iWant>
+    <soThat>I can confidently generate professional reports without encountering bugs or usability issues</soThat>
+    <tasks>
+      <task id="1" title="Accessibility Audit &amp; Fixes" ac="1">
+        <subtask>Run axe-core accessibility scan on /reporting page</subtask>
+        <subtask>Verify all interactive elements have keyboard focus indicators</subtask>
+        <subtask>Ensure all form inputs have associated labels and error descriptions</subtask>
+        <subtask>Add aria-live regions for dynamic status updates</subtask>
+        <subtask>Verify color contrast meets 4.5:1 minimum for text</subtask>
+        <subtask>Test with VoiceOver/NVDA for screen reader compatibility</subtask>
+        <subtask>Add skip links for main content sections</subtask>
+      </task>
+      <task id="2" title="Loading State Polish" ac="2">
+        <subtask>Review FileUploader component loading state (upload progress)</subtask>
+        <subtask>Add skeleton loader while analysis is processing</subtask>
+        <subtask>Add streaming progress indicator during report generation</subtask>
+        <subtask>Ensure button states (disabled, loading) are consistent across flows</subtask>
+        <subtask>Add subtle pulse animation for "Analyzing data..." state</subtask>
+      </task>
+      <task id="3" title="Error State Improvements" ac="3">
+        <subtask>Create consistent ReportingError component with icon, message, actions</subtask>
+        <subtask>Add "Retry" button for transient failures (network, timeout)</subtask>
+        <subtask>Add "Upload New File" button for unrecoverable errors</subtask>
+        <subtask>Show technical error details in expandable section (for debugging)</subtask>
+        <subtask>Handle edge cases: oversized files, unsupported formats, empty files</subtask>
+      </task>
+      <task id="4" title="Mobile Responsiveness" ac="4">
+        <subtask>Test at 320px, 375px, 414px breakpoints</subtask>
+        <subtask>Ensure touch targets are 44px minimum</subtask>
+        <subtask>Verify charts resize correctly with ResponsiveContainer</subtask>
+        <subtask>Adjust data table pagination for mobile (simplified controls)</subtask>
+        <subtask>Test file upload drag-and-drop fallback on mobile (tap to select)</subtask>
+        <subtask>Verify export buttons accessible on mobile</subtask>
+      </task>
+      <task id="5" title="Form Validation" ac="5">
+        <subtask>Add validation for file type before upload starts</subtask>
+        <subtask>Add validation for file size (50MB limit)</subtask>
+        <subtask>Show validation errors inline with form fields</subtask>
+        <subtask>Disable "Generate Report" until valid file is uploaded</subtask>
+        <subtask>Add character count indicator for prompt input</subtask>
+      </task>
+      <task id="6" title="Unit Test Coverage Audit" ac="6">
+        <subtask>Run npm run test:coverage and identify gaps</subtask>
+        <subtask>Add tests for FileUploader component edge cases</subtask>
+        <subtask>Add tests for PromptInput validation</subtask>
+        <subtask>Add tests for ReportView error states</subtask>
+        <subtask>Add tests for useReportGeneration hook abort/retry logic</subtask>
+        <subtask>Add tests for export service error handling</subtask>
+        <subtask>Target: 80%+ line coverage for src/components/reporting/*</subtask>
+      </task>
+      <task id="7" title="E2E Test Suite Completion" ac="7">
+        <subtask>Create __tests__/e2e/reporting-complete.spec.ts for full workflow</subtask>
+        <subtask>Test: Upload CSV → Analyze → Generate → View Report → Export PDF</subtask>
+        <subtask>Test: Upload Excel → Generate without prompt → View auto-analysis</subtask>
+        <subtask>Test: Invalid file type shows error and allows retry</subtask>
+        <subtask>Test: Network failure during generation shows retry option</subtask>
+        <subtask>Test: Mobile viewport renders correctly</subtask>
+        <subtask>Test: Keyboard-only navigation through entire flow</subtask>
+      </task>
+      <task id="8" title="Visual Consistency Review" ac="2,3">
+        <subtask>Ensure consistent card styling across all reporting components</subtask>
+        <subtask>Verify button sizes and styles match design system</subtask>
+        <subtask>Check icon usage is consistent (lucide-react icons)</subtask>
+        <subtask>Verify spacing follows 4px/8px grid system</subtask>
+        <subtask>Ensure transitions are smooth (200-300ms duration)</subtask>
+      </task>
+      <task id="9" title="Documentation" ac="all">
+        <subtask>Update component JSDoc comments</subtask>
+        <subtask>Add inline code comments for complex logic</subtask>
+        <subtask>Update API route documentation if endpoints changed</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.8.1">All reporting components pass WCAG 2.1 AA accessibility standards (keyboard navigation, screen reader support, color contrast)</criterion>
+    <criterion id="AC-23.8.2">Loading states provide clear feedback during file upload, analysis, and report generation phases</criterion>
+    <criterion id="AC-23.8.3">Error states display user-friendly messages with actionable recovery options (retry, upload new file)</criterion>
+    <criterion id="AC-23.8.4">Mobile layout (320px-767px) provides fully functional experience with proper touch targets (44px minimum)</criterion>
+    <criterion id="AC-23.8.5">Form validation provides immediate feedback for invalid inputs (empty prompts when required, etc.)</criterion>
+    <criterion id="AC-23.8.6">Unit test coverage for reporting components reaches 80%+ with all critical paths tested</criterion>
+    <criterion id="AC-23.8.7">E2E test suite covers complete happy path and key error scenarios</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-23/tech-spec.md" title="Epic 23 Tech Spec" section="UI Components, Acceptance Criteria">
+        Flexible AI Reports architecture: file upload, data analysis, AI generation, charts, data tables, exports. Includes ReportingPage layout wireframe, data models, and API contracts.
+      </doc>
+      <doc path="docs/architecture/uiux-architecture.md" title="UI/UX Architecture" section="Accessibility Requirements">
+        WCAG 2.1 AA guidelines: 4.5:1 color contrast for normal text, keyboard navigation, ARIA labels, focus indicators, prefers-reduced-motion support.
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="SSE Streaming Pattern">
+        SSE streaming pattern for AI responses with event types (chunk, sources, confidence, done, error), client-side consumption, and abort handling.
+      </doc>
+    </docs>
+    <code>
+      <!-- Main reporting page -->
+      <file path="src/app/(dashboard)/reporting/page.tsx" kind="page" symbol="ReportingPage" reason="Main page with 5-state UI flow (initial, analyzing, ready, generating, report, error). Entry point for all reporting functionality.">
+        <lines>1-431</lines>
+      </file>
+
+      <!-- Reporting components -->
+      <file path="src/components/reporting/file-uploader.tsx" kind="component" symbol="FileUploader" reason="File upload with react-dropzone. Needs accessibility audit, validation, mobile touch support."/>
+      <file path="src/components/reporting/prompt-input.tsx" kind="component" symbol="PromptInput" reason="Optional prompt textarea. Has character count (AC-23.8.5). Needs accessibility labels."/>
+      <file path="src/components/reporting/suggested-prompts.tsx" kind="component" symbol="SuggestedPrompts" reason="Clickable prompt chips. Needs keyboard navigation and focus states."/>
+      <file path="src/components/reporting/report-view.tsx" kind="component" symbol="ReportView" reason="Report display with charts/table/export. Export buttons added in 23.7. Needs error states, accessibility."/>
+      <file path="src/components/reporting/report-chart.tsx" kind="component" symbol="ReportChart" reason="Recharts visualization (bar/line/pie/area). Needs ResponsiveContainer for mobile, accessibility labels."/>
+      <file path="src/components/reporting/report-data-table.tsx" kind="component" symbol="ReportDataTable" reason="@tanstack/react-table with sorting/filtering/pagination. Needs mobile pagination simplification."/>
+
+      <!-- Hooks -->
+      <file path="src/hooks/use-reporting-analysis.ts" kind="hook" symbol="useReportingAnalysis" reason="Async analysis hook with abort handling. Needs error state tests."/>
+      <file path="src/hooks/use-report-generation.ts" kind="hook" symbol="useReportGeneration" reason="SSE streaming hook with progress, cancel. Needs abort/retry tests."/>
+
+      <!-- Services -->
+      <file path="src/lib/reporting/report-generator.ts" kind="service" symbol="ReportGeneratorService" reason="AI report generation service."/>
+      <file path="src/lib/reporting/pdf-export.tsx" kind="service" symbol="generateReportPDF" reason="PDF generation with @react-pdf/renderer."/>
+      <file path="src/lib/reporting/excel-export.ts" kind="service" symbol="generateReportExcel" reason="Excel export with xlsx library."/>
+
+      <!-- Existing tests (reference for patterns) -->
+      <file path="__tests__/components/reporting/file-uploader.test.tsx" kind="test" symbol="FileUploader tests" reason="Existing tests. Check coverage gaps."/>
+      <file path="__tests__/components/reporting/prompt-input.test.tsx" kind="test" symbol="PromptInput tests" reason="Existing tests. Verify validation tests."/>
+      <file path="__tests__/components/reporting/report-view.test.tsx" kind="test" symbol="ReportView tests" reason="24+ tests. Add error state tests."/>
+      <file path="__tests__/components/reporting/report-chart.test.tsx" kind="test" symbol="ReportChart tests" reason="35 tests. Verify accessibility."/>
+      <file path="__tests__/components/reporting/report-data-table.test.tsx" kind="test" symbol="ReportDataTable tests" reason="46 tests. Verify keyboard nav."/>
+      <file path="__tests__/components/reporting/report-view-export.test.tsx" kind="test" symbol="Export button tests" reason="23 tests from 23.7."/>
+      <file path="__tests__/lib/reporting/pdf-export.test.tsx" kind="test" symbol="PDF export tests" reason="21 tests."/>
+      <file path="__tests__/lib/reporting/excel-export.test.ts" kind="test" symbol="Excel export tests" reason="32 tests."/>
+      <file path="__tests__/hooks/use-report-generation.test.ts" kind="test" symbol="useReportGeneration tests" reason="Generation hook tests. Add abort/retry tests."/>
+      <file path="__tests__/e2e/report-generation.spec.ts" kind="e2e" symbol="Report generation E2E" reason="Main E2E flow. Extend with error/mobile tests."/>
+      <file path="__tests__/e2e/reporting-upload.spec.ts" kind="e2e" symbol="Upload E2E" reason="Upload flow tests."/>
+      <file path="__tests__/e2e/reporting-analyze.spec.ts" kind="e2e" symbol="Analysis E2E" reason="Analysis flow tests."/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="react-dropzone" version="^14.3.8" purpose="File upload drag-and-drop"/>
+        <package name="@tanstack/react-table" version="^8.21.3" purpose="Data table with sorting/filtering"/>
+        <package name="recharts" version="^3.5.1" purpose="Charts (bar, line, pie, area)"/>
+        <package name="@react-pdf/renderer" version="^4.3.1" purpose="PDF generation"/>
+        <package name="xlsx" version="^0.18.5" purpose="Excel export"/>
+        <package name="html2canvas" version="^1.4.1" purpose="Chart capture for PDF"/>
+        <package name="lucide-react" version="^0.554.0" purpose="Icons"/>
+        <package name="@playwright/test" version="^1.57.0" purpose="E2E testing"/>
+        <package name="vitest" version="^4.0.14" purpose="Unit testing"/>
+        <package name="@testing-library/react" version="^16.3.0" purpose="Component testing"/>
+        <package name="@vitest/coverage-v8" version="^4.0.14" purpose="Coverage reporting"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Dev Notes">Coverage Tool: Jest with --coverage flag (actually vitest with --coverage)</constraint>
+    <constraint source="Dev Notes">Accessibility Testing: axe-core via @axe-core/playwright for E2E</constraint>
+    <constraint source="Dev Notes">Mobile Testing: Playwright with device emulation</constraint>
+    <constraint source="Dev Notes">Performance: Keep bundle size impact minimal</constraint>
+    <constraint source="Architecture">WCAG 2.1 AA: 4.5:1 color contrast, keyboard nav, ARIA labels, focus indicators, prefers-reduced-motion</constraint>
+    <constraint source="Architecture">Touch targets: 44px minimum for mobile</constraint>
+    <constraint source="Architecture">Transitions: 200-300ms duration, respect prefers-reduced-motion</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="PageState" kind="type" path="src/app/(dashboard)/reporting/page.tsx">
+      type PageState = 'initial' | 'analyzing' | 'ready' | 'generating' | 'report' | 'error'
+    </interface>
+    <interface name="useReportingAnalysis" kind="hook" path="src/hooks/use-reporting-analysis.ts">
+      Returns: { analyze, data, isLoading, error, reset }
+    </interface>
+    <interface name="useReportGeneration" kind="hook" path="src/hooks/use-report-generation.ts">
+      Returns: { generate, report, isGenerating, progress, streamingTitle, streamingSummary, streamingInsights, error, reset, cancel }
+    </interface>
+    <interface name="GeneratedReport" kind="type" path="src/types/reporting.ts">
+      { title, summary, insights, charts, dataTable, generatedAt, promptUsed }
+    </interface>
+    <interface name="ChartConfig" kind="type" path="src/types/reporting.ts">
+      { id, type: 'bar'|'line'|'pie'|'area'|'scatter', title, description?, data, xKey, yKey, colorKey? }
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with @testing-library/react. E2E tests use Playwright with axe-core for accessibility. Mock Supabase client and fetch for isolated tests. Follow existing test patterns in __tests__/components/reporting/*.
+    </standards>
+    <locations>
+      <location>__tests__/components/reporting/*.test.tsx</location>
+      <location>__tests__/hooks/use-report*.test.ts</location>
+      <location>__tests__/lib/reporting/*.test.ts</location>
+      <location>__tests__/e2e/reporting*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.8.1">Test: Run axe-core scan on rendered ReportingPage in each state (initial, analyzing, ready, generating, report, error)</idea>
+      <idea ac="AC-23.8.1">Test: Verify Tab key cycles through all interactive elements in logical order</idea>
+      <idea ac="AC-23.8.1">Test: Verify Enter/Space activates buttons and form controls</idea>
+      <idea ac="AC-23.8.2">Test: FileUploader shows progress bar during upload</idea>
+      <idea ac="AC-23.8.2">Test: Analyzing state shows spinner with "Analyzing your data..." text</idea>
+      <idea ac="AC-23.8.2">Test: Generating state shows progress bar and streaming preview</idea>
+      <idea ac="AC-23.8.3">Test: Analysis error shows "Analysis Failed" alert with "Try Again" button</idea>
+      <idea ac="AC-23.8.3">Test: Generation error shows "Generation Failed" alert with retry</idea>
+      <idea ac="AC-23.8.3">Test: File size exceeded error shows clear message</idea>
+      <idea ac="AC-23.8.4">E2E: Test at 375px viewport - all elements visible and tappable</idea>
+      <idea ac="AC-23.8.4">Test: ReportChart uses ResponsiveContainer with 100% width</idea>
+      <idea ac="AC-23.8.5">Test: File type validation rejects .exe, .doc files</idea>
+      <idea ac="AC-23.8.5">Test: Generate button disabled until file uploaded</idea>
+      <idea ac="AC-23.8.6">Run coverage report, target 80%+ on src/components/reporting/*</idea>
+      <idea ac="AC-23.8.7">E2E: Full flow - upload CSV → analyze → generate → view report → export PDF</idea>
+      <idea ac="AC-23.8.7">E2E: Keyboard-only navigation through entire workflow</idea>
+    </ideas>
+  </tests>
+</story-context>

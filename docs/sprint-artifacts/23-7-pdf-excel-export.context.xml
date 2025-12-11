@@ -1,0 +1,245 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>23.7</storyId>
+    <title>PDF/Excel Export</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-7-pdf-excel-export/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to download my generated report as a PDF or Excel file</iWant>
+    <soThat>I can share findings with colleagues, archive reports, or use the data in other applications</soThat>
+    <tasks>
+      <task id="1" title="Create PDF Export Service" acs="1,4,5,6">
+        <subtask>Create src/lib/reporting/pdf-export.tsx</subtask>
+        <subtask>Use @react-pdf/renderer (already installed)</subtask>
+        <subtask>Use file-saver (already installed)</subtask>
+        <subtask>Define ReportPDFDocument component with styled sections</subtask>
+        <subtask>Include header with title, date, and branding</subtask>
+        <subtask>Render summary text section</subtask>
+        <subtask>Render insights as styled list with icons (finding/trend/anomaly/recommendation)</subtask>
+        <subtask>Render charts as static images (convert Recharts SVG to image)</subtask>
+        <subtask>Add page numbers and footer</subtask>
+        <subtask>Export downloadReportPdf(report: GeneratedReport): Promise&lt;void&gt;</subtask>
+      </task>
+      <task id="2" title="Create Excel Export Service" acs="2,4,5,7">
+        <subtask>Create src/lib/reporting/excel-export.ts</subtask>
+        <subtask>Use xlsx library (already installed)</subtask>
+        <subtask>Create "Data" sheet with all rows from report.dataTable</subtask>
+        <subtask>Create "Summary" sheet with report title, summary, and generatedAt</subtask>
+        <subtask>Create "Insights" sheet with columns: Type, Title, Description, Severity</subtask>
+        <subtask>Apply column widths and header formatting</subtask>
+        <subtask>Export downloadReportExcel(report: GeneratedReport): Promise&lt;void&gt;</subtask>
+      </task>
+      <task id="3" title="Add Export Buttons to ReportView" acs="3,8">
+        <subtask>Update src/components/reporting/report-view.tsx</subtask>
+        <subtask>Add "Export PDF" button with Download icon</subtask>
+        <subtask>Add "Export Excel" button with FileSpreadsheet icon</subtask>
+        <subtask>Position buttons in report header (right-aligned)</subtask>
+        <subtask>Disable buttons during report generation (when isGenerating prop is true)</subtask>
+        <subtask>Add loading state during export (show spinner on button)</subtask>
+      </task>
+      <task id="4" title="Chart to Image Conversion for PDF" acs="1">
+        <subtask>Research approach: canvas-based SVG rendering or html2canvas</subtask>
+        <subtask>Create chartToBase64(chartConfig, data): Promise&lt;string&gt;</subtask>
+        <subtask>Handle Recharts SVG → PNG conversion</subtask>
+        <subtask>Embed base64 images in PDF document</subtask>
+      </task>
+      <task id="5" title="Unit Tests" acs="1-8">
+        <subtask>Create __tests__/lib/reporting/pdf-export.test.tsx</subtask>
+        <subtask>Test PDF document renders with all sections</subtask>
+        <subtask>Test insights render with correct icons/styling</subtask>
+        <subtask>Test page numbers and footer present</subtask>
+        <subtask>Create __tests__/lib/reporting/excel-export.test.ts</subtask>
+        <subtask>Test Excel workbook has Data, Summary, and Insights sheets</subtask>
+        <subtask>Test data sheet contains all rows from report</subtask>
+        <subtask>Test insights sheet has correct columns</subtask>
+        <subtask>Create __tests__/components/reporting/report-view-export.test.tsx</subtask>
+        <subtask>Test export buttons render</subtask>
+        <subtask>Test buttons disabled during generation</subtask>
+        <subtask>Test button click triggers download</subtask>
+      </task>
+      <task id="6" title="E2E Tests" acs="3,4">
+        <subtask>Update __tests__/e2e/report-generation.spec.ts</subtask>
+        <subtask>Test PDF download button visible after report generation</subtask>
+        <subtask>Test Excel download button visible after report generation</subtask>
+        <subtask>Test clicking PDF button initiates download</subtask>
+        <subtask>Test clicking Excel button initiates download</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.7.1">PDF export includes report title, summary, insights, and embedded charts</criterion>
+    <criterion id="AC-23.7.2">Excel export includes original data rows plus a summary sheet with insights</criterion>
+    <criterion id="AC-23.7.3">Export buttons (PDF/Excel) are visible and accessible in the report view header</criterion>
+    <criterion id="AC-23.7.4">Downloads start immediately on click (no email required, client-side generation)</criterion>
+    <criterion id="AC-23.7.5">Export filenames follow pattern: docuMINE-report-YYYY-MM-DD.{pdf|xlsx}</criterion>
+    <criterion id="AC-23.7.6">PDF includes page numbers and "Generated by docuMINE" footer</criterion>
+    <criterion id="AC-23.7.7">Excel summary sheet includes all insights with type and severity</criterion>
+    <criterion id="AC-23.7.8">Export buttons disabled during report generation (loading state)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/tech-spec.md</path>
+        <title>Epic 23 Tech Spec: Flexible AI Reports</title>
+        <section>Export (Story 23.7)</section>
+        <snippet>PDF export includes summary, insights, and charts. Excel export includes original data + summary sheet. Export buttons visible in report view. Download starts immediately (no email required).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>API Response Format, SSE Streaming Pattern</section>
+        <snippet>Standard API response format { data: T, error: null }. For streaming, use SSE with TextEncoder/TextDecoder. Use file-saver for cross-browser downloads.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/stories/23-6-interactive-data-table/story.md</path>
+        <title>Story 23.6: Interactive Data Table (Done)</title>
+        <section>Dev Agent Record</section>
+        <snippet>ReportView receives GeneratedReport with { title, summary, insights, charts, dataTable, generatedAt, promptUsed }. Data table available as report.dataTable.columns and report.dataTable.rows.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/compare/pdf-export.tsx</path>
+        <kind>service</kind>
+        <symbol>downloadPdf, ComparisonPDFDocument</symbol>
+        <lines>1-392</lines>
+        <reason>Reference implementation for PDF export using @react-pdf/renderer and file-saver. Shows pattern: React component → pdf(doc).toBlob() → saveAs(blob, filename).</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/compare/export.ts</path>
+        <kind>utility</kind>
+        <symbol>formatDateForFilename, escapeCSV</symbol>
+        <lines>1-115</lines>
+        <reason>Reusable utility for filename date formatting (YYYY-MM-DD). CSV escaping utility for Excel compatibility.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportView, ReportViewProps</symbol>
+        <lines>1-278</lines>
+        <reason>Target component for adding export buttons. Already has placeholder onExportPdf/onExportExcel props. Contains insight type config and chart rendering.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/reporting/report-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportChart, CHART_COLORS</symbol>
+        <lines>1-580</lines>
+        <reason>Chart component that renders Recharts visualizations. Need to capture SVG output for PDF embedding.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/reporting/report-data-table.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportDataTable, formatCellValue</symbol>
+        <lines>1-749</lines>
+        <reason>Data table component. Use same data structure for Excel "Data" sheet export.</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/reporting.ts</path>
+        <kind>types</kind>
+        <symbol>GeneratedReport, ReportInsight, ChartConfig</symbol>
+        <lines>1-386</lines>
+        <reason>TypeScript types for report structure. GeneratedReport contains all fields needed for export: title, summary, insights[], charts[], dataTable.</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/components/reporting/report-data-table.test.tsx</path>
+        <kind>test</kind>
+        <symbol>describe, it patterns</symbol>
+        <lines>1-100</lines>
+        <reason>Test pattern reference for Story 23.6. Use same vitest/testing-library patterns for export tests.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <npm>
+        <package name="@react-pdf/renderer" version="^4.3.1" installed="true">PDF generation with React components. Already used in src/lib/compare/pdf-export.tsx</package>
+        <package name="file-saver" version="^2.0.5" installed="true">Cross-browser file download. Types @types/file-saver installed.</package>
+        <package name="xlsx" version="^0.18.5" installed="true">Excel file generation. Used for parsing in Story 23.1, reuse for export.</package>
+        <package name="html2canvas" version="not installed" installed="false">May need to install for chart SVG → image conversion. Alternative: native canvas API.</package>
+        <package name="recharts" version="^3.5.1" installed="true">Chart library. Charts render as SVG that needs conversion for PDF.</package>
+        <package name="lucide-react" version="^0.554.0" installed="true">Icons including FileDown and FileSpreadsheet for export buttons.</package>
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Use existing PDF export pattern from src/lib/compare/pdf-export.tsx as reference implementation</constraint>
+    <constraint type="pattern">Reuse formatDateForFilename from src/lib/compare/export.ts for filename consistency</constraint>
+    <constraint type="pattern">Follow client-side generation pattern - no API calls for export (AC-23.7.4)</constraint>
+    <constraint type="testing">Use vitest + @testing-library/react pattern from existing report tests</constraint>
+    <constraint type="accessibility">Export buttons must have proper aria-labels for screen readers</constraint>
+    <constraint type="ux">Show loading spinner on button during export generation</constraint>
+    <constraint type="technical">Chart image generation: Recharts renders SVG in browser. Options: html2canvas or canvg for PNG conversion</constraint>
+    <constraint type="technical">PDF with embedded chart images could be large - consider image compression</constraint>
+    <constraint type="branding">PDF must include "Generated by docuMINE" footer (AC-23.7.6)</constraint>
+    <constraint type="filename">Follow pattern docuMINE-report-YYYY-MM-DD.{pdf|xlsx} (AC-23.7.5)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>GeneratedReport</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface GeneratedReport { title: string; summary: string; insights: ReportInsight[]; charts: ChartConfig[]; dataTable: { columns: string[]; rows: Record&lt;string, unknown&gt;[]; sortable: boolean; filterable: boolean; }; generatedAt: string; promptUsed: string; }</signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>ReportInsight</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ReportInsight { type: 'finding' | 'trend' | 'anomaly' | 'recommendation'; title: string; description: string; severity?: 'info' | 'warning' | 'critical'; relatedColumns?: string[]; }</signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>ChartConfig</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ChartConfig { id?: string; type: 'bar' | 'line' | 'pie' | 'area'; data: unknown[]; xKey: string; yKey: string | string[]; title?: string; description?: string; }</signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>downloadPdf (reference)</name>
+      <kind>function signature</kind>
+      <signature>async function downloadPdf(tableData: ComparisonTableData): Promise&lt;void&gt;</signature>
+      <path>src/lib/compare/pdf-export.tsx</path>
+    </interface>
+    <interface>
+      <name>formatDateForFilename</name>
+      <kind>function signature</kind>
+      <signature>function formatDateForFilename(date: Date): string // Returns YYYY-MM-DD</signature>
+      <path>src/lib/compare/export.ts</path>
+    </interface>
+    <interface>
+      <name>ReportViewProps</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ReportViewProps { report: GeneratedReport; onNewReport?: () =&gt; void; onExportPdf?: () =&gt; void; onExportExcel?: () =&gt; void; }</signature>
+      <path>src/components/reporting/report-view.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with @testing-library/react for unit tests. Follow existing test patterns from __tests__/components/reporting/*.test.tsx. Use happy-dom environment (not jsdom) for faster tests. Mock file-saver's saveAs function to verify downloads without actual file creation. For PDF tests, mock @react-pdf/renderer's pdf().toBlob() function. Use userEvent for interaction testing. Include accessibility assertions for button labels.
+    </standards>
+    <locations>
+      <location>__tests__/lib/reporting/pdf-export.test.tsx</location>
+      <location>__tests__/lib/reporting/excel-export.test.ts</location>
+      <location>__tests__/components/reporting/report-view-export.test.tsx</location>
+      <location>__tests__/e2e/report-generation.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.7.1">Test PDF document includes title from report.title, summary text, insights list, and chart placeholders</idea>
+      <idea ac="AC-23.7.2">Test Excel workbook has 3 sheets (Data, Summary, Insights) with correct data</idea>
+      <idea ac="AC-23.7.3">Test export buttons render in ReportView header with correct icons</idea>
+      <idea ac="AC-23.7.4">Test saveAs is called immediately on button click (client-side)</idea>
+      <idea ac="AC-23.7.5">Test filename matches pattern docuMINE-report-YYYY-MM-DD.{pdf|xlsx}</idea>
+      <idea ac="AC-23.7.6">Test PDF footer contains "Generated by docuMINE" and page numbers</idea>
+      <idea ac="AC-23.7.7">Test Excel Insights sheet has columns: Type, Title, Description, Severity</idea>
+      <idea ac="AC-23.7.8">Test export buttons disabled when isGenerating=true prop passed</idea>
+      <idea ac="E2E">Test full flow: upload file → generate report → click PDF export → verify download</idea>
+    </ideas>
+  </tests>
+</story-context>

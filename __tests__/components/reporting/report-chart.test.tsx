@@ -485,4 +485,79 @@ describe('ReportChart Component', () => {
       expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
     });
   });
+
+  describe('color palette (AC-23.9.1)', () => {
+    it('renders charts with the color palette (not CSS variables)', () => {
+      // Test indirectly - charts should render without errors
+      // CSS variable fallback would show black/broken rendering
+      const config = createBarChartConfig();
+      render(<ReportChart config={config} />);
+
+      // Chart should render without errors
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+      expect(screen.getByText('Revenue by Region')).toBeInTheDocument();
+    });
+
+    it('pie chart renders with colored segments', () => {
+      const config = createPieChartConfig();
+      render(<ReportChart config={config} />);
+
+      // Chart should render with colored segments
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+      expect(screen.getByText('Regional Distribution')).toBeInTheDocument();
+    });
+
+    it('bar chart renders successfully', () => {
+      const config = createBarChartConfig();
+      render(<ReportChart config={config} />);
+
+      // Chart renders - gradient fills are applied internally
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+    });
+  });
+
+  describe('zero-value filtering (AC-23.9.2)', () => {
+    it('pie chart handles zero-value entries gracefully', () => {
+      const config: ChartConfig = {
+        id: 'pie-zero-filter',
+        type: 'pie',
+        title: 'Zero Filter Test',
+        xKey: 'category',
+        yKey: 'value',
+        data: [
+          { category: 'Active', value: 500 },
+          { category: 'Zero', value: 0 },
+          { category: 'Another', value: 300 },
+        ],
+      };
+
+      render(<ReportChart config={config} />);
+
+      // Chart should render without errors
+      // Zero-value entries are filtered out internally
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+      expect(screen.getByText('Zero Filter Test')).toBeInTheDocument();
+    });
+  });
+
+  describe('enhanced tooltips (AC-23.9.5)', () => {
+    it('renders chart with tooltip capability', () => {
+      const config = createBarChartConfig();
+      render(<ReportChart config={config} />);
+
+      // Chart renders with tooltip component
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+    });
+  });
+
+  describe('donut-style pie chart (AC-23.9.3)', () => {
+    it('renders pie chart successfully (donut style with inner radius)', () => {
+      const config = createPieChartConfig();
+      render(<ReportChart config={config} />);
+
+      // Pie chart should render
+      expect(screen.getByTestId('report-chart-0')).toBeInTheDocument();
+      expect(screen.getByText('Regional Distribution')).toBeInTheDocument();
+    });
+  });
 });

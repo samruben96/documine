@@ -1,0 +1,250 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>2</storyId>
+    <title>Data Analysis Pipeline</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-2-data-analysis-pipeline/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>my uploaded data files to be automatically parsed and analyzed</iWant>
+    <soThat>the system understands my data structure and can suggest relevant report prompts</soThat>
+    <tasks>
+      <task id="1" title="Database Migration - Simplify Schema" ac="1,2">
+        <subtask>Create migration `simplify_reporting_for_flexible_ai`</subtask>
+        <subtask>Add `parsed_data jsonb` column to `commission_data_sources`</subtask>
+        <subtask>Add `parsed_at timestamptz` column</subtask>
+        <subtask>Add `expires_at timestamptz DEFAULT now() + interval '24 hours'` column</subtask>
+        <subtask>Drop unused tables: `commission_records`, `column_mapping_templates`</subtask>
+        <subtask>Add index on `expires_at` for cleanup job</subtask>
+        <subtask>Regenerate types: `npm run generate-types`</subtask>
+      </task>
+      <task id="2" title="File Parser Service" ac="1,2">
+        <subtask>Create `src/lib/reporting/file-parser.ts`</subtask>
+        <subtask>Install/use `xlsx` for Excel parsing</subtask>
+        <subtask>Install/use `papaparse` for CSV parsing</subtask>
+        <subtask>Implement `parseExcel(buffer: Buffer): ParsedData`</subtask>
+        <subtask>Implement `parseCsv(buffer: Buffer): ParsedData`</subtask>
+        <subtask>Implement `parsePdf(buffer: Buffer): Promise&lt;ParsedData&gt;` using LlamaParse</subtask>
+        <subtask>Handle edge cases: empty files, corrupt files, encoding issues</subtask>
+      </task>
+      <task id="3" title="LlamaParse PDF Integration" ac="2">
+        <subtask>Use existing LlamaParse integration from process-document Edge Function</subtask>
+        <subtask>Extract tables from PDF when present</subtask>
+        <subtask>Fall back to text extraction if no structured tables</subtask>
+        <subtask>Convert extracted tables to ParsedData format</subtask>
+      </task>
+      <task id="4" title="Data Analyzer Service" ac="3,4">
+        <subtask>Create `src/lib/reporting/data-analyzer.ts`</subtask>
+        <subtask>Implement `analyzeColumnTypes(data: ParsedData): ColumnInfo[]`</subtask>
+        <subtask>Implement `generateSuggestedPrompts(analysis: ColumnInfo[], data: ParsedData): string[]`</subtask>
+        <subtask>Use GPT-4o/Claude via OpenRouter for intelligent prompt suggestion</subtask>
+      </task>
+      <task id="5" title="API Route - POST /api/reporting/analyze" ac="1,2,3,4,5">
+        <subtask>Create `src/app/api/reporting/analyze/route.ts`</subtask>
+        <subtask>Accept `{ sourceId: string }` in request body</subtask>
+        <subtask>Fetch source record and validate status='pending'</subtask>
+        <subtask>Download file from Supabase Storage</subtask>
+        <subtask>Route to correct parser based on file_type</subtask>
+        <subtask>Run data analysis service on parsed data</subtask>
+        <subtask>Update commission_data_sources record with parsed_data, status='ready'</subtask>
+        <subtask>Performance: Target &lt; 15s for 10K rows</subtask>
+      </task>
+      <task id="6" title="Update Types" ac="3,4">
+        <subtask>Update `src/types/reporting.ts` with simplified schema</subtask>
+        <subtask>Add ParsedData, ColumnInfo, NumericStats, DateStats interfaces</subtask>
+        <subtask>Add AnalyzeResponse interface with suggestedPrompts</subtask>
+      </task>
+      <task id="7" title="Unit Tests" ac="1,2,3,4,5">
+        <subtask>Test Excel parsing: .xlsx, .xls formats</subtask>
+        <subtask>Test CSV parsing: comma, semicolon, tab delimiters</subtask>
+        <subtask>Test column type detection: all 6 types</subtask>
+        <subtask>Test suggested prompts generation</subtask>
+        <subtask>Test API route: valid source, invalid source, wrong status</subtask>
+        <subtask>Test performance: mock 10K row file completes &lt; 15s</subtask>
+      </task>
+      <task id="8" title="Integration Test" ac="1,2,5">
+        <subtask>Upload real Excel file → call /analyze → verify parsed_data</subtask>
+        <subtask>Upload real CSV file → call /analyze → verify column types</subtask>
+        <subtask>Upload real PDF file → call /analyze → verify table extraction</subtask>
+        <subtask>Verify status transitions: pending → ready</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.2.1">File parsing extracts all rows and columns from Excel (.xlsx/.xls) and CSV files</criterion>
+    <criterion id="AC-23.2.2">PDF files parsed via LlamaParse with table extraction, falling back to text summary if no tables found</criterion>
+    <criterion id="AC-23.2.3">AI detects column types: number, date, text, boolean, currency, percentage</criterion>
+    <criterion id="AC-23.2.4">AI suggests 3-5 relevant report prompts based on detected data patterns</criterion>
+    <criterion id="AC-23.2.5">Analysis completes within 15 seconds for files &lt; 10K rows</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-23/tech-spec.md" title="Epic 23 Tech Spec" section="Data Analysis (Story 23.2)">
+        Defines FileParserService, DataAnalyzerService, ParsedData interfaces, AnalyzeResponse types, and migration plan for simplifying schema.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-23/stories/23-1-file-upload-infrastructure/story.md" title="Story 23.1" section="Dev Agent Record">
+        Previous story created commission_data_sources table, upload API route, FileUploader component, and storage bucket. This story modifies that schema.
+      </doc>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="File Upload Pattern, API Response Format">
+        Standard patterns for file processing, API responses ({ data, error }), RLS service client pattern for mutations.
+      </doc>
+      <doc path="docs/features/ai-buddy/architecture.md" title="AI Buddy Architecture" section="Document Processing">
+        LlamaParse integration patterns established for document processing.
+      </doc>
+    </docs>
+
+    <code>
+      <artifact path="src/types/reporting.ts" kind="types" symbol="CommissionDataSource, AllowedFileType, ColumnMapping" lines="1-257" reason="Existing types to be updated - add ParsedData, ColumnInfo, AnalyzeResponse interfaces">
+        Current reporting types created in Story 23.1. Need to add new interfaces for data analysis.
+      </artifact>
+      <artifact path="src/app/api/reporting/upload/route.ts" kind="api" symbol="POST" lines="1-186" reason="Reference implementation - follow same patterns for analyze route">
+        Upload route establishes patterns: auth check, agency lookup, storage operations, audit logging, response format.
+      </artifact>
+      <artifact path="src/components/reporting/file-uploader.tsx" kind="component" symbol="FileUploader" reason="Will call /api/reporting/analyze after upload success">
+        May need update to trigger analysis after upload or provide analyze button.
+      </artifact>
+      <artifact path="supabase/functions/process-document/llamaparse-client.ts" kind="service" symbol="parseDocumentWithLlamaParse, LlamaParseResult" lines="1-656" reason="Existing LlamaParse integration to reuse for PDF table extraction">
+        Complete LlamaParse client with retry logic, error handling, page marker extraction. Use this for PDF parsing.
+      </artifact>
+      <artifact path="src/lib/llm/config.ts" kind="config" symbol="getLLMClient, getModelId, OPENROUTER_MODEL_IDS" lines="1-339" reason="LLM configuration for AI-powered prompt suggestion">
+        Use getLLMClient() and getModelId() for OpenRouter/Claude API calls. Primary model: claude-sonnet-4.5.
+      </artifact>
+      <artifact path="src/lib/ai-buddy/ai-client.ts" kind="service" symbol="streamAiBuddyChat" lines="1-100" reason="Reference for AI client usage patterns">
+        Shows how to use OpenRouter client with proper error handling.
+      </artifact>
+      <artifact path="src/lib/supabase/server.ts" kind="utility" symbol="createClient, createServiceClient" reason="Supabase client factory for API routes">
+        Use createClient() for RLS-protected operations, createServiceClient() for mutations per verify-then-service pattern.
+      </artifact>
+    </code>
+
+    <dependencies>
+      <node>
+        <!-- File Parsing -->
+        <package name="xlsx" note="Install if not present - Excel parsing">^0.18.5</package>
+        <package name="papaparse" note="Install if not present - CSV parsing">^5.4.1</package>
+        <!-- Already installed -->
+        <package name="@supabase/supabase-js">^2.84.0</package>
+        <package name="openai">^6.9.1</package>
+        <package name="zod">^4.1.13</package>
+        <!-- Testing -->
+        <package name="vitest">^4.0.14</package>
+        <package name="@testing-library/react">^16.3.0</package>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="Tech Spec NFR">Analysis must complete within 15 seconds for files under 10K rows</constraint>
+    <constraint source="Tech Spec">Column types to detect: number, date, text, boolean, currency, percentage</constraint>
+    <constraint source="Story 23.1">File types supported: xlsx, xls, csv, pdf (already validated in upload)</constraint>
+    <constraint source="Architecture">API responses follow { data: T, error: null } / { data: null, error: { code, message } } format</constraint>
+    <constraint source="Architecture">Use RLS service client pattern for UPDATE operations (verify-then-service)</constraint>
+    <constraint source="Tech Spec">Storage path: {agency_id}/reporting/{source_id}/{filename}</constraint>
+    <constraint source="Tech Spec">Parsed data stored as JSONB in commission_data_sources.parsed_data</constraint>
+    <constraint source="Architecture">Audit logging required for significant operations</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/reporting/analyze" kind="REST endpoint">
+      <signature>
+        Request: { sourceId: string }
+        Response: {
+          data: {
+            sourceId: string;
+            status: 'ready';
+            columns: ColumnInfo[];
+            rowCount: number;
+            suggestedPrompts: string[];
+          };
+          error: null;
+        }
+      </signature>
+      <path>src/app/api/reporting/analyze/route.ts</path>
+    </interface>
+    <interface name="parseExcel" kind="function signature">
+      <signature>(buffer: Buffer): ParsedData</signature>
+      <path>src/lib/reporting/file-parser.ts</path>
+    </interface>
+    <interface name="parseCsv" kind="function signature">
+      <signature>(buffer: Buffer): ParsedData</signature>
+      <path>src/lib/reporting/file-parser.ts</path>
+    </interface>
+    <interface name="parsePdf" kind="function signature">
+      <signature>(buffer: Buffer): Promise&lt;ParsedData&gt;</signature>
+      <path>src/lib/reporting/file-parser.ts</path>
+    </interface>
+    <interface name="analyzeColumnTypes" kind="function signature">
+      <signature>(data: ParsedData): ColumnInfo[]</signature>
+      <path>src/lib/reporting/data-analyzer.ts</path>
+    </interface>
+    <interface name="generateSuggestedPrompts" kind="function signature">
+      <signature>(analysis: ColumnInfo[], data: ParsedData): Promise&lt;string[]&gt;</signature>
+      <path>src/lib/reporting/data-analyzer.ts</path>
+    </interface>
+    <interface name="ParsedData" kind="TypeScript interface">
+      <signature>
+        {
+          columns: ColumnInfo[];
+          rows: Record&lt;string, unknown&gt;[];
+          metadata: {
+            totalRows: number;
+            totalColumns: number;
+            parsedAt: string;
+            fileType: AllowedFileType;
+          };
+        }
+      </signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface name="ColumnInfo" kind="TypeScript interface">
+      <signature>
+        {
+          name: string;
+          type: 'number' | 'date' | 'text' | 'boolean' | 'currency' | 'percentage';
+          sampleValues: unknown[];
+          nullCount: number;
+          uniqueCount: number;
+          stats?: NumericStats | DateStats;
+        }
+      </signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for unit tests. Test files in __tests__/ mirroring src/ structure. Mock Supabase client and OpenRouter API. Use @testing-library/react for component tests. E2E tests with Playwright. Follow existing test patterns from __tests__/api/reporting/upload.test.ts and __tests__/components/reporting/file-uploader.test.tsx.
+    </standards>
+    <locations>
+      <location>__tests__/lib/reporting/file-parser.test.ts</location>
+      <location>__tests__/lib/reporting/data-analyzer.test.ts</location>
+      <location>__tests__/api/reporting/analyze.test.ts</location>
+      <location>__tests__/e2e/reporting-analysis.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.2.1">Test parseExcel with valid .xlsx, .xls files - verify all rows/columns extracted</idea>
+      <idea ac="AC-23.2.1">Test parseCsv with comma, semicolon, tab delimiters</idea>
+      <idea ac="AC-23.2.1">Test parseCsv with UTF-8 BOM, different encodings</idea>
+      <idea ac="AC-23.2.2">Test parsePdf with PDF containing tables - verify LlamaParse table extraction</idea>
+      <idea ac="AC-23.2.2">Test parsePdf with text-only PDF - verify fallback to text summary</idea>
+      <idea ac="AC-23.2.3">Test analyzeColumnTypes detects numeric columns (int, float, currency patterns like $1,234.56)</idea>
+      <idea ac="AC-23.2.3">Test analyzeColumnTypes detects date columns (ISO, US, EU formats)</idea>
+      <idea ac="AC-23.2.3">Test analyzeColumnTypes detects percentage columns (50%, 0.5)</idea>
+      <idea ac="AC-23.2.3">Test analyzeColumnTypes detects boolean columns (true/false, yes/no, 1/0)</idea>
+      <idea ac="AC-23.2.4">Test generateSuggestedPrompts returns 3-5 prompts</idea>
+      <idea ac="AC-23.2.4">Test prompts are contextual to detected column types</idea>
+      <idea ac="AC-23.2.5">Performance test: 10K row file parses and analyzes in &lt; 15s</idea>
+      <idea ac="all">Test API route returns 401 for unauthenticated requests</idea>
+      <idea ac="all">Test API route returns 404 for non-existent sourceId</idea>
+      <idea ac="all">Test API route returns 400 if source status is not 'pending'</idea>
+      <idea ac="all">Test status transitions: pending → ready after successful analysis</idea>
+    </ideas>
+  </tests>
+</story-context>

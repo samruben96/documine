@@ -11,7 +11,7 @@
  * - Admin-only visibility via RLS policies
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { log } from '@/lib/utils/logger';
 import type { AuditLogEntry } from '@/types/ai-buddy';
 
@@ -46,7 +46,14 @@ export type AuditAction =
   | 'one_pager_generated'
   | 'one_pager_exported'
   // Document Chat actions (Story 21.4)
-  | 'document_chat_started';
+  | 'document_chat_started'
+  // Reporting actions (Epic 23)
+  | 'reporting_uploaded'
+  | 'reporting_analyzed'
+  | 'reporting_generated'
+  | 'reporting_mapping_confirmed'
+  | 'reporting_imported'
+  | 'reporting_deleted';
 
 export interface AuditLogInput {
   agencyId: string;
@@ -66,7 +73,9 @@ export interface AuditLogInput {
  */
 export async function logAuditEvent(input: AuditLogInput): Promise<void> {
   try {
-    const supabase = await createClient();
+    // Use service client to bypass RLS for audit log insertion
+    // Audit logs are append-only and must always succeed regardless of user permissions
+    const supabase = createServiceClient();
 
     // Cast metadata to JSON-compatible format for Supabase
     const metadataJson = input.metadata

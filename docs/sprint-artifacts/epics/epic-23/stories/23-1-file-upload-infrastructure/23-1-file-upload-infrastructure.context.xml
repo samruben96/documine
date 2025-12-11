@@ -1,0 +1,158 @@
+<story-context id="23-1-file-upload-infrastructure" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>1</storyId>
+    <title>File Upload Infrastructure</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-1-file-upload-infrastructure/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>upload commission statement files (Excel, CSV, PDF) to docuMINE</iWant>
+    <soThat>I can begin the process of normalizing and analyzing my commission data</soThat>
+    <tasks>
+      <task id="1" name="Database Schema" ac="5">
+        <subtask>Create migration for commission_data_sources table</subtask>
+        <subtask>Create migration for commission_records table (empty for Story 23.4)</subtask>
+        <subtask>Create migration for column_mapping_templates table</subtask>
+        <subtask>Create indexes: agency_id, status, carrier_name, transaction_date</subtask>
+        <subtask>Create RLS policies: Sources/records/templates scoped to agency</subtask>
+      </task>
+      <task id="2" name="TypeScript Types" ac="1,3,5">
+        <subtask>Create src/types/reporting.ts with all interfaces from tech spec</subtask>
+        <subtask>Regenerate database.types.ts after migration</subtask>
+        <subtask>Define allowed file types constant</subtask>
+      </task>
+      <task id="3" name="Storage Configuration" ac="4">
+        <subtask>Create reporting storage bucket in Supabase</subtask>
+        <subtask>Configure storage policies for agency-scoped upload/read/delete</subtask>
+      </task>
+      <task id="4" name="API Route - POST /api/reporting/upload" ac="1,3,4,5">
+        <subtask>Create src/app/api/reporting/upload/route.ts</subtask>
+        <subtask>Validate file type against allowed list</subtask>
+        <subtask>Validate file size &lt;= 50MB</subtask>
+        <subtask>Upload file to Supabase Storage</subtask>
+        <subtask>Insert commission_data_sources record</subtask>
+        <subtask>Log to agency_audit_logs</subtask>
+      </task>
+      <task id="5" name="FileUploader Component" ac="1,2,3">
+        <subtask>Create src/components/reporting/file-uploader.tsx</subtask>
+        <subtask>Use react-dropzone for drag-and-drop</subtask>
+        <subtask>Display upload progress percentage</subtask>
+        <subtask>Show validation errors</subtask>
+      </task>
+      <task id="6" name="Reporting Page Shell" ac="1,2">
+        <subtask>Create src/app/(dashboard)/reporting/page.tsx</subtask>
+        <subtask>Add to navigation/sidebar</subtask>
+      </task>
+      <task id="7" name="Unit Tests" ac="1,2,3,4,5">
+        <subtask>Test API route file type validation</subtask>
+        <subtask>Test API route size validation</subtask>
+        <subtask>Test FileUploader component</subtask>
+      </task>
+      <task id="8" name="E2E Test" ac="1,2,5">
+        <subtask>Upload Excel file and verify success</subtask>
+        <subtask>Verify DB record created</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.1.1">User can upload Excel (.xlsx, .xls), CSV (.csv), and PDF (.pdf) files up to 50MB via a dropzone UI</criterion>
+    <criterion id="AC-23.1.2">Upload progress indicator shows percentage complete during file transfer</criterion>
+    <criterion id="AC-23.1.3">Invalid file types (non-xlsx/xls/csv/pdf) show clear error message with supported formats</criterion>
+    <criterion id="AC-23.1.4">Uploaded files are stored in Supabase Storage under agency folder path: {agency_id}/reporting/{source_id}/{filename}</criterion>
+    <criterion id="AC-23.1.5">Upload creates a commission_data_sources record with status='pending' and triggers background processing</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-23/tech-spec.md" title="Epic 23 Tech Spec" section="File Upload (Story 23.1)" snippet="Defines AC-23.1.1 through AC-23.1.5, data models for commission_data_sources/records/templates, API contracts for /api/reporting/upload, file parsing strategy by type."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="File Upload Pattern" snippet="Standard pattern: 1) Upload to Supabase Storage first, 2) Create database record with storage_path, 3) Trigger processing via Edge Function."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="API Response Format" snippet="All API responses use { data: T, error: null } for success, { data: null, error: { code, message } } for errors."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="PostgreSQL JSONB Type Casting Pattern" snippet="Use 'as unknown as Json' when writing typed objects to JSONB columns. Import Json type from @/types/database.types."/>
+      <doc path="docs/architecture/data-architecture.md" title="Data Architecture" section="RLS Policies" snippet="Standard RLS policy pattern: FOR ALL USING (agency_id = (SELECT agency_id FROM users WHERE id = auth.uid()))"/>
+      <doc path="docs/architecture/data-architecture.md" title="Data Architecture" section="Storage Policies" snippet="Storage bucket path structure: {agency_id}/{feature}/{id}/{filename}. Create upload/read/delete policies scoped to agency folder."/>
+    </docs>
+    <code>
+      <file path="src/components/documents/upload-zone.tsx" kind="component" symbol="UploadZone" reason="Reference implementation for react-dropzone file upload with progress, validation, drag-and-drop. Adapt pattern for commission files with expanded MIME types."/>
+      <file path="src/lib/supabase/server.ts" kind="service" symbol="createClient, createServiceClient" reason="Server-side Supabase client creation pattern. Use createClient for RLS-protected operations."/>
+      <file path="src/lib/admin/audit-logger.ts" kind="service" symbol="logAuditEvent, AuditAction" reason="Audit logging utility. Add new action type 'reporting_upload' for commission file uploads."/>
+      <file path="src/app/(dashboard)/layout.tsx" kind="layout" symbol="DashboardLayout" reason="Dashboard shell with header, sidebar. New reporting page will be a sibling to documents/ai-buddy pages."/>
+      <file path="src/types/database.types.ts" kind="types" symbol="Database, Json" reason="Generated Supabase types. Will need regeneration after adding commission tables."/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" usage="Database and Storage operations"/>
+        <package name="react-dropzone" version="^14.3.8" usage="File upload dropzone UI component"/>
+        <package name="zod" version="^4.1.13" usage="API request validation"/>
+        <package name="sonner" version="^2.0.7" usage="Toast notifications for upload status"/>
+        <package name="lucide-react" version="^0.554.0" usage="Icons (Upload, FileText, Loader2, X)"/>
+        <package name="xlsx" version="^0.18.5" usage="NEW - Excel file parsing (install for Stories 23.2+)"/>
+        <package name="papaparse" version="^5.4.1" usage="NEW - CSV file parsing (install for Stories 23.2+)"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">File size limit: 50MB maximum per file</constraint>
+    <constraint source="tech-spec">Allowed file types: xlsx, xls, csv, pdf only</constraint>
+    <constraint source="tech-spec">Storage path: {agency_id}/reporting/{source_id}/{filename} for agency isolation</constraint>
+    <constraint source="tech-spec">Status flow: pending → mapping → confirmed → imported (this story only creates 'pending')</constraint>
+    <constraint source="architecture">Use RLS policies identical to documents table for agency scoping</constraint>
+    <constraint source="architecture">Follow API response format: { data, error } structure</constraint>
+    <constraint source="architecture">Audit all uploads via agency_audit_logs table</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/reporting/upload" kind="REST endpoint">
+      <signature>
+        Request: FormData { file: File }
+        Response: {
+          data: { sourceId: string; status: 'pending'; filename: string } | null;
+          error: { code: string; message: string } | null;
+        }
+      </signature>
+      <path>src/app/api/reporting/upload/route.ts</path>
+    </interface>
+    <interface name="UploadZone" kind="React component">
+      <signature>
+        Props: {
+          onFilesAccepted: (files: File[]) => void;
+          uploadingFiles?: UploadingFile[];
+          disabled?: boolean;
+        }
+      </signature>
+      <path>src/components/documents/upload-zone.tsx (reference pattern)</path>
+    </interface>
+    <interface name="createClient" kind="function">
+      <signature>async function createClient(): Promise&lt;SupabaseClient&lt;Database&gt;&gt;</signature>
+      <path>src/lib/supabase/server.ts</path>
+    </interface>
+    <interface name="logAuditEvent" kind="function">
+      <signature>async function logAuditEvent(input: AuditLogInput): Promise&lt;void&gt;</signature>
+      <path>src/lib/admin/audit-logger.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>Vitest for unit tests, Playwright for E2E. Follow existing patterns in __tests__/ directory. Mock Supabase client for unit tests. Target 80% coverage for services, 70% for components.</standards>
+    <locations>
+      <location>__tests__/components/reporting/file-uploader.test.tsx</location>
+      <location>__tests__/api/reporting/upload.test.ts</location>
+      <location>__tests__/e2e/reporting-upload.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-23.1.1">Test dropzone accepts xlsx, xls, csv, pdf files</idea>
+      <idea ac="AC-23.1.1">Test dropzone rejects files over 50MB with error toast</idea>
+      <idea ac="AC-23.1.2">Test upload progress updates during file transfer</idea>
+      <idea ac="AC-23.1.3">Test rejection of .doc, .txt, .jpg with correct error message</idea>
+      <idea ac="AC-23.1.4">Test storage path follows {agency_id}/reporting/{source_id}/{filename} pattern</idea>
+      <idea ac="AC-23.1.5">Test commission_data_sources record created with status='pending'</idea>
+      <idea ac="AC-23.1.5">Test audit log entry created for upload action</idea>
+    </ideas>
+  </tests>
+</story-context>

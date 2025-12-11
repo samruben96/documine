@@ -1,0 +1,299 @@
+<story-context id=".bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>6</storyId>
+    <title>Interactive Data Table</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-6-interactive-data-table/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>a sortable, filterable table displaying all my uploaded data rows</iWant>
+    <soThat>I can explore and validate my data before and after report generation</soThat>
+    <tasks>
+      <task id="1" ac="1,7">Create ReportDataTable Component
+        - Create src/components/reporting/report-data-table.tsx
+        - Use @tanstack/react-table for headless table logic (already installed)
+        - Render all columns from GeneratedReport.dataTable.columns
+        - Render all rows from GeneratedReport.dataTable.rows
+        - Add role="grid" and aria-label for accessibility
+        - Handle empty data state with centered message
+      </task>
+      <task id="2" ac="2">Implement Column Sorting
+        - Add SortingState from @tanstack/react-table
+        - Make all column headers clickable for sorting
+        - Display sort indicator icon (ascending/descending arrow)
+        - Toggle cycle: none → ascending → descending → none
+        - Ensure keyboard accessible (Enter/Space to toggle sort)
+      </task>
+      <task id="3" ac="3">Implement Global Search Filter
+        - Add GlobalFilter state using useGlobalFilter from react-table
+        - Create search input above table with magnifying glass icon
+        - Add 300ms debounce to avoid excessive filtering on keystrokes
+        - Filter across all columns (case-insensitive)
+        - Show "Clear" button when filter is active
+      </task>
+      <task id="4" ac="4">Implement Pagination
+        - Add PaginationState from @tanstack/react-table
+        - Display pagination controls below table
+        - Show "Rows per page" dropdown (10, 25, 50, 100)
+        - Show "Page X of Y" indicator
+        - Add Previous/Next and First/Last buttons
+        - Only show pagination when rowCount > current page size
+      </task>
+      <task id="5" ac="5">Implement Column Filters
+        - Add ColumnFiltersState from @tanstack/react-table
+        - For numeric columns: Add min/max inputs in header dropdown
+        - For date columns: Add date range picker in header dropdown
+        - For text columns: Add text filter with substring match
+        - Show filter indicator badge on columns with active filters
+      </task>
+      <task id="6" ac="6">Handle Empty Results
+        - Display "No results found" when filters produce zero rows
+        - Show button to "Clear all filters"
+        - Maintain table structure (headers) even with no data
+      </task>
+      <task id="7" ac="1">Replace DataTablePlaceholder in ReportView
+        - Update src/components/reporting/report-view.tsx
+        - Replace DataTablePlaceholder with ReportDataTable
+        - Pass report.dataTable.columns, report.dataTable.rows
+        - Pass sortable and filterable flags from dataTable config
+      </task>
+      <task id="8" ac="1-7">Unit Tests
+        - Create __tests__/components/reporting/report-data-table.test.tsx
+        - Test table renders with correct row/column count
+        - Test sorting toggles work correctly
+        - Test global search filters data
+        - Test pagination changes page
+        - Test column filters work
+        - Test empty state displays correctly
+        - Test accessibility attributes present
+      </task>
+      <task id="9" ac="1,2,3,4">E2E Tests
+        - Update __tests__/e2e/report-generation.spec.ts
+        - Verify data table renders after report generation
+        - Test clicking header sorts data
+        - Test search input filters rows
+        - Test pagination navigation
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.6.1">Data table displays all rows from uploaded file</criterion>
+    <criterion id="AC-23.6.2">Columns are sortable (click header to toggle ascending/descending/none)</criterion>
+    <criterion id="AC-23.6.3">Global filter/search across all columns with debounced input</criterion>
+    <criterion id="AC-23.6.4">Pagination for large datasets (>100 rows) with configurable page size</criterion>
+    <criterion id="AC-23.6.5">Column-specific filters for numeric columns (min/max range) and date columns (date range picker)</criterion>
+    <criterion id="AC-23.6.6">Table displays "No results found" when filter matches zero rows</criterion>
+    <criterion id="AC-23.6.7">Table has proper ARIA labels and keyboard navigation for accessibility</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/tech-spec.md</path>
+        <title>Epic 23 Technical Specification: Flexible AI Reports</title>
+        <section>Interactive Data Table (Story 23.6)</section>
+        <snippet>Story 23.6 implements sortable/filterable data table with pagination. Acceptance criteria AC-23.6.1-AC-23.6.5 defined. Uses @tanstack/react-table for headless table logic. Part of report output alongside charts and insights.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/uiux-architecture.md</path>
+        <title>UI/UX Architecture</title>
+        <section>Accessibility Requirements</section>
+        <snippet>WCAG 2.1 AA guidelines require: keyboard navigation for all interactive elements, ARIA labels on icons, focus indicators on interactive elements. Applies to table headers, sort buttons, filter inputs, and pagination controls.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>Component Patterns</section>
+        <snippet>Use shadcn/ui components as base. Table components from @/components/ui/table. Follow existing patterns for sortable headers with icons (ArrowUp, ArrowDown, ArrowUpDown).</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportView, DataTablePlaceholder</symbol>
+        <lines>156-176</lines>
+        <reason>Contains DataTablePlaceholder to replace with ReportDataTable. Shows how charts are rendered, provides pattern for integrating data table.</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-table.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentTable, SortableHeader</symbol>
+        <lines>1-562</lines>
+        <reason>Reference implementation of @tanstack/react-table with sorting. Shows SortableHeader pattern with ArrowUp/ArrowDown/ArrowUpDown icons. Uses shadcn Table components.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/user-management-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>UserManagementPanel</symbol>
+        <lines>1-239</lines>
+        <reason>Reference for debounced search input pattern using use-debounce library. Shows Search icon placement and Input component usage.</reason>
+      </file>
+      <file>
+        <path>src/types/reporting.ts</path>
+        <kind>types</kind>
+        <symbol>GeneratedReport, ChartConfig, ColumnInfo, ColumnType</symbol>
+        <lines>354-367</lines>
+        <reason>Defines GeneratedReport.dataTable interface: { columns: string[], rows: Record&lt;string, unknown&gt;[], sortable: boolean, filterable: boolean }. This is the input to ReportDataTable.</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/report-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportChart</symbol>
+        <reason>Reference for Card wrapper, title/description display, accessibility attributes (role="img", aria-label), error handling patterns.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/reporting/report-view.test.tsx</path>
+        <kind>test</kind>
+        <symbol>ReportView tests</symbol>
+        <reason>Reference for test patterns: mock data setup, render testing, accessibility testing. Follow same structure for report-data-table.test.tsx.</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/report-generation.spec.ts</path>
+        <kind>e2e-test</kind>
+        <symbol>Report generation E2E tests</symbol>
+        <reason>E2E test file to update with data table interaction tests (sorting, filtering, pagination).</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@tanstack/react-table</package>
+        <version>^8.21.3</version>
+        <usage>Headless table with sorting, filtering, pagination. Import useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getPaginationRowModel, ColumnDef, SortingState, ColumnFiltersState, PaginationState.</usage>
+      </node>
+      <node>
+        <package>use-debounce</package>
+        <version>^10.0.6</version>
+        <usage>useDebouncedCallback for 300ms debounced search input.</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>installed</version>
+        <usage>Icons: Search, X (clear), ArrowUp, ArrowDown, ArrowUpDown, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight.</usage>
+      </node>
+      <shadcn>
+        <component>Table, TableHeader, TableBody, TableRow, TableHead, TableCell</component>
+        <path>src/components/ui/table.tsx</path>
+      </shadcn>
+      <shadcn>
+        <component>Input</component>
+        <path>src/components/ui/input.tsx</path>
+      </shadcn>
+      <shadcn>
+        <component>Button</component>
+        <path>src/components/ui/button.tsx</path>
+      </shadcn>
+      <shadcn>
+        <component>Select, SelectTrigger, SelectValue, SelectContent, SelectItem</component>
+        <path>src/components/ui/select.tsx</path>
+      </shadcn>
+      <shadcn>
+        <component>Popover, PopoverTrigger, PopoverContent</component>
+        <path>src/components/ui/popover.tsx</path>
+        <usage>For column filter dropdowns</usage>
+      </shadcn>
+      <shadcn>
+        <component>Card, CardContent, CardHeader, CardTitle</component>
+        <path>src/components/ui/card.tsx</path>
+      </shadcn>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use @tanstack/react-table v8 API (not v7) - useReactTable hook pattern</constraint>
+    <constraint>Follow SortableHeader pattern from DocumentTable for consistent UX</constraint>
+    <constraint>Use useDebouncedCallback from use-debounce (not lodash) for search input</constraint>
+    <constraint>All paths must be project-relative (no absolute paths)</constraint>
+    <constraint>Pagination default page size: 10 rows; options: 10, 25, 50, 100</constraint>
+    <constraint>Column types inferred from first non-null value (no type metadata in dataTable)</constraint>
+    <constraint>No virtualization for MVP - pagination at 100 rows is sufficient</constraint>
+    <constraint>Dark mode support: use dark: prefix classes matching existing components</constraint>
+    <constraint>Focus indicators required on all interactive elements (focus-visible:ring-2)</constraint>
+    <constraint>Table container should scroll horizontally on mobile (overflow-x-auto)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ReportDataTableProps</name>
+      <kind>component-props</kind>
+      <signature>
+interface ReportDataTableProps {
+  columns: string[];
+  rows: Record&lt;string, unknown&gt;[];
+  sortable?: boolean;
+  filterable?: boolean;
+}
+      </signature>
+      <path>src/components/reporting/report-data-table.tsx</path>
+    </interface>
+    <interface>
+      <name>GeneratedReport.dataTable</name>
+      <kind>type</kind>
+      <signature>
+dataTable: {
+  columns: string[];
+  rows: Record&lt;string, unknown&gt;[];
+  sortable: boolean;
+  filterable: boolean;
+}
+      </signature>
+      <path>src/types/reporting.ts</path>
+    </interface>
+    <interface>
+      <name>SortableHeader</name>
+      <kind>component</kind>
+      <signature>
+function SortableHeader({
+  column,
+  title,
+}: {
+  column: { getIsSorted: () =&gt; false | 'asc' | 'desc'; toggleSorting: (desc?: boolean) =&gt; void };
+  title: string;
+}): JSX.Element
+      </signature>
+      <path>src/components/documents/document-table.tsx (lines 536-561)</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with React Testing Library. Tests go in __tests__/components/reporting/report-data-table.test.tsx. Follow existing test patterns from report-view.test.tsx and report-chart.test.tsx. Use describe/it blocks, data-testid attributes for targeting elements. Mock data should use realistic column names and row counts. E2E tests use Playwright in __tests__/e2e/ directory.
+    </standards>
+    <locations>
+      <location>__tests__/components/reporting/report-data-table.test.tsx (new)</location>
+      <location>__tests__/e2e/report-generation.spec.ts (update)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test renders correct number of rows and columns from props</idea>
+      <idea ac="1">Test renders column headers from columns array</idea>
+      <idea ac="2">Test clicking header toggles sort state (none -> asc -> desc -> none)</idea>
+      <idea ac="2">Test sort indicator icon changes based on sort direction</idea>
+      <idea ac="2">Test keyboard Enter/Space triggers sort toggle</idea>
+      <idea ac="3">Test search input filters rows across all columns</idea>
+      <idea ac="3">Test search is debounced (300ms delay)</idea>
+      <idea ac="3">Test clear button appears when search has value</idea>
+      <idea ac="3">Test clear button resets filter</idea>
+      <idea ac="4">Test pagination controls render when rows > page size</idea>
+      <idea ac="4">Test page size dropdown changes rows displayed</idea>
+      <idea ac="4">Test previous/next buttons navigate pages</idea>
+      <idea ac="4">Test page indicator shows correct "Page X of Y"</idea>
+      <idea ac="5">Test numeric column filter with min/max inputs</idea>
+      <idea ac="5">Test date column filter with date range</idea>
+      <idea ac="5">Test filter indicator badge on filtered columns</idea>
+      <idea ac="6">Test "No results found" message when filter yields 0 rows</idea>
+      <idea ac="6">Test "Clear all filters" button resets all filters</idea>
+      <idea ac="7">Test role="grid" attribute on table</idea>
+      <idea ac="7">Test aria-label on table</idea>
+      <idea ac="7">Test headers have aria-sort attribute</idea>
+      <idea ac="7">Test focus indicators on interactive elements</idea>
+    </ideas>
+  </tests>
+</story-context>

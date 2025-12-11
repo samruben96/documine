@@ -237,20 +237,20 @@ describe('ReportView Component', () => {
     });
   });
 
-  describe('data table placeholder', () => {
-    it('renders data table placeholder', () => {
+  describe('data table (Story 23.6)', () => {
+    it('renders data table when dataTable is present', () => {
       const report = createMockReport();
       render(<ReportView report={report} />);
 
-      expect(screen.getByTestId('data-table-placeholder')).toBeInTheDocument();
+      expect(screen.getByTestId('report-data-table')).toBeInTheDocument();
     });
 
-    it('displays row and column count', () => {
+    it('displays row count', () => {
       const report = createMockReport();
       render(<ReportView report={report} />);
 
+      // Data table shows row count in header
       expect(screen.getByText(/2 rows/)).toBeInTheDocument();
-      expect(screen.getByText(/3 columns/)).toBeInTheDocument();
     });
   });
 
@@ -275,9 +275,10 @@ describe('ReportView Component', () => {
       expect(onNewReport).toHaveBeenCalledTimes(1);
     });
 
-    it('renders disabled export buttons', () => {
+    it('renders disabled export buttons when generating', () => {
+      // Story 23.7: Export buttons are disabled during report generation
       const report = createMockReport();
-      render(<ReportView report={report} />);
+      render(<ReportView report={report} isGenerating={true} />);
 
       const pdfBtn = screen.getByRole('button', { name: /PDF/i });
       const excelBtn = screen.getByRole('button', { name: /Excel/i });
@@ -286,30 +287,18 @@ describe('ReportView Component', () => {
       expect(excelBtn).toBeDisabled();
     });
 
-    it('enables export buttons when handlers provided', () => {
+    it('enables export buttons when report is displayed', () => {
+      // Story 23.7: Export buttons are now internal handlers
       const report = createMockReport();
-      const onExportPdf = vi.fn();
-      const onExportExcel = vi.fn();
 
-      render(
-        <ReportView
-          report={report}
-          onExportPdf={onExportPdf}
-          onExportExcel={onExportExcel}
-        />
-      );
+      render(<ReportView report={report} />);
 
       const pdfBtn = screen.getByRole('button', { name: /PDF/i });
       const excelBtn = screen.getByRole('button', { name: /Excel/i });
 
+      // Buttons should be enabled when isGenerating is false (default)
       expect(pdfBtn).not.toBeDisabled();
       expect(excelBtn).not.toBeDisabled();
-
-      fireEvent.click(pdfBtn);
-      expect(onExportPdf).toHaveBeenCalledTimes(1);
-
-      fireEvent.click(excelBtn);
-      expect(onExportExcel).toHaveBeenCalledTimes(1);
     });
   });
 

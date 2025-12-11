@@ -483,6 +483,87 @@ export type Database = {
           },
         ]
       }
+      commission_data_sources: {
+        Row: {
+          agency_id: string
+          carrier_name: string | null
+          column_count: number | null
+          column_mappings: Json
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          file_type: string
+          filename: string
+          id: string
+          parsed_at: string | null
+          parsed_data: Json | null
+          row_count: number | null
+          statement_period_end: string | null
+          statement_period_start: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          carrier_name?: string | null
+          column_count?: number | null
+          column_mappings?: Json
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_type: string
+          filename: string
+          id?: string
+          parsed_at?: string | null
+          parsed_data?: Json | null
+          row_count?: number | null
+          statement_period_end?: string | null
+          statement_period_start?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          carrier_name?: string | null
+          column_count?: number | null
+          column_mappings?: Json
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_type?: string
+          filename?: string
+          id?: string
+          parsed_at?: string | null
+          parsed_data?: Json | null
+          row_count?: number | null
+          statement_period_end?: string | null
+          statement_period_start?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_data_sources_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_data_sources_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comparisons: {
         Row: {
           agency_id: string

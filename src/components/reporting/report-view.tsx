@@ -2,14 +2,17 @@
 
 /**
  * ReportView Component
- * Epic 23: Flexible AI Reports - Stories 23.4 & 23.5
+ * Epic 23: Flexible AI Reports - Stories 23.4, 23.5, 23.7
  *
  * Displays the generated report with title, summary, insights, and interactive charts.
  * AC-23.4.1: Shows AI-generated report title and summary
  * AC-23.4.2: Shows 3-5 key insights with type indicators and severity levels
  * AC-23.5.4: Renders multiple charts in responsive grid layout
+ * AC-23.7.3: Export buttons visible and accessible in header
+ * AC-23.7.8: Export buttons disabled during report generation
  */
 
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,10 +25,15 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Info,
+  Loader2,
 } from 'lucide-react';
 import type { GeneratedReport, ReportInsight } from '@/types/reporting';
 import { cn } from '@/lib/utils';
 import { ReportChart } from './report-chart';
+import { ReportDataTable } from './report-data-table';
+import { downloadReportPdf } from '@/lib/reporting/pdf-export';
+import { downloadReportExcel } from '@/lib/reporting/excel-export';
+import { captureChartsBySelector } from '@/lib/reporting/chart-capture';
 
 // ============================================================================
 // Types
@@ -36,10 +44,10 @@ export interface ReportViewProps {
   report: GeneratedReport;
   /** Handler for generating a new report */
   onNewReport?: () => void;
-  /** Handler for PDF export (disabled until Story 23.7) */
-  onExportPdf?: () => void;
-  /** Handler for Excel export (disabled until Story 23.7) */
-  onExportExcel?: () => void;
+  /** Whether report is currently being generated (AC-23.7.8) */
+  isGenerating?: boolean;
+  /** Optional chart image refs for PDF export */
+  chartRefs?: React.RefObject<HTMLDivElement | null>[];
 }
 
 // ============================================================================
@@ -109,6 +117,8 @@ function InsightCard({ insight, index }: { insight: ReportInsight; index: number
     <Card
       className="transition-all duration-200 hover:shadow-md"
       data-testid={`insight-card-${index}`}
+      role="article"
+      aria-label={`${typeConfig.label}: ${insight.title}`}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
@@ -117,8 +127,9 @@ function InsightCard({ insight, index }: { insight: ReportInsight; index: number
               'flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 flex-shrink-0',
               typeConfig.className
             )}
+            aria-hidden="true"
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -151,29 +162,6 @@ function InsightCard({ insight, index }: { insight: ReportInsight; index: number
 }
 
 
-/**
- * Data table placeholder (for Story 23.6 implementation).
- */
-function DataTablePlaceholder({ columns, rowCount }: { columns: string[]; rowCount: number }) {
-  return (
-    <Card data-testid="data-table-placeholder">
-      <CardHeader>
-        <CardTitle className="text-base">Data Table</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center justify-center h-32 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-          <FileSpreadsheet className="h-8 w-8 text-slate-300 mb-2" />
-          <p className="text-sm text-slate-500">
-            {rowCount.toLocaleString()} rows &middot; {columns.length} columns
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Interactive table coming in Story 23.6
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ============================================================================
 // Main Component
@@ -185,50 +173,111 @@ function DataTablePlaceholder({ columns, rowCount }: { columns: string[]; rowCou
  * AC-23.4.1: Shows title and summary
  * AC-23.4.2: Shows 3-5 insights with type/severity indicators
  * AC-23.4.6: Shows chart configuration placeholders
+ * AC-23.7.3: Export buttons visible and accessible
+ * AC-23.7.8: Export buttons disabled during generation
  */
 export function ReportView({
   report,
   onNewReport,
-  onExportPdf,
-  onExportExcel,
+  isGenerating = false,
+  chartRefs = [],
 }: ReportViewProps) {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  /**
+   * Handle PDF export - AC-23.7.4: Download starts immediately
+   * AC-23.7.1: PDF export includes embedded charts
+   */
+  const handleExportPdf = useCallback(async () => {
+    if (isExportingPdf || isGenerating) return;
+
+    setIsExportingPdf(true);
+    try {
+      // Capture chart images if charts exist
+      let chartImages: string[] = [];
+      if (report.charts.length > 0) {
+        try {
+          chartImages = await captureChartsBySelector('[data-testid^="report-chart-"]');
+        } catch (captureError) {
+          console.warn('Chart capture failed, exporting without images:', captureError);
+        }
+      }
+
+      await downloadReportPdf(report, chartImages);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [report, isExportingPdf, isGenerating]);
+
+  /**
+   * Handle Excel export - AC-23.7.4: Download starts immediately
+   */
+  const handleExportExcel = useCallback(async () => {
+    if (isExportingExcel || isGenerating) return;
+
+    setIsExportingExcel(true);
+    try {
+      await downloadReportExcel(report);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+    } finally {
+      setIsExportingExcel(false);
+    }
+  }, [report, isExportingExcel, isGenerating]);
+
+  const isExporting = isExportingPdf || isExportingExcel;
+
   return (
     <div className="space-y-6" data-testid="report-view">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Header - AC-23.8.4: Mobile responsive with stacked layout */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900" data-testid="report-title">
+          <h1 className="text-xl sm:text-2xl font-semibold text-slate-900" data-testid="report-title">
             {report.title}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             Generated {new Date(report.generatedAt).toLocaleString()}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Export buttons - disabled until Story 23.7 */}
+        {/* AC-23.8.4: Mobile touch targets 44px minimum */}
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap sm:flex-nowrap">
+          {/* Export buttons - AC-23.7.3, AC-23.8.1: Visible and accessible with aria-hidden icons */}
           <Button
             variant="outline"
             size="sm"
-            onClick={onExportPdf}
-            disabled={!onExportPdf}
-            title="PDF export coming in Story 23.7"
+            onClick={handleExportPdf}
+            disabled={isGenerating || isExporting}
+            aria-label="Export report as PDF"
+            data-testid="export-pdf-button"
           >
-            <FileDown className="h-4 w-4 mr-2" />
+            {isExportingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+            ) : (
+              <FileDown className="h-4 w-4 mr-2" aria-hidden="true" />
+            )}
             PDF
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={onExportExcel}
-            disabled={!onExportExcel}
-            title="Excel export coming in Story 23.7"
+            onClick={handleExportExcel}
+            disabled={isGenerating || isExporting}
+            aria-label="Export report as Excel"
+            data-testid="export-excel-button"
           >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            {isExportingExcel ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4 mr-2" aria-hidden="true" />
+            )}
             Excel
           </Button>
           {onNewReport && (
-            <Button variant="default" size="sm" onClick={onNewReport}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="default" size="sm" onClick={onNewReport} aria-label="Generate a new report">
+              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
               New Report
             </Button>
           )}
@@ -238,7 +287,7 @@ export function ReportView({
       {/* Prompt Used */}
       {report.promptUsed && (
         <div className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
-          <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
+          <Info className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
           <div>
             <p className="text-xs font-medium text-slate-500">Analysis Based On</p>
             <p className="text-sm text-slate-700">{report.promptUsed}</p>
@@ -285,11 +334,13 @@ export function ReportView({
         </div>
       )}
 
-      {/* Data Table Placeholder */}
+      {/* Data Table (AC-23.6.1) */}
       {report.dataTable && (
-        <DataTablePlaceholder
+        <ReportDataTable
           columns={report.dataTable.columns}
-          rowCount={report.dataTable.rows.length}
+          rows={report.dataTable.rows}
+          sortable={report.dataTable.sortable}
+          filterable={report.dataTable.filterable}
         />
       )}
     </div>

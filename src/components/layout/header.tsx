@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, Loader2, Menu, Bot } from 'lucide-react';
+import { LogOut, Loader2, Menu, Bot, BarChart3 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,7 @@ const navItems = [
   { href: '/documents', label: 'Documents' },
   { href: '/compare', label: 'Compare' },
   { href: '/ai-buddy', label: 'AI Buddy', icon: Bot },
+  { href: '/reporting', label: 'Reporting', icon: BarChart3 },
   { href: '/settings', label: 'Settings' },
 ];
 
@@ -44,6 +45,9 @@ function NavLinks({
     }
     if (href === '/ai-buddy') {
       return pathname === '/ai-buddy' || pathname.startsWith('/ai-buddy/');
+    }
+    if (href === '/reporting') {
+      return pathname === '/reporting' || pathname.startsWith('/reporting/');
     }
     return pathname.startsWith(href);
   };

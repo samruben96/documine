@@ -156,6 +156,66 @@ The issue appears to be in how Next.js Edge Runtime handles cookie propagation t
 **Discovered:** Epic 15, Story 15.4 (Conversation Persistence)
 **Documented:** 2025-12-07
 
+## Audit Logging Pattern (Write with Service, Read with RLS)
+
+**Problem:** Audit logs need to be written by any authenticated user (tracking their actions) but only read by admins. RLS policies typically only allow SELECT for admins, blocking INSERT operations from regular users.
+
+**Solution:** Use service client for writes (bypass RLS) and regular client for reads (respect RLS).
+
+```typescript
+import { createClient, createServiceClient } from '@/lib/supabase/server';
+
+// ✅ Writing audit logs - service client (any user can create)
+export async function logAuditEvent(input: AuditLogInput): Promise<void> {
+  // Service client bypasses RLS - allows INSERT without admin permission
+  const supabase = createServiceClient();
+
+  await supabase.from('agency_audit_logs').insert({
+    agency_id: input.agencyId,
+    user_id: input.userId,
+    action: input.action,
+    metadata: input.metadata,
+    logged_at: new Date().toISOString(),
+  });
+}
+
+// ✅ Reading audit logs - regular client (admin-only via RLS)
+export async function queryAuditLogs(agencyId: string): Promise<AuditLogEntry[]> {
+  // Regular client respects RLS - only admins can SELECT
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('agency_audit_logs')
+    .select('*')
+    .eq('agency_id', agencyId)
+    .order('logged_at', { ascending: false });
+
+  return data ?? [];
+}
+```
+
+### Why This Is Safe
+
+1. **Audit logs are append-only** - No data exposure risk from INSERT
+2. **User context is captured** - `userId` and `agencyId` are required inputs
+3. **Read access controlled by RLS** - Query functions respect admin-only SELECT policy
+4. **Service client never used for reads** - Sensitive data protected
+
+### When to Use This Pattern
+
+| Operation | Client | Reason |
+|-----------|--------|--------|
+| INSERT audit log | Service | Any user creates their own audit entries |
+| SELECT audit logs | Regular | Admin-only viewing via RLS |
+| UPDATE/DELETE | Never | Audit logs are immutable |
+
+### Reference Implementation
+
+See `src/lib/admin/audit-logger.ts` for the production implementation.
+
+**Discovered:** Epic 23, Story 23.4 (Reporting Audit Logging)
+**Documented:** 2025-12-10
+
 ## SSE Streaming Pattern for AI Responses
 
 **Use case:** Streaming AI responses to the client with low latency, including structured metadata (sources, confidence levels).

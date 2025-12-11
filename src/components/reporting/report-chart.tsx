@@ -42,15 +42,28 @@ import type { ChartConfig } from '@/types/reporting';
 // ============================================================================
 
 /**
- * Chart color palette using CSS variables for consistent theming.
- * AC-23.5.2: Uses shadcn/ui design tokens
+ * Professional chart color palette with explicit hex colors.
+ * AC-23.9.1: Vibrant, accessible colors (WCAG 2.1 AA compliant)
+ *
+ * Color meanings:
+ * - Blue (#3b82f6): Primary, first series
+ * - Emerald (#10b981): Positive/success metrics
+ * - Amber (#f59e0b): Warning/attention
+ * - Red (#ef4444): Negative/critical
+ * - Violet (#8b5cf6): Fifth series
+ * - Pink (#ec4899): Sixth series
+ * - Cyan (#06b6d4): Seventh series
+ * - Orange (#f97316): Eighth series
  */
 const CHART_COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--chart-2, 173 58% 39%))',
-  'hsl(var(--chart-3, 197 37% 24%))',
-  'hsl(var(--chart-4, 43 74% 66%))',
-  'hsl(var(--chart-5, 27 87% 67%))',
+  '#3b82f6', // Blue
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#f97316', // Orange
 ];
 
 /**
@@ -153,8 +166,46 @@ function ChartError({ message, title }: ChartErrorProps) {
 }
 
 /**
- * Custom tooltip component for hover interaction.
- * AC-23.5.3: Interactive with hover tooltips
+ * Format tooltip values based on data type.
+ * AC-23.9.5: Formatted values (currency, percentages, numbers)
+ */
+function formatTooltipValue(value: number, name?: string): string {
+  if (typeof value !== 'number' || isNaN(value)) return '0';
+
+  // Detect currency fields by name pattern
+  const isCurrency =
+    name &&
+    /amount|price|cost|revenue|total|fee|payment|balance|sum/i.test(name);
+
+  if (isCurrency) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  // Detect percentage fields
+  const isPercentage = name && /percent|rate|ratio/i.test(name);
+  if (isPercentage && value <= 1) {
+    return `${(value * 100).toFixed(1)}%`;
+  }
+
+  // Format large numbers with abbreviations
+  if (Math.abs(value) >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  }
+  if (Math.abs(value) >= 1000) {
+    return `${(value / 1000).toFixed(1)}K`;
+  }
+
+  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+/**
+ * Custom tooltip component with shadcn styling.
+ * AC-23.9.5: Styled tooltips with formatted values
  */
 interface CustomTooltipProps {
   active?: boolean;
@@ -174,38 +225,47 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 
   return (
     <div
-      className="rounded-lg border bg-background p-3 shadow-md"
+      className="rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-3 shadow-lg"
       data-testid="chart-tooltip"
+      style={{ minWidth: '140px' }}
     >
-      <p className="text-sm font-medium mb-2">{label}</p>
-      {payload.map((entry, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-between gap-4 text-sm"
-        >
-          <span className="flex items-center gap-2">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            {entry.name}
-          </span>
-          <span className="font-medium">{formatValue(entry.value)}</span>
-        </div>
-      ))}
+      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2 pb-1 border-b border-slate-100 dark:border-slate-700">
+        {label}
+      </p>
+      <div className="space-y-1.5">
+        {payload.map((entry, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-between gap-4 text-sm"
+          >
+            <span className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+              <span
+                className="h-2.5 w-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="truncate max-w-[100px]">{entry.name}</span>
+            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+              {formatTooltipValue(entry.value, entry.dataKey)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 /**
  * Custom tooltip for pie charts showing percentage.
+ * AC-23.9.5: Consistent styling with CustomTooltip
  */
 interface PieTooltipProps {
   active?: boolean;
   payload?: Array<{
     name: string;
     value: number;
-    payload: Record<string, unknown>;
+    payload: Record<string, unknown> & { _total?: number };
+    color?: string;
   }>;
 }
 
@@ -215,18 +275,36 @@ function PieTooltip({ active, payload }: PieTooltipProps) {
   }
 
   const entry = payload[0];
-  const total = (entry.payload?._total as number) || 0;
+  const total = entry.payload?._total || 0;
   const percentage = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0';
 
   return (
     <div
-      className="rounded-lg border bg-background p-3 shadow-md"
+      className="rounded-lg border border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-3 shadow-lg"
       data-testid="chart-tooltip"
+      style={{ minWidth: '120px' }}
     >
-      <p className="text-sm font-medium">{entry.name}</p>
-      <p className="text-sm text-muted-foreground">
-        {formatValue(entry.value)} ({percentage}%)
-      </p>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span
+          className="h-2.5 w-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: entry.color || CHART_COLORS[0] }}
+        />
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+          {entry.name}
+        </p>
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-600 dark:text-slate-400">Value</span>
+        <span className="font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+          {formatTooltipValue(entry.value)}
+        </span>
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-slate-600 dark:text-slate-400">Share</span>
+        <span className="font-semibold text-slate-800 dark:text-slate-200 tabular-nums">
+          {percentage}%
+        </span>
+      </div>
     </div>
   );
 }
@@ -236,8 +314,8 @@ function PieTooltip({ active, payload }: PieTooltipProps) {
 // ============================================================================
 
 /**
- * Bar Chart implementation.
- * Task 2: Supports single-series and multi-series
+ * Bar Chart implementation with gradient fills and enhanced styling.
+ * AC-23.9.4: Gradient fill, subtle grid, readable axis, border radius
  */
 function BarChartImpl({
   config,
@@ -247,6 +325,7 @@ function BarChartImpl({
   height: number;
 }) {
   const yKeys = getYKeys(config.yKey);
+  const chartId = config.id || 'bar-chart';
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -254,33 +333,62 @@ function BarChartImpl({
         data={config.data as Record<string, unknown>[]}
         margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        {/* Gradient definitions for bars (AC-23.9.4) */}
+        <defs>
+          {CHART_COLORS.map((color, index) => (
+            <linearGradient
+              key={`bar-gradient-${index}`}
+              id={`bar-gradient-${chartId}-${index}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={color} stopOpacity={1} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+            </linearGradient>
+          ))}
+        </defs>
+        {/* AC-23.9.4: Subtle grid lines (lighter, dashed) */}
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f0"
+          strokeOpacity={0.6}
+          vertical={false}
+        />
         <XAxis
           dataKey={config.xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
-          axisLine={false}
-          className="text-muted-foreground"
+          axisLine={{ stroke: '#e2e8f0' }}
+          interval="preserveStartEnd"
+          tickMargin={8}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
           axisLine={false}
-          className="text-muted-foreground"
           width={50}
           tickFormatter={formatValue}
         />
         <Tooltip content={<CustomTooltip />} />
         {yKeys.length > 1 && (
-          <Legend verticalAlign="bottom" height={36} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            formatter={(value) => (
+              <span className="text-sm text-slate-700 dark:text-slate-300">{value}</span>
+            )}
+          />
         )}
         {yKeys.map((key, index) => (
           <Bar
             key={key}
             dataKey={key}
             name={key}
-            fill={CHART_COLORS[index % CHART_COLORS.length]}
-            radius={[4, 4, 0, 0]}
+            fill={`url(#bar-gradient-${chartId}-${index % CHART_COLORS.length})`}
+            radius={[6, 6, 0, 0]}
+            maxBarSize={60}
           />
         ))}
       </BarChart>
@@ -289,8 +397,8 @@ function BarChartImpl({
 }
 
 /**
- * Line Chart implementation.
- * Task 3: Supports single-line and multi-line with dot markers
+ * Line Chart implementation with enhanced styling.
+ * AC-23.9.6: Responsive legend with proper styling
  */
 function LineChartImpl({
   config,
@@ -307,25 +415,36 @@ function LineChartImpl({
         data={config.data as Record<string, unknown>[]}
         margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f0"
+          strokeOpacity={0.6}
+          vertical={false}
+        />
         <XAxis
           dataKey={config.xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
-          axisLine={false}
-          className="text-muted-foreground"
+          axisLine={{ stroke: '#e2e8f0' }}
+          tickMargin={8}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
           axisLine={false}
-          className="text-muted-foreground"
           width={50}
           tickFormatter={formatValue}
         />
         <Tooltip content={<CustomTooltip />} />
         {yKeys.length > 1 && (
-          <Legend verticalAlign="bottom" height={36} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            wrapperStyle={{ paddingTop: '10px' }}
+            formatter={(value) => (
+              <span className="text-sm text-slate-700 dark:text-slate-300">{value}</span>
+            )}
+          />
         )}
         {yKeys.map((key, index) => (
           <Line
@@ -334,9 +453,9 @@ function LineChartImpl({
             dataKey={key}
             name={key}
             stroke={CHART_COLORS[index % CHART_COLORS.length]}
-            strokeWidth={2}
-            dot={{ r: 3 }}
-            activeDot={{ r: 5 }}
+            strokeWidth={2.5}
+            dot={{ r: 3, strokeWidth: 2 }}
+            activeDot={{ r: 6, strokeWidth: 2 }}
           />
         ))}
       </LineChart>
@@ -345,8 +464,8 @@ function LineChartImpl({
 }
 
 /**
- * Pie Chart implementation.
- * Task 4: Maps data to segments with percentage labels
+ * Pie Chart implementation with donut style and enhanced styling.
+ * AC-23.9.3: Gradient fills, innerRadius, paddingAngle, hover effects
  */
 function PieChartImpl({
   config,
@@ -358,6 +477,7 @@ function PieChartImpl({
   // For pie charts, we expect xKey to be the label and yKey to be the value
   const yKeyValue = Array.isArray(config.yKey) ? config.yKey[0] : config.yKey;
   const yKey = yKeyValue || '';
+  const chartId = config.id || 'pie-chart';
 
   // Calculate total for percentage calculations
   const total = useMemo(() => {
@@ -369,48 +489,80 @@ function PieChartImpl({
   }, [config.data, yKey]);
 
   // Transform data to include total for tooltip percentage calculation
+  // AC-23.9.2: Filter out zero values from pie chart
   const pieData = useMemo(() => {
     if (!yKey) return [];
-    return (config.data as Record<string, unknown>[]).map((item) => ({
-      ...item,
-      name: item[config.xKey] as string,
-      value: Number(item[yKey]) || 0,
-      _total: total,
-    }));
+    return (config.data as Record<string, unknown>[])
+      .map((item) => ({
+        ...item,
+        name: item[config.xKey] as string,
+        value: Number(item[yKey]) || 0,
+        _total: total,
+      }))
+      .filter((item) => item.value > 0); // AC-23.9.2: No 0% slices
   }, [config.data, config.xKey, yKey, total]);
+
+  const outerRadius = Math.min(height * 0.35, 100);
+  const innerRadius = outerRadius * 0.6; // Donut effect (AC-23.9.3)
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+        {/* Gradient definitions for pie slices (AC-23.9.3) */}
+        <defs>
+          {CHART_COLORS.map((color, index) => (
+            <linearGradient
+              key={`pie-gradient-${index}`}
+              id={`pie-gradient-${chartId}-${index}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={color} stopOpacity={1} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.7} />
+            </linearGradient>
+          ))}
+        </defs>
         <Pie
           data={pieData}
           dataKey="value"
           nameKey="name"
           cx="50%"
           cy="50%"
-          outerRadius={Math.min(height * 0.35, 100)}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius}
+          paddingAngle={2}
           label={({ name, percent }) =>
             `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
           }
-          labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+          labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
         >
           {pieData.map((_, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
+              fill={`url(#pie-gradient-${chartId}-${index % CHART_COLORS.length})`}
+              stroke="#fff"
+              strokeWidth={2}
             />
           ))}
         </Pie>
         <Tooltip content={<PieTooltip />} />
-        <Legend verticalAlign="bottom" height={36} />
+        <Legend
+          verticalAlign="bottom"
+          height={36}
+          formatter={(value) => (
+            <span className="text-sm text-slate-700 dark:text-slate-300">{value}</span>
+          )}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
 }
 
 /**
- * Area Chart implementation.
- * Task 5: Supports stacked area with gradient fills
+ * Area Chart implementation with enhanced styling.
+ * AC-23.9.6: Responsive legend with proper styling
  */
 function AreaChartImpl({
   config,
@@ -451,25 +603,36 @@ function AreaChartImpl({
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f0"
+          strokeOpacity={0.6}
+          vertical={false}
+        />
         <XAxis
           dataKey={config.xKey}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
-          axisLine={false}
-          className="text-muted-foreground"
+          axisLine={{ stroke: '#e2e8f0' }}
+          tickMargin={8}
         />
         <YAxis
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fill: '#64748b' }}
           tickLine={false}
           axisLine={false}
-          className="text-muted-foreground"
           width={50}
           tickFormatter={formatValue}
         />
         <Tooltip content={<CustomTooltip />} />
         {yKeys.length > 1 && (
-          <Legend verticalAlign="bottom" height={36} />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            wrapperStyle={{ paddingTop: '10px' }}
+            formatter={(value) => (
+              <span className="text-sm text-slate-700 dark:text-slate-300">{value}</span>
+            )}
+          />
         )}
         {yKeys.map((key, index) => (
           <Area
@@ -479,7 +642,7 @@ function AreaChartImpl({
             name={key}
             stroke={CHART_COLORS[index % CHART_COLORS.length]}
             fill={`url(#gradient-${chartId}-${index})`}
-            strokeWidth={2}
+            strokeWidth={2.5}
             stackId={yKeys.length > 1 ? 'stack' : undefined}
           />
         ))}

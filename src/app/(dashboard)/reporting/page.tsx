@@ -5,6 +5,7 @@
  * Epic 23: Flexible AI Reports
  * Story 23.1: File Upload Infrastructure
  * Story 23.3: Prompt Input UI
+ * Story 23.4: AI Report Generation
  *
  * Upload any data file (Excel, CSV, PDF) and get AI-generated reports.
  *
@@ -13,24 +14,51 @@
  * 2. Uploading: FileUploader with progress
  * 3. Analyzing: Show "Analyzing your data..." spinner below uploader
  * 4. Ready: Show PromptInput + SuggestedPrompts + Generate button
- * 5. Generating: Disabled state during generation (Story 23.4)
+ * 5. Generating: Show progress indicator during AI generation
+ * 6. Report: Show ReportView with generated report
+ * 7. Error: Show error alert with retry option
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileUploader } from '@/components/reporting/file-uploader';
 import { PromptInput } from '@/components/reporting/prompt-input';
 import { SuggestedPrompts } from '@/components/reporting/suggested-prompts';
+import { ReportView } from '@/components/reporting/report-view';
+import { ReportingError } from '@/components/reporting/reporting-error';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Sparkles, Loader2, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import {
+  Sparkles,
+  Loader2,
+  CheckCircle2,
+  FileText,
+  XCircle,
+} from 'lucide-react';
 import { useReportingAnalysis } from '@/hooks/use-reporting-analysis';
+import { useReportGeneration } from '@/hooks/use-report-generation';
 import { cn } from '@/lib/utils';
 
 /**
  * UI Flow States
  * AC-23.3.5: Loading state shown while analysis is in progress
+ * AC-23.4.4: Generating state shows streaming progress feedback
  */
-type PageState = 'initial' | 'analyzing' | 'ready' | 'generating' | 'error';
+type PageState =
+  | 'initial'
+  | 'analyzing'
+  | 'ready'
+  | 'generating'
+  | 'report'
+  | 'error';
+
+/**
+ * Stage labels for progress display
+ */
+const STAGE_LABELS = {
+  analyzing: 'Analyzing data structure...',
+  generating: 'Generating insights...',
+  charting: 'Creating chart recommendations...',
+} as const;
 
 export default function ReportingPage() {
   // Upload state
@@ -39,9 +67,6 @@ export default function ReportingPage() {
 
   // Prompt state
   const [prompt, setPrompt] = useState('');
-
-  // Generation state (Story 23.4)
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // Analysis hook
   const {
@@ -52,16 +77,34 @@ export default function ReportingPage() {
     reset: resetAnalysis,
   } = useReportingAnalysis();
 
+  // Generation hook (AC-23.4.4)
+  const {
+    generate,
+    report,
+    isGenerating,
+    progress,
+    streamingTitle,
+    streamingSummary,
+    streamingInsights,
+    error: generationError,
+    reset: resetGeneration,
+    cancel: cancelGeneration,
+  } = useReportGeneration();
+
   // Derive current page state
-  const getPageState = (): PageState => {
-    if (analysisError) return 'error';
+  const getPageState = useCallback((): PageState => {
+    if (report) return 'report';
+    if (generationError || analysisError) return 'error';
     if (isGenerating) return 'generating';
     if (analysisData) return 'ready';
     if (isAnalyzing) return 'analyzing';
     return 'initial';
-  };
+  }, [report, generationError, analysisError, isGenerating, analysisData, isAnalyzing]);
 
   const pageState = getPageState();
+
+  // Get current error message
+  const errorMessage = generationError || analysisError;
 
   // Trigger analysis after successful upload
   useEffect(() => {
@@ -87,17 +130,13 @@ export default function ReportingPage() {
     setUploadedFilename(null);
     setPrompt('');
     resetAnalysis();
+    resetGeneration();
   };
 
   const handleGenerateReport = async () => {
     if (!uploadedSourceId) return;
-    setIsGenerating(true);
-    // TODO: Story 23.4 - Call /api/reporting/generate
-    console.log('Generate report:', {
-      sourceId: uploadedSourceId,
-      prompt: prompt || '(auto-analyze)',
-    });
-    setTimeout(() => setIsGenerating(false), 2000); // Placeholder
+    // AC-23.4.3: prompt is optional - auto-analysis if blank
+    await generate(uploadedSourceId, prompt || undefined);
   };
 
   const handleSuggestedPromptSelect = (selectedPrompt: string) => {
@@ -111,11 +150,67 @@ export default function ReportingPage() {
     }
   };
 
+  const handleRetryGeneration = () => {
+    if (uploadedSourceId) {
+      resetGeneration();
+      // Re-trigger generation with same prompt
+      generate(uploadedSourceId, prompt || undefined);
+    }
+  };
+
+  const handleNewReport = () => {
+    // Go back to ready state to allow new generation
+    resetGeneration();
+    setPrompt('');
+  };
+
+  const handleCancelGeneration = () => {
+    cancelGeneration();
+  };
+
   // AC-23.3.4: Generate button enabled after file upload completes (prompt is optional)
   const canGenerate = pageState === 'ready' && !isGenerating;
 
+  // Show report view when report is available
+  if (pageState === 'report' && report) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Skip link for accessibility (AC-23.8.1) */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+        >
+          Skip to main content
+        </a>
+
+        {/* Header */}
+        <div className="border-b border-slate-200 bg-white px-6 py-4">
+          <h1 className="text-xl font-semibold text-slate-900">Data Reports</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Upload any data file and let AI generate insights and visualizations
+          </p>
+        </div>
+
+        {/* Report Content */}
+        <main id="main-content" className="flex-1 overflow-auto p-6">
+          <div className="mx-auto max-w-4xl">
+            <ReportView report={report} onNewReport={handleNewReport} />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
+      {/* Skip link for accessibility (AC-23.8.1) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+      >
+        Skip to main content
+      </a>
+
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-6 py-4">
         <h1 className="text-xl font-semibold text-slate-900">Data Reports</h1>
@@ -125,7 +220,7 @@ export default function ReportingPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <main id="main-content" className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* Step 1: Upload Section */}
           <div className="rounded-lg border border-slate-200 bg-white p-6">
@@ -164,10 +259,18 @@ export default function ReportingPage() {
               </div>
             )}
 
-            {/* Analyzing indicator - AC-23.3.5 */}
+            {/* Analyzing indicator - AC-23.3.5, AC-23.8.1, AC-23.8.2: Enhanced loading state with pulse animation */}
             {pageState === 'analyzing' && (
-              <div className="mt-4 flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <Loader2 className="h-5 w-5 text-blue-600 animate-spin flex-shrink-0" />
+              <div
+                className="mt-4 flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg animate-pulse"
+                role="status"
+                aria-live="polite"
+                aria-label="Analyzing your data"
+              >
+                <div className="relative flex-shrink-0">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" aria-hidden="true" />
+                  <span className="absolute inset-0 rounded-full animate-ping bg-blue-400 opacity-20" aria-hidden="true" />
+                </div>
                 <div>
                   <p className="text-sm font-medium text-blue-800">
                     Analyzing your data...
@@ -205,26 +308,77 @@ export default function ReportingPage() {
             )}
           </div>
 
-          {/* Error Alert - AC-23.3.6 */}
-          {pageState === 'error' && analysisError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Analysis Failed</AlertTitle>
-              <AlertDescription className="mt-2">
-                <p>{analysisError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRetryAnalysis}
-                  className="mt-3"
-                >
-                  Try Again
-                </Button>
-              </AlertDescription>
-            </Alert>
+          {/* Error Alert - AC-23.4.7, AC-23.8.3: Enhanced error component */}
+          {pageState === 'error' && errorMessage && (
+            <ReportingError
+              type={generationError ? 'generation' : 'analysis'}
+              message={errorMessage}
+              onRetry={generationError ? handleRetryGeneration : handleRetryAnalysis}
+              onUploadNew={handleNewFile}
+            />
           )}
 
-          {/* Step 2: Prompt Input - AC-23.3.1, AC-23.3.2, AC-23.3.3 */}
+          {/* Generating Progress - AC-23.4.4, AC-23.8.1: aria-live for dynamic updates */}
+          {pageState === 'generating' && (
+            <div
+              className="rounded-lg border border-blue-200 bg-blue-50 p-6"
+              role="status"
+              aria-live="polite"
+              aria-label="Generating your report"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">
+                      Generating Your Report
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      {progress
+                        ? STAGE_LABELS[progress.stage]
+                        : 'Starting generation...'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelGeneration}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+
+              {/* Progress bar */}
+              {progress && (
+                <Progress value={progress.percent} className="h-2 mb-4" />
+              )}
+
+              {/* Streaming preview */}
+              {(streamingTitle || streamingSummary || streamingInsights.length > 0) && (
+                <div className="mt-4 p-4 bg-white rounded-lg border border-blue-100">
+                  {streamingTitle && (
+                    <h3 className="font-medium text-slate-900 mb-2">{streamingTitle}</h3>
+                  )}
+                  {streamingSummary && (
+                    <p className="text-sm text-slate-600 mb-2 line-clamp-3">
+                      {streamingSummary}
+                    </p>
+                  )}
+                  {streamingInsights.length > 0 && (
+                    <p className="text-xs text-slate-400">
+                      {streamingInsights.length} insight
+                      {streamingInsights.length !== 1 ? 's' : ''} found...
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Prompt Input - AC-23.3.1, AC-23.3.2, AC-23.3.3, AC-23.8.2: Skeleton during analysis */}
           <div
             className={cn(
               'rounded-lg border border-slate-200 bg-white p-6 transition-opacity duration-300',
@@ -240,31 +394,48 @@ export default function ReportingPage() {
               analysis automatically.
             </p>
 
-            <PromptInput
-              value={prompt}
-              onChange={setPrompt}
-              disabled={pageState !== 'ready' && pageState !== 'generating'}
-            />
-
-            {/* Suggested prompts - AC-23.3.3 */}
-            {analysisData?.suggestedPrompts && (
-              <div className="mt-4">
-                <SuggestedPrompts
-                  prompts={analysisData.suggestedPrompts}
-                  onSelect={handleSuggestedPromptSelect}
+            {/* Skeleton loader during analysis (AC-23.8.2) */}
+            {pageState === 'analyzing' ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-[100px] bg-slate-100 rounded-md" />
+                <div className="space-y-2">
+                  <div className="h-3 bg-slate-100 rounded w-24" />
+                  <div className="flex flex-wrap gap-2">
+                    <div className="h-7 bg-slate-100 rounded-full w-32" />
+                    <div className="h-7 bg-slate-100 rounded-full w-40" />
+                    <div className="h-7 bg-slate-100 rounded-full w-28" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <PromptInput
+                  value={prompt}
+                  onChange={setPrompt}
                   disabled={pageState !== 'ready'}
                 />
-              </div>
-            )}
 
-            {/* Analysis metadata (for debugging/transparency) */}
-            {analysisData && (
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-xs text-slate-400">
-                  {analysisData.columns.length} columns detected &middot;{' '}
-                  {analysisData.rowCount.toLocaleString()} rows
-                </p>
-              </div>
+                {/* Suggested prompts - AC-23.3.3 */}
+                {analysisData?.suggestedPrompts && (
+                  <div className="mt-4">
+                    <SuggestedPrompts
+                      prompts={analysisData.suggestedPrompts}
+                      onSelect={handleSuggestedPromptSelect}
+                      disabled={pageState !== 'ready'}
+                    />
+                  </div>
+                )}
+
+                {/* Analysis metadata (for debugging/transparency) */}
+                {analysisData && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-xs text-slate-400">
+                      {analysisData.columns.length} columns detected &middot;{' '}
+                      {analysisData.rowCount.toLocaleString()} rows
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -287,17 +458,8 @@ export default function ReportingPage() {
               </>
             )}
           </Button>
-
-          {/* Placeholder for report output - TODO: Story 23.4+ */}
-          {isGenerating && (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
-              <p className="text-sm text-slate-500">
-                Your AI-generated report will appear here...
-              </p>
-            </div>
-          )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

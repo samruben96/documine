@@ -1,0 +1,234 @@
+<story-context id="23-9-chart-visualization-polish" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>9</storyId>
+    <title>Chart Visualization Polish</title>
+    <status>draft</status>
+    <generatedAt>2025-12-10T18:30:00.000Z</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-9-chart-visualization-polish/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>visually appealing, informative charts with proper colors, labels, and data presentation</iWant>
+    <soThat>I can quickly understand my data at a glance and share professional-looking reports with clients</soThat>
+    <tasks>
+      <task id="1">Define Professional Color Palette - Replace CSS variable colors with explicit hex colors, ensure 8 distinct colors</task>
+      <task id="2">Filter Zero/Unknown Values - Update buildChartData() to filter out zero-sum categories and "Unknown" labels</task>
+      <task id="3">Enhance Pie Chart - Add gradient fills, innerRadius for donut style, paddingAngle for slice separation, hover effects</task>
+      <task id="4">Enhance Bar Chart - Add gradient fills, improve grid line styling, format axis tick labels, add border radius</task>
+      <task id="5">Implement Custom Tooltips - Create ChartTooltip component with shadcn styling, format values by data type</task>
+      <task id="6">Polish Legend - Style with color swatches, handle long labels, make responsive</task>
+      <task id="7">Data Table Improvements - Update null display from "—" to "N/A", ensure currency formatting</task>
+      <task id="8">Unit Tests - Test color palette, zero-value filtering, tooltip rendering, responsive legend</task>
+      <task id="9">Visual QA - Test with various data sets, mobile responsiveness, screenshot comparison</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-23.9.1">Charts use a professional, accessible color palette (not monochrome black) - Minimum 5 distinct colors, WCAG 2.1 AA contrast</criterion>
+    <criterion id="AC-23.9.2">Filter Zero/Unknown categories - Charts exclude 0 values or "Unknown" labels, no 0% slices or zero-height bars</criterion>
+    <criterion id="AC-23.9.3">Enhanced Pie Chart Styling - Subtle gradient/shadow for depth, slice labels show percentage and value, hover highlight effect</criterion>
+    <criterion id="AC-23.9.4">Enhanced Bar Chart Styling - Gradient fill for visual appeal, hover tooltip with exact value, readable axis labels, subtle grid lines</criterion>
+    <criterion id="AC-23.9.5">Improved Tooltips - All charts show styled tooltips on hover, formatted values (currency, percentages), consistent shadcn/ui styling</criterion>
+    <criterion id="AC-23.9.6">Responsive Legend - Legend wraps on mobile, color indicator + label, optional clickable toggle</criterion>
+    <criterion id="AC-23.9.7">Data Table Value Formatting - Numeric values with thousand separators, currency shows $, null/undefined show "N/A" not "—"</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/tech-spec.md</path>
+        <title>Epic 23 Tech Spec: Flexible AI Reports</title>
+        <section>Charts & Visualization / Chart Visualization Polish</section>
+        <snippet>AC-23.9.1-7: Vibrant accessible color palette, filter zero/Unknown categories, pie charts with gradients and labels, bar charts with gradients and readable axes, styled tooltips, responsive legends, data table value formatting.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/stories/23-9-chart-visualization-polish/story.md</path>
+        <title>Story 23.9: Chart Visualization Polish</title>
+        <section>Full Story Definition</section>
+        <snippet>Visual polish for charts - professional colors, filter zeros, gradient fills, styled tooltips, legend improvements, data table formatting. 3 story points.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-23/stories/23-5-charts-visualization/story.md</path>
+        <title>Story 23.5: Charts & Visualization</title>
+        <section>Reference - Original Implementation</section>
+        <snippet>Original chart implementation using Recharts. This story adds polish to the foundation built in 23.5.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/reporting/report-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportChart, BarChartImpl, LineChartImpl, PieChartImpl, AreaChartImpl</symbol>
+        <lines>1-580</lines>
+        <reason>PRIMARY FILE TO MODIFY - Contains CHART_COLORS array (lines 48-54) using CSS variables that resolve to black. Contains all chart implementations (bar, line, pie, area) that need gradient fills, tooltip customization, and styling enhancements.</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/report-data-table.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportDataTable, formatCellValue</symbol>
+        <lines>132-140</lines>
+        <reason>Contains formatCellValue() that returns "—" for null/undefined. Needs to return "N/A" per AC-23.9.7.</reason>
+      </file>
+      <file>
+        <path>src/lib/reporting/report-generator.ts</path>
+        <kind>service</kind>
+        <symbol>buildChartData</symbol>
+        <lines>148-200</lines>
+        <reason>Contains buildChartData() function that aggregates data for charts. Needs to filter out zero-sum categories and "Unknown" values per AC-23.9.2.</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportView</symbol>
+        <lines>1-349</lines>
+        <reason>Parent component that renders ReportChart and ReportDataTable. May need updates to pass new props for chart customization.</reason>
+      </file>
+      <file>
+        <path>src/app/globals.css</path>
+        <kind>styles</kind>
+        <symbol>:root CSS variables</symbol>
+        <lines>68-72</lines>
+        <reason>Defines chart color CSS variables (--chart-1 through --chart-5) using oklch. These may not be resolving correctly in Recharts - consider adding explicit fallbacks or defining dedicated chart colors.</reason>
+      </file>
+      <file>
+        <path>src/types/reporting.ts</path>
+        <kind>types</kind>
+        <symbol>ChartConfig</symbol>
+        <reason>TypeScript types for chart configuration. May need colorKey or styling config additions.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/reporting/report-chart.test.tsx</path>
+        <kind>test</kind>
+        <reason>Existing tests for ReportChart. Add tests for color palette, zero-value filtering, tooltip rendering.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/reporting/report-data-table.test.tsx</path>
+        <kind>test</kind>
+        <reason>Existing tests for ReportDataTable. Add tests for "N/A" display instead of "—".</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="recharts" version="^2.15.1">Primary charting library - already supports all needed features (gradients, custom tooltips, legends)</package>
+        <package name="@tanstack/react-table" version="^8.21.2">Data table library - already in use</package>
+        <package name="tailwindcss" version="^4.0.0-beta.8">Styling framework</package>
+        <package name="use-debounce" version="^10.0.4">For debounced search in data table</package>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>No new npm dependencies required - Recharts already supports all needed features (gradients via defs, custom tooltips, legend customization)</constraint>
+    <constraint>Must maintain backward compatibility with existing chart configurations</constraint>
+    <constraint>Colors must meet WCAG 2.1 AA contrast requirements (minimum 4.5:1 for text, 3:1 for UI components)</constraint>
+    <constraint>Do not break existing PDF/Excel export functionality</constraint>
+    <constraint>Keep chart rendering performant - avoid heavy DOM operations in tooltips</constraint>
+    <constraint>Test both light mode (primary) and dark mode if applicable</constraint>
+    <constraint>Mobile responsiveness must be maintained (min-width: 320px)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>CHART_COLORS</name>
+      <kind>constant array</kind>
+      <signature>const CHART_COLORS: string[]</signature>
+      <path>src/components/reporting/report-chart.tsx:48-54</path>
+      <notes>CURRENT: Uses CSS variables like 'hsl(var(--primary))' that may not resolve correctly. CHANGE TO: Explicit hex colors like '#3b82f6' (blue), '#10b981' (green), '#f59e0b' (amber), etc.</notes>
+    </interface>
+    <interface>
+      <name>buildChartData</name>
+      <kind>function</kind>
+      <signature>function buildChartData(rows: Record&lt;string, unknown&gt;[], xKey: string, yKey: string | string[]): Record&lt;string, unknown&gt;[]</signature>
+      <path>src/lib/reporting/report-generator.ts:148-200</path>
+      <notes>Add filtering: Skip entries where all yKey values sum to 0. Skip entries where xKey is "Unknown", "N/A", empty string, null, or undefined.</notes>
+    </interface>
+    <interface>
+      <name>formatCellValue</name>
+      <kind>function</kind>
+      <signature>function formatCellValue(value: unknown): string</signature>
+      <path>src/components/reporting/report-data-table.tsx:132-140</path>
+      <notes>CURRENT: Returns "—" for null/undefined. CHANGE TO: Return "N/A" per AC-23.9.7.</notes>
+    </interface>
+    <interface>
+      <name>CustomTooltip</name>
+      <kind>component</kind>
+      <signature>function CustomTooltip({ active, payload, label }: CustomTooltipProps): JSX.Element | null</signature>
+      <path>src/components/reporting/report-chart.tsx:170-198</path>
+      <notes>Enhance with shadcn/ui Card styling, format values based on data type (detect currency with $ prefix), improve positioning.</notes>
+    </interface>
+    <interface>
+      <name>PieTooltip</name>
+      <kind>component</kind>
+      <signature>function PieTooltip({ active, payload }: PieTooltipProps): JSX.Element | null</signature>
+      <path>src/components/reporting/report-chart.tsx:212-232</path>
+      <notes>Enhance styling to match CustomTooltip. Add formatted value display.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <p>Project uses Vitest for unit tests and Playwright for E2E. Test files in __tests__/ directory mirroring src/ structure. Use describe/it blocks with clear descriptions. Mock Recharts components for unit tests. Use data-testid attributes for element selection.</p>
+    </standards>
+    <locations>
+      <location>__tests__/components/reporting/report-chart.test.tsx</location>
+      <location>__tests__/components/reporting/report-data-table.test.tsx</location>
+      <location>__tests__/lib/reporting/report-generator.test.ts</location>
+      <location>__tests__/e2e/reporting-*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea criterion="AC-23.9.1">Test that CHART_COLORS array contains at least 5 distinct hex colors, not CSS variables</idea>
+      <idea criterion="AC-23.9.1">Test color contrast ratio against white background using luminance calculation</idea>
+      <idea criterion="AC-23.9.2">Test buildChartData filters out entries where xKey is "Unknown" or empty</idea>
+      <idea criterion="AC-23.9.2">Test buildChartData filters out entries where all yKey values sum to 0</idea>
+      <idea criterion="AC-23.9.2">Test PieChart doesn't render 0% slices</idea>
+      <idea criterion="AC-23.9.3">Test PieChart renders with innerRadius (donut style)</idea>
+      <idea criterion="AC-23.9.3">Test PieChart has paddingAngle between slices</idea>
+      <idea criterion="AC-23.9.4">Test BarChart renders gradient definitions in SVG defs</idea>
+      <idea criterion="AC-23.9.4">Test bar elements have rounded corners (radius prop)</idea>
+      <idea criterion="AC-23.9.5">Test tooltip renders on hover with expected content</idea>
+      <idea criterion="AC-23.9.5">Test tooltip formats currency values with $ symbol</idea>
+      <idea criterion="AC-23.9.6">Test Legend renders below chart with wrapperStyle for mobile</idea>
+      <idea criterion="AC-23.9.7">Test formatCellValue returns "N/A" for null and undefined</idea>
+      <idea criterion="AC-23.9.7">Test formatCellValue formats numbers with toLocaleString()</idea>
+      <idea criterion="visual">Screenshot comparison test with sample data before/after changes</idea>
+    </ideas>
+  </tests>
+
+  <visualContext>
+    <screenshot description="Current report UI showing visual issues">
+      <observation>Bar charts using monochrome black color scheme - not visually appealing</observation>
+      <observation>Pie chart shows "Unknown: 0%", "auto-paid: 0%" - zero values appearing</observation>
+      <observation>Invoice Status Distribution pie chart has poor color differentiation</observation>
+      <observation>Top 15 Services bar chart has all black bars</observation>
+      <observation>Top 20 Clients bar chart has all black bars</observation>
+      <observation>Data table displays "—" for null values instead of "N/A"</observation>
+      <observation>Charts lack gradients - flat colors without visual depth</observation>
+      <observation>Overall bland/monochrome appearance</observation>
+    </screenshot>
+    <recommendedColors>
+      <color hex="#3b82f6" name="Blue" usage="Primary, first series" />
+      <color hex="#10b981" name="Emerald" usage="Positive/success metrics" />
+      <color hex="#f59e0b" name="Amber" usage="Warning/attention" />
+      <color hex="#ef4444" name="Red" usage="Negative/critical" />
+      <color hex="#8b5cf6" name="Violet" usage="Fifth series" />
+      <color hex="#ec4899" name="Pink" usage="Sixth series" />
+      <color hex="#06b6d4" name="Cyan" usage="Seventh series" />
+      <color hex="#f97316" name="Orange" usage="Eighth series" />
+    </recommendedColors>
+  </visualContext>
+
+  <implementationNotes>
+    <note priority="high">The CSS variable approach for colors is the root cause of monochrome charts. Recharts doesn't properly resolve CSS variables like 'hsl(var(--primary))' in many contexts, causing them to render as black.</note>
+    <note priority="high">Change lines 48-54 in report-chart.tsx to use explicit hex colors immediately.</note>
+    <note priority="medium">The buildChartData function in report-generator.ts creates "Unknown" entries when xKey value is null/undefined. Filter these out, especially when their sum is 0.</note>
+    <note priority="medium">For pie chart donut effect, add innerRadius={60} and outerRadius={100} props. Add paddingAngle={2} for slice separation.</note>
+    <note priority="medium">For bar chart gradients, use SVG linearGradient in defs section (already shown in AreaChartImpl - adapt pattern).</note>
+    <note priority="low">Consider using Recharts' built-in activeBar and activeShape props for hover effects instead of custom logic.</note>
+    <note priority="low">formatCellValue change is one line: line 133 change "—" to "N/A".</note>
+  </implementationNotes>
+</story-context>

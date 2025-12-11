@@ -1,0 +1,263 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>23</epicId>
+    <storyId>4</storyId>
+    <title>AI Report Generation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-23/stories/23-4-ai-report-generation/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>AI to generate insights, summaries, and chart configurations from my uploaded data</iWant>
+    <soThat>I can quickly understand my data and make informed decisions without manual analysis</soThat>
+    <tasks>
+      <task id="1" name="POST /api/reporting/generate API Route" acs="1,2,3,5">
+        <subtask>Create src/app/api/reporting/generate/route.ts</subtask>
+        <subtask>Use Edge Runtime for SSE streaming (export const runtime = 'edge')</subtask>
+        <subtask>Accept GenerateReportRequest body ({ sourceId, prompt? })</subtask>
+        <subtask>Verify sourceId exists and user has access (RLS via SELECT first)</subtask>
+        <subtask>Load parsed_data from commission_data_sources table</subtask>
+        <subtask>Validate source status is 'ready' before proceeding</subtask>
+        <subtask>Call OpenAI/OpenRouter with structured output request</subtask>
+        <subtask>Return GeneratedReport matching TypeScript types</subtask>
+      </task>
+      <task id="2" name="ReportGeneratorService" acs="1,2,3,6">
+        <subtask>Create src/lib/reporting/report-generator.ts</subtask>
+        <subtask>Build system prompt for report generation with column info, sample data, metadata</subtask>
+        <subtask>Implement prompt-based generation (user provides direction)</subtask>
+        <subtask>Implement auto-analysis mode (no prompt) - identify metrics, dimensions, patterns</subtask>
+        <subtask>Use OpenRouter (Claude or GPT-4o) for generation</subtask>
+        <subtask>Return structured GeneratedReport object</subtask>
+        <subtask>Add timeout handling (30s max)</subtask>
+      </task>
+      <task id="3" name="SSE Streaming Implementation" acs="4">
+        <subtask>Follow SSE pattern from docs/architecture/implementation-patterns.md</subtask>
+        <subtask>Define SSE event types: progress, title, summary, insight, chart, done, error</subtask>
+        <subtask>Stream progressive updates as AI generates</subtask>
+        <subtask>Handle AbortController for request cancellation</subtask>
+      </task>
+      <task id="4" name="useReportGeneration Hook" acs="4,7">
+        <subtask>Create src/hooks/use-report-generation.ts</subtask>
+        <subtask>Manage generation state: isGenerating, progress, report, error</subtask>
+        <subtask>Implement SSE stream consumer (follow use-chat.ts pattern)</subtask>
+        <subtask>Buffer handling for incomplete SSE lines</subtask>
+        <subtask>AbortController for cancellation on unmount</subtask>
+      </task>
+      <task id="5" name="ReportingPage Integration" acs="4,7">
+        <subtask>Update src/app/(dashboard)/reporting/page.tsx</subtask>
+        <subtask>Replace placeholder handleGenerateReport with real implementation</subtask>
+        <subtask>Show progress indicator during generation</subtask>
+        <subtask>Transition to report view on completion</subtask>
+        <subtask>Handle errors with Alert and retry button</subtask>
+      </task>
+      <task id="6" name="ReportView Component" acs="1,2,6">
+        <subtask>Create src/components/reporting/report-view.tsx</subtask>
+        <subtask>Display report: Title, Summary, Key Insights with icons/badges</subtask>
+        <subtask>Charts section (placeholder for Story 23.5)</subtask>
+        <subtask>Data table section (placeholder for Story 23.6)</subtask>
+        <subtask>Export buttons (disabled until Story 23.7)</subtask>
+      </task>
+      <task id="7" name="Unit Tests" acs="1-7">
+        <subtask>Test report-generator.ts (prompt-based, auto-analysis, timeout, errors)</subtask>
+        <subtask>Test use-report-generation.ts (states, progress, errors, abort)</subtask>
+        <subtask>Test report-view.tsx (renders, icons/badges, placeholders)</subtask>
+      </task>
+      <task id="8" name="Integration/E2E Tests" acs="1,3,4,5">
+        <subtask>E2E: Full flow with prompt and without prompt</subtask>
+        <subtask>E2E: Progress indicator, cancel generation, error/retry</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">AC-23.4.1: AI generates report title and summary from data + prompt (or auto-generates if no prompt)</criterion>
+    <criterion id="2">AC-23.4.2: Report includes 3-5 key insights with type indicators (finding, trend, anomaly, recommendation) and severity levels (info, warning, critical)</criterion>
+    <criterion id="3">AC-23.4.3: Without prompt, AI generates best-effort analysis automatically by identifying key metrics, dimensions, patterns, and outliers</criterion>
+    <criterion id="4">AC-23.4.4: Generation shows streaming progress feedback via SSE (Server-Sent Events)</criterion>
+    <criterion id="5">AC-23.4.5: Generation completes within 30 seconds for datasets &lt; 10K rows</criterion>
+    <criterion id="6">AC-23.4.6: Report includes chart configurations (type, data, axes) for 2-4 recommended visualizations</criterion>
+    <criterion id="7">AC-23.4.7: Error states are handled gracefully with retry capability</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-23/tech-spec.md" title="Epic 23 Tech Spec" section="Report Generation (Story 23.4)" snippet="AI generates report title and summary from data + prompt. Report includes 3-5 key insights with severity indicators. Generation shows streaming progress feedback. Completes within 30 seconds."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="SSE Streaming Pattern" snippet="Use Edge Runtime for low latency. TextEncoder/TextDecoder for conversion. Buffer management for SSE lines split across chunks. AbortController for cancellation. Error events streamed, not thrown mid-stream."/>
+      <doc path="docs/architecture/implementation-patterns.md" title="Implementation Patterns" section="API Response Format" snippet="Success: { data: T, error: null }. Error: { data: null, error: { code, message, details } }"/>
+      <doc path="docs/sprint-artifacts/epics/epic-23/stories/23-3-prompt-input-ui/story.md" title="Story 23.3" section="Dev Agent Record" snippet="PromptInput and SuggestedPrompts components created. useReportingAnalysis hook pattern. ReportingPage state machine with 5 states. handleGenerateReport placeholder at line ~100."/>
+    </docs>
+
+    <code>
+      <file path="src/app/api/reporting/analyze/route.ts" kind="api-route" reason="Pattern for reporting API routes. Shows verify-then-service pattern, service client usage, audit logging, error handling. Loads parsed_data from commission_data_sources.">
+        <key-patterns>
+          <pattern>Uses createClient for auth, createServiceClient for mutations</pattern>
+          <pattern>Validates source status before processing</pattern>
+          <pattern>Returns AnalyzeResponse with suggestedPrompts</pattern>
+          <pattern>Logs audit event with timing metadata</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/lib/reporting/data-analyzer.ts" kind="service" reason="Shows AI prompt building pattern with column info and sample data. Uses getLLMClient() and getModelId(). Handles fallback for AI failures.">
+        <key-patterns>
+          <pattern>PROMPT_SUGGESTION_SYSTEM - system prompt template</pattern>
+          <pattern>columnSummary building from ColumnInfo[]</pattern>
+          <pattern>sampleRows building from first 3 rows</pattern>
+          <pattern>JSON response parsing with markdown code block handling</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/hooks/use-reporting-analysis.ts" kind="hook" reason="Pattern for reporting hooks. Shows state management (data, isLoading, error), AbortController pattern, reset function.">
+        <key-patterns>
+          <pattern>useState for data, isLoading, error</pattern>
+          <pattern>AbortController ref with cleanup on unmount</pattern>
+          <pattern>Async function with signal for cancellation</pattern>
+          <pattern>Error handling that ignores AbortError</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/app/(dashboard)/reporting/page.tsx" kind="page" lines="92-101" reason="Integration point. handleGenerateReport placeholder (line ~100). State machine pattern. Shows how to integrate with analysis hook.">
+        <key-patterns>
+          <pattern>PageState type with 5 states</pattern>
+          <pattern>getPageState() function derives state</pattern>
+          <pattern>useEffect triggers analyze after upload</pattern>
+          <pattern>canGenerate derived from pageState</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/app/api/ai-buddy/chat/route.ts" kind="api-route" reason="Reference implementation for SSE streaming. Shows Edge Runtime, formatSSEEvent, ReadableStream pattern.">
+        <key-patterns>
+          <pattern>export const runtime = 'edge'</pattern>
+          <pattern>AiBuddySSEEvent interface with types</pattern>
+          <pattern>formatSSEEvent() function</pattern>
+          <pattern>ReadableStream with TextEncoder</pattern>
+          <pattern>controller.enqueue() for streaming</pattern>
+          <pattern>controller.close() on completion</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/hooks/ai-buddy/use-chat.ts" kind="hook" reason="Reference implementation for SSE consumption. Shows buffer handling, event parsing, AbortController.">
+        <key-patterns>
+          <pattern>SSEEvent interface matching API</pattern>
+          <pattern>Buffer management with split/pop</pattern>
+          <pattern>Event type switch statement</pattern>
+          <pattern>AbortController ref with cleanup</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/lib/llm/config.ts" kind="config" reason="LLM client configuration. getLLMClient() and getModelId() functions.">
+        <key-patterns>
+          <pattern>getLLMClient() returns OpenAI-compatible client</pattern>
+          <pattern>getModelId() returns OpenRouter model ID</pattern>
+          <pattern>DEFAULT_CONFIG uses claude-sonnet-4.5</pattern>
+        </key-patterns>
+      </file>
+      <file path="src/types/reporting.ts" kind="types" reason="TypeScript types for reporting. GeneratedReport, ReportInsight, ChartConfig, GenerateReportRequest, GenerateResponse.">
+        <key-types>
+          <type name="GenerateReportRequest">{ sourceId: string; prompt?: string }</type>
+          <type name="GeneratedReport">{ title, summary, insights[], charts[], dataTable, generatedAt, promptUsed }</type>
+          <type name="ReportInsight">{ type: finding|trend|anomaly|recommendation, title, description, severity?: info|warning|critical, relatedColumns? }</type>
+          <type name="ChartConfig">{ type: bar|line|pie, data[], xKey, yKey, title? }</type>
+          <type name="GenerateResponse">{ report: GeneratedReport }</type>
+        </key-types>
+      </file>
+      <file path="src/components/reporting/prompt-input.tsx" kind="component" reason="PromptInput component. Shows shadcn Textarea pattern, disabled state, character count."/>
+      <file path="src/components/reporting/suggested-prompts.tsx" kind="component" reason="SuggestedPrompts component. Shows chip/badge pattern with click handlers."/>
+      <file path="src/components/reporting/file-uploader.tsx" kind="component" reason="FileUploader component. Shows react-dropzone pattern."/>
+      <file path="src/lib/reporting/file-parser.ts" kind="service" reason="File parsing service. Returns ParsedData structure."/>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="openai" version="^6.9.1" usage="LLM client for OpenRouter/GPT-4o"/>
+        <package name="recharts" version="^3.5.1" usage="Chart rendering (Story 23.5)"/>
+        <package name="lucide-react" version="^0.554.0" usage="Icons for insight types"/>
+        <package name="sonner" version="^2.0.7" usage="Toast notifications"/>
+        <package name="zod" version="^4.1.13" usage="Request validation"/>
+        <package name="@supabase/supabase-js" version="^2.84.0" usage="Database client"/>
+        <package name="@tanstack/react-table" version="^8.21.3" usage="Data table (Story 23.6)"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">Token Limits: For large datasets (&gt;10K rows), send only column metadata, first 50 rows as sample, summary statistics, total row count</constraint>
+    <constraint source="tech-spec">Timeout: 30 second max generation time</constraint>
+    <constraint source="tech-spec">Chart Configs: Must match ChartConfig type for Recharts compatibility</constraint>
+    <constraint source="architecture">Edge Runtime required for SSE streaming to achieve sub-500ms TTFB</constraint>
+    <constraint source="architecture">Use verify-then-service pattern: SELECT first to verify access, service client for mutations</constraint>
+    <constraint source="architecture">API Response Format: { data: T, error: null } for success, { data: null, error: { code, message } } for errors</constraint>
+    <constraint source="project">Use OPENROUTER_API_KEY env var with getLLMClient() from src/lib/llm/config.ts</constraint>
+    <constraint source="project">Follow existing hook patterns from use-reporting-analysis.ts and use-chat.ts</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="POST /api/reporting/generate" kind="REST endpoint" path="src/app/api/reporting/generate/route.ts">
+      <signature>POST /api/reporting/generate
+Request: { sourceId: string, prompt?: string }
+Response (SSE): data: {"type":"progress|title|summary|insight|chart|done|error",...}\n\n
+Final Response: GenerateResponse { report: GeneratedReport }</signature>
+    </interface>
+    <interface name="SSE Event Types" kind="event-types" path="src/app/api/reporting/generate/route.ts">
+      <signature>type ReportSSEEvent =
+  | { type: 'progress', stage: string, percent: number }
+  | { type: 'title', title: string }
+  | { type: 'summary', summary: string }
+  | { type: 'insight', insight: ReportInsight }
+  | { type: 'chart', chart: ChartConfig }
+  | { type: 'done', report: GeneratedReport }
+  | { type: 'error', error: string, code: string }</signature>
+    </interface>
+    <interface name="useReportGeneration" kind="hook" path="src/hooks/use-report-generation.ts">
+      <signature>function useReportGeneration(): {
+  generate: (sourceId: string, prompt?: string) => Promise&lt;void&gt;;
+  report: GeneratedReport | null;
+  isGenerating: boolean;
+  progress: { stage: string; percent: number } | null;
+  error: string | null;
+  reset: () => void;
+}</signature>
+    </interface>
+    <interface name="ReportView" kind="component" path="src/components/reporting/report-view.tsx">
+      <signature>interface ReportViewProps {
+  report: GeneratedReport;
+  onNewReport?: () => void;
+  onExportPdf?: () => void;    // disabled until Story 23.7
+  onExportExcel?: () => void;  // disabled until Story 23.7
+}</signature>
+    </interface>
+    <interface name="generateReport" kind="service-function" path="src/lib/reporting/report-generator.ts">
+      <signature>async function generateReport(
+  parsedData: ParsedData,
+  prompt?: string,
+  options?: { timeout?: number; maxRows?: number }
+): Promise&lt;GeneratedReport&gt;</signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for unit tests, Playwright for E2E. Test files in __tests__/ mirroring src/ structure.
+      Mock external services (Supabase, OpenRouter) in unit tests.
+      Use @testing-library/react for component tests with userEvent for interactions.
+      Follow existing test patterns in __tests__/hooks/use-reporting-analysis.test.ts and __tests__/components/reporting/.
+    </standards>
+    <locations>
+      <location>__tests__/api/reporting/generate.test.ts</location>
+      <location>__tests__/lib/reporting/report-generator.test.ts</location>
+      <location>__tests__/hooks/use-report-generation.test.ts</location>
+      <location>__tests__/components/reporting/report-view.test.tsx</location>
+      <location>__tests__/e2e/reporting-generate.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test generateReport returns valid GeneratedReport structure with title, summary</idea>
+      <idea ac="2">Test insights array has 3-5 items with valid type and severity</idea>
+      <idea ac="3">Test auto-analysis mode when prompt is undefined or empty string</idea>
+      <idea ac="4">Test SSE streaming emits progress, title, summary, insight, chart, done events in order</idea>
+      <idea ac="5">Test timeout handling - generation aborts after 30 seconds</idea>
+      <idea ac="6">Test charts array has 2-4 items with valid type, xKey, yKey</idea>
+      <idea ac="7">Test error events are emitted on failure, retry button resets and retries</idea>
+      <idea ac="hook">Test useReportGeneration initial state, loading state, success state, error state</idea>
+      <idea ac="hook">Test AbortController cancels in-flight request on unmount</idea>
+      <idea ac="component">Test ReportView renders title, summary, insights with correct icons</idea>
+      <idea ac="e2e">E2E: Upload file, analyze, enter prompt, generate, verify report displays</idea>
+      <idea ac="e2e">E2E: Generate without prompt, verify auto-analysis works</idea>
+    </ideas>
+  </tests>
+</story-context>
