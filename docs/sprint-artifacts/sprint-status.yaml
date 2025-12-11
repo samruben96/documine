@@ -403,6 +403,13 @@ development_status:
   # Prerequisites: DR.4
   # DONE 2025-12-11: All ACs implemented, 112 badge tests pass, REVIEW APPROVED
   DR-7-badge-status-system: done
-  DR-8-typography-spacing: backlog
-  DR-9-mobile-navigation: backlog
+  # Story DR.8: Typography & Spacing Standardization
+  # Consistent typography hierarchy and spacing patterns across all pages
+  # Prerequisites: DR.3
+  DR-8-typography-spacing: done
+  # Story DR.9: Mobile Navigation Update
+  # Update mobile Sheet sidebar and bottom nav to match new design
+  # Prerequisites: DR.2
+  # DONE 2025-12-11: All ACs implemented, 37 unit tests + E2E tests, REVIEW APPROVED
+  DR-9-mobile-navigation: done
   DR-10-existing-pages-update: backlog

@@ -2,7 +2,19 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
-import { Menu, X, PanelLeft, Bot, BarChart3 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import {
+  Menu,
+  X,
+  PanelLeft,
+  Home,
+  FileText,
+  BarChart3,
+  Calculator,
+  Bot,
+  BarChart2,
+  Settings,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -149,93 +161,82 @@ export function SidebarToggle() {
 }
 
 /**
+ * Navigation item definition for bottom nav
+ * AC: DR.9.3 - Mobile bottom nav includes: Documents, Compare, Quoting, AI Buddy, Reports, Settings
+ */
+interface BottomNavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+/**
+ * Bottom navigation items - space constrained to 7 items max
+ * AC: DR.9.3 - Includes Dashboard, Documents, Compare, Quoting, AI Buddy, Reports, Settings
+ * AC: DR.9.4 - Uses same Lucide icons as AppNavSidebar
+ */
+const bottomNavItems: BottomNavItem[] = [
+  { href: '/dashboard', label: 'Home', icon: Home },
+  { href: '/documents', label: 'Docs', icon: FileText },
+  { href: '/compare', label: 'Compare', icon: BarChart3 },
+  { href: '/quoting', label: 'Quoting', icon: Calculator },
+  { href: '/ai-buddy', label: 'AI Buddy', icon: Bot },
+  { href: '/reporting', label: 'Reports', icon: BarChart2 },
+  { href: '/settings', label: 'Settings', icon: Settings },
+];
+
+/**
+ * Determines if a navigation item is active based on current pathname
+ * Matches AppNavSidebar pattern - exact match for dashboard, startsWith for others
+ * AC: DR.9.5 - Active states match desktop styling
+ */
+function isActiveRoute(href: string, pathname: string): boolean {
+  if (href === '/dashboard') return pathname === '/dashboard';
+  return pathname.startsWith(href);
+}
+
+/**
  * Mobile Bottom Navigation Component
  *
  * Shown only on mobile (<640px) per AC-4.3.10
- * AC-14.3.2: Includes AI Buddy navigation item
- * DR.2: Updated to match app navigation structure
+ * AC: DR.9.3 - Includes: Documents, Compare, Quoting, AI Buddy, Reports, Settings
+ * AC: DR.9.4 - Uses consistent Lucide icons matching AppNavSidebar
+ * AC: DR.9.5 - Active states match desktop styling
  */
 export function MobileBottomNav() {
+  const pathname = usePathname();
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 sm:hidden">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 sm:hidden"
+      aria-label="Mobile navigation"
+    >
       <div className="flex items-center justify-around h-14">
-        <Link
-          href="/dashboard"
-          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-            />
-          </svg>
-          <span className="text-xs mt-0.5">Home</span>
-        </Link>
-        <Link
-          href="/documents"
-          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          <span className="text-xs mt-0.5">Docs</span>
-        </Link>
-        <Link
-          href="/ai-buddy"
-          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          <Bot className="h-5 w-5" />
-          <span className="text-xs mt-0.5">AI Buddy</span>
-        </Link>
-        <Link
-          href="/reporting"
-          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          <BarChart3 className="h-5 w-5" />
-          <span className="text-xs mt-0.5">Reports</span>
-        </Link>
-        <Link
-          href="/settings"
-          className="flex flex-col items-center justify-center flex-1 py-2 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          <span className="text-xs mt-0.5">Settings</span>
-        </Link>
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActiveRoute(item.href, pathname);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                // Base styles
+                'flex flex-col items-center justify-center flex-1 py-2 min-w-0',
+                // AC: DR.9.5 - Active state: text-primary (blue)
+                active && 'text-primary dark:text-blue-400',
+                // AC: DR.9.5 - Inactive state: text-slate-600 with hover
+                !active &&
+                  'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              )}
+              aria-current={active ? 'page' : undefined}
+              aria-label={item.label}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[10px] mt-0.5 truncate">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

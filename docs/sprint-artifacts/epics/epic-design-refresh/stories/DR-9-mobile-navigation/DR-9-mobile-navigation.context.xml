@@ -1,0 +1,179 @@
+<story-context id="DR-9-mobile-navigation" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.9</storyId>
+    <title>Mobile Navigation Update</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-9-mobile-navigation/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE mobile user</asA>
+    <iWant>the mobile navigation to match the new design</iWant>
+    <soThat>the experience is consistent across devices</soThat>
+    <tasks>
+      <task id="1" ac="DR.9.1-DR.9.5">Audit current mobile navigation implementation
+        <subtask>1.1 Review AppNavSidebar mobile Sheet implementation</subtask>
+        <subtask>1.2 Review MobileBottomNav current items and icons</subtask>
+        <subtask>1.3 Document gaps between current and target state</subtask>
+        <subtask>1.4 Identify icon inconsistencies (inline SVG vs Lucide)</subtask>
+      </task>
+      <task id="2" ac="DR.9.3,DR.9.4">Update MobileBottomNav component
+        <subtask>2.1 Replace inline SVG icons with Lucide icons for consistency</subtask>
+        <subtask>2.2 Add Compare nav item with BarChart3 icon</subtask>
+        <subtask>2.3 Add Quoting nav item with Calculator icon</subtask>
+        <subtask>2.4 Update nav items order: Home/Dashboard, Docs, Compare, Quoting, AI Buddy, Reports, Settings</subtask>
+        <subtask>2.5 Ensure all nav items use consistent Lucide icons matching AppNavSidebar</subtask>
+      </task>
+      <task id="3" ac="DR.9.5">Implement active state styling for MobileBottomNav
+        <subtask>3.1 Add usePathname hook to detect current route</subtask>
+        <subtask>3.2 Implement isActive function matching AppNavSidebar pattern</subtask>
+        <subtask>3.3 Apply active styles: text-primary (blue) for icon and label</subtask>
+        <subtask>3.4 Apply inactive styles: text-slate-600 with hover:text-slate-800</subtask>
+        <subtask>3.5 Add dark mode active/inactive variants</subtask>
+      </task>
+      <task id="4" ac="DR.9.1,DR.9.2">Verify mobile sidebar Sheet consistency
+        <subtask>4.1 Confirm AppNavSidebar Sheet has all nav items</subtask>
+        <subtask>4.2 Confirm Sheet opens from left side (side="left")</subtask>
+        <subtask>4.3 Verify active state styling matches desktop</subtask>
+      </task>
+      <task id="5" ac="DR.9.3-DR.9.5">Write unit tests for MobileBottomNav
+        <subtask>5.1 Test all nav items render correctly</subtask>
+        <subtask>5.2 Test icons match Lucide component types</subtask>
+        <subtask>5.3 Test active state applies correct classes for current route</subtask>
+        <subtask>5.4 Test navigation links have correct href values</subtask>
+        <subtask>5.5 Test accessibility: aria-labels, aria-current</subtask>
+      </task>
+      <task id="6" ac="DR.9.1-DR.9.5">Write E2E tests for mobile navigation
+        <subtask>6.1 Test mobile sidebar opens from hamburger menu</subtask>
+        <subtask>6.2 Test all nav items navigate correctly</subtask>
+        <subtask>6.3 Test bottom nav active state updates on navigation</subtask>
+        <subtask>6.4 Test sidebar closes after navigation on mobile</subtask>
+      </task>
+      <task id="7" ac="DR.9.1-DR.9.5">Build verification and visual audit
+        <subtask>7.1 Run production build - verify no errors</subtask>
+        <subtask>7.2 Run full test suite - verify all pass</subtask>
+        <subtask>7.3 Visual audit on mobile viewport (375px, 414px)</subtask>
+        <subtask>7.4 Test dark mode on mobile</subtask>
+        <subtask>7.5 Test landscape orientation</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="DR.9.1">Mobile sidebar Sheet has same nav items as desktop</criterion>
+    <criterion id="DR.9.2">Mobile sidebar opens from left side</criterion>
+    <criterion id="DR.9.3">Mobile bottom nav includes: Documents, Compare, Quoting, AI Buddy, Reports, Settings</criterion>
+    <criterion id="DR.9.4">Mobile bottom nav uses consistent icons with sidebar</criterion>
+    <criterion id="DR.9.5">Active states match desktop styling</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md" title="Epic Design Refresh Tech Spec" section="DR.9 - Mobile Navigation">
+        Defines AC DR.9.1-DR.9.5 for mobile navigation. Mobile bottom nav should include Documents, Compare, Quoting, AI Buddy, Reports, Settings with consistent icons. Test idea: E2E mobile nav works, all items present.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/epic.md" title="Epic Design Refresh" section="Story DR.9">
+        Story describes mobile sheet sidebar matching desktop, mobile bottom nav updates, header mobile behavior. Prerequisites: DR.2.
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-8-typography-spacing/story.md" title="Previous Story DR.8" section="Dev Agent Record">
+        Previous story created typography utilities at src/lib/typography.ts. Dark mode variants added from start. Testing pattern: unit tests + E2E scaffolding.
+      </doc>
+    </docs>
+    <code>
+      <file path="src/components/layout/sidebar.tsx" kind="component" symbol="MobileBottomNav" lines="158-242" reason="PRIMARY TARGET: Contains MobileBottomNav component that needs updating. Currently uses inline SVG icons, missing Compare/Quoting items, no active state styling.">
+        <currentState>
+          - 5 nav items: Home, Docs, AI Buddy, Reports, Settings
+          - Uses inline SVG for Home, Docs, Settings icons
+          - Uses Lucide Bot and BarChart3 for AI Buddy and Reports
+          - No active state detection (all links same color)
+          - Dark mode variants present for base styling
+        </currentState>
+      </file>
+      <file path="src/components/layout/app-nav-sidebar.tsx" kind="component" symbol="AppNavSidebar,NavLink,isActive,navItems" lines="1-222" reason="REFERENCE: Source of truth for nav items, icons, and active state pattern. Mobile Sheet already implements DR.9.1 and DR.9.2.">
+        <patterns>
+          - navItems array with href, label, icon: Home, FileText, MessageSquare, BarChart3, Calculator, Bot, BarChart2
+          - settingsItem separate with Settings icon
+          - isActive(href, pathname): exact match for /dashboard, startsWith for others
+          - Active classes: bg-blue-50 text-primary dark:bg-slate-800 dark:text-blue-400
+          - Inactive classes: text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800
+          - aria-current="page" for active state
+        </patterns>
+      </file>
+      <file path="src/components/layout/header.tsx" kind="component" symbol="Header,SidebarToggle" lines="1-116" reason="REFERENCE: Header with SidebarToggle for mobile hamburger menu. Uses lg:hidden for responsive behavior."/>
+      <file path="__tests__/components/layout/app-nav-sidebar.test.tsx" kind="test" symbol="AppNavSidebar tests" reason="REFERENCE: Testing patterns for navigation component. Uses mockPathname, tests active state classes, tests all nav items present."/>
+      <file path="__tests__/e2e/sidebar-navigation.spec.ts" kind="e2e-test" reason="REFERENCE: E2E test patterns for sidebar navigation testing."/>
+      <file path="src/lib/utils.ts" kind="utility" symbol="cn" reason="Utility for className merging, used in all styling."/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="lucide-react" version="^0.554.0" usage="Icon components: Home, FileText, MessageSquare, BarChart3, Calculator, Bot, BarChart2, Settings"/>
+        <package name="next" version="^16.0.7" usage="usePathname from next/navigation for route detection"/>
+        <package name="class-variance-authority" version="^0.7.1" usage="CVA for component variants"/>
+        <package name="clsx" version="^2.1.1" usage="Conditional class joining"/>
+        <package name="tailwind-merge" version="^3.4.0" usage="Tailwind class conflict resolution"/>
+        <package name="vitest" version="dev" usage="Unit testing framework"/>
+        <package name="@testing-library/react" version="dev" usage="React component testing"/>
+        <package name="playwright" version="dev" usage="E2E testing"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">Frontend-only changes. No database or API modifications.</constraint>
+    <constraint source="tech-spec">Maintain existing responsive breakpoints: mobile &lt;640px, tablet 640-1024px, desktop &gt;1024px</constraint>
+    <constraint source="tech-spec">Dark mode compatibility required - all new styles must include dark: variants</constraint>
+    <constraint source="tech-spec">Maintain WCAG 2.1 AA accessibility compliance</constraint>
+    <constraint source="architecture">Use Lucide icons consistently (no inline SVG for icons available in Lucide)</constraint>
+    <constraint source="architecture">Follow existing patterns in AppNavSidebar for active state detection</constraint>
+    <constraint source="story">AC DR.9.1 and DR.9.2 already satisfied by AppNavSidebar - focus on MobileBottomNav for DR.9.3-DR.9.5</constraint>
+    <constraint source="story">Bottom nav space constrained - may need to evaluate 7 items fit (per AC DR.9.3)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="NavItem" kind="TypeScript interface" path="src/components/layout/app-nav-sidebar.tsx">
+      interface NavItem {
+        href: string;
+        label: string;
+        icon: React.ComponentType&lt;{ className?: string }&gt;;
+      }
+    </interface>
+    <interface name="isActive" kind="function" path="src/components/layout/app-nav-sidebar.tsx">
+      function isActive(href: string, pathname: string): boolean
+      // Special case for /dashboard: exact match only
+      // All others: pathname.startsWith(href)
+    </interface>
+    <interface name="usePathname" kind="Next.js hook" path="next/navigation">
+      const pathname = usePathname(): string
+      // Returns current route pathname
+    </interface>
+    <interface name="useSidebar" kind="React hook" path="src/components/layout/sidebar.tsx">
+      function useSidebar(): { isOpen: boolean; setIsOpen: (open: boolean) => void }
+      // Context for sidebar open/close state
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests with happy-dom environment. Testing Library for React component testing. Playwright for E2E tests. Follow existing patterns in __tests__/components/layout/app-nav-sidebar.test.tsx for navigation component testing. Mock next/link, next/navigation, and sidebar context. Use within() helper to scope queries to specific sidebars.
+    </standards>
+    <locations>
+      <location>__tests__/components/layout/ - Unit tests for layout components</location>
+      <location>__tests__/e2e/ - End-to-end Playwright tests</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.9.3">Test MobileBottomNav renders all 7 required nav items: Dashboard/Home, Documents, Compare, Quoting, AI Buddy, Reports, Settings</idea>
+      <idea ac="DR.9.4">Test each nav item uses correct Lucide icon component (Home, FileText, BarChart3, Calculator, Bot, BarChart2, Settings)</idea>
+      <idea ac="DR.9.5">Test active state applies text-primary class when pathname matches href</idea>
+      <idea ac="DR.9.5">Test inactive state applies text-slate-600 class when pathname doesn't match</idea>
+      <idea ac="DR.9.5">Test dark mode variants: dark:text-blue-400 for active, dark:text-slate-400 for inactive</idea>
+      <idea ac="DR.9.5">Test aria-current="page" set on active nav item</idea>
+      <idea ac="DR.9.1">E2E: Verify mobile sidebar Sheet contains all nav items matching desktop</idea>
+      <idea ac="DR.9.2">E2E: Verify mobile sidebar opens from left (side="left" prop)</idea>
+      <idea ac="DR.9.3-DR.9.5">E2E: Set viewport to 375px width, navigate using bottom nav, verify active state updates</idea>
+      <idea ac="DR.9.1-DR.9.5">E2E: Test sidebar closes after navigation on mobile viewport</idea>
+    </ideas>
+  </tests>
+</story-context>
