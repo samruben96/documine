@@ -49,12 +49,13 @@ development_status:
   # Create, view, manage quote sessions
   # Stories: 5 | FRs: FR1-6, FR15
   # Location: docs/sprint-artifacts/epics/epic-Q2/
-  epic-Q2-quote-session-management: contexted
+  # COMPLETED: 2025-12-11 - All 5 stories done
+  epic-Q2-quote-session-management: done
   Q2-1-quote-sessions-list-page: done
   Q2-2-create-new-quote-session: done
   Q2-3-quote-session-detail-page: done
-  Q2-4-quote-session-status: backlog
-  Q2-5-delete-duplicate-sessions: backlog
+  Q2-4-quote-session-status: done
+  Q2-5-delete-duplicate-sessions: done
 
   # Epic Q3: Client Data Capture
   # Enter client info with smart forms

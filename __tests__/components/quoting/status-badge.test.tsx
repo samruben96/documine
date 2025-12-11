@@ -72,4 +72,51 @@ describe('StatusBadge', () => {
     const badge = screen.getByTestId('status-badge');
     expect(badge).toHaveClass('custom-class');
   });
+
+  /**
+   * Variant Color Tests
+   * Story Q2.4: Quote Session Status Management
+   *
+   * AC-Q2.4-1: Draft status with gray badge (status-default)
+   * AC-Q2.4-2: In Progress status with amber badge (status-progress)
+   * AC-Q2.4-3: Quotes Received status with blue badge (status-info)
+   * AC-Q2.4-4: Complete status with green badge (status-success)
+   */
+  describe('variant colors', () => {
+    it('AC-Q2.4-1: draft status has gray variant (status-default)', () => {
+      render(<StatusBadge status="draft" />);
+
+      const badge = screen.getByTestId('status-badge');
+      // status-default applies: bg-slate-100 text-slate-600
+      expect(badge).toHaveClass('bg-slate-100');
+      expect(badge).toHaveClass('text-slate-600');
+    });
+
+    it('AC-Q2.4-2: in_progress status has amber variant (status-progress)', () => {
+      render(<StatusBadge status="in_progress" />);
+
+      const badge = screen.getByTestId('status-badge');
+      // status-progress applies: bg-amber-100 text-amber-700
+      expect(badge).toHaveClass('bg-amber-100');
+      expect(badge).toHaveClass('text-amber-700');
+    });
+
+    it('AC-Q2.4-3: quotes_received status has blue variant (status-info)', () => {
+      render(<StatusBadge status="quotes_received" />);
+
+      const badge = screen.getByTestId('status-badge');
+      // status-info applies: bg-blue-100 text-blue-700
+      expect(badge).toHaveClass('bg-blue-100');
+      expect(badge).toHaveClass('text-blue-700');
+    });
+
+    it('AC-Q2.4-4: complete status has green variant (status-success)', () => {
+      render(<StatusBadge status="complete" />);
+
+      const badge = screen.getByTestId('status-badge');
+      // status-success applies: bg-green-100 text-green-700
+      expect(badge).toHaveClass('bg-green-100');
+      expect(badge).toHaveClass('text-green-700');
+    });
+  });
 });

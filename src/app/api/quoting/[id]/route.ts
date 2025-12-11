@@ -1,15 +1,18 @@
 /**
  * Single Quote Session API Route
  * Story Q2.3: Quote Session Detail Page
+ * Story Q2.5: Delete and Duplicate Quote Sessions
  *
  * GET /api/quoting/[id] - Get a single quote session by ID
+ * DELETE /api/quoting/[id] - Delete a quote session
  *
  * AC-Q2.3-6: Return 404 if session not found
+ * AC-Q2.5-2: Cascade delete quote_results via FK constraint
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getQuoteSession } from '@/lib/quoting/service';
+import { getQuoteSession, deleteQuoteSession } from '@/lib/quoting/service';
 
 /**
  * Standard response helper
@@ -75,6 +78,63 @@ export async function GET(
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to get quote session',
       'QUOTE_008',
+      500
+    );
+  }
+}
+
+/**
+ * DELETE /api/quoting/[id]
+ * Delete a quote session
+ * Story Q2.5: Delete and Duplicate Quote Sessions
+ *
+ * Response:
+ * {
+ *   data: { deleted: true },
+ *   error: null
+ * }
+ *
+ * AC-Q2.5-2: Deletes session and all associated quote_results (via FK cascade)
+ * AC-Q2.5-3: Returns success response for toast notification
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  try {
+    const { id } = await params;
+
+    // Get authenticated user
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.warn('Quote session delete unauthorized');
+      return errorResponse('Authentication required', 'QUOTE_002', 401);
+    }
+
+    // Attempt to delete via service (RLS handles authorization)
+    const deleted = await deleteQuoteSession(supabase, id);
+
+    if (!deleted) {
+      console.warn('Quote session not found for deletion', { sessionId: id, userId: user.id });
+      return errorResponse('Quote session not found', 'QUOTE_007', 404);
+    }
+
+    console.info('Quote session deleted', {
+      userId: user.id,
+      sessionId: id,
+    });
+
+    return successResponse({ deleted: true });
+  } catch (error) {
+    console.error('Quote session delete error', { error });
+    return errorResponse(
+      error instanceof Error ? error.message : 'Failed to delete quote session',
+      'QUOTE_009',
       500
     );
   }

@@ -1,0 +1,263 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>Q2</epicId>
+    <storyId>5</storyId>
+    <title>Delete and Duplicate Quote Sessions</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q2/stories/Q2-5-delete-duplicate-sessions/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to delete unwanted quote sessions and duplicate existing ones</iWant>
+    <soThat>I can manage my quotes efficiently and save time on similar prospects</soThat>
+    <tasks>
+      <task id="1" ac="1,2,3">Implement delete session API endpoint
+        <subtask>1.1 Create DELETE handler in src/app/api/quoting/[id]/route.ts</subtask>
+        <subtask>1.2 Verify cascade delete of quote_results via FK constraint</subtask>
+        <subtask>1.3 Return { data: { deleted: true } } on success</subtask>
+        <subtask>1.4 Handle 404 not found and 403 unauthorized errors</subtask>
+      </task>
+      <task id="2" ac="4,5">Implement duplicate session API endpoint
+        <subtask>2.1 Create POST handler at src/app/api/quoting/[id]/duplicate/route.ts</subtask>
+        <subtask>2.2 Fetch original session and verify RLS access</subtask>
+        <subtask>2.3 Create new session with "(Copy)" suffix and copied client_data</subtask>
+        <subtask>2.4 Return new session data with ID for redirect</subtask>
+      </task>
+      <task id="3" ac="1,2,3">Add delete functionality to QuoteSessionCard action menu
+        <subtask>3.1 Delete option already in DropdownMenu - wire up onDelete callback</subtask>
+        <subtask>3.2 AlertDialog already exists in page.tsx - verify confirmation message</subtask>
+        <subtask>3.3 Delete mutation already in useQuoteSessions hook</subtask>
+        <subtask>3.4 Toast notification already implemented in page.tsx</subtask>
+        <subtask>3.5 Optimistic update already in hook</subtask>
+      </task>
+      <task id="4" ac="4,5">Add duplicate functionality to QuoteSessionCard action menu
+        <subtask>4.1 Duplicate option already in DropdownMenu - wire up onDuplicate callback</subtask>
+        <subtask>4.2 Duplicate mutation already in useQuoteSessions hook</subtask>
+        <subtask>4.3 Loading state handled via isMutating</subtask>
+        <subtask>4.4 Navigation after duplicate already in page.tsx</subtask>
+      </task>
+      <task id="5" ac="all">Verify useQuoteSessions hook mutations work with API
+        <subtask>5.1 deleteSession function exists - needs backend</subtask>
+        <subtask>5.2 duplicateSession function exists - needs backend</subtask>
+        <subtask>5.3 Optimistic update implemented for delete</subtask>
+        <subtask>5.4 Cache update implemented for duplicate</subtask>
+      </task>
+      <task id="6" ac="all">Write unit tests for service layer
+        <subtask>6.1 Create __tests__/lib/quoting/delete-duplicate.test.ts</subtask>
+        <subtask>6.2 Test deleteQuoteSession function</subtask>
+        <subtask>6.3 Test duplicateQuoteSession function</subtask>
+      </task>
+      <task id="7" ac="1,4">Write component tests
+        <subtask>7.1 Test AlertDialog shows correct delete confirmation message</subtask>
+        <subtask>7.2 Test confirmation calls delete callback</subtask>
+        <subtask>7.3 Test cancel closes dialog without action</subtask>
+        <subtask>7.4 Test duplicate triggers duplicate callback</subtask>
+      </task>
+      <task id="8" ac="all">Write E2E tests
+        <subtask>8.1 Create __tests__/e2e/quoting/delete-duplicate.spec.ts</subtask>
+        <subtask>8.2 Test delete flow end-to-end</subtask>
+        <subtask>8.3 Test cancel delete flow</subtask>
+        <subtask>8.4 Test duplicate flow end-to-end</subtask>
+        <subtask>8.5 Verify duplicated session has "(Copy)" suffix</subtask>
+      </task>
+      <task id="9" ac="all">Verify build and run full test suite
+        <subtask>9.1 npm run build - no type errors</subtask>
+        <subtask>9.2 npm run test - all tests pass</subtask>
+        <subtask>9.3 Existing Q2 tests still pass</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q2.5-1">Given user clicks "Delete" from action menu, when confirmation dialog appears, then it displays "Delete this quote session? This cannot be undone."</criterion>
+    <criterion id="AC-Q2.5-2">Given user confirms deletion, when processed, then session and all associated quote_results are deleted from database</criterion>
+    <criterion id="AC-Q2.5-3">Given deletion succeeds, when complete, then toast confirms "Quote session deleted" and session removed from list immediately</criterion>
+    <criterion id="AC-Q2.5-4">Given user clicks "Duplicate" from action menu, when processed, then new session created with "[Original] (Copy)" name, same quote_type, copied client_data, no quote_results, status "Draft"</criterion>
+    <criterion id="AC-Q2.5-5">Given duplication succeeds, when complete, then user navigated to new session's detail page</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q2/tech-spec.md</path>
+        <title>Epic Q2 Technical Specification</title>
+        <section>Story Q2.5: Delete and Duplicate Quote Sessions</section>
+        <snippet>AC-Q2.5-1 through AC-Q2.5-5 define delete confirmation dialog, cascade delete, toast feedback, duplicate with "(Copy)" suffix, and redirect to new session.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Helper Architecture</title>
+        <section>API Contracts</section>
+        <snippet>DELETE /api/quoting/[id] deletes session with cascade. POST /api/quoting/[id]/duplicate creates copy with "(Copy)" suffix, same quote_type and client_data, no quote_results.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/prd.md</path>
+        <title>Quoting Helper PRD</title>
+        <section>FR4, FR5</section>
+        <snippet>FR4: Users can delete quote sessions they no longer need. FR5: Users can duplicate an existing quote session as a starting point for a new quote.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/epics.md</path>
+        <title>Quoting Helper Epics</title>
+        <section>Story Q2.5</section>
+        <snippet>Delete shows confirmation dialog, cascade deletes quote_results. Duplicate creates copy with "(Copy)" suffix, preserves client_data but not quote_results.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/api/quoting/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET handler</symbol>
+        <lines>40-81</lines>
+        <reason>Extend this file to add DELETE handler for session deletion. Currently only has GET.</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/quote-session-card.tsx</path>
+        <kind>component</kind>
+        <symbol>QuoteSessionCard</symbol>
+        <lines>1-125</lines>
+        <reason>Already has Delete/Duplicate menu items wired to onDelete/onDuplicate callbacks. UI complete, needs backend.</reason>
+      </file>
+      <file>
+        <path>src/hooks/quoting/use-quote-sessions.ts</path>
+        <kind>hook</kind>
+        <symbol>deleteSession, duplicateSession</symbol>
+        <lines>168-240</lines>
+        <reason>Already has deleteSession and duplicateSession functions with optimistic updates. Calls API endpoints that need to be created.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/quoting/page.tsx</path>
+        <kind>page</kind>
+        <symbol>QuotingPage</symbol>
+        <lines>1-167</lines>
+        <reason>Already has AlertDialog for delete confirmation, handleDelete, confirmDelete, handleDuplicate functions. Wired to card callbacks.</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/service.ts</path>
+        <kind>service</kind>
+        <symbol>createQuoteSession, getQuoteSession, transformQuoteSession</symbol>
+        <lines>1-236</lines>
+        <reason>Add deleteQuoteSession and duplicateQuoteSession service functions to handle business logic.</reason>
+      </file>
+      <file>
+        <path>src/types/quoting.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteSession, QuoteClientData</symbol>
+        <lines>1-162</lines>
+        <reason>Type definitions for quote sessions. Used by service and API routes.</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/quoting/service.test.ts</path>
+        <kind>test</kind>
+        <symbol>calculateSessionStatus tests</symbol>
+        <reason>Extend with tests for deleteQuoteSession and duplicateQuoteSession functions.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/quoting/quote-session-card.test.tsx</path>
+        <kind>test</kind>
+        <symbol>QuoteSessionCard tests</symbol>
+        <reason>Existing component tests. Add tests for delete/duplicate callback invocation.</reason>
+      </file>
+      <file>
+        <path>__tests__/e2e/quoting-sessions.spec.ts</path>
+        <kind>e2e-test</kind>
+        <symbol>Quoting sessions E2E</symbol>
+        <reason>Reference for E2E test patterns. Create separate delete-duplicate.spec.ts.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0">Supabase client for database operations</package>
+        <package name="@supabase/ssr" version="^0.7.0">Server-side Supabase client creation</package>
+        <package name="@radix-ui/react-alert-dialog" version="^1.1.15">AlertDialog for delete confirmation (already used)</package>
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16">DropdownMenu for action menu (already used)</package>
+        <package name="sonner" version="^2.0.7">Toast notifications (already used)</package>
+        <package name="lucide-react" version="^0.554.0">Icons (Trash2, Copy already imported)</package>
+      </node>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14">Unit testing framework</package>
+        <package name="@testing-library/react" version="^16.3.0">React component testing</package>
+        <package name="@playwright/test" version="^1.57.0">E2E testing framework</package>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>DELETE /api/quoting/[id]</name>
+      <kind>REST endpoint</kind>
+      <signature>DELETE /api/quoting/{sessionId} -> { data: { deleted: true }, error: null }</signature>
+      <path>src/app/api/quoting/[id]/route.ts</path>
+      <notes>Add DELETE handler to existing route file. Cascade delete handled by FK constraint on quote_results.</notes>
+    </interface>
+    <interface>
+      <name>POST /api/quoting/[id]/duplicate</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/quoting/{sessionId}/duplicate -> { data: QuoteSession, error: null }</signature>
+      <path>src/app/api/quoting/[id]/duplicate/route.ts (NEW)</path>
+      <notes>New route file. Returns created session with "(Copy)" suffix for redirect.</notes>
+    </interface>
+    <interface>
+      <name>deleteQuoteSession</name>
+      <kind>service function</kind>
+      <signature>deleteQuoteSession(supabase: SupabaseClient, sessionId: string): Promise&lt;void&gt;</signature>
+      <path>src/lib/quoting/service.ts</path>
+      <notes>Add to existing service file. Simple delete, cascade handled by DB.</notes>
+    </interface>
+    <interface>
+      <name>duplicateQuoteSession</name>
+      <kind>service function</kind>
+      <signature>duplicateQuoteSession(supabase: SupabaseClient, sessionId: string, userId: string, agencyId: string): Promise&lt;QuoteSession&gt;</signature>
+      <path>src/lib/quoting/service.ts</path>
+      <notes>Add to existing service file. Fetch original, create copy with "(Copy)" suffix, status "draft", no quote_results.</notes>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Follow existing API route pattern from src/app/api/quoting/[id]/route.ts with successResponse/errorResponse helpers</constraint>
+    <constraint type="pattern">Use transformQuoteSession for DB row to entity conversion</constraint>
+    <constraint type="pattern">All Supabase queries use RLS (agency_id scoping) - no manual WHERE clauses needed</constraint>
+    <constraint type="pattern">Delete uses optimistic update pattern (remove from UI before API confirms)</constraint>
+    <constraint type="pattern">Duplicate adds to list at top (most recently updated)</constraint>
+    <constraint type="security">Verify session ownership via RLS before delete/duplicate</constraint>
+    <constraint type="naming">Duplicate appends " (Copy)" to prospect_name exactly</constraint>
+    <constraint type="status">Duplicated sessions start with status "draft" (empty client_data computed)</constraint>
+    <constraint type="cascade">quote_results deleted via ON DELETE CASCADE in DB - no application code needed</constraint>
+    <constraint type="testing">Unit tests in __tests__/lib/quoting/, component tests in __tests__/components/quoting/, E2E in __tests__/e2e/quoting/</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit/component tests. Playwright for E2E. React Testing Library for component rendering.
+      Follow existing patterns in __tests__/lib/quoting/service.test.ts for service tests.
+      Mock Supabase client using vi.fn() for unit tests. E2E tests use real database with cleanup.
+      All tests should verify both success and error paths.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/ - Service layer unit tests</location>
+      <location>__tests__/components/quoting/ - Component unit tests</location>
+      <location>__tests__/e2e/quoting/ - E2E tests</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q2.5-1">Test AlertDialog displays correct confirmation message text</idea>
+      <idea ac="AC-Q2.5-2">Test DELETE API returns 200 and removes session from database</idea>
+      <idea ac="AC-Q2.5-2">Test cascade delete removes associated quote_results</idea>
+      <idea ac="AC-Q2.5-3">Test toast shows "Quote session deleted" message</idea>
+      <idea ac="AC-Q2.5-3">Test session removed from list via optimistic update</idea>
+      <idea ac="AC-Q2.5-4">Test duplicate creates session with "(Copy)" suffix</idea>
+      <idea ac="AC-Q2.5-4">Test duplicated session has same quote_type</idea>
+      <idea ac="AC-Q2.5-4">Test duplicated session has copied client_data</idea>
+      <idea ac="AC-Q2.5-4">Test duplicated session has status "draft"</idea>
+      <idea ac="AC-Q2.5-4">Test duplicated session has no quote_results</idea>
+      <idea ac="AC-Q2.5-5">Test navigation to new session after duplicate</idea>
+      <idea ac="error">Test DELETE returns 404 for non-existent session</idea>
+      <idea ac="error">Test DELETE returns 403 for unauthorized access</idea>
+      <idea ac="error">Test duplicate returns 404 for non-existent session</idea>
+    </ideas>
+  </tests>
+</story-context>

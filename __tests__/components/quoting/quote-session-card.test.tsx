@@ -4,11 +4,14 @@
 /**
  * QuoteSessionCard Component Tests
  * Story Q2.1: Quote Sessions List Page
+ * Story Q2.5: Delete and Duplicate Quote Sessions
  *
  * Tests for:
  * - AC-Q2.1-2: Card shows prospect name, quote type badge, status indicator, created date, carrier count
  * - AC-Q2.1-3: Action menu with Edit, Duplicate, Delete options
  * - AC-Q2.1-5: Click navigates to /quoting/[id]
+ * - AC-Q2.5-1: Delete triggers confirmation callback
+ * - AC-Q2.5-4: Duplicate triggers duplicate callback
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

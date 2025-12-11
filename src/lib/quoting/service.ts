@@ -233,3 +233,92 @@ export async function getQuoteSession(
 
   return transformQuoteSession(data as QuoteSessionRow, carrierCount);
 }
+
+/**
+ * Delete a quote session
+ * Story Q2.5: Delete and Duplicate Quote Sessions
+ *
+ * AC-Q2.5-2: Cascade delete handles quote_results via FK constraint
+ *
+ * @param supabase - Supabase client instance
+ * @param sessionId - Session ID to delete
+ * @returns true if deleted, false if not found
+ */
+export async function deleteQuoteSession(
+  supabase: SupabaseClient<Database>,
+  sessionId: string
+): Promise<boolean> {
+  const { error, count } = await supabase
+    .from('quote_sessions')
+    .delete()
+    .eq('id', sessionId);
+
+  if (error) {
+    // RLS violation or other error
+    if (error.code === 'PGRST116' || error.message.includes('0 rows')) {
+      return false;
+    }
+    console.error('Failed to delete quote session:', { sessionId, error: error.message });
+    throw new Error(`Failed to delete quote session: ${error.message}`);
+  }
+
+  // Supabase delete returns undefined count when no .select() used
+  // If no error and request succeeded, assume deleted
+  return true;
+}
+
+/**
+ * Duplicate a quote session
+ * Story Q2.5: Delete and Duplicate Quote Sessions
+ *
+ * AC-Q2.5-4: Creates copy with "(Copy)" suffix, same quote_type, copied client_data,
+ *            no quote_results, status "draft"
+ *
+ * @param supabase - Supabase client instance
+ * @param sessionId - Session ID to duplicate
+ * @param userId - Authenticated user ID
+ * @param agencyId - User's agency ID
+ * @returns New duplicate session or null if original not found
+ */
+export async function duplicateQuoteSession(
+  supabase: SupabaseClient<Database>,
+  sessionId: string,
+  userId: string,
+  agencyId: string
+): Promise<QuoteSession | null> {
+  // Fetch original session
+  const { data: original, error: fetchError } = await supabase
+    .from('quote_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+
+  if (fetchError || !original) {
+    if (fetchError?.code !== 'PGRST116') {
+      console.error('Failed to fetch session for duplication:', { sessionId, error: fetchError?.message });
+    }
+    return null;
+  }
+
+  // Create duplicate with "(Copy)" suffix
+  const { data: newSession, error: insertError } = await supabase
+    .from('quote_sessions')
+    .insert({
+      user_id: userId,
+      agency_id: agencyId,
+      prospect_name: `${original.prospect_name} (Copy)`,
+      quote_type: original.quote_type,
+      status: 'draft', // New duplicate starts as draft
+      client_data: original.client_data ?? {}, // Copy client_data, no quote_results
+    })
+    .select()
+    .single();
+
+  if (insertError || !newSession) {
+    console.error('Failed to create duplicate session:', { sessionId, error: insertError?.message });
+    throw new Error(`Failed to duplicate session: ${insertError?.message}`);
+  }
+
+  // Return new session (carrier count = 0 since no quote_results copied)
+  return transformQuoteSession(newSession as QuoteSessionRow, 0);
+}

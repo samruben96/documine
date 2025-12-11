@@ -1,0 +1,169 @@
+<story-context id="Q2-4-quote-session-status" v="1.0">
+  <metadata>
+    <epicId>Q2</epicId>
+    <storyId>4</storyId>
+    <title>Quote Session Status Management</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q2/stories/Q2-4-quote-session-status/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to see my quote sessions display the correct status automatically</iWant>
+    <soThat>I can quickly understand where each quote is in my workflow</soThat>
+    <tasks>
+      <task id="1" status="pending">Verify StatusBadge visual implementation (AC: 1-4)
+        <subtask id="1.1">Audit src/components/quoting/status-badge.tsx confirms all 4 variants</subtask>
+        <subtask id="1.2">Verify badge variant colors in src/components/ui/badge.tsx</subtask>
+        <subtask id="1.3">Verify StatusBadge is rendered on list page (QuoteSessionCard)</subtask>
+        <subtask id="1.4">Verify StatusBadge is rendered on detail page header</subtask>
+      </task>
+      <task id="2" status="pending">Verify calculateSessionStatus logic (AC: 1-4)
+        <subtask id="2.1">Audit src/lib/quoting/service.ts:calculateSessionStatus() covers all transitions</subtask>
+        <subtask id="2.2">Confirm existing unit tests cover all AC scenarios</subtask>
+        <subtask id="2.3">Add any missing edge case tests if needed</subtask>
+      </task>
+      <task id="3" status="pending">Create E2E test suite for status management (AC: 1-4)
+        <subtask id="3.1">Create __tests__/e2e/quoting/quote-session-status.spec.ts</subtask>
+        <subtask id="3.2">Test AC-Q2.4-1: New session displays Draft badge</subtask>
+        <subtask id="3.3-3.5">Stub tests for AC-Q2.4-2,3,4 (requires Q3/Q5)</subtask>
+        <subtask id="3.6">Test status badge visibility on list page</subtask>
+        <subtask id="3.7">Test status badge visibility on detail page</subtask>
+      </task>
+      <task id="4" status="pending">Add StatusBadge component tests for color variants (AC: 1-4)
+        <subtask id="4.1">Extend __tests__/components/quoting/status-badge.test.tsx</subtask>
+        <subtask id="4.2-4.5">Test each status has correct variant class</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q2.4-1">Given a newly created session with no client data, when viewing the status, then it displays as "Draft" with gray badge</criterion>
+    <criterion id="AC-Q2.4-2">Given a session with client name entered (firstName + lastName), when viewing the status, then it displays as "In Progress" with amber badge</criterion>
+    <criterion id="AC-Q2.4-3">Given a session with at least one quote result, when viewing the status, then it displays as "Quotes Received" with blue badge</criterion>
+    <criterion id="AC-Q2.4-4">Given a session with a generated comparison, when viewing the status, then it displays as "Complete" with green badge</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-Q2/tech-spec.md" title="Epic Q2 Tech Spec" section="Story Q2.4: Quote Session Status Management" snippet="ACs 17-20 define status display requirements: Draft/gray, In Progress/amber, Quotes Received/blue, Complete/green"/>
+      <doc path="docs/sprint-artifacts/epics/epic-Q2/stories/Q2-3-quote-session-detail-page/story.md" title="Story Q2.3" section="Dev Agent Record" snippet="StatusBadge component integrated into detail page header. calculateSessionStatus() called from transformQuoteSession() in service layer."/>
+    </docs>
+    <code>
+      <file path="src/components/quoting/status-badge.tsx" kind="component" symbol="StatusBadge" lines="1-78" reason="Primary component for displaying session status. Already implements all 4 AC variants with correct colors and icons.">
+        <implementation>
+          - statusConfig maps QuoteSessionStatus to {label, icon, variant}
+          - draft: status-default (gray), Circle icon
+          - in_progress: status-progress (amber), Clock icon
+          - quotes_received: status-info (blue), FileCheck icon
+          - complete: status-success (green), CheckCircle icon
+          - Component already references AC-Q2.4-1 through AC-Q2.4-4 in comments
+        </implementation>
+      </file>
+      <file path="src/components/ui/badge.tsx" kind="ui-component" symbol="badgeVariants" lines="20-28" reason="Defines status variant CSS classes used by StatusBadge">
+        <variants>
+          - status-default: bg-slate-100 text-slate-600
+          - status-progress: bg-amber-100 text-amber-700
+          - status-success: bg-green-100 text-green-700
+          - status-info: bg-blue-100 text-blue-700
+        </variants>
+      </file>
+      <file path="src/lib/quoting/service.ts" kind="service" symbol="calculateSessionStatus" lines="34-72" reason="Core status calculation logic. Computes status from clientData and carrierCount.">
+        <logic>
+          - complete: storedStatus === 'complete' (comparison generated)
+          - quotes_received: carrierCount > 0
+          - in_progress: personal.firstName + lastName OR property data OR vehicles/drivers
+          - draft: empty or minimal client_data
+        </logic>
+      </file>
+      <file path="src/components/quoting/quote-session-card.tsx" kind="component" symbol="QuoteSessionCard" lines="108-112" reason="Uses StatusBadge on list page cards"/>
+      <file path="src/app/(dashboard)/quoting/[id]/page.tsx" kind="page" symbol="QuoteSessionDetailPage" reason="Uses StatusBadge in detail page header"/>
+      <file path="__tests__/lib/quoting/service.test.ts" kind="test" symbol="calculateSessionStatus tests" lines="18-99" reason="11 existing unit tests for status calculation">
+        <coverage>
+          - draft for empty/null/undefined data
+          - in_progress for personal firstName+lastName
+          - in_progress for property data
+          - in_progress for vehicles/drivers
+          - quotes_received for carrierCount > 0
+          - complete for storedStatus === 'complete'
+          - Priority: complete > quotes_received > in_progress > draft
+        </coverage>
+      </file>
+      <file path="__tests__/components/quoting/status-badge.test.tsx" kind="test" symbol="StatusBadge tests" lines="1-75" reason="7 existing component tests">
+        <coverage>
+          - Renders each status with correct label
+          - Shows/hides icon based on showIcon prop
+          - Applies custom className
+          - MISSING: Tests for variant class names (colors)
+        </coverage>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package name="lucide-react" version="^0.554.0" usage="Icons: Circle, Clock, FileCheck, CheckCircle"/>
+        <package name="class-variance-authority" version="^0.7.1" usage="Badge variant system"/>
+        <package name="@radix-ui/react-slot" version="^1.2.3" usage="Badge asChild prop"/>
+        <package name="vitest" version="^3.2.3" usage="Unit testing"/>
+        <package name="@testing-library/react" version="^16.3.0" usage="Component testing"/>
+        <package name="@playwright/test" version="^1.52.0" usage="E2E testing"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Status is computed on read via calculateSessionStatus(), not stored separately</constraint>
+    <constraint type="pattern">StatusBadge receives status prop from parent; does not fetch data</constraint>
+    <constraint type="pattern">Badge variants must use existing status-* variants from badge.tsx</constraint>
+    <constraint type="testing">Tests must use data-testid="status-badge" and data-status attributes for assertions</constraint>
+    <constraint type="limitation">AC-Q2.4-2 cannot be fully E2E tested until Q3 (forms)</constraint>
+    <constraint type="limitation">AC-Q2.4-3 cannot be fully E2E tested until Q5 (quote results)</constraint>
+    <constraint type="limitation">AC-Q2.4-4 cannot be fully E2E tested until Q5 (comparison)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="QuoteSessionStatus" kind="type" path="src/types/quoting.ts">
+      type QuoteSessionStatus = 'draft' | 'in_progress' | 'quotes_received' | 'complete';
+    </interface>
+    <interface name="StatusBadgeProps" kind="component-props" path="src/components/quoting/status-badge.tsx">
+      interface StatusBadgeProps {
+        status: QuoteSessionStatus;
+        className?: string;
+        showIcon?: boolean;
+      }
+    </interface>
+    <interface name="calculateSessionStatus" kind="function" path="src/lib/quoting/service.ts">
+      function calculateSessionStatus(
+        clientData: QuoteClientData | null | undefined,
+        carrierCount: number = 0,
+        storedStatus?: string
+      ): QuoteSessionStatus
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit/component tests with React Testing Library. Playwright for E2E.
+      Test files in __tests__/ mirroring src/ structure.
+      Use data-testid attributes for reliable selectors.
+      Test user-facing behavior, not implementation details.
+    </standards>
+    <locations>
+      <dir>__tests__/lib/quoting/</dir>
+      <dir>__tests__/components/quoting/</dir>
+      <dir>__tests__/e2e/quoting/</dir>
+    </locations>
+    <ideas>
+      <idea acRef="AC-Q2.4-1">Unit: Verify calculateSessionStatus({}, 0) returns 'draft'</idea>
+      <idea acRef="AC-Q2.4-1">Component: StatusBadge status="draft" renders with status-default variant class</idea>
+      <idea acRef="AC-Q2.4-1">E2E: Create new session, verify status badge shows "Draft" on list and detail pages</idea>
+      <idea acRef="AC-Q2.4-2">Unit: Verify calculateSessionStatus({personal:{firstName:'J',lastName:'D'}}, 0) returns 'in_progress'</idea>
+      <idea acRef="AC-Q2.4-2">Component: StatusBadge status="in_progress" renders with status-progress variant class</idea>
+      <idea acRef="AC-Q2.4-3">Unit: Verify calculateSessionStatus({}, 1) returns 'quotes_received'</idea>
+      <idea acRef="AC-Q2.4-3">Component: StatusBadge status="quotes_received" renders with status-info variant class</idea>
+      <idea acRef="AC-Q2.4-4">Unit: Verify calculateSessionStatus({}, 0, 'complete') returns 'complete'</idea>
+      <idea acRef="AC-Q2.4-4">Component: StatusBadge status="complete" renders with status-success variant class</idea>
+    </ideas>
+  </tests>
+</story-context>
