@@ -1,0 +1,71 @@
+name: epic-yolo
+description: "Rapid epic execution with smart status handling. Automatically drafts stories (backlog), creates context (drafted), implements (ready-for-dev), and reviews. Run all stories continuously without review pauses."
+author: "BMad"
+version: "2.0.0"
+
+# Command triggers
+cmd: "*epic-yolo"
+slash_cmd: "/bmad:bmm:workflows:epic-yolo"
+
+# Critical variables from config
+config_source: "{project-root}/.bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+user_skill_level: "{config_source}:user_skill_level"
+document_output_language: "{config_source}:document_output_language"
+story_dir: "{config_source}:sprint_artifacts"
+code_repo: "{config_source}:code_repo"
+date: system-generated
+
+# Epic-specific inputs
+epic_id: ""      # Target epic ID (e.g., "8", "F2", "10")
+epic_name: ""    # Auto-discovered from tech-spec
+
+# Sprint tracking
+sprint_artifacts: "{config_source}:sprint_artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml || {output_folder}/sprint-status.yaml"
+
+# Smart input file references
+input_file_patterns:
+  tech_spec:
+    description: "Technical specification for this epic"
+    whole: "{sprint_artifacts}/tech-spec-epic-{{epic_id}}.md"
+    load_strategy: "FULL_LOAD"
+  architecture:
+    description: "System architecture and decisions"
+    whole: "{output_folder}/*architecture*.md"
+    load_strategy: "SELECTIVE_LOAD"
+  stories:
+    description: "All story files for this epic"
+    pattern: "{story_dir}/story-{{epic_id}}*.md"
+    load_strategy: "ON_DEMAND"
+
+# Workflow components
+installed_path: "{project-root}/.bmad/bmm/workflows/4-implementation/epic-yolo"
+instructions: "{installed_path}/instructions.md"
+
+# YOLO mode settings
+auto_commit: true
+skip_review_pause: false  # Still pauses after each story for quick check
+continuous_execution: true
+
+# Smart status handling (v2.0)
+status_handlers:
+  backlog:
+    action: "create-story"
+    next_status: "drafted"
+  drafted:
+    action: "story-context"
+    next_status: "ready-for-dev"
+  ready-for-dev:
+    action: "dev-story"
+    next_status: "review"
+  in-progress:
+    action: "dev-story"
+    next_status: "review"
+  review:
+    action: "code-review"
+    next_status: "done"
+
+standalone: true

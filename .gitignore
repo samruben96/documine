@@ -46,14 +46,14 @@ next-env.d.ts
 .bmad/core/
 .bmad/docs/
 .bmad/bmm/agents/
-.bmad/bmm/workflows/
 .bmad/bmm/docs/
 .bmad/bmm/teams/
 .bmad/bmm/testarch/
 .bmad/bmm/README.md
 
-# BMAD Project Config - TRACKED (do not ignore)
+# BMAD Project Config & Workflows - TRACKED (do not ignore)
 # .bmad/bmm/config.yaml is project-specific and must be committed
+# .bmad/bmm/workflows/ contains project-specific path customizations
 
 # Playwright MCP
 /.playwright-mcp/
