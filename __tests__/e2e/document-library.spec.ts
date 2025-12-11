@@ -39,12 +39,12 @@ test.describe('Document Library Page', () => {
       await expect(page.locator('h1:has-text("Document Library")')).toBeVisible();
     });
 
-    test('documents link in header navigation works', async ({ page }) => {
+    test('documents link in sidebar navigation works', async ({ page }) => {
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
 
-      // Click on Documents in navigation
-      await page.click('nav >> text=Documents');
+      // Click on Documents in sidebar navigation (nav is now in sidebar, not header)
+      await page.click('aside >> text=Documents');
 
       // Should navigate to /documents
       await page.waitForURL('**/documents');

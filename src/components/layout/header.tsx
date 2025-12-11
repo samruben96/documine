@@ -2,92 +2,52 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LogOut, Loader2, Menu, Bot, BarChart3 } from 'lucide-react';
+import { LogOut, Loader2, Bell } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { logout } from '@/app/(auth)/login/actions';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { SidebarToggle } from '@/components/layout/sidebar';
-import { cn } from '@/lib/utils';
-
-const navItems = [
-  { href: '/documents', label: 'Documents' },
-  { href: '/compare', label: 'Compare' },
-  { href: '/ai-buddy', label: 'AI Buddy', icon: Bot },
-  { href: '/reporting', label: 'Reporting', icon: BarChart3 },
-  { href: '/settings', label: 'Settings' },
-];
+import { createClient } from '@/lib/supabase/client';
+import { useEffect } from 'react';
 
 /**
- * Navigation Links Component
- * Extracted to module level to prevent recreation on every render.
+ * Derives user initials from email address.
+ * If email has separators (. _ -), uses first char of first two parts.
+ * Otherwise, uses first two characters of the local part.
  */
-function NavLinks({
-  mobile = false,
-  pathname,
-  onNavigate,
-}: {
-  mobile?: boolean;
-  pathname: string;
-  onNavigate?: () => void;
-}) {
-  const isActive = (href: string) => {
-    if (href === '/documents') {
-      return pathname === '/documents' || pathname.startsWith('/documents/');
-    }
-    if (href === '/ai-buddy') {
-      return pathname === '/ai-buddy' || pathname.startsWith('/ai-buddy/');
-    }
-    if (href === '/reporting') {
-      return pathname === '/reporting' || pathname.startsWith('/reporting/');
-    }
-    return pathname.startsWith(href);
-  };
-
-  return (
-    <>
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={cn(
-              'text-sm transition-colors flex items-center gap-1.5',
-              mobile ? 'py-2' : '',
-              isActive(item.href)
-                ? 'text-primary font-medium border-b-2 border-primary pb-0.5'
-                : 'text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-primary'
-            )}
-          >
-            {Icon && <Icon className="h-4 w-4" />}
-            {item.label}
-          </Link>
-        );
-      })}
-    </>
-  );
+export function getUserInitials(email: string): string {
+  if (!email) return '?';
+  const localPart = email.split('@')[0] ?? '';
+  if (!localPart) return '?';
+  const parts = localPart.split(/[._-]/);
+  const first = parts[0];
+  const second = parts[1];
+  if (parts.length >= 2 && first && second && first[0] && second[0]) {
+    return (first[0] + second[0]).toUpperCase();
+  }
+  return localPart.slice(0, 2).toUpperCase();
 }
 
 /**
  * Dashboard Header Component
- * AC-6.8.7: Mobile hamburger menu - logo displays fully without truncation
- * AC-6.8.9: Navigation active state with Electric Blue accent
+ * DR.1: Header Redesign - Clean, minimal header with logo, bell, and avatar dropdown
  */
 export function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const isMobile = useIsMobile();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -98,80 +58,57 @@ export function Header() {
     }
   };
 
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const userInitials = getUserInitials(userEmail ?? '');
 
   return (
-    <header className="border-b bg-white dark:bg-slate-900 dark:border-slate-800">
-      <div className="flex h-14 items-center justify-between px-4 sm:px-6">
-        {/* Left side: Sidebar toggle + Logo */}
-        <div className="flex items-center gap-2">
-          {/* AC-6.8.7, AC-6.8.10: Sidebar toggle for mobile/tablet */}
+    <header className="h-14 bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+      <div className="flex h-full items-center justify-between px-4">
+        {/* Left: Mobile sidebar toggle + Logo (AC: DR.1.1, DR.1.2, DR.1.3, DR.1.10) */}
+        <div className="flex items-center gap-3">
           <SidebarToggle />
-
-          {/* AC-6.8.7: Logo with proper spacing on mobile */}
-          {/* Logo navigates to dashboard (central hub) */}
-          <Link
-            href="/dashboard"
-            className="font-semibold text-primary hover:text-primary/80 transition-colors shrink-0"
-          >
-            docuMINE
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">dM</span>
+            </div>
+            <span className="font-semibold text-lg text-slate-900 dark:text-slate-100">docuMINE</span>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <NavLinks pathname={pathname} />
+        {/* Right: Bell + Avatar dropdown (AC: DR.1.4, DR.1.5, DR.1.6) */}
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="text-slate-600 hover:text-primary dark:text-slate-400"
+            size="icon"
+            className="rounded-full"
+            aria-label="Notifications (coming soon)"
           >
-            {isLoggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4" />
-            )}
-            <span className="ml-2">Logout</span>
+            <Bell className="h-5 w-5 text-slate-500 dark:text-slate-400" />
           </Button>
-        </nav>
 
-        {/* Mobile Hamburger Menu */}
-        {isMobile && (
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 p-0"
+                aria-label="User menu"
+              >
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {userInitials}
+                </span>
               </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-64">
-              <SheetHeader>
-                <SheetTitle className="text-primary">Menu</SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col gap-4 mt-6">
-                <NavLinks mobile pathname={pathname} onNavigate={closeMobileMenu} />
-                <div className="border-t pt-4 mt-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                    className="w-full justify-start text-slate-600 hover:text-primary"
-                  >
-                    {isLoggingOut ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <LogOut className="h-4 w-4 mr-2" />
-                    )}
-                    Logout
-                  </Button>
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
-        )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                {isLoggingOut ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 mr-2" />
+                )}
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

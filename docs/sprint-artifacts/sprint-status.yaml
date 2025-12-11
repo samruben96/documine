@@ -365,3 +365,27 @@ development_status:
   # - Data Table: "N/A" for nulls, currency formatting
   23-9-chart-visualization-polish: done
   epic-23-retrospective: completed  # docs/sprint-artifacts/retrospectives/epic-23-retro-2025-12-10.md
+
+  # =====================================================
+  # EPIC DESIGN-REFRESH: DOCUMINE DESIGN REFRESH
+  # =====================================================
+  # Update entire docuMINE design to match Quoting mockup aesthetic
+  # Reference: docs/features/quoting/mockups/quoting-mockup.html
+  # Planning: docs/sprint-artifacts/epics/epic-design-refresh/
+  # Priority: High (before Quoting epic Q1)
+  # Stories: 10
+  epic-design-refresh: contexted
+  # Story DR.1: Header Redesign
+  # Replace text logo with icon, add avatar dropdown, remove nav links
+  # Prerequisites: None
+  # DONE 2025-12-10: All ACs implemented, review APPROVED
+  DR-1-header-redesign: done
+  DR-2-sidebar-navigation: backlog
+  DR-3-page-layout-background: backlog
+  DR-4-card-border-consistency: backlog
+  DR-5-button-standardization: backlog
+  DR-6-form-input-refinement: backlog
+  DR-7-badge-status-system: backlog
+  DR-8-typography-spacing: backlog
+  DR-9-mobile-navigation: backlog
+  DR-10-existing-pages-update: backlog
