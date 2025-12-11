@@ -1,74 +1,139 @@
-import { Calculator } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { QuoteSessionCard } from '@/components/quoting/quote-session-card';
+import { QuoteSessionsEmpty } from '@/components/quoting/quote-sessions-empty';
+import { useQuoteSessions } from '@/hooks/quoting/use-quote-sessions';
 
 /**
- * Quoting Page
- * Story DR.2 Task 6: Placeholder page for Quoting feature
- * Links from the sidebar navigation
+ * Quote Sessions List Page
+ * Story Q2.1: Quote Sessions List Page
+ *
+ * AC-Q2.1-1: Sessions displayed sorted by most recently updated first
+ * AC-Q2.1-2: Each card shows prospect name, quote type, status, date, carrier count
+ * AC-Q2.1-3: Action menu with Edit, Duplicate, Delete options
+ * AC-Q2.1-4: Empty state with "No quotes yet" and "New Quote" CTA
+ * AC-Q2.1-5: Card click navigates to /quoting/[id]
  */
 export default function QuotingPage() {
+  const router = useRouter();
+  const { sessions, isLoading, isMutating, deleteSession, duplicateSession } =
+    useQuoteSessions();
+
+  // Delete confirmation state
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleNewQuote = () => {
+    // TODO Q2.2: Open create dialog
+    // For now, placeholder - will be implemented in Q2.2
+    toast.info('New Quote feature coming in Q2.2');
+  };
+
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+
+    try {
+      await deleteSession(deleteId);
+      toast.success('Quote session deleted');
+    } catch {
+      toast.error('Failed to delete session');
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    const newSession = await duplicateSession(id);
+    if (newSession) {
+      toast.success('Quote session duplicated');
+      // Navigate to the new session (AC-Q2.5-5)
+      router.push(`/quoting/${newSession.id}`);
+    } else {
+      toast.error('Failed to duplicate session');
+    }
+  };
+
   return (
     <div className="h-full overflow-auto">
-      {/* Story DR.3: AC-DR.3.2, AC-DR.3.3 - max-w-5xl mx-auto p-6 */}
       <div className="max-w-5xl mx-auto p-6 view-fade-in">
-        {/* Coming Soon Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-8 text-center">
-          {/* Icon */}
-          <div className="mx-auto w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6">
-            <Calculator className="w-8 h-8 text-primary" />
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              Quoting
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">
+              Manage quote sessions for your prospects
+            </p>
           </div>
-
-          {/* Title */}
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-            Quoting Helper
-          </h1>
-          <p className="text-lg text-primary font-medium mb-4">Coming Soon</p>
-
-          {/* Description */}
-          <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
-            Enter client data once and copy it to any carrier portal. Compare quotes
-            side-by-side and generate professional comparison documents for your clients.
-          </p>
-
-          {/* Features List */}
-          <div className="text-left max-w-sm mx-auto space-y-3">
-            <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm uppercase tracking-wide mb-3">
-              What to expect
-            </h3>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-green-600 dark:text-green-400 text-xs">1</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Enter client information once in a smart form
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-green-600 dark:text-green-400 text-xs">2</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Copy data formatted for each carrier with one click
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-green-600 dark:text-green-400 text-xs">3</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Enter quotes received and compare side-by-side
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-green-600 dark:text-green-400 text-xs">4</span>
-              </div>
-              <p className="text-slate-600 dark:text-slate-400 text-sm">
-                Generate professional comparison PDF for clients
-              </p>
-            </div>
-          </div>
+          <Button onClick={handleNewQuote} disabled={isMutating}>
+            <Plus className="h-4 w-4" />
+            New Quote
+          </Button>
         </div>
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : sessions.length === 0 ? (
+          <QuoteSessionsEmpty onNewQuote={handleNewQuote} />
+        ) : (
+          <div
+            className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            data-testid="quote-sessions-grid"
+          >
+            {sessions.map((session) => (
+              <QuoteSessionCard
+                key={session.id}
+                session={session}
+                onDelete={handleDelete}
+                onDuplicate={handleDuplicate}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this quote session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. All associated quote results will also be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,0 +1,120 @@
+<story-context id="Q2-1-quote-sessions-list-page" v="1.0">
+  <metadata>
+    <epicId>Q2</epicId>
+    <storyId>1</storyId>
+    <title>Quote Sessions List Page</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-Q2-1-quote-sessions-list-page.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>view a list of all my quote sessions with status and actions</iWant>
+    <soThat>I can quickly find, manage, and continue working on quotes for prospects</soThat>
+    <tasks>
+      <task id="1" ac="1">Create quote session service with listQuoteSessions() and status calculation</task>
+      <task id="2" ac="1">Create useQuoteSessions hook with fetch, loading/error states, mutations</task>
+      <task id="3" ac="2,3">Create QuoteSessionCard with prospect name, badges, dates, action menu</task>
+      <task id="4" ac="2">Create StatusBadge with Draft/In Progress/Quotes Received/Complete variants</task>
+      <task id="5" ac="2">Create QuoteTypeBadge for Home/Auto/Bundle types</task>
+      <task id="6" ac="1,4,5">Create Quote Sessions List Page replacing placeholder</task>
+      <task id="7" ac="1">Create API route GET /api/quoting with RLS and query params</task>
+      <task id="8" ac="all">E2E tests for empty state, cards, sorting, navigation</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="Q2.1-1">Given user navigates to /quoting, when page loads, then sessions list displays sorted by most recently updated first</ac>
+    <ac id="Q2.1-2">Given sessions exist, when viewing list, then each card shows prospect name, quote type badge, status indicator, created date, carrier count</ac>
+    <ac id="Q2.1-3">Given sessions exist, when viewing card, then action menu visible with Edit, Duplicate, Delete options</ac>
+    <ac id="Q2.1-4">Given no sessions exist, when viewing list, then empty state displays with "No quotes yet" and "New Quote" CTA</ac>
+    <ac id="Q2.1-5">Given user on list page, when clicking session card, then navigated to /quoting/[id]</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-Q2/tech-spec.md" title="Epic Q2 Tech Spec" section="Story Q2.1" snippet="Authoritative source for ACs, API contracts, test strategy. Defines QuoteSession type, status calculation rules, performance targets (&lt;500ms list load)." />
+      <doc path="docs/sprint-artifacts/epics/epic-Q2/epic.md" title="Epic Q2 Overview" section="Stories" snippet="Quote Session Management epic covering FR1-6, FR15. Dependencies on Q1 database schema." />
+      <doc path="docs/features/quoting/prd.md" title="Quoting PRD" section="Quote Session Management" snippet="FR1-6 requirements for create, save, view, delete, duplicate sessions. FR15 for quote type selection." />
+      <doc path="docs/features/quoting/architecture.md" title="Quoting Architecture" section="Project Structure" snippet="Component locations in src/components/quoting/, hooks in src/hooks/quoting/, service in src/lib/quoting/. Carrier format system and data models." />
+      <doc path="docs/sprint-artifacts/retrospectives/epic-Q1-retro-2025-12-11.md" title="Epic Q1 Retrospective" section="Lessons Learned" snippet="RLS pattern using get_user_agency_id(), JSONB for flexible schema, iconMap pattern, E2E tests deferred to Q2.1." />
+    </docs>
+
+    <code>
+      <file path="src/components/documents/document-type-badge.tsx" kind="component" symbol="DocumentTypeBadge" reason="Badge pattern reference - typeConfig object, variant mapping, icon integration. Use this pattern for StatusBadge and QuoteTypeBadge." />
+      <file path="src/components/dashboard/tool-card.tsx" kind="component" symbol="ToolCard" lines="35-66" reason="colorVariants pattern for badge/card styling. iconMap pattern for server/client boundary. Use amber variant for quoting consistency." />
+      <file path="src/app/(dashboard)/quoting/page.tsx" kind="page" symbol="QuotingPage" reason="Current placeholder page to REPLACE. Uses Calculator icon, view-fade-in class, max-w-5xl mx-auto p-6 layout pattern." />
+      <file path="src/hooks/ai-buddy/use-projects.ts" kind="hook" symbol="useProjects" reason="Hook pattern with useState/useCallback, optimistic updates, autoFetch option, mutation functions. Follow this for useQuoteSessions hook." />
+      <file path="src/lib/documents/service.ts" kind="service" symbol="listDocuments" lines="212-245" reason="Service pattern with Supabase client, RLS scoping, query options (search, status, limit), error handling. Follow this for quoting service." />
+      <file path="src/app/api/ai-buddy/projects/route.ts" kind="api" symbol="GET,POST" reason="API route pattern with Zod validation, auth check via createClient(), structured responses, error codes, logging." />
+      <file path="src/components/ui/badge.tsx" kind="component" symbol="Badge" reason="Base shadcn Badge component with status variants (status-default, status-info, status-success, status-warning)." />
+      <file path="src/components/ui/card.tsx" kind="component" symbol="Card,CardContent" reason="Base shadcn Card component with hoverable prop for interactive cards." />
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="@supabase/ssr" version="^0.7.0" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16" />
+        <package name="@radix-ui/react-alert-dialog" version="^1.1.15" />
+        <package name="react-hook-form" version="^7.68.0" />
+        <package name="@hookform/resolvers" version="^5.2.2" />
+        <package name="zod" version="^4.1.13" />
+        <package name="sonner" version="^2.0.7" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="date-fns" version="^4.1.0" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="rls">All queries must respect agency-scoped RLS via get_user_agency_id() helper established in Q1</constraint>
+    <constraint type="data">quote_sessions table exists with columns: id, agency_id, user_id, prospect_name, quote_type, status, client_data (JSONB), created_at, updated_at</constraint>
+    <constraint type="status">Status is COMPUTED on read (not stored): draft (empty client_data), in_progress (has name), quotes_received (has quote_results), complete (comparison generated)</constraint>
+    <constraint type="performance">Target &lt;500ms list page load. Index on (agency_id, updated_at DESC) exists from Q1.</constraint>
+    <constraint type="pattern">Follow existing docuMINE patterns: Server components for data fetching, client components for interactivity</constraint>
+    <constraint type="styling">Use existing shadcn/ui components. Status badge colors: Draft=gray, In Progress=amber, Quotes Received=blue, Complete=green</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="GET /api/quoting" kind="REST endpoint" signature="GET /api/quoting?status=draft,in_progress&amp;search=name&amp;sort=updated_at" path="src/app/api/quoting/route.ts">
+      Returns { data: QuoteSession[], error: null }. Sessions sorted by updated_at DESC by default.
+    </interface>
+    <interface name="QuoteSession" kind="TypeScript type" signature="interface QuoteSession { id: string; agency_id: string; user_id: string; prospect_name: string; quote_type: 'home'|'auto'|'bundle'; status: QuoteSessionStatus; client_data: QuoteClientData; created_at: string; updated_at: string; }" path="src/types/quoting.ts">
+      Main entity type for quote sessions. Status computed from client_data and related records.
+    </interface>
+    <interface name="listQuoteSessions" kind="function" signature="async function listQuoteSessions(supabase: SupabaseClient, options?: { search?: string; status?: string; }): Promise&lt;QuoteSession[]&gt;" path="src/lib/quoting/service.ts">
+      Service function to fetch sessions with RLS, optional filters, sorted by updated_at DESC.
+    </interface>
+    <interface name="useQuoteSessions" kind="React hook" signature="function useQuoteSessions(options?: { autoFetch?: boolean }): { sessions: QuoteSession[]; isLoading: boolean; error: Error | null; refresh: () => void; deleteSession: (id: string) => Promise&lt;void&gt;; duplicateSession: (id: string) => Promise&lt;QuoteSession&gt;; }" path="src/hooks/quoting/use-quote-sessions.ts">
+      Hook for list page with fetch, loading state, optimistic delete/duplicate mutations.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests with Vitest, component tests with React Testing Library, E2E tests with Playwright.
+      80% coverage target for service.ts. All interactive components must have component tests.
+      E2E tests explicitly required for Q2.1 per Q1 retrospective action item (deferred from Q1-2, Q1-3).
+      Follow existing patterns in __tests__/ directory structure.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/service.test.ts</location>
+      <location>__tests__/hooks/quoting/use-quote-sessions.test.ts</location>
+      <location>__tests__/components/quoting/quote-session-card.test.tsx</location>
+      <location>__tests__/components/quoting/status-badge.test.tsx</location>
+      <location>__tests__/components/quoting/quote-type-badge.test.tsx</location>
+      <location>__tests__/e2e/quoting-sessions.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="Q2.1-1">Test sessions render in updated_at DESC order; mock Supabase to verify query params</idea>
+      <idea ac="Q2.1-2">Test QuoteSessionCard renders all fields: prospect_name, quote_type badge, status badge, dates, carrier count placeholder</idea>
+      <idea ac="Q2.1-3">Test DropdownMenu opens and contains Edit, Duplicate, Delete options</idea>
+      <idea ac="Q2.1-4">Test empty state renders when sessions array is empty; "New Quote" button present</idea>
+      <idea ac="Q2.1-5">Test card click triggers navigation to /quoting/[id]; use router mock</idea>
+      <idea ac="all">E2E: Create session via API, verify card appears, click to navigate, test action menu operations</idea>
+    </ideas>
+  </tests>
+</story-context>

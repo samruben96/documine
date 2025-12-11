@@ -43,12 +43,14 @@ development_status:
   Q1-1-database-schema-rls: done
   Q1-2-sidebar-navigation: done  # Satisfied by DR.2, nav exists
   Q1-3-dashboard-quick-access: done  # Reviewed 2025-12-11
+  epic-Q1-retrospective: done  # Completed 2025-12-11
 
   # Epic Q2: Quote Session Management
   # Create, view, manage quote sessions
   # Stories: 5 | FRs: FR1-6, FR15
-  epic-Q2-quote-session-management: backlog
-  Q2-1-quote-sessions-list-page: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q2/
+  epic-Q2-quote-session-management: contexted
+  Q2-1-quote-sessions-list-page: done
   Q2-2-create-new-quote-session: backlog
   Q2-3-quote-session-detail-page: backlog
   Q2-4-quote-session-status: backlog
