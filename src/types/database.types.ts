@@ -1026,6 +1026,123 @@ export type Database = {
           },
         ]
       }
+      quote_results: {
+        Row: {
+          agency_id: string
+          carrier_code: string
+          carrier_name: string
+          coverages: Json
+          created_at: string
+          deductible_auto: number | null
+          deductible_home: number | null
+          document_storage_path: string | null
+          id: string
+          premium_annual: number | null
+          premium_monthly: number | null
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          carrier_code: string
+          carrier_name: string
+          coverages?: Json
+          created_at?: string
+          deductible_auto?: number | null
+          deductible_home?: number | null
+          document_storage_path?: string | null
+          id?: string
+          premium_annual?: number | null
+          premium_monthly?: number | null
+          session_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          carrier_code?: string
+          carrier_name?: string
+          coverages?: Json
+          created_at?: string
+          deductible_auto?: number | null
+          deductible_home?: number | null
+          document_storage_path?: string | null
+          id?: string
+          premium_annual?: number | null
+          premium_monthly?: number | null
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_results_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_results_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "quote_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_sessions: {
+        Row: {
+          agency_id: string
+          client_data: Json
+          created_at: string
+          id: string
+          prospect_name: string
+          quote_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agency_id: string
+          client_data?: Json
+          created_at?: string
+          id?: string
+          prospect_name: string
+          quote_type?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agency_id?: string
+          client_data?: Json
+          created_at?: string
+          id?: string
+          prospect_name?: string
+          quote_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_sessions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           created_at: string | null

@@ -1,0 +1,227 @@
+<story-context id="Q1-1-database-schema-rls" v="1.0">
+  <metadata>
+    <epicId>Q1</epicId>
+    <storyId>Q1.1</storyId>
+    <title>Database Schema &amp; RLS Setup</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q1/stories/Q1-1-database-schema-rls/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>my quote sessions to be securely stored and isolated to my agency</iWant>
+    <soThat>my client data is protected and only I can access my quotes</soThat>
+    <tasks>
+      <task id="1" ac="1,2">Create Supabase Migration File
+        <subtask>1.1 Create migration file supabase/migrations/YYYYMMDD_add_quoting_tables.sql</subtask>
+        <subtask>1.2 Define quote_sessions table with all columns per tech spec</subtask>
+        <subtask>1.3 Define quote_results table with all columns per tech spec</subtask>
+        <subtask>1.4 Add foreign key constraints (session_id CASCADE, agency_id, user_id)</subtask>
+        <subtask>1.5 Add updated_at trigger function for automatic timestamp update</subtask>
+      </task>
+      <task id="2" ac="4">Create Indexes
+        <subtask>2.1 Create index idx_quote_sessions_agency on quote_sessions(agency_id)</subtask>
+        <subtask>2.2 Create index idx_quote_sessions_user on quote_sessions(user_id)</subtask>
+        <subtask>2.3 Create index idx_quote_sessions_status on quote_sessions(status)</subtask>
+        <subtask>2.4 Create index idx_quote_results_session on quote_results(session_id)</subtask>
+        <subtask>2.5 Create index idx_quote_results_agency on quote_results(agency_id)</subtask>
+      </task>
+      <task id="3" ac="3">Enable RLS and Create Policies
+        <subtask>3.1 Enable RLS on quote_sessions table</subtask>
+        <subtask>3.2 Enable RLS on quote_results table</subtask>
+        <subtask>3.3 Create SELECT policy using get_user_agency_id() helper function</subtask>
+        <subtask>3.4 Create INSERT policy with agency_id check</subtask>
+        <subtask>3.5 Create UPDATE policy using agency_id check</subtask>
+        <subtask>3.6 Create DELETE policy using agency_id check</subtask>
+        <subtask>3.7 Apply same policies to quote_results table</subtask>
+      </task>
+      <task id="4" ac="5">Apply Migration and Generate Types
+        <subtask>4.1 Apply migration to Supabase: npx supabase db push</subtask>
+        <subtask>4.2 Regenerate TypeScript types: npm run generate-types</subtask>
+        <subtask>4.3 Verify QuoteSession type in src/types/database.types.ts</subtask>
+        <subtask>4.4 Verify QuoteResult type in src/types/database.types.ts</subtask>
+      </task>
+      <task id="5" ac="3,6,7">Test RLS Policies
+        <subtask>5.1 Test INSERT: User can insert session with their agency_id</subtask>
+        <subtask>5.2 Test INSERT: User cannot insert session with different agency_id</subtask>
+        <subtask>5.3 Test SELECT: User can only see sessions from their agency</subtask>
+        <subtask>5.4 Test UPDATE: User can only update sessions from their agency</subtask>
+        <subtask>5.5 Test DELETE: User can only delete sessions from their agency</subtask>
+        <subtask>5.6 Test CASCADE: Deleting session cascades to quote_results</subtask>
+        <subtask>5.7 Test foreign key: Cannot insert result for non-existent session</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">quote_sessions table exists with columns: id, agency_id, user_id, prospect_name, quote_type, status, client_data (JSONB), created_at, updated_at</criterion>
+    <criterion id="2">quote_results table exists with columns: id, session_id, agency_id, carrier_code, carrier_name, premium_annual, premium_monthly, deductible_home, deductible_auto, coverages (JSONB), status, document_storage_path, created_at, updated_at</criterion>
+    <criterion id="3">RLS policies enforce agency-scoped access on both tables (SELECT, INSERT, UPDATE, DELETE)</criterion>
+    <criterion id="4">Indexes exist on agency_id, user_id, session_id, and status columns for query optimization</criterion>
+    <criterion id="5">TypeScript types generated via npm run generate-types include QuoteSession and QuoteResult types</criterion>
+    <criterion id="6">Foreign key from quote_results.session_id to quote_sessions.id with CASCADE delete</criterion>
+    <criterion id="7">Foreign keys from both tables to agencies(id) and users(id)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q1/tech-spec.md</path>
+        <title>Epic Technical Specification: Foundation &amp; Navigation</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Complete SQL definitions for quote_sessions and quote_results tables with column types, constraints, and JSONB fields for flexible client data storage.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/data-architecture.md</path>
+        <title>Data Architecture</title>
+        <section>RLS Policies</section>
+        <snippet>Documents the standard RLS policy pattern using agency_id scoping. All tables use "for all using (agency_id = (select agency_id from users where id = auth.uid()))" pattern.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Helper (Phase 3) - Architecture</title>
+        <section>Data Architecture</section>
+        <snippet>Defines the complete data model including quote_sessions, quote_results tables, RLS policies, and index definitions. Also includes TypeScript interfaces for client data schema.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/migrations/00003_rls_policies.sql</path>
+        <kind>migration</kind>
+        <symbol>get_user_agency_id()</symbol>
+        <lines>19-22</lines>
+        <reason>Helper function to get current user's agency_id - REUSE this for new RLS policies</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/00003_rls_policies.sql</path>
+        <kind>migration</kind>
+        <symbol>Documents RLS policies</symbol>
+        <lines>52-70</lines>
+        <reason>Pattern for agency-scoped RLS with separate SELECT/INSERT/UPDATE/DELETE policies - follow this exact pattern</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/20251207000000_ai_buddy_foundation.sql</path>
+        <kind>migration</kind>
+        <symbol>-</symbol>
+        <lines>-</lines>
+        <reason>Recent migration example for naming convention (YYYYMMDD000000_name.sql)</reason>
+      </file>
+      <file>
+        <path>src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database</symbol>
+        <lines>1-100</lines>
+        <reason>Auto-generated types file - verify QuoteSession and QuoteResult types appear after running generate-types</reason>
+      </file>
+      <file>
+        <path>src/lib/supabase/client.ts</path>
+        <kind>service</kind>
+        <symbol>createClient()</symbol>
+        <lines>1-14</lines>
+        <reason>Browser Supabase client that will be used to query new tables - uses Database type for type safety</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Database client</purpose>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+        <purpose>SSR Supabase client</purpose>
+      </node>
+      <supabase>
+        <project>nxuzurxiaismssiiydst</project>
+        <command>npx supabase db push</command>
+        <generate-types>npm run generate-types</generate-types>
+      </supabase>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">Follow existing RLS policy pattern from 00003_rls_policies.sql - use get_user_agency_id() helper function for all policies</constraint>
+    <constraint type="pattern">Use separate policies for each operation (SELECT, INSERT, UPDATE, DELETE) with descriptive names following existing naming convention</constraint>
+    <constraint type="pattern">Include agency_id column on both tables to enable direct RLS filtering without JOINs</constraint>
+    <constraint type="naming">Migration file must follow YYYYMMDDHHMMSS_name.sql pattern (e.g., 20251211000000_add_quoting_tables.sql)</constraint>
+    <constraint type="schema">Use gen_random_uuid() for primary keys, timestamptz for timestamps, JSONB for flexible data (client_data, coverages)</constraint>
+    <constraint type="fk">Foreign key from quote_results.session_id must include ON DELETE CASCADE</constraint>
+    <constraint type="types">After migration, run npm run generate-types to update src/types/database.types.ts</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>get_user_agency_id()</name>
+      <kind>SQL function</kind>
+      <signature>RETURNS UUID AS $$ SELECT agency_id FROM users WHERE id = auth.uid(); $$ LANGUAGE SQL SECURITY DEFINER STABLE</signature>
+      <path>supabase/migrations/00003_rls_policies.sql:19-22</path>
+    </interface>
+    <interface>
+      <name>quote_sessions table</name>
+      <kind>Database table</kind>
+      <signature>
+        CREATE TABLE quote_sessions (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          agency_id uuid NOT NULL REFERENCES agencies(id),
+          user_id uuid NOT NULL REFERENCES users(id),
+          prospect_name text NOT NULL,
+          quote_type text NOT NULL DEFAULT 'bundle',
+          status text NOT NULL DEFAULT 'draft',
+          client_data jsonb NOT NULL DEFAULT '{}',
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        );
+      </signature>
+      <path>docs/sprint-artifacts/epics/epic-Q1/tech-spec.md#quote_sessions</path>
+    </interface>
+    <interface>
+      <name>quote_results table</name>
+      <kind>Database table</kind>
+      <signature>
+        CREATE TABLE quote_results (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          session_id uuid NOT NULL REFERENCES quote_sessions(id) ON DELETE CASCADE,
+          agency_id uuid NOT NULL REFERENCES agencies(id),
+          carrier_code text NOT NULL,
+          carrier_name text NOT NULL,
+          premium_annual decimal(10, 2),
+          premium_monthly decimal(10, 2),
+          deductible_home decimal(10, 2),
+          deductible_auto decimal(10, 2),
+          coverages jsonb NOT NULL DEFAULT '{}',
+          status text NOT NULL DEFAULT 'quoted',
+          document_storage_path text,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        );
+      </signature>
+      <path>docs/sprint-artifacts/epics/epic-Q1/tech-spec.md#quote_results</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing for this story primarily involves verifying the migration applies correctly and RLS policies work as expected. Use Supabase Studio or psql to verify table creation. For RLS testing, use two different agency accounts to verify data isolation. TypeScript type verification is done by running npm run generate-types and verifying compilation succeeds. The project uses Vitest for unit/integration tests with happy-dom for React components.
+    </standards>
+    <locations>
+      <location>__tests__/</location>
+      <location>supabase/migrations/ (migration files)</location>
+    </locations>
+    <ideas>
+      <idea ac="1,2">Verify tables exist: Query information_schema.tables for quote_sessions and quote_results</idea>
+      <idea ac="3">RLS SELECT test: User A inserts session, User B (different agency) cannot select it</idea>
+      <idea ac="3">RLS INSERT test: User cannot insert session with agency_id != their own agency</idea>
+      <idea ac="3">RLS UPDATE test: User cannot update session belonging to different agency</idea>
+      <idea ac="3">RLS DELETE test: User cannot delete session belonging to different agency</idea>
+      <idea ac="4">Index verification: Query pg_indexes for idx_quote_sessions_agency, idx_quote_sessions_user, idx_quote_sessions_status, idx_quote_results_session, idx_quote_results_agency</idea>
+      <idea ac="5">Type generation: Run npm run generate-types and verify QuoteSession and QuoteResult types exist in database.types.ts</idea>
+      <idea ac="6">CASCADE test: Insert session, insert result referencing session, delete session, verify result is also deleted</idea>
+      <idea ac="7">FK constraint test: Attempt to insert quote_result with non-existent session_id, expect foreign key violation error</idea>
+    </ideas>
+  </tests>
+</story-context>

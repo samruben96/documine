@@ -1,14 +1,14 @@
 # Sprint Status - docuMINE
 # ========================
 # Generated: 2025-11-28
-# Last Updated: 2025-12-10 (Epic 23 Retrospective - COMPLETED)
+# Last Updated: 2025-12-11 (Quoting Feature - Starting Epic Q)
 # Project: docuMINE
 # Tracking: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
 
-# ARCHIVED EPICS (1-13): See sprint-status-archive.yaml
+# ARCHIVED EPICS (1-23 + Design-Refresh): See sprint-status-archive.yaml
 # FUTURE EPICS (F3-F8): See sprint-status-future.yaml
-# This file contains only active development (Epics 14-20)
+# This file contains only active development
 
 # STATUS DEFINITIONS:
 # Epic: backlog | contexted | done | abandoned | future | obsolete
@@ -17,399 +17,68 @@
 
 development_status:
   # =====================================================
-  # EPICS 1-13: ARCHIVED - See sprint-status-archive.yaml
+  # ARCHIVED EPICS: See sprint-status-archive.yaml
   # =====================================================
-  # All completed - MVP delivered 2025-12-07
-  # Includes: Foundation, Auth, Documents, Chat, Comparison,
-  # One-Pager, Enhanced Extraction, Processing Reliability,
-  # Document AI (abandoned), LlamaParse Migration
-
-  # =====================================================
-  # AI BUDDY FEATURE - EPICS 14-20
-  # =====================================================
-  # Planning: docs/features/ai-buddy/
-  # Total: 7 Epics, 55 Stories, 64 FRs
-
-  # Epic 14: AI Buddy Foundation - DONE 2025-12-07
-  # Database schema, API routes, navigation, layout shell, scaffolding
-  epic-14-ai-buddy-foundation: done
-  14-1-database-schema: done
-  14-2-api-route-structure: done
-  14-3-navigation-integration: done
-  14-4-page-layout-shell: done
-  14-5-component-scaffolding: done
-  epic-14-retrospective: completed
-
-  # Epic 15: AI Buddy Core Chat - DONE 2025-12-07
-  # Conversational AI with streaming, citations, confidence
-  # Tech Spec: docs/sprint-artifacts/epics/epic-15/tech-spec.md
-  epic-15-ai-buddy-core-chat: done
-  15-1-chat-input-component: done
-  15-2-message-display: done
-  15-3-streaming-chat-api: done
-  15-4-conversation-persistence: done
-  15-5-ai-response-quality-attribution: done  # Merged: 15.5-15.7
-  epic-15-retrospective: completed
-
-  # Epic 16: AI Buddy Projects - DONE 2025-12-08
-  # Organize work by client accounts with persistent document context
-  # Tech Spec: docs/sprint-artifacts/epics/epic-16/tech-spec.md
-  epic-16-ai-buddy-projects: done
-  16-1-project-creation-sidebar: done
-  16-2-project-context-switching: done
-  16-3-project-management: done
-  16-4-conversation-history-general-chat: done
-  16-5-conversation-search: done
-  16-6-conversation-management: done
-  epic-16-retrospective: completed
-
-  # Epic 17: AI Buddy Document Intelligence - DONE 2025-12-08
-  # Document upload, processing, AI-powered context
-  # Tech Spec: docs/sprint-artifacts/epics/epic-17/tech-spec-epic-17.md
-  epic-17-ai-buddy-document-intelligence: done
-  17-1-document-upload-conversation-status: done
-  17-2-project-document-management: done
-  17-3-document-preview-multi-document-context: done
-  17-4-document-processing-integration: done
-  17-5-chatgpt-style-project-navigation: done
-  epic-17-retrospective: completed
-
-  # Epic 18: AI Buddy Personalization & Onboarding - DONE 2025-12-08
-  # Personalized AI experience from first interaction
-  # Tech Spec: docs/sprint-artifacts/epics/epic-18/tech-spec-epic-18.md
-  epic-18-ai-buddy-personalization-onboarding: done
-  18-1-onboarding-flow-guided-start: done
-  18-2-preferences-management: done
-  18-3-preference-aware-responses: done
-  18-4-admin-onboarding-status: done
-  epic-18-retrospective: completed
-
-  # Epic 19: AI Buddy Guardrails & Compliance - DONE 2025-12-09
-  # Admin-controlled guardrails for E&O protection
-  # Tech Spec: docs/sprint-artifacts/epics/epic-19/tech-spec-epic-19.md
-  # FRs: FR35-41
-  # Stories: 4 (consolidated from 6)
-  # Total Points: 13
-  epic-19-ai-buddy-guardrails-compliance: done
-  # Story 19.1: Guardrail Admin UI (5 pts) - DONE
-  # Admin screen for restricted topics, rule toggles, immediate effect
-  # IMPLEMENTED 2025-12-08: All ACs complete
-  # - Restricted topics CRUD (add, edit, delete, toggle, built-in)
-  # - Rule toggles (E&O protection, state compliance)
-  # - Auto-save, immediate effect (no cache)
-  # - Admin-only section (403 for non-admin)
-  # - BONUS: Reset to defaults, sub-tabs UI, unsaved changes warning
-  19-1-guardrail-admin-ui: done
-  # Story 19.2: Enforcement & Logging (2 pts) - DONE
-  # Audit log for guardrail events (FR38)
-  # IMPLEMENTED 2025-12-09: All ACs complete
-  # - API endpoint with date filtering and pagination
-  # - Enforcement log table in GuardrailAdminPanel
-  # - Detail dialog with full event information
-  # - Permission-based access (view_audit_logs)
-  # - 59 unit tests, E2E tests
-  19-2-enforcement-logging: done
-  # Story 19.3: Invisible Guardrail Responses (3 pts)
-  # Helpful redirects for restricted topics (FR39)
-  # DONE 2025-12-09: All ACs complete, review APPROVED - 76 new tests
-  19-3-invisible-guardrail-responses: done
-  # Story 19.4: AI Disclosure Message (3 pts)
-  # Configurable disclosure text (FR40-41)
-  # DONE 2025-12-09: All ACs complete, 59 tests passing, REVIEW APPROVED
-  19-4-ai-disclosure-message: done
-  epic-19-retrospective: completed
-
-  # Epic 20: AI Buddy Admin & Audit - DONE 2025-12-09
-  # User management, analytics, audit trail for compliance
-  # Tech Spec: docs/sprint-artifacts/tech-spec-epic-20.md
-  # FRs: FR42-56, FR64
-  # Stories: 5 complete (20.6 moved to Epic 21)
-  # Total Points: 23
-  epic-20-ai-buddy-admin-audit: done
-  # Story 20.1: Audit Log Infrastructure (3 pts)
-  # Append-only RLS, immutability trigger, 7-year retention
-  # FRs: FR54, FR55, FR56
-  # Story 20.1 - DONE 2025-12-09: All ACs complete, 14 tests, review approved
-  # - Immutability trigger prevents UPDATE/DELETE
-  # - Partial index for guardrail metadata filtering
-  # - 7-year retention policy documented
-  20-1-audit-log-infrastructure: done
-  # Story 20.2: Admin User Management (5 pts)
-  # User list, invite, remove, role changes
-  # FRs: FR42, FR43, FR44, FR45
-  # Story 20.2 - DONE 2025-12-09: All ACs complete, 136+ tests, review approved
-  # - Paginated user list with name, email, role, status, last active
-  # - Search by name or email with debounce
-  # - Invite new user via email with role selection
-  # - Invitation expiration display (7 days)
-  # - Remove user access (soft delete)
-  # - Change user role (producer ↔ admin)
-  # - Cannot modify owner protection
-  # - Audit trail for all actions
-  20-2-admin-user-management: done
-  # Story 20.3: Usage Analytics Dashboard (5 pts)
-  # Summary cards, per-user breakdown, trend charts
-  # FRs: FR46, FR47
-  # Story 20.3 - DONE 2025-12-09: All ACs complete, 55 unit tests + E2E tests
-  # - Summary cards with K/M formatting and trend indicators
-  # - Per-user breakdown table with sorting and pagination
-  # - Line chart trends with recharts and tooltips
-  # - Date range picker with presets (week, month, 30days)
-  # - CSV export with proper headers
-  # - Materialized view for <500ms performance
-  # - Empty state for new teams
-  # - Permission gating (view_usage_analytics)
-  20-3-usage-analytics-dashboard: done
-  # Story 20.4: Audit Log Interface (5 pts)
-  # Filterable table, transcript viewer, PDF/CSV export
-  # FRs: FR50, FR51, FR52, FR53
-  # Story 20.4 - DONE 2025-12-09: All ACs complete, 98 unit tests + E2E
-  # - Audit log table with date, user, project, conversation, message count, guardrail badge
-  # - Multi-filter: user dropdown, date range, keyword search, guardrail checkbox
-  # - Paginated at 25/page with total count
-  # - Transcript modal (read-only) with messages, confidence badges, source citations
-  # - Guardrail events highlighted with type and trigger info
-  # - PDF export with agency header, compliance statement, optional transcripts
-  # - CSV export with all required columns
-  # - Permission gating (view_audit_logs)
-  20-4-audit-log-interface: done
-  # Story 20.5: Owner Management (5 pts) - CONSOLIDATED from 20.5 + 20.6
-  # Billing/subscription management + ownership transfer
-  # FRs: FR48, FR49
-  # NOTE FROM SAM: Billing handled manually via Archway Computer invoices - no Stripe needed. Tiered plans remain (read-only display).
-  # Story 20.5 - DONE 2025-12-09: All ACs complete, 35 unit tests + E2E
-  # - Subscription panel with plan, billing cycle, seat allocation
-  # - Billing contact info with email link
-  # - Non-owner admin sees owner contact message
-  # - Transfer ownership dialog with two-step confirmation
-  # - Only admins listed as transfer targets
-  # - Password confirmation required
-  # - Atomic database transaction for transfer
-  # - Email notifications to old and new owner
-  # - Audit logging for ownership transfer
-  20-5-owner-management: done
-  # Story 20.6: Moved to Epic 21 - Admin consolidation makes this redundant
-  # Feature navigation polish scope incorporated into Epic 21
-  epic-20-retrospective: completed  # Combined with Epic 21: docs/sprint-artifacts/retrospectives/epic-20-21-retrospective.md
+  # Epics 1-13: MVP delivered 2025-12-07
+  # Epics 14-21: AI Buddy Feature - DONE 2025-12-09
+  # Epic 22: UI Polish Sprint - DONE 2025-12-09
+  # Epic 23: Flexible AI Reports - DONE 2025-12-10
+  # Epic Design-Refresh: DONE 2025-12-11
 
   # =====================================================
-  # EPIC 21: AGENCY-WIDE ADMIN PLATFORM
+  # QUOTING HELPER (PHASE 3) - EPICS Q1-Q5
   # =====================================================
-  # Consolidate admin from AI Buddy scope to agency-wide
-  # Decided 2025-12-09 via Party Mode discussion
-  # Tech Spec: docs/sprint-artifacts/epics/epic-21/tech-spec/index.md
-  # Stories: 5
-  epic-21-agency-wide-admin-platform: done
-  # Story 21.1: Database Migration - Agency Admin Tables (S)
-  # Rename ai_buddy_permissions → agency_permissions
-  # Rename ai_buddy_audit_logs → agency_audit_logs
-  # Merge ai_buddy_invitations → invitations
-  21-1-database-migration: done
-  # Story 21.2: API Route Migration (S)
-  # Move /api/ai-buddy/admin/* → /api/admin/*
-  # Keep AI Buddy specific routes (guardrails, onboarding)
-  # DONE 2025-12-09: All routes moved, hooks updated, tests passing
-  21-2-api-route-migration: done
-  # Story 21.3: Component & Settings Migration (M)
-  # Move components/ai-buddy/admin/ → components/admin/
-  # Add top-level Admin tab to Settings
-  # Simplify AI Buddy tab to preferences only
-  # DONE 2025-12-09: All components/hooks/lib migrated, Admin tab created
-  # - Moved 20 test files, all 273 admin tests pass
-  # - AC-7 review complete: No redundant tests found
-  21-3-component-settings-migration: done
-  # Story 21.4: Extend Audit Logging (S)
-  # Add action types for documents, comparisons, one-pagers, chat
-  # Update audit log UI for all action types
-  # DONE 2025-12-09: All ACs complete - REVIEW APPROVED
-  # - 8 new action types added to audit logger
-  # - Document actions logged (upload, delete, modify)
-  # - Comparison actions logged (create, export)
-  # - One-pager actions logged (generate, export)
-  # - Document chat sessions logged (new conversation)
-  # - Audit log UI shows all action types with icons and badges
-  # - Action category filtering in audit log
-  21-4-extend-audit-logging: done
-  # Story 21.5: Extend Usage Tracking (S)
-  # Track usage across all features
-  # Feature breakdown in analytics dashboard
-  # DONE 2025-12-09: All ACs complete
-  # - Usage analytics tracks Documents, Comparisons, One-Pagers, Doc Chat
-  # - Feature breakdown in dashboard with stat cards
-  # - Trend chart with Primary/All Features toggle
-  # - User breakdown table with per-feature columns
-  # - Export includes all features
-  21-5-extend-usage-tracking: done
-  # Story 21.2.5: Test Suite Consolidation (Team Discussion)
-  # 2,796 tests across 175 files - brutal on local dev
-  # Needs team input on consolidation strategy
-  21-2.5-test-consolidation: done
-  epic-21-retrospective: completed  # Combined with Epic 20: docs/sprint-artifacts/retrospectives/epic-20-21-retrospective.md
+  # "Enter once, use everywhere" clipboard-based quoting
+  # Planning: docs/features/quoting/
+  # Implementation Readiness: PASSED 2025-12-11
+  # Total: 5 Epics, 23 Stories, 42 FRs
+  # MVP Carriers: Progressive, Travelers
+  # MVP Lines: Personal (Home + Auto bundled)
 
-  # =====================================================
-  # EPIC 22: UI POLISH SPRINT
-  # =====================================================
-  # Quick win - address "clunky" UX feeling
-  # Decided: Epic 20-21 retrospective (2025-12-09)
-  # Tech Spec: docs/sprint-artifacts/epics/epic-22/tech-spec.md
-  # Stories: 4 (10 points total)
-  epic-22-ui-polish: done
-  # Story 22.1: Settings Tab Skeletons (3 pts) - P0
-  # Add skeleton loaders to BrandingTab and UsageTab
-  # DONE 2025-12-09: All ACs complete, 14 tests passing
-  22-1-settings-tab-skeletons: done
-  # Story 22.2: Admin Panel Skeletons (3 pts) - P0
-  # Add skeleton loaders to Admin sub-panels
-  # DONE 2025-12-09: Shared AdminPanelSkeleton created, 11 tests passing
-  # Note: Existing admin panels already have good loading states
-  22-2-admin-panel-skeletons: done
-  # Story 22.3: View Transitions & Chart Fix (2 pts) - P1
-  # Subtle fade-in transitions, fix Recharts warning
-  # DONE 2025-12-09: View transitions added, Recharts already fixed
-  22-3-view-transitions-chart-fix: done
-  # Story 22.4: Spacing Standardization (2 pts) - P2
-  # Standardize gap-6 and space-y-6 across pages
-  # DONE 2025-12-09: All ACs complete, card grids standardized to gap-6
-  22-4-spacing-standardization: done
-  epic-22-retrospective: completed  # docs/sprint-artifacts/retrospectives/epic-22-retro-2025-12-09.md
+  # Epic Q1: Foundation & Navigation
+  # Database schema, sidebar nav, dashboard card
+  # Stories: 3 | FRs: FR39-42
+  epic-Q1-foundation-navigation: contexted
+  Q1-1-database-schema-rls: done
+  Q1-2-sidebar-navigation: backlog
+  Q1-3-dashboard-quick-access: backlog
 
-  # =====================================================
-  # EPIC 23: FLEXIBLE AI REPORTS
-  # =====================================================
-  # **PIVOTED 2025-12-10**: From commission-specific to universal data reports
-  # Upload any data file → Optional prompt → AI-generated insights
-  # Planning docs: docs/features/reporting/
-  # Tech Spec: docs/sprint-artifacts/epics/epic-23/tech-spec.md
-  # Stories: 8 (31 points total)
-  # Migration: simplify_reporting_for_flexible_ai (dropped commission_records, column_mapping_templates)
-  epic-23-flexible-ai-reports: done
-  # Story 23.1: File Upload Infrastructure (DONE)
-  # Upload Excel/CSV/PDF, store in Supabase Storage
-  # DONE 2025-12-10: All 8 tasks complete, 27 unit tests, E2E tests
-  # - Database: commission_data_sources (with parsed_data, expires_at columns)
-  # - Storage: reporting bucket with agency-scoped RLS
-  # - API: /api/reporting/upload with validation and audit logging
-  # - UI: FileUploader component with react-dropzone, progress tracking
-  # - Navigation: Reporting added to header and mobile bottom nav
-  # - UPDATED: Generic "data file" labels (not commission-specific)
-  23-1-file-upload-infrastructure: done
-  # Story 23.2: Data Analysis Pipeline (5 pts)
-  # Parse Excel/CSV/PDF, AI detects column types, suggests prompts
-  # DONE 2025-12-10: All ACs complete, 49 tests, schema issues fixed
-  # - Migration 20251210180000_fix_reporting_schema.sql applied
-  # - Added column_count column, added 'ready' to status constraint
-  23-2-data-analysis-pipeline: done
-  # Story 23.3: Prompt Input UI (2 pts)
-  # Optional text input for custom report description
-  # DONE 2025-12-10: All ACs complete, 78 tests, REVIEW APPROVED
-  # - PromptInput: multi-line textarea with char count, accessibility
-  # - SuggestedPrompts: clickable chips with hover effects
-  # - useReportingAnalysis: async hook with abort handling
-  # - ReportingPage: 5-state flow (initial → analyzing → ready → generating → error)
-  23-3-prompt-input-ui: done
-  # Story 23.4: AI Report Generation (8 pts)
-  # Generate insights, summaries, chart configs from data + prompt
-  # DONE 2025-12-10: All 8 tasks complete, 62+ unit tests, E2E tests
-  # - API: /api/reporting/generate with SSE streaming
-  # - Service: ReportGeneratorService with prompt building and validation
-  # - Hook: useReportGeneration with streaming state management
-  # - Component: ReportView with insights, charts, data table placeholders
-  # - Page: ReportingPage updated with generating/report states
-  # - Progress: Real-time SSE progress events (analyzing → generating → charting)
-  23-4-ai-report-generation: done
-  # Story 23.5: Charts & Visualization (5 pts)
-  # Recharts integration for bar/line/pie/area charts
-  # DONE 2025-12-10: All 11 tasks complete, 35 unit tests
-  # - Component: ReportChart supporting bar/line/pie/area types
-  # - Multi-series: yKey accepts string or string[] for grouped/stacked charts
-  # - Accessibility: role="img" and aria-label on all chart containers
-  # - Error handling: Graceful fallback for empty/invalid data
-  # - Integration: Replaced ChartPlaceholder in ReportView
-  23-5-charts-visualization: done
-  # Story 23.6: Interactive Data Table (3 pts)
-  # Sortable, filterable table with pagination
-  # REVIEW 2025-12-10: All 9 tasks complete, 46 unit tests + 4 E2E tests
-  # - Component: ReportDataTable with @tanstack/react-table
-  # - Sorting: Click headers, aria-sort indicators
-  # - Search: Global filter with 300ms debounce
-  # - Pagination: Page size 10/25/50/100, First/Prev/Next/Last
-  # - Column filters: Text, numeric range, date range via popover
-  # - Empty state: "No results found" with clear filters button
-  # - Accessibility: role="grid", aria-labels, keyboard navigation
-  23-6-interactive-data-table: done
-  # Story 23.7: PDF/Excel Export (5 pts)
-  # Download reports as PDF or Excel
-  # DONE 2025-12-10: All 6 tasks complete, 8 ACs implemented
-  # - PDF: @react-pdf/renderer with charts as images via html2canvas
-  # - Excel: xlsx with Data, Summary, Insights sheets
-  # - Client-side generation, 76 unit tests + 10 E2E tests
-  23-7-pdf-excel-export: done
-  # Story 23.8: UI Polish & Testing (3 pts)
-  # Final polish, accessibility, comprehensive tests
-  # DONE 2025-12-10: All 9 tasks complete, 7 ACs implemented
-  # - Accessibility: Skip links, aria-live, landmarks, focus indicators
-  # - Loading: Skeleton loaders, pulse animations, progress indicators
-  # - Errors: ReportingError component with retry/upload actions
-  # - Mobile: 44px touch targets, responsive pagination, stacked layouts
-  # - Tests: 207 unit tests + 10 E2E tests for Story 23.8
-  23-8-ui-polish-testing: done
-  # Story 23.9: Chart Visualization Polish (3 pts)
-  # Visual improvements: vibrant colors, filter zeros, gradients, tooltips
-  # DONE 2025-12-10: All 9 tasks complete, 87 unit tests - REVIEW APPROVED
-  # - Colors: 8 distinct hex colors (blue, emerald, amber, red, violet, pink, cyan, orange)
-  # - Filtering: Zero-sum and "Unknown" values filtered from charts
-  # - Pie: Donut style, gradient fills, paddingAngle separation
-  # - Bar: Gradient fills, subtle horizontal grid, better axis formatting
-  # - Tooltips: Custom styled with currency/percentage detection
-  # - Legend: Responsive padding, consistent styling
-  # - Data Table: "N/A" for nulls, currency formatting
-  23-9-chart-visualization-polish: done
-  epic-23-retrospective: completed  # docs/sprint-artifacts/retrospectives/epic-23-retro-2025-12-10.md
+  # Epic Q2: Quote Session Management
+  # Create, view, manage quote sessions
+  # Stories: 5 | FRs: FR1-6, FR15
+  epic-Q2-quote-session-management: backlog
+  Q2-1-quote-sessions-list-page: backlog
+  Q2-2-create-new-quote-session: backlog
+  Q2-3-quote-session-detail-page: backlog
+  Q2-4-quote-session-status: backlog
+  Q2-5-delete-duplicate-sessions: backlog
 
-  # =====================================================
-  # EPIC DESIGN-REFRESH: DOCUMINE DESIGN REFRESH
-  # =====================================================
-  # Update entire docuMINE design to match Quoting mockup aesthetic
-  # Reference: docs/features/quoting/mockups/quoting-mockup.html
-  # Planning: docs/sprint-artifacts/epics/epic-design-refresh/
-  # Priority: High (before Quoting epic Q1)
-  # Stories: 10
-  epic-design-refresh: contexted
-  # Story DR.1: Header Redesign
-  # Replace text logo with icon, add avatar dropdown, remove nav links
-  # Prerequisites: None
-  # DONE 2025-12-10: All ACs implemented, review APPROVED
-  DR-1-header-redesign: done
-  # Story DR.2: Sidebar Navigation Transformation
-  # Transform sidebar from document list to full app navigation
-  # DONE 2025-12-10: AppNavSidebar component, Quoting placeholder, all ACs implemented
-  DR-2-sidebar-navigation: done
-  # Story DR.3: Page Layout & Background Update
-  # Consistent slate-50 backgrounds, max-w-5xl centering, p-6 padding, consistent titles
-  # DONE 2025-12-10: All ACs implemented, 16 unit tests, E2E tests
-  DR-3-page-layout-background: done
-  # Story DR.4: Card & Border Consistency
-  # Standardize card styling: bg-white, border-slate-200, rounded-lg, hoverable variant
-  # DONE 2025-12-10: Card component updated with hoverable prop, 21 unit tests + 8 E2E tests
-  DR-4-card-border-consistency: done
-  DR-5-button-standardization: done
-  # Story DR.6: Form Input Refinement
-  # Clean, consistent form inputs with refined focus states
-  # Prerequisites: DR.5
-  # DONE 2025-12-11: Input/Textarea/Label/Select components updated, 92 unit tests + 9 E2E tests
-  DR-6-form-input-refinement: done
-  # Story DR.7: Badge & Status Indicator System
-  # Consistent status badges across all features
-  # Prerequisites: DR.4
-  # DONE 2025-12-11: All ACs implemented, 112 badge tests pass, REVIEW APPROVED
-  DR-7-badge-status-system: done
-  # Story DR.8: Typography & Spacing Standardization
-  # Consistent typography hierarchy and spacing patterns across all pages
-  # Prerequisites: DR.3
-  DR-8-typography-spacing: done
-  # Story DR.9: Mobile Navigation Update
-  # Update mobile Sheet sidebar and bottom nav to match new design
-  # Prerequisites: DR.2
-  # DONE 2025-12-11: All ACs implemented, 37 unit tests + E2E tests, REVIEW APPROVED
-  DR-9-mobile-navigation: done
-  DR-10-existing-pages-update: backlog
+  # Epic Q3: Client Data Capture
+  # Enter client info with smart forms
+  # Stories: 6 | FRs: FR7-18
+  epic-Q3-client-data-capture: backlog
+  Q3-1-client-info-tab: backlog
+  Q3-2-auto-save-implementation: backlog
+  Q3-3-property-tab: backlog
+  Q3-4-auto-tab-vehicles: backlog
+  Q3-5-drivers-tab: backlog
+  Q3-6-field-validation-formatting: backlog
+
+  # Epic Q4: Carrier Copy System
+  # Copy formatted data for carriers
+  # Stories: 4 | FRs: FR19-24, FR35-36
+  epic-Q4-carrier-copy-system: backlog
+  Q4-1-copy-button-feedback: backlog
+  Q4-2-carrier-format-functions: backlog
+  Q4-3-carriers-tab-action-rows: backlog
+  Q4-4-data-preview-before-copy: backlog
+
+  # Epic Q5: Quote Results & Comparison
+  # Enter results, generate comparison
+  # Stories: 5 | FRs: FR25-34, FR37-38
+  epic-Q5-quote-results-comparison: backlog
+  Q5-1-quote-result-entry-form: backlog
+  Q5-2-results-tab-summary: backlog
+  Q5-3-generate-comparison-document: backlog
+  Q5-4-comparison-export-sharing: backlog
+  Q5-5-user-carrier-preferences: backlog
