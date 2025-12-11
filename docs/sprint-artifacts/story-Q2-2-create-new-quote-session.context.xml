@@ -1,0 +1,297 @@
+<story-context id="Q2-2" v="1.0">
+  <metadata>
+    <epicId>Q2</epicId>
+    <storyId>2</storyId>
+    <title>Create New Quote Session</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/story-Q2-2-create-new-quote-session.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>create a new quote session by entering a prospect name and selecting a quote type</iWant>
+    <soThat>I can start collecting client information for a new insurance quote</soThat>
+    <tasks>
+      <task id="1" acs="1,2">
+        <title>Create NewQuoteDialog component</title>
+        <subtasks>
+          <subtask>1.1: Create `src/components/quoting/new-quote-dialog.tsx` using shadcn/ui Dialog</subtask>
+          <subtask>1.2: Add form with prospect name input field (text input)</subtask>
+          <subtask>1.3: Add quote type selector with radio buttons or select (Home, Auto, Bundle)</subtask>
+          <subtask>1.4: Set "Bundle" as default selected quote type</subtask>
+          <subtask>1.5: Add "Create Quote" and "Cancel" buttons to dialog footer</subtask>
+          <subtask>1.6: Write component tests for dialog rendering and interactions</subtask>
+        </subtasks>
+      </task>
+      <task id="2" acs="4">
+        <title>Implement form validation with react-hook-form and Zod</title>
+        <subtasks>
+          <subtask>2.1: Create Zod schema for CreateQuoteSessionInput (prospect_name required, min 2 chars)</subtask>
+          <subtask>2.2: Integrate react-hook-form with zodResolver</subtask>
+          <subtask>2.3: Display validation error message below prospect name field</subtask>
+          <subtask>2.4: Disable "Create Quote" button while validation errors exist</subtask>
+          <subtask>2.5: Write tests for validation error states</subtask>
+        </subtasks>
+      </task>
+      <task id="3" acs="3">
+        <title>Create POST API route for creating sessions</title>
+        <subtasks>
+          <subtask>3.1: Add POST handler to `src/app/api/quoting/route.ts`</subtask>
+          <subtask>3.2: Validate request body with Zod schema</subtask>
+          <subtask>3.3: Insert into `quote_sessions` with user_id, agency_id, status='draft', empty client_data</subtask>
+          <subtask>3.4: Return created session with id for redirect</subtask>
+          <subtask>3.5: Write API route tests for success and validation error cases</subtask>
+        </subtasks>
+      </task>
+      <task id="4" acs="3">
+        <title>Add create mutation to useQuoteSessions hook</title>
+        <subtasks>
+          <subtask>4.1: Add `createSession(input)` function to existing hook</subtask>
+          <subtask>4.2: Handle loading state during creation</subtask>
+          <subtask>4.3: Update session list after successful creation (optimistic or refetch)</subtask>
+          <subtask>4.4: Return new session id for navigation</subtask>
+          <subtask>4.5: Write hook tests for create mutation</subtask>
+        </subtasks>
+      </task>
+      <task id="5" acs="1,3,5">
+        <title>Integrate dialog with list page</title>
+        <subtasks>
+          <subtask>5.1: Add dialog open state management to quoting page</subtask>
+          <subtask>5.2: Wire "New Quote" button to open dialog (replace placeholder toast)</subtask>
+          <subtask>5.3: On successful creation, close dialog and navigate to `/quoting/[id]`</subtask>
+          <subtask>5.4: On cancel, close dialog without side effects</subtask>
+          <subtask>5.5: Show success toast: "Quote session created"</subtask>
+          <subtask>5.6: Write page integration tests</subtask>
+        </subtasks>
+      </task>
+      <task id="6" acs="1,2,3,4,5">
+        <title>E2E tests</title>
+        <subtasks>
+          <subtask>6.1: Test dialog opens on "New Quote" click</subtask>
+          <subtask>6.2: Test "Bundle" is default selected</subtask>
+          <subtask>6.3: Test validation error shows for empty prospect name</subtask>
+          <subtask>6.4: Test successful creation redirects to detail page</subtask>
+          <subtask>6.5: Test cancel closes dialog without creating session</subtask>
+        </subtasks>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q2.2-1">Given the user clicks "New Quote" button, when the dialog opens, then they can enter a prospect name and select quote type (Home, Auto, Bundle)</criterion>
+    <criterion id="AC-Q2.2-2">Given the create dialog is open, when viewed, then "Bundle" is selected as the default quote type</criterion>
+    <criterion id="AC-Q2.2-3">Given valid input is entered, when the user clicks "Create Quote", then a new session is created and user is redirected to `/quoting/[id]`</criterion>
+    <criterion id="AC-Q2.2-4">Given the prospect name is empty, when attempting to create, then validation error displays and creation is prevented</criterion>
+    <criterion id="AC-Q2.2-5">Given the user clicks "Cancel" in the dialog, when confirmed, then the dialog closes without creating a session</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q2/tech-spec.md</path>
+        <title>Epic Q2 Technical Specification</title>
+        <section>Story Q2.2: Create New Quote Session</section>
+        <snippet>ACs 6-10 define create dialog with prospect name, quote type selection (default Bundle), validation, and redirect to detail page on success.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q2/tech-spec.md</path>
+        <title>Epic Q2 Technical Specification</title>
+        <section>APIs and Interfaces - POST /api/quoting</section>
+        <snippet>POST /api/quoting creates new session with prospect_name (required) and quote_type (required). Returns { data: QuoteSession, error: null }.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q2/tech-spec.md</path>
+        <title>Epic Q2 Technical Specification</title>
+        <section>Workflows and Sequencing - Create Quote Session Flow</section>
+        <snippet>User clicks "New Quote" → Dialog opens → Enter name, select type → POST → Server creates session (status=draft) → Redirect to /quoting/[id].</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Helper Architecture</title>
+        <section>Data Architecture - Client Data Schema</section>
+        <snippet>CreateQuoteSessionInput interface: { prospectName: string; quoteType: 'home' | 'auto' | 'bundle'; }</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Helper Architecture</title>
+        <section>API Contracts - POST /api/quoting</section>
+        <snippet>Request body: { prospectName, quoteType }. Response: { data: QuoteSession, error: null }. New sessions start with status='draft' and empty client_data.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/story-Q2-1-quote-sessions-list-page.md</path>
+        <title>Story Q2.1 - Quote Sessions List Page</title>
+        <section>Dev Agent Record</section>
+        <snippet>Q2.1 established quoting types, service pattern, hook pattern, API route structure. "New Quote" button shows placeholder toast - Q2.2 implements the actual dialog.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/types/quoting.ts</path>
+        <kind>types</kind>
+        <symbol>CreateQuoteSessionInput, QuoteSession, QuoteType, QuoteSessionStatus</symbol>
+        <lines>140-143</lines>
+        <reason>Input type for creating sessions - use this interface, DO NOT recreate</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/service.ts</path>
+        <kind>service</kind>
+        <symbol>calculateSessionStatus, transformQuoteSession, listQuoteSessions</symbol>
+        <lines>34-161</lines>
+        <reason>Service layer pattern established - follow same patterns when adding createQuoteSession</reason>
+      </file>
+      <file>
+        <path>src/hooks/quoting/use-quote-sessions.ts</path>
+        <kind>hook</kind>
+        <symbol>useQuoteSessions, fetchSessions, deleteSession, duplicateSession</symbol>
+        <lines>65-218</lines>
+        <reason>Hook to extend with createSession mutation - follow existing pattern for mutations</reason>
+      </file>
+      <file>
+        <path>src/app/api/quoting/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, listQuerySchema, successResponse, errorResponse</symbol>
+        <lines>1-122</lines>
+        <reason>API route to extend with POST handler - follow existing patterns for validation and response</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/quoting/page.tsx</path>
+        <kind>page</kind>
+        <symbol>QuotingPage, handleNewQuote</symbol>
+        <lines>40-44</lines>
+        <reason>Page with "New Quote" button showing placeholder toast - replace with dialog trigger</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/project-create-dialog.tsx</path>
+        <kind>component</kind>
+        <symbol>ProjectCreateDialog</symbol>
+        <lines>1-211</lines>
+        <reason>Reference dialog pattern - similar structure for NewQuoteDialog with form, validation, submit</reason>
+      </file>
+      <file>
+        <path>src/components/ui/dialog.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription</symbol>
+        <lines>1-144</lines>
+        <reason>shadcn/ui Dialog component to use for NewQuoteDialog</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/quote-type-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>QuoteTypeBadge</symbol>
+        <reason>Badge component for quote types (home/auto/bundle) - reference for styling</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@radix-ui/react-dialog</package>
+        <version>^1.1.15</version>
+        <usage>Dialog modal component base</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-select</package>
+        <version>^2.2.6</version>
+        <usage>Quote type selector dropdown</usage>
+      </node>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.68.0</version>
+        <usage>Form state and validation management</usage>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <usage>Zod resolver for react-hook-form</usage>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Input validation schema</usage>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <usage>Toast notifications for success/error</usage>
+      </node>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <usage>Icons (Loader2 for loading state)</usage>
+      </node>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database insert operations</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>POST /api/quoting</name>
+      <kind>REST endpoint</kind>
+      <signature>POST /api/quoting { prospect_name: string, quote_type: 'home' | 'auto' | 'bundle' } → { data: QuoteSession, error: null }</signature>
+      <path>src/app/api/quoting/route.ts</path>
+    </interface>
+    <interface>
+      <name>CreateQuoteSessionInput</name>
+      <kind>TypeScript interface</kind>
+      <signature>{ prospectName: string; quoteType: QuoteType; }</signature>
+      <path>src/types/quoting.ts</path>
+    </interface>
+    <interface>
+      <name>NewQuoteDialogProps</name>
+      <kind>Component props</kind>
+      <signature>{ open: boolean; onOpenChange: (open: boolean) => void; onSessionCreated?: (session: QuoteSession) => void; }</signature>
+      <path>src/components/quoting/new-quote-dialog.tsx (to create)</path>
+    </interface>
+    <interface>
+      <name>useQuoteSessions.createSession</name>
+      <kind>Hook mutation</kind>
+      <signature>createSession(input: CreateQuoteSessionInput): Promise&lt;QuoteSession | null&gt;</signature>
+      <path>src/hooks/quoting/use-quote-sessions.ts</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Use shadcn/ui Dialog component with controlled open state (see project-create-dialog.tsx reference)</constraint>
+    <constraint type="pattern">Form inside DialogContent with DialogHeader (title, description) and DialogFooter (Cancel, Submit buttons)</constraint>
+    <constraint type="validation">Use react-hook-form with zodResolver for form validation</constraint>
+    <constraint type="validation">Prospect name: required, minimum 2 characters</constraint>
+    <constraint type="default">Quote type must default to 'bundle' when dialog opens</constraint>
+    <constraint type="api">POST response format: { data: QuoteSession, error: null } on success, { data: null, error: { message, code } } on error</constraint>
+    <constraint type="security">Authentication required - use createClient() with RLS enforcement</constraint>
+    <constraint type="state">New sessions created with status='draft' and client_data={}</constraint>
+    <constraint type="navigation">On successful creation, redirect to /quoting/[id] detail page</constraint>
+    <constraint type="ux">Show loading spinner during submission (Loader2 icon with animate-spin)</constraint>
+    <constraint type="ux">Cancel button closes dialog without creating session or showing toast</constraint>
+    <constraint type="ux">Success toast: "Quote session created"</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Unit tests with Vitest and React Testing Library. Component tests verify rendering, form validation states, button interactions. Hook tests verify mutations with mocked fetch. API tests verify request validation, authentication, and response format. E2E tests with Playwright cover full user journey. Follow existing patterns in __tests__/ directory structure.
+    </standards>
+    <locations>
+      <location>__tests__/components/quoting/new-quote-dialog.test.tsx</location>
+      <location>__tests__/hooks/quoting/use-quote-sessions.test.ts (extend existing)</location>
+      <location>__tests__/app/api/quoting/route.test.ts (extend existing)</location>
+      <location>__tests__/e2e/quoting-create-session.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea acRef="AC-Q2.2-1">Test dialog opens when open=true, contains name input and quote type selector</idea>
+      <idea acRef="AC-Q2.2-1">Test quote type selector has Home, Auto, Bundle options</idea>
+      <idea acRef="AC-Q2.2-2">Test "Bundle" is selected by default when dialog opens</idea>
+      <idea acRef="AC-Q2.2-3">Test successful form submission calls API and redirects to /quoting/[id]</idea>
+      <idea acRef="AC-Q2.2-3">Test API POST creates session with correct data (prospect_name, quote_type, status=draft)</idea>
+      <idea acRef="AC-Q2.2-4">Test validation error displays when prospect name is empty</idea>
+      <idea acRef="AC-Q2.2-4">Test "Create Quote" button is disabled when validation errors exist</idea>
+      <idea acRef="AC-Q2.2-5">Test cancel button closes dialog without API call</idea>
+      <idea acRef="AC-Q2.2-5">Test clicking outside dialog closes it (onOpenChange(false))</idea>
+      <idea acRef="E2E">Test full journey: click New Quote → fill name → select type → submit → verify redirect</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -17,7 +17,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { QuoteSessionCard } from '@/components/quoting/quote-session-card';
 import { QuoteSessionsEmpty } from '@/components/quoting/quote-sessions-empty';
+import { NewQuoteDialog, type CreateQuoteSessionFormData } from '@/components/quoting/new-quote-dialog';
 import { useQuoteSessions } from '@/hooks/quoting/use-quote-sessions';
+import type { QuoteSession } from '@/types/quoting';
 
 /**
  * Quote Sessions List Page
@@ -31,16 +33,32 @@ import { useQuoteSessions } from '@/hooks/quoting/use-quote-sessions';
  */
 export default function QuotingPage() {
   const router = useRouter();
-  const { sessions, isLoading, isMutating, deleteSession, duplicateSession } =
+  const { sessions, isLoading, isMutating, createSession, deleteSession, duplicateSession } =
     useQuoteSessions();
 
   // Delete confirmation state
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // New quote dialog state (AC-Q2.2-1, AC-Q2.2-5)
+  const [isNewQuoteDialogOpen, setIsNewQuoteDialogOpen] = useState(false);
+
+  // AC-Q2.2-1: Open dialog when "New Quote" button clicked
   const handleNewQuote = () => {
-    // TODO Q2.2: Open create dialog
-    // For now, placeholder - will be implemented in Q2.2
-    toast.info('New Quote feature coming in Q2.2');
+    setIsNewQuoteDialogOpen(true);
+  };
+
+  // AC-Q2.2-3: Create session and redirect to detail page
+  const handleCreateSession = async (
+    input: CreateQuoteSessionFormData
+  ): Promise<QuoteSession | null> => {
+    const session = await createSession(input);
+    return session;
+  };
+
+  // AC-Q2.2-3: Navigate to detail page after successful creation
+  const handleSessionCreated = (session: QuoteSession) => {
+    toast.success('Quote session created');
+    router.push(`/quoting/${session.id}`);
   };
 
   const handleDelete = (id: string) => {
@@ -134,6 +152,15 @@ export default function QuotingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* New Quote Dialog - AC-Q2.2-1, AC-Q2.2-2, AC-Q2.2-3, AC-Q2.2-4, AC-Q2.2-5 */}
+      <NewQuoteDialog
+        open={isNewQuoteDialogOpen}
+        onOpenChange={setIsNewQuoteDialogOpen}
+        onSubmit={handleCreateSession}
+        onSessionCreated={handleSessionCreated}
+        isLoading={isMutating}
+      />
     </div>
   );
 }

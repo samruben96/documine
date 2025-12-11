@@ -51,7 +51,7 @@ development_status:
   # Location: docs/sprint-artifacts/epics/epic-Q2/
   epic-Q2-quote-session-management: contexted
   Q2-1-quote-sessions-list-page: done
-  Q2-2-create-new-quote-session: backlog
+  Q2-2-create-new-quote-session: done
   Q2-3-quote-session-detail-page: backlog
   Q2-4-quote-session-status: backlog
   Q2-5-delete-duplicate-sessions: backlog

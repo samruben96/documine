@@ -161,6 +161,45 @@ export async function listQuoteSessions(
 }
 
 /**
+ * Create a new quote session
+ * Story Q2.2: Create New Quote Session
+ *
+ * AC-Q2.2-3: Creates session with status='draft' and empty client_data
+ *
+ * @param supabase - Supabase client instance
+ * @param userId - The authenticated user's ID
+ * @param agencyId - The user's agency ID
+ * @param input - Create session input (prospectName, quoteType)
+ * @returns Created quote session
+ */
+export async function createQuoteSession(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  agencyId: string,
+  input: { prospectName: string; quoteType: QuoteType }
+): Promise<QuoteSession> {
+  const { data, error } = await supabase
+    .from('quote_sessions')
+    .insert({
+      user_id: userId,
+      agency_id: agencyId,
+      prospect_name: input.prospectName,
+      quote_type: input.quoteType,
+      status: 'draft', // New sessions start as draft
+      client_data: {}, // Empty client data initially
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to create quote session:', { error: error.message });
+    throw new Error(`Failed to create quote session: ${error.message}`);
+  }
+
+  return transformQuoteSession(data as QuoteSessionRow, 0);
+}
+
+/**
  * Get a single quote session by ID
  *
  * @param supabase - Supabase client instance

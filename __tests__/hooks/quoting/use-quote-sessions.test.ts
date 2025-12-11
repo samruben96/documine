@@ -57,6 +57,19 @@ const mockDuplicatedSession: QuoteSession = {
   carrierCount: 0,
 };
 
+const mockCreatedSession: QuoteSession = {
+  id: 'session-new',
+  agencyId: 'agency-1',
+  userId: 'user-1',
+  prospectName: 'New Prospect',
+  quoteType: 'bundle',
+  status: 'draft',
+  clientData: {},
+  createdAt: '2025-12-11T17:00:00Z',
+  updatedAt: '2025-12-11T17:00:00Z',
+  carrierCount: 0,
+};
+
 describe('useQuoteSessions', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -201,6 +214,115 @@ describe('useQuoteSessions', () => {
       });
 
       expect(fetchMock).toHaveBeenCalledWith('/api/quoting?status=draft');
+    });
+  });
+
+  describe('createSession', () => {
+    it('creates session and adds to top of list', async () => {
+      fetchMock
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: mockSessions, error: null }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: mockCreatedSession, error: null }),
+        });
+
+      const { result } = renderHook(() => useQuoteSessions({ autoFetch: true }));
+
+      await waitFor(() => {
+        expect(result.current.sessions).toHaveLength(2);
+      });
+
+      let created: QuoteSession | null = null;
+      await act(async () => {
+        created = await result.current.createSession({
+          prospectName: 'New Prospect',
+          quoteType: 'bundle',
+        });
+      });
+
+      expect(created).toBeTruthy();
+      expect(created?.id).toBe('session-new');
+      expect(created?.prospectName).toBe('New Prospect');
+
+      // New session should be at the top
+      expect(result.current.sessions).toHaveLength(3);
+      expect(result.current.sessions[0].id).toBe('session-new');
+    });
+
+    it('sends POST request with correct body', async () => {
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ data: mockCreatedSession, error: null }),
+      });
+
+      const { result } = renderHook(() => useQuoteSessions({ autoFetch: false }));
+
+      await act(async () => {
+        await result.current.createSession({
+          prospectName: 'Test Prospect',
+          quoteType: 'home',
+        });
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/quoting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospectName: 'Test Prospect', quoteType: 'home' }),
+      });
+    });
+
+    it('returns null on create failure', async () => {
+      fetchMock.mockResolvedValue({
+        ok: false,
+        json: () => Promise.resolve({ data: null, error: { message: 'Create failed' } }),
+      });
+
+      const { result } = renderHook(() => useQuoteSessions({ autoFetch: false }));
+
+      let created: QuoteSession | null = null;
+      await act(async () => {
+        created = await result.current.createSession({
+          prospectName: 'New Prospect',
+          quoteType: 'bundle',
+        });
+      });
+
+      expect(created).toBeNull();
+      expect(result.current.error?.message).toBe('Create failed');
+    });
+
+    it('sets isMutating during creation', async () => {
+      fetchMock.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: () => Promise.resolve({ data: mockCreatedSession, error: null }),
+                }),
+              100
+            )
+          )
+      );
+
+      const { result } = renderHook(() => useQuoteSessions({ autoFetch: false }));
+
+      act(() => {
+        result.current.createSession({
+          prospectName: 'New Prospect',
+          quoteType: 'bundle',
+        });
+      });
+
+      expect(result.current.isMutating).toBe(true);
+
+      await waitFor(() => {
+        expect(result.current.isMutating).toBe(false);
+      });
     });
   });
 

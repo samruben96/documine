@@ -20,6 +20,11 @@ export interface UseQuoteSessionsOptions {
   search?: string;
 }
 
+export interface CreateQuoteSessionInput {
+  prospectName: string;
+  quoteType: 'home' | 'auto' | 'bundle';
+}
+
 export interface UseQuoteSessionsReturn {
   /** List of sessions, sorted by updated_at DESC */
   sessions: QuoteSession[];
@@ -31,6 +36,8 @@ export interface UseQuoteSessionsReturn {
   error: Error | null;
   /** Fetch/refresh sessions list */
   fetchSessions: () => Promise<void>;
+  /** Create a new session */
+  createSession: (input: CreateQuoteSessionInput) => Promise<QuoteSession | null>;
   /** Delete a session */
   deleteSession: (id: string) => Promise<void>;
   /** Duplicate a session */
@@ -110,6 +117,48 @@ export function useQuoteSessions(
       setIsLoading(false);
     }
   }, [status, search]);
+
+  /**
+   * Create a new session
+   * Story Q2.2: Create New Quote Session
+   *
+   * AC-Q2.2-3: Creates session and returns for redirect
+   */
+  const createSession = useCallback(
+    async (input: CreateQuoteSessionInput): Promise<QuoteSession | null> => {
+      setIsMutating(true);
+      setError(null);
+
+      try {
+        const response = await fetch('/api/quoting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        });
+
+        const result: SessionMutationResponse = await response.json();
+
+        if (!response.ok || result.error) {
+          throw new Error(result.error?.message ?? 'Failed to create session');
+        }
+
+        // Add new session to the top of the list (most recently updated)
+        if (result.data) {
+          setSessions((prev) => [result.data!, ...prev]);
+          return result.data;
+        }
+
+        return null;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to create session');
+        setError(error);
+        return null;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    []
+  );
 
   /**
    * Delete a session with optimistic update
@@ -211,6 +260,7 @@ export function useQuoteSessions(
     isMutating,
     error,
     fetchSessions,
+    createSession,
     deleteSession,
     duplicateSession,
     refresh,
