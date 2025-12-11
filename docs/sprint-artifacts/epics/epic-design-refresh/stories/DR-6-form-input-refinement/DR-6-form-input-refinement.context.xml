@@ -1,0 +1,300 @@
+<story-context id="DR-6-form-input-refinement" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.6</storyId>
+    <title>Form Input Refinement</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-6-form-input-refinement/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>clean, consistent form inputs across all features</iWant>
+    <soThat>data entry feels smooth, modern, and professional</soThat>
+    <tasks>
+      <task id="1" ac="DR.6.1-DR.6.3">Audit current Input component and form patterns</task>
+      <task id="2" ac="DR.6.1,DR.6.2,DR.6.3">Update Input component styles</task>
+      <task id="3" ac="DR.6.1,DR.6.2,DR.6.3">Update Textarea component styles</task>
+      <task id="4" ac="DR.6.4">Update Label component styles</task>
+      <task id="5" ac="DR.6.5">Create RequiredIndicator component</task>
+      <task id="6" ac="DR.6.6">Update Select component styles</task>
+      <task id="7" ac="DR.6.1-DR.6.6">Audit and update form patterns in Settings</task>
+      <task id="8" ac="DR.6.1-DR.6.6">Audit and update AI Buddy forms</task>
+      <task id="9" ac="DR.6.1-DR.6.6">Audit and update Admin forms</task>
+      <task id="10" ac="DR.6.1-DR.6.6">Audit Reporting forms</task>
+      <task id="11" ac="DR.6.1-DR.6.6">Write unit tests for form components</task>
+      <task id="12" ac="DR.6.1-DR.6.6">Write E2E tests for form styling consistency</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="DR.6.1">Inputs have border border-slate-200 rounded-lg</ac>
+    <ac id="DR.6.2">Inputs have px-3 py-2 text-sm styling</ac>
+    <ac id="DR.6.3">Focus state: focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary</ac>
+    <ac id="DR.6.4">Labels use text-sm font-medium text-slate-700 mb-1</ac>
+    <ac id="DR.6.5">Required field indicator: span with text-red-500 asterisk</ac>
+    <ac id="DR.6.6">Select dropdowns match input styling</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md</path>
+        <title>Epic Technical Specification: docuMINE Design Refresh</title>
+        <section>DR.6 - Form Input Refinement</section>
+        <snippet>Defines AC DR.6.1-DR.6.6 for form input styling: border-slate-200, rounded-lg, focus:ring-2, Label styling, required indicator, Select matching.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/epic.md</path>
+        <title>Epic: docuMINE Design Refresh</title>
+        <section>Story DR.6: Form Input Refinement</section>
+        <snippet>User story defining clean, consistent form inputs with refined focus states and label patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/mockups/quoting-mockup.html</path>
+        <title>Quoting Feature Mockup</title>
+        <section>Form Inputs (lines 329-346)</section>
+        <snippet>Design reference for input styling patterns used throughout docuMINE.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-5-button-standardization/story.md</path>
+        <title>Story DR.5: Button Style Standardization</title>
+        <section>Dev Agent Record</section>
+        <snippet>Reference implementation for explicit slate colors, dark mode variants, and comprehensive testing patterns.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <file>
+        <path>src/components/ui/input.tsx</path>
+        <kind>component</kind>
+        <symbol>Input</symbol>
+        <lines>1-30</lines>
+        <reason>Primary component to update - currently uses border-input, rounded-md, py-1. Needs border-slate-200, rounded-lg, py-2.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/textarea.tsx</path>
+        <kind>component</kind>
+        <symbol>Textarea</symbol>
+        <lines>1-19</lines>
+        <reason>Needs same styling updates as Input for consistency - border-slate-200, rounded-lg, focus states.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/label.tsx</path>
+        <kind>component</kind>
+        <symbol>Label</symbol>
+        <lines>1-25</lines>
+        <reason>Needs text-slate-700 color and dark mode variant dark:text-slate-300 added.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/select.tsx</path>
+        <kind>component</kind>
+        <symbol>SelectTrigger, SelectContent</symbol>
+        <lines>27-88</lines>
+        <reason>SelectTrigger needs border-slate-200, rounded-lg, matching focus states. SelectContent border consistency.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/form.tsx</path>
+        <kind>component</kind>
+        <symbol>FormLabel, FormItem</symbol>
+        <lines>76-100</lines>
+        <reason>Uses Label component - will inherit styling updates. FormItem uses gap-2 for spacing.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/button.tsx</path>
+        <kind>component</kind>
+        <symbol>buttonVariants</symbol>
+        <reason>Reference for DR-5 styling patterns: explicit slate colors, dark mode variants, rounded-lg.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/branding-form.tsx</path>
+        <kind>form</kind>
+        <symbol>BrandingForm</symbol>
+        <reason>Form using Input, Textarea, Form components - audit for consistent patterns.</reason>
+      </file>
+      <file>
+        <path>src/components/settings/profile-tab.tsx</path>
+        <kind>form</kind>
+        <symbol>ProfileTab</symbol>
+        <reason>Settings form to audit for Input/Label usage patterns.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/preferences-form.tsx</path>
+        <kind>form</kind>
+        <symbol>PreferencesForm</symbol>
+        <reason>AI Buddy form to audit for consistent styling.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/onboarding/onboarding-flow.tsx</path>
+        <kind>form</kind>
+        <symbol>OnboardingFlow</symbol>
+        <reason>Onboarding form to audit for Input/Select usage.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/invite-user-dialog.tsx</path>
+        <kind>dialog</kind>
+        <symbol>InviteUserDialog</symbol>
+        <reason>Admin dialog with form inputs to audit.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/role-change-dialog.tsx</path>
+        <kind>dialog</kind>
+        <symbol>RoleChangeDialog</symbol>
+        <reason>Admin dialog with Select component to audit.</reason>
+      </file>
+      <file>
+        <path>src/components/admin/audit-log/audit-filters.tsx</path>
+        <kind>component</kind>
+        <symbol>AuditFilters</symbol>
+        <reason>Filter inputs to audit for styling consistency.</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/prompt-input.tsx</path>
+        <kind>component</kind>
+        <symbol>PromptInput</symbol>
+        <reason>Reporting input component to audit.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/restricted-topic-editor.tsx</path>
+        <kind>form</kind>
+        <symbol>RestrictedTopicEditor</symbol>
+        <reason>Admin form with Input to audit.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/ai-disclosure-editor.tsx</path>
+        <kind>form</kind>
+        <symbol>AIDisclosureEditor</symbol>
+        <reason>Admin form with Textarea to audit.</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/licensed-states-select.tsx</path>
+        <kind>component</kind>
+        <symbol>LicensedStatesSelect</symbol>
+        <reason>Multi-select component to audit for styling.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ui/button.test.tsx</path>
+        <kind>test</kind>
+        <symbol>Button tests</symbol>
+        <reason>Reference for test structure - test class presence for each AC.</reason>
+      </file>
+    </code>
+    <dependencies>
+      <node>
+        <package>@radix-ui/react-label</package>
+        <version>^2.1.8</version>
+        <usage>Base for Label component</usage>
+      </node>
+      <node>
+        <package>@radix-ui/react-select</package>
+        <version>^2.2.6</version>
+        <usage>Base for Select components</usage>
+      </node>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.68.0</version>
+        <usage>Form state management</usage>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <usage>Zod schema validation</usage>
+      </node>
+      <node>
+        <package>class-variance-authority</package>
+        <version>^0.7.1</version>
+        <usage>Variant styling (if needed for Label)</usage>
+      </node>
+      <node>
+        <package>tailwindcss</package>
+        <version>^4</version>
+        <usage>All styling classes</usage>
+      </node>
+      <node>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <usage>Unit testing framework</usage>
+      </node>
+      <node>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+        <usage>Component testing utilities</usage>
+      </node>
+      <node>
+        <package>@playwright/test</package>
+        <version>^1.57.0</version>
+        <usage>E2E testing framework</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint source="tech-spec">All styling uses explicit slate colors (slate-200, slate-700) instead of CSS variables for predictability</constraint>
+    <constraint source="tech-spec">Dark mode variants required for all new classes (dark:border-slate-700, dark:text-slate-300)</constraint>
+    <constraint source="tech-spec">No breaking changes - existing functionality must work identically</constraint>
+    <constraint source="tech-spec">Continue using shadcn/ui patterns - extend, don't replace</constraint>
+    <constraint source="tech-spec">Maintain WCAG 2.1 AA compliance - no accessibility regressions</constraint>
+    <constraint source="DR-5">Follow same pattern as Button: explicit colors, transition-colors, comprehensive testing</constraint>
+    <constraint source="architecture">UI components are in src/components/ui/ using shadcn/ui patterns</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>Input</name>
+      <kind>React component</kind>
+      <signature>function Input({ className, type, ...props }: React.ComponentProps&lt;"input"&gt;)</signature>
+      <path>src/components/ui/input.tsx</path>
+    </interface>
+    <interface>
+      <name>Textarea</name>
+      <kind>React component</kind>
+      <signature>function Textarea({ className, ...props }: React.ComponentProps&lt;"textarea"&gt;)</signature>
+      <path>src/components/ui/textarea.tsx</path>
+    </interface>
+    <interface>
+      <name>Label</name>
+      <kind>React component</kind>
+      <signature>function Label({ className, ...props }: React.ComponentProps&lt;typeof LabelPrimitive.Root&gt;)</signature>
+      <path>src/components/ui/label.tsx</path>
+    </interface>
+    <interface>
+      <name>SelectTrigger</name>
+      <kind>React component</kind>
+      <signature>function SelectTrigger({ className, size, children, ...props }: SelectTriggerProps)</signature>
+      <path>src/components/ui/select.tsx</path>
+    </interface>
+    <interface>
+      <name>FormLabel</name>
+      <kind>React component</kind>
+      <signature>function FormLabel({ className, ...props }: FormLabelProps)</signature>
+      <path>src/components/ui/form.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with @testing-library/react. Tests should verify CSS class presence using toHaveClass().
+      Each acceptance criterion should have dedicated tests. Follow the pattern from DR-5 button.test.tsx:
+      group tests by AC ID, test each required class individually. Include dark mode variant tests.
+      E2E tests use Playwright for visual consistency across pages.
+    </standards>
+    <locations>
+      <location>__tests__/components/ui/ - Unit tests for UI components</location>
+      <location>__tests__/e2e/ - E2E tests with Playwright</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.6.1">Test Input has border, border-slate-200, rounded-lg classes</idea>
+      <idea ac="DR.6.2">Test Input has px-3, py-2, text-sm classes</idea>
+      <idea ac="DR.6.3">Test Input has focus:ring-2, focus:ring-primary/20, focus:border-primary classes</idea>
+      <idea ac="DR.6.4">Test Label has text-sm, font-medium, text-slate-700 classes</idea>
+      <idea ac="DR.6.5">Test required indicator renders with text-red-500 asterisk</idea>
+      <idea ac="DR.6.6">Test SelectTrigger has border-slate-200, rounded-lg, matching focus classes</idea>
+      <idea ac="DR.6.1-DR.6.6">Test Textarea has same border/focus styling as Input</idea>
+      <idea ac="dark-mode">Test dark mode variants: dark:border-slate-700, dark:text-slate-300</idea>
+      <idea ac="e2e">E2E: Test Settings form inputs render with consistent styling</idea>
+      <idea ac="e2e">E2E: Test Admin dialogs have consistent input styling</idea>
+      <idea ac="e2e">E2E: Test focus states are visually correct (ring appears)</idea>
+    </ideas>
+  </tests>
+</story-context>

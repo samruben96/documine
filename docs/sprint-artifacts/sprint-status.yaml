@@ -393,7 +393,11 @@ development_status:
   # DONE 2025-12-10: Card component updated with hoverable prop, 21 unit tests + 8 E2E tests
   DR-4-card-border-consistency: done
   DR-5-button-standardization: done
-  DR-6-form-input-refinement: backlog
+  # Story DR.6: Form Input Refinement
+  # Clean, consistent form inputs with refined focus states
+  # Prerequisites: DR.5
+  # DONE 2025-12-11: Input/Textarea/Label/Select components updated, 92 unit tests + 9 E2E tests
+  DR-6-form-input-refinement: done
   DR-7-badge-status-system: backlog
   DR-8-typography-spacing: backlog
   DR-9-mobile-navigation: backlog
