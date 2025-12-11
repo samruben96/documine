@@ -380,10 +380,19 @@ development_status:
   # Prerequisites: None
   # DONE 2025-12-10: All ACs implemented, review APPROVED
   DR-1-header-redesign: done
-  DR-2-sidebar-navigation: backlog
-  DR-3-page-layout-background: backlog
-  DR-4-card-border-consistency: backlog
-  DR-5-button-standardization: backlog
+  # Story DR.2: Sidebar Navigation Transformation
+  # Transform sidebar from document list to full app navigation
+  # DONE 2025-12-10: AppNavSidebar component, Quoting placeholder, all ACs implemented
+  DR-2-sidebar-navigation: done
+  # Story DR.3: Page Layout & Background Update
+  # Consistent slate-50 backgrounds, max-w-5xl centering, p-6 padding, consistent titles
+  # DONE 2025-12-10: All ACs implemented, 16 unit tests, E2E tests
+  DR-3-page-layout-background: done
+  # Story DR.4: Card & Border Consistency
+  # Standardize card styling: bg-white, border-slate-200, rounded-lg, hoverable variant
+  # DONE 2025-12-10: Card component updated with hoverable prop, 21 unit tests + 8 E2E tests
+  DR-4-card-border-consistency: done
+  DR-5-button-standardization: done
   DR-6-form-input-refinement: backlog
   DR-7-badge-status-system: backlog
   DR-8-typography-spacing: backlog
