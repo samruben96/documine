@@ -53,16 +53,21 @@ describe('DocumentTypeBadge', () => {
   });
 
   describe('styling', () => {
-    it('applies blue styling for quote type', () => {
+    // DR.7: Updated tests to check for status variant classes
+    it('applies status-info variant (blue) for quote type', () => {
       render(<DocumentTypeBadge type="quote" />);
       const badge = screen.getByTestId('document-type-badge');
+      // Status-info variant applies blue colors
       expect(badge).toHaveClass('bg-blue-100');
+      expect(badge).toHaveClass('text-blue-700');
     });
 
-    it('applies gray styling for general type', () => {
+    it('applies status-default variant (slate) for general type', () => {
       render(<DocumentTypeBadge type="general" />);
       const badge = screen.getByTestId('document-type-badge');
-      expect(badge).toHaveClass('bg-gray-100');
+      // Status-default variant applies slate colors
+      expect(badge).toHaveClass('bg-slate-100');
+      expect(badge).toHaveClass('text-slate-600');
     });
 
     it('applies custom className', () => {

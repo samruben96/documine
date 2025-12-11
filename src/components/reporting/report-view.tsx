@@ -80,20 +80,26 @@ const INSIGHT_TYPE_CONFIG: Record<
   },
 };
 
+/**
+ * DR.7: Updated severity colors to match design system status variants.
+ * - info → status-info (blue)
+ * - warning → status-progress (amber)
+ * - critical → status-error (red)
+ */
 const SEVERITY_CONFIG: Record<
   NonNullable<ReportInsight['severity']>,
   { className: string; label: string }
 > = {
   info: {
-    className: 'bg-blue-100 text-blue-800',
+    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     label: 'Info',
   },
   warning: {
-    className: 'bg-yellow-100 text-yellow-800',
+    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     label: 'Warning',
   },
   critical: {
-    className: 'bg-red-100 text-red-800',
+    className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     label: 'Critical',
   },
 };

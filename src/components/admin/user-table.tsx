@@ -80,39 +80,51 @@ function formatLastActive(dateString: string | null): string {
   return date.toLocaleDateString();
 }
 
+/**
+ * DR.7: Updated role badges to use status variants for consistency.
+ * - owner → status-special (purple) - highest privilege
+ * - admin → status-info (blue) - elevated privilege
+ * - producer → status-default (slate) - standard user
+ */
 function getRoleBadge(role: UserRole) {
   switch (role) {
     case 'owner':
       return (
-        <Badge variant="default" className="bg-amber-500 hover:bg-amber-500">
+        <Badge variant="status-special">
           <Crown className="h-3 w-3 mr-1" />
           Owner
         </Badge>
       );
     case 'admin':
       return (
-        <Badge variant="secondary">
+        <Badge variant="status-info">
           <Shield className="h-3 w-3 mr-1" />
           Admin
         </Badge>
       );
     case 'producer':
-      return <Badge variant="outline">Producer</Badge>;
+      return <Badge variant="status-default">Producer</Badge>;
     default:
-      return <Badge variant="outline">{role}</Badge>;
+      return <Badge variant="status-default">{role}</Badge>;
   }
 }
 
+/**
+ * DR.7: Updated status badges to use status variants for consistency.
+ * - active → status-success (green)
+ * - onboarding_pending → status-progress (amber)
+ * - inactive → status-default (slate)
+ */
 function getStatusBadge(status: AdminUser['aiBuddyStatus']) {
   switch (status) {
     case 'active':
-      return <Badge variant="default" className="bg-green-500 hover:bg-green-500">Active</Badge>;
+      return <Badge variant="status-success">Active</Badge>;
     case 'onboarding_pending':
-      return <Badge variant="secondary">Onboarding</Badge>;
+      return <Badge variant="status-progress">Onboarding</Badge>;
     case 'inactive':
-      return <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>;
+      return <Badge variant="status-default">Inactive</Badge>;
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return <Badge variant="status-default">{status}</Badge>;
   }
 }
 
@@ -260,7 +272,8 @@ export function UserTable({
                 </TableCell>
                 <TableCell>{getRoleBadge(inv.role)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-amber-600 border-amber-300">
+                  {/* DR.7: Use status-progress for pending invitation state */}
+                  <Badge variant="status-progress">
                     <Clock className="h-3 w-3 mr-1" />
                     Invited
                   </Badge>
@@ -317,7 +330,8 @@ export function UserTable({
                 </TableCell>
                 <TableCell>{getRoleBadge(inv.role)}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-red-600 border-red-300">
+                  {/* DR.7: Use status-error for expired invitation state */}
+                  <Badge variant="status-error">
                     Expired
                   </Badge>
                 </TableCell>

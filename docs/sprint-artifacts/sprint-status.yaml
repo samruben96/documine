@@ -398,7 +398,11 @@ development_status:
   # Prerequisites: DR.5
   # DONE 2025-12-11: Input/Textarea/Label/Select components updated, 92 unit tests + 9 E2E tests
   DR-6-form-input-refinement: done
-  DR-7-badge-status-system: backlog
+  # Story DR.7: Badge & Status Indicator System
+  # Consistent status badges across all features
+  # Prerequisites: DR.4
+  # DONE 2025-12-11: All ACs implemented, 112 badge tests pass, REVIEW APPROVED
+  DR-7-badge-status-system: done
   DR-8-typography-spacing: backlog
   DR-9-mobile-navigation: backlog
   DR-10-existing-pages-update: backlog

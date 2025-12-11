@@ -25,12 +25,13 @@ describe('ConfidenceBadge', () => {
       expect(screen.getByText('High Confidence')).toBeInTheDocument();
     });
 
+    // DR.7: Updated to use status-success colors (green-100/green-700)
     it('should render with green styling', () => {
       render(<ConfidenceBadge level="high" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('bg-emerald-500/10');
-      expect(badge).toHaveClass('text-emerald-600');
+      expect(badge).toHaveClass('bg-green-100');
+      expect(badge).toHaveClass('text-green-700');
     });
 
     it('should render with checkmark icon', () => {
@@ -54,12 +55,13 @@ describe('ConfidenceBadge', () => {
       expect(screen.getByText('Needs Review')).toBeInTheDocument();
     });
 
+    // DR.7: Updated to use status-progress colors (amber-100/amber-700)
     it('should render with amber styling', () => {
       render(<ConfidenceBadge level="medium" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('bg-amber-500/10');
-      expect(badge).toHaveClass('text-amber-600');
+      expect(badge).toHaveClass('bg-amber-100');
+      expect(badge).toHaveClass('text-amber-700');
     });
 
     it('should render with exclamation icon', () => {
@@ -83,12 +85,13 @@ describe('ConfidenceBadge', () => {
       expect(screen.getByText('Not Found')).toBeInTheDocument();
     });
 
+    // DR.7: Updated to use status-default colors (slate-100/slate-600)
     it('should render with gray/slate styling', () => {
       render(<ConfidenceBadge level="low" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('bg-slate-500/10');
-      expect(badge).toHaveClass('text-slate-500');
+      expect(badge).toHaveClass('bg-slate-100');
+      expect(badge).toHaveClass('text-slate-600');
     });
 
     it('should render with question mark icon', () => {
@@ -161,26 +164,29 @@ describe('ConfidenceBadge', () => {
   });
 
   describe('Badge styling', () => {
-    it('should have rounded-full class for pill shape', () => {
+    // DR.7: Changed from rounded-full to rounded for consistent badge styling
+    it('should have rounded class for badge shape', () => {
       render(<ConfidenceBadge level="high" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('rounded-full');
+      expect(badge).toHaveClass('rounded');
     });
 
+    // DR.7: Badge uses border-transparent, so check for that
     it('should have border class', () => {
       render(<ConfidenceBadge level="high" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('border');
+      expect(badge).toHaveClass('border-transparent');
     });
 
+    // DR.7: Updated to use DR.7 standard padding (px-2 py-0.5)
     it('should have appropriate padding', () => {
       render(<ConfidenceBadge level="high" />);
 
       const badge = screen.getByTestId('confidence-badge');
-      expect(badge).toHaveClass('px-2.5');
-      expect(badge).toHaveClass('py-1');
+      expect(badge).toHaveClass('px-2');
+      expect(badge).toHaveClass('py-0.5');
     });
   });
 });
@@ -213,20 +219,21 @@ describe('ConfidenceIndicator', () => {
     expect(screen.getByTestId('confidence-indicator')).toBeInTheDocument();
   });
 
+  // DR.7: Updated to use status variant colors
   it('should apply correct color classes', () => {
     const { rerender } = render(<ConfidenceIndicator level="high" />);
     expect(screen.getByTestId('confidence-indicator')).toHaveClass(
-      'text-emerald-600'
+      'text-green-700'
     );
 
     rerender(<ConfidenceIndicator level="medium" />);
     expect(screen.getByTestId('confidence-indicator')).toHaveClass(
-      'text-amber-600'
+      'text-amber-700'
     );
 
     rerender(<ConfidenceIndicator level="low" />);
     expect(screen.getByTestId('confidence-indicator')).toHaveClass(
-      'text-slate-500'
+      'text-slate-600'
     );
   });
 
@@ -252,32 +259,35 @@ describe('AC Requirements', () => {
     expect(screen.getByTestId('confidence-badge')).toBeInTheDocument();
   });
 
+  // DR.7: Updated to use status variant colors
   it('AC9: High confidence shows green with checkmark', () => {
     render(<ConfidenceBadge level="high" />);
 
     const badge = screen.getByTestId('confidence-badge');
-    expect(badge).toHaveClass('bg-emerald-500/10');
-    expect(badge).toHaveClass('text-emerald-600');
+    expect(badge).toHaveClass('bg-green-100');
+    expect(badge).toHaveClass('text-green-700');
     expect(screen.getByText('✓')).toBeInTheDocument();
     expect(screen.getByText('High Confidence')).toBeInTheDocument();
   });
 
+  // DR.7: Updated to use status variant colors
   it('AC10: Medium confidence shows amber with exclamation', () => {
     render(<ConfidenceBadge level="medium" />);
 
     const badge = screen.getByTestId('confidence-badge');
-    expect(badge).toHaveClass('bg-amber-500/10');
-    expect(badge).toHaveClass('text-amber-600');
+    expect(badge).toHaveClass('bg-amber-100');
+    expect(badge).toHaveClass('text-amber-700');
     expect(screen.getByText('!')).toBeInTheDocument();
     expect(screen.getByText('Needs Review')).toBeInTheDocument();
   });
 
+  // DR.7: Updated to use status variant colors
   it('AC11: Low confidence shows gray with question mark', () => {
     render(<ConfidenceBadge level="low" />);
 
     const badge = screen.getByTestId('confidence-badge');
-    expect(badge).toHaveClass('bg-slate-500/10');
-    expect(badge).toHaveClass('text-slate-500');
+    expect(badge).toHaveClass('bg-slate-100');
+    expect(badge).toHaveClass('text-slate-600');
     expect(screen.getByText('?')).toBeInTheDocument();
     expect(screen.getByText('Not Found')).toBeInTheDocument();
   });

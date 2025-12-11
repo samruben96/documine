@@ -18,21 +18,27 @@ interface OnboardingStatusBadgeProps {
   onboardingSkipped: boolean;
 }
 
+/**
+ * Status configuration using DR.7 status variants:
+ * - completed → status-success (green)
+ * - skipped → status-progress (amber)
+ * - not_started → status-default (slate)
+ */
 const statusConfig: Record<
   OnboardingStatus,
-  { label: string; className: string }
+  { label: string; variant: 'status-success' | 'status-progress' | 'status-default' }
 > = {
   completed: {
     label: 'Completed',
-    className: 'bg-green-100 text-green-800 hover:bg-green-100',
+    variant: 'status-success',
   },
   skipped: {
     label: 'Skipped',
-    className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+    variant: 'status-progress',
   },
   not_started: {
     label: 'Not Started',
-    className: 'bg-gray-100 text-gray-600 hover:bg-gray-100',
+    variant: 'status-default',
   },
 };
 
@@ -60,8 +66,7 @@ export function OnboardingStatusBadge({
 
   return (
     <Badge
-      variant="secondary"
-      className={config.className}
+      variant={config.variant}
       data-testid={`onboarding-status-badge-${status}`}
     >
       {config.label}

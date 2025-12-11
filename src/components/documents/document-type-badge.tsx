@@ -22,16 +22,21 @@ interface DocumentTypeBadgeProps {
   onClick?: () => void;
 }
 
+/**
+ * Type configuration with new status variants (Story DR.7)
+ * - quote → status-info (blue)
+ * - general → status-default (slate)
+ */
 const typeConfig = {
   quote: {
     label: 'Quote',
     icon: FileText,
-    className: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+    variant: 'status-info' as const,
   },
   general: {
     label: 'General',
     icon: FileQuestion,
-    className: 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700',
+    variant: 'status-default' as const,
   },
 } as const;
 
@@ -48,9 +53,8 @@ export function DocumentTypeBadge({
 
   return (
     <Badge
-      variant="outline"
+      variant={config.variant}
       className={cn(
-        config.className,
         onClick && 'cursor-pointer',
         className
       )}

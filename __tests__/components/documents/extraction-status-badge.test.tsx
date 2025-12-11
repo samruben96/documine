@@ -169,21 +169,22 @@ describe('ExtractionStatusBadge', () => {
       expect(badge).toHaveClass('custom-class');
     });
 
+    // DR.7: Updated to use status variant colors (slate-600, blue-700, green-700, red-700)
     it('applies correct color classes for each status', () => {
       const { rerender } = render(<ExtractionStatusBadge status="pending" />);
-      expect(screen.getByTestId('extraction-status-pending')).toHaveClass('text-slate-500');
+      expect(screen.getByTestId('extraction-status-pending')).toHaveClass('text-slate-600');
 
       rerender(<ExtractionStatusBadge status="extracting" />);
-      expect(screen.getByTestId('extraction-status-extracting')).toHaveClass('text-blue-600');
+      expect(screen.getByTestId('extraction-status-extracting')).toHaveClass('text-blue-700');
 
       rerender(<ExtractionStatusBadge status="complete" />);
-      expect(screen.getByTestId('extraction-status-complete')).toHaveClass('text-green-600');
+      expect(screen.getByTestId('extraction-status-complete')).toHaveClass('text-green-700');
 
       rerender(<ExtractionStatusBadge status="failed" />);
-      expect(screen.getByTestId('extraction-status-failed')).toHaveClass('text-red-600');
+      expect(screen.getByTestId('extraction-status-failed')).toHaveClass('text-red-700');
 
       rerender(<ExtractionStatusBadge status="skipped" />);
-      expect(screen.getByTestId('extraction-status-skipped')).toHaveClass('text-green-600');
+      expect(screen.getByTestId('extraction-status-skipped')).toHaveClass('text-green-700');
     });
 
     it('renders separate retry button for failed status with onRetry', () => {

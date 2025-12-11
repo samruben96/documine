@@ -37,6 +37,7 @@ export interface ConfidenceBadgeProps {
 /**
  * Configuration for each confidence level
  * AC9-AC11: High/Medium/Low with appropriate colors and labels
+ * DR.7: Updated to align with status system (success/progress/default)
  */
 const levelConfig: Record<
   ConfidenceLevel,
@@ -45,7 +46,6 @@ const levelConfig: Record<
     description: string;
     bgClass: string;
     textClass: string;
-    borderClass: string;
     icon: string;
   }
 > = {
@@ -53,27 +53,24 @@ const levelConfig: Record<
     label: 'High Confidence',
     description:
       'This answer is based on information from your attached documents. Click citations to verify.',
-    bgClass: 'bg-emerald-500/10',
-    textClass: 'text-emerald-600 dark:text-emerald-400',
-    borderClass: 'border-emerald-500/20',
+    bgClass: 'bg-green-100 dark:bg-green-900/30',
+    textClass: 'text-green-700 dark:text-green-400',
     icon: '✓',
   },
   medium: {
     label: 'Needs Review',
     description:
       'This answer is based on general insurance knowledge. Please verify important details with the carrier or policy documents.',
-    bgClass: 'bg-amber-500/10',
-    textClass: 'text-amber-600 dark:text-amber-400',
-    borderClass: 'border-amber-500/20',
+    bgClass: 'bg-amber-100 dark:bg-amber-900/30',
+    textClass: 'text-amber-700 dark:text-amber-400',
     icon: '!',
   },
   low: {
     label: 'Not Found',
     description:
       "The information wasn't found in the documents or general knowledge. Consider rephrasing your question or consulting additional resources.",
-    bgClass: 'bg-slate-500/10',
-    textClass: 'text-slate-500 dark:text-slate-400',
-    borderClass: 'border-slate-500/20',
+    bgClass: 'bg-slate-100 dark:bg-slate-800',
+    textClass: 'text-slate-600 dark:text-slate-400',
     icon: '?',
   },
 };
@@ -91,14 +88,14 @@ export function ConfidenceBadge({
 }: ConfidenceBadgeProps) {
   const config = levelConfig[level];
 
+  // DR.7: Updated to use rounded instead of rounded-full for consistency
   const badge = (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-        'border transition-colors',
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium',
+        'border-transparent transition-colors',
         config.bgClass,
         config.textClass,
-        config.borderClass,
         className
       )}
       data-testid="confidence-badge"

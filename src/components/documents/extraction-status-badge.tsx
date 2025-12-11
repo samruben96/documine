@@ -34,6 +34,14 @@ interface ExtractionStatusBadgeProps {
   className?: string;
 }
 
+/**
+ * Status configuration aligned with DR.7 status system colors:
+ * - pending → status-default (slate)
+ * - extracting → status-info (blue)
+ * - complete → status-success (green)
+ * - failed → status-error (red)
+ * - skipped → status-success (green)
+ */
 const statusConfig: Record<ExtractionStatus, {
   icon: typeof Check;
   label: string;
@@ -44,31 +52,31 @@ const statusConfig: Record<ExtractionStatus, {
     icon: Loader2,
     label: 'Queued',
     tooltip: 'This document is ready for chat. Quote analysis is queued.',
-    className: 'text-slate-500 bg-slate-50 dark:bg-slate-800/50 dark:text-slate-400',
+    className: 'text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-400',
   },
   extracting: {
     icon: Loader2,
     label: 'Analyzing...',
     tooltip: 'Extracting quote details for comparison. Chat is available now.',
-    className: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400',
+    className: 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400',
   },
   complete: {
     icon: CheckCheck,
     label: 'Fully Analyzed',
     tooltip: 'This document is fully analyzed and ready for comparison.',
-    className: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400',
+    className: 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
   },
   failed: {
     icon: AlertTriangle,
     label: 'Analysis Failed',
     tooltip: 'Quote extraction failed. Click to retry.',
-    className: 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400',
+    className: 'text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400',
   },
   skipped: {
     icon: Check,
     label: 'Ready',
     tooltip: 'This document is ready. (General documents don\'t require quote extraction.)',
-    className: 'text-green-600 bg-green-50 dark:bg-green-900/30 dark:text-green-400',
+    className: 'text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
   },
 };
 
@@ -115,7 +123,7 @@ export function ExtractionStatusBadge({
             <span
               data-testid={`extraction-status-${effectiveStatus}`}
               className={cn(
-                'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
                 config.className
               )}
             >
@@ -150,7 +158,7 @@ export function ExtractionStatusBadge({
     <div
       data-testid={`extraction-status-${effectiveStatus}`}
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors',
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium transition-colors',
         config.className,
         className
       )}

@@ -47,19 +47,20 @@ interface SeverityBadgeProps {
 /**
  * Severity indicator badge.
  * AC-7.4.6: Visual distinction for high/medium/low severity.
+ * DR.7: Updated to use rounded (not rounded-full) to match design system.
  */
 function SeverityBadge({ severity, className }: SeverityBadgeProps) {
   const config = {
     high: {
-      bg: 'bg-red-100 text-red-700 border-red-200',
+      bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       label: 'High',
     },
     medium: {
-      bg: 'bg-amber-100 text-amber-700 border-amber-200',
+      bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       label: 'Medium',
     },
     low: {
-      bg: 'bg-blue-100 text-blue-700 border-blue-200',
+      bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       label: 'Low',
     },
   };
@@ -69,7 +70,7 @@ function SeverityBadge({ severity, className }: SeverityBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border',
+        'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border-transparent',
         bg,
         className
       )}
@@ -92,20 +93,21 @@ interface RiskScoreBadgeProps {
 /**
  * Risk score indicator badge.
  * AC-10.7.6: Green <30, yellow 30-60, red >60.
+ * DR.7: Updated to use rounded (not rounded-full) to match design system.
  */
 function RiskScoreBadge({ score, className }: RiskScoreBadgeProps) {
   const level = getRiskLevel(score);
   const config = {
     low: {
-      bg: 'bg-green-100 text-green-700 border-green-200',
+      bg: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
       label: 'Low Risk',
     },
     medium: {
-      bg: 'bg-amber-100 text-amber-700 border-amber-200',
+      bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       label: 'Medium Risk',
     },
     high: {
-      bg: 'bg-red-100 text-red-700 border-red-200',
+      bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       label: 'High Risk',
     },
   };
@@ -115,7 +117,7 @@ function RiskScoreBadge({ score, className }: RiskScoreBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border',
+        'inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold border-transparent',
         bg,
         className
       )}
@@ -136,18 +138,21 @@ interface ImportanceBadgeProps {
   className?: string;
 }
 
+/**
+ * DR.7: Updated to use rounded (not rounded-full) to match design system.
+ */
 function ImportanceBadge({ importance, className }: ImportanceBadgeProps) {
   const config: Record<GapImportance, { bg: string; label: string }> = {
     critical: {
-      bg: 'bg-red-100 text-red-700 border-red-200',
+      bg: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
       label: 'Critical',
     },
     recommended: {
-      bg: 'bg-amber-100 text-amber-700 border-amber-200',
+      bg: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       label: 'Recommended',
     },
     optional: {
-      bg: 'bg-blue-100 text-blue-700 border-blue-200',
+      bg: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       label: 'Optional',
     },
   };
@@ -157,7 +162,7 @@ function ImportanceBadge({ importance, className }: ImportanceBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border',
+        'inline-flex items-center rounded px-2 py-0.5 text-xs font-medium border-transparent',
         bg,
         className
       )}

@@ -1,0 +1,222 @@
+<story-context id="DR-7-badge-status-system" v="1.0">
+  <metadata>
+    <epicId>DR</epicId>
+    <storyId>7</storyId>
+    <title>Badge &amp; Status Indicator System</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-7-badge-status-system/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>consistent status badges across all features</iWant>
+    <soThat>I can quickly understand item status and the interface feels unified</soThat>
+    <tasks>
+      <task id="1" ac="DR.7.1-DR.7.7">Audit current Badge component and usage patterns</task>
+      <task id="2" ac="DR.7.1-DR.7.7">Update Badge component with status variants</task>
+      <task id="3" ac="DR.7.2-DR.7.7">Create StatusBadge convenience component</task>
+      <task id="4" ac="DR.7.5">Migrate DocumentTypeBadge to new variants</task>
+      <task id="5" ac="DR.7.2-DR.7.7">Migrate ExtractionStatusBadge to new patterns</task>
+      <task id="6" ac="DR.7.2-DR.7.4">Migrate OnboardingStatusBadge to new variants</task>
+      <task id="7" ac="DR.7.1-DR.7.7">Audit and update Compare/Reporting badge usages</task>
+      <task id="8" ac="DR.7.1-DR.7.7">Audit and update Admin badges</task>
+      <task id="9" ac="DR.7.1-DR.7.7">Audit and update AI Buddy badges</task>
+      <task id="10" ac="DR.7.1-DR.7.7">Write unit tests for Badge component variants</task>
+      <task id="11" ac="DR.7.1-DR.7.7">Write E2E tests for badge styling consistency</task>
+      <task id="12" ac="DR.7.1-DR.7.7">Build verification and final audit</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="DR.7.1">Badge base: px-2 py-0.5 rounded text-xs font-medium</criterion>
+    <criterion id="DR.7.2">Default (draft): bg-slate-100 text-slate-600</criterion>
+    <criterion id="DR.7.3">In Progress: bg-amber-100 text-amber-700</criterion>
+    <criterion id="DR.7.4">Complete/Success: bg-green-100 text-green-700</criterion>
+    <criterion id="DR.7.5">Info/Type: bg-blue-100 text-blue-700</criterion>
+    <criterion id="DR.7.6">Bundle/Special: bg-purple-100 text-purple-700</criterion>
+    <criterion id="DR.7.7">Error/Warning: bg-red-100 text-red-700</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md</path>
+        <title>Epic Technical Specification: docuMINE Design Refresh</title>
+        <section>DR.7 - Badge System</section>
+        <snippet>Badge base: px-2 py-0.5 rounded text-xs font-medium. Color variants for status-default (slate), status-progress (amber), status-success (green), status-info (blue), status-special (purple), status-error (red).</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/epic.md</path>
+        <title>Epic: docuMINE Design Refresh</title>
+        <section>Story DR.7</section>
+        <snippet>Create consistent status badges with pill shape px-2 py-0.5 rounded text-xs font-medium and color coding for various status types.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/mockups/quoting-mockup.html</path>
+        <title>Quoting Feature Mockup</title>
+        <section>Badge styling patterns</section>
+        <snippet>Reference implementation showing badge styling with purple (bundle), blue (home/auto), amber (in progress), green (complete), slate (draft) variants.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-6-form-input-refinement/story.md</path>
+        <title>Story DR.6: Form Input Refinement</title>
+        <section>Dev Agent Record - Completion Notes</section>
+        <snippet>Key patterns: Use explicit slate colors instead of CSS variables. Add dark: variants for all new classes. Follow CVA extension patterns.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/components/ui/badge.tsx</path>
+        <kind>component</kind>
+        <symbol>Badge, badgeVariants</symbol>
+        <lines>1-46</lines>
+        <reason>Primary component to modify - add 6 new status variants to existing CVA configuration</reason>
+      </file>
+      <file>
+        <path>src/components/documents/document-type-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentTypeBadge</symbol>
+        <lines>1-65</lines>
+        <reason>Migrate to use status-info (quote) and status-default (general) variants</reason>
+      </file>
+      <file>
+        <path>src/components/documents/extraction-status-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>ExtractionStatusBadge</symbol>
+        <lines>1-178</lines>
+        <reason>Uses custom styling - evaluate for migration to new status variants</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/admin/onboarding-status-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>OnboardingStatusBadge</symbol>
+        <lines>1-70</lines>
+        <reason>Migrate to use status-success (completed), status-progress (skipped), status-default (not_started)</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/confidence-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>ConfidenceBadge, ConfidenceIndicator</symbol>
+        <lines>1-191</lines>
+        <reason>Review for consistency with new badge system - emerald/amber/slate colors</reason>
+      </file>
+      <file>
+        <path>src/components/chat/confidence-badge.tsx</path>
+        <kind>component</kind>
+        <symbol>ConfidenceBadge</symbol>
+        <reason>Duplicate confidence badge in chat - review for consolidation</reason>
+      </file>
+      <file>
+        <path>__tests__/components/documents/document-type-badge.test.tsx</path>
+        <kind>test</kind>
+        <symbol>DocumentTypeBadge tests</symbol>
+        <lines>1-100</lines>
+        <reason>Reference test patterns - styling assertions, click behavior, data attributes</reason>
+      </file>
+      <file>
+        <path>__tests__/components/documents/extraction-status-badge.test.tsx</path>
+        <kind>test</kind>
+        <symbol>ExtractionStatusBadge tests</symbol>
+        <reason>Existing test file - update assertions after migration</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ai-buddy/admin/onboarding-status-badge.test.tsx</path>
+        <kind>test</kind>
+        <symbol>OnboardingStatusBadge tests</symbol>
+        <reason>Existing test file - update assertions after migration</reason>
+      </file>
+      <file>
+        <path>__tests__/components/ai-buddy/confidence-badge.test.tsx</path>
+        <kind>test</kind>
+        <symbol>ConfidenceBadge tests</symbol>
+        <reason>Existing test file - review for consistency updates</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="class-variance-authority" version="^0.7.1">CVA for variant management</package>
+        <package name="tailwind-merge" version="^3.4.0">Merge Tailwind classes</package>
+        <package name="@radix-ui/react-slot" version="^1.2.4">Slot component for asChild</package>
+        <package name="clsx" version="^2.1.1">Class name utility</package>
+        <package name="lucide-react" version="^0.554.0">Icons used in some badges</package>
+      </node>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14">Test runner</package>
+        <package name="@testing-library/react" version="^16.3.0">React testing utilities</package>
+        <package name="happy-dom" version="^20.0.10">Test environment</package>
+        <package name="@playwright/test" version="^1.57.0">E2E testing</package>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="backward-compatibility">Preserve existing variants (default, secondary, destructive, outline) for backward compatibility</constraint>
+    <constraint type="dark-mode">All new status variants must include dark: prefixed color classes</constraint>
+    <constraint type="explicit-colors">Use explicit Tailwind colors (bg-slate-100) not CSS variables (bg-primary)</constraint>
+    <constraint type="cva-pattern">Extend CVA variants configuration rather than modifying base classes</constraint>
+    <constraint type="testing">Minimum test coverage: Unit tests for all 6 new variants + StatusBadge component</constraint>
+    <constraint type="build">Run production build after changes - verify no TypeScript or build errors</constraint>
+    <constraint type="visual-consistency">Border-radius changes from rounded-full to rounded may affect existing badges</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>badgeVariants</name>
+      <kind>CVA function</kind>
+      <signature>cva(base: string, { variants: { variant: Record&lt;string, string&gt; } })</signature>
+      <path>src/components/ui/badge.tsx</path>
+    </interface>
+    <interface>
+      <name>Badge component</name>
+      <kind>React component</kind>
+      <signature>Badge({ className, variant, asChild, ...props }: BadgeProps)</signature>
+      <path>src/components/ui/badge.tsx</path>
+    </interface>
+    <interface>
+      <name>StatusBadge (new)</name>
+      <kind>React component</kind>
+      <signature>StatusBadge({ status, children, className }: { status: StatusType, children: ReactNode, className?: string })</signature>
+      <path>src/components/ui/badge.tsx</path>
+    </interface>
+    <interface>
+      <name>StatusType (new)</name>
+      <kind>TypeScript type</kind>
+      <signature>type StatusType = 'draft' | 'progress' | 'success' | 'info' | 'special' | 'error'</signature>
+      <path>src/components/ui/badge.tsx</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with happy-dom environment for unit tests. Testing Library for React component rendering.
+      Tests should verify: 1) Correct CSS classes applied for each variant, 2) Dark mode variants present,
+      3) Custom className merging works, 4) Data attributes for identification.
+      Playwright for E2E tests verifying visual consistency across pages.
+      Follow patterns from existing badge tests (document-type-badge.test.tsx).
+    </standards>
+    <locations>
+      <location>__tests__/components/ui/badge.test.tsx (new)</location>
+      <location>__tests__/components/documents/document-type-badge.test.tsx (update)</location>
+      <location>__tests__/components/documents/extraction-status-badge.test.tsx (update)</location>
+      <location>__tests__/components/ai-buddy/admin/onboarding-status-badge.test.tsx (update)</location>
+      <location>__tests__/e2e/badge-styling-consistency.spec.ts (new)</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.7.1">Test base badge has rounded text-xs font-medium classes</idea>
+      <idea ac="DR.7.2">Test status-default variant has bg-slate-100 text-slate-600</idea>
+      <idea ac="DR.7.3">Test status-progress variant has bg-amber-100 text-amber-700</idea>
+      <idea ac="DR.7.4">Test status-success variant has bg-green-100 text-green-700</idea>
+      <idea ac="DR.7.5">Test status-info variant has bg-blue-100 text-blue-700</idea>
+      <idea ac="DR.7.6">Test status-special variant has bg-purple-100 text-purple-700</idea>
+      <idea ac="DR.7.7">Test status-error variant has bg-red-100 text-red-700</idea>
+      <idea ac="DR.7.2-DR.7.7">Test all variants have dark mode classes present</idea>
+      <idea ac="DR.7.2-DR.7.7">Test StatusBadge maps status prop to correct variant</idea>
+      <idea ac="DR.7.1-DR.7.7">E2E: Navigate to documents page and verify badge styling</idea>
+      <idea ac="DR.7.1-DR.7.7">E2E: Navigate to admin panels and verify badge styling</idea>
+    </ideas>
+  </tests>
+</story-context>
