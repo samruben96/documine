@@ -1,13 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { MessageSquare, GitCompare, FileText, Bot, FolderOpen, type LucideIcon } from 'lucide-react';
+import { MessageSquare, GitCompare, FileText, Bot, FolderOpen, Calculator, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { typography, spacing } from '@/lib/typography';
 
 /**
  * Tool Card Component
  * Story 9.2: AC-9.2.3 - Tool cards with icon, title, description
+ * Story DR.8: Typography and spacing standardization
  * AC-9.2.4: Navigates to correct pages
  * AC-9.2.6: Responsive layout with hover effects
  */
@@ -19,6 +21,7 @@ const iconMap: Record<string, LucideIcon> = {
   FileText,
   Bot,
   FolderOpen,
+  Calculator,
 };
 
 interface ToolCardProps {
@@ -26,7 +29,7 @@ interface ToolCardProps {
   title: string;
   description: string;
   href: string;
-  color?: 'blue' | 'green' | 'purple' | 'emerald' | 'slate';
+  color?: 'blue' | 'green' | 'purple' | 'emerald' | 'slate' | 'amber';
 }
 
 const colorVariants = {
@@ -54,6 +57,11 @@ const colorVariants = {
     icon: 'text-slate-600',
     bg: 'bg-slate-100',
     border: 'group-hover:border-slate-300',
+  },
+  amber: {
+    icon: 'text-amber-600',
+    bg: 'bg-amber-50',
+    border: 'group-hover:border-amber-300',
   },
 };
 
@@ -83,12 +91,12 @@ export function ToolCard({
             <Icon className={cn('h-6 w-6', colors.icon)} />
           </div>
 
-          {/* Content */}
+          {/* Content - DR.8.2: Section title, DR.8.4: Body text */}
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 group-hover:text-electric-blue transition-colors">
+            <h2 className={cn(typography.sectionTitle, 'group-hover:text-electric-blue transition-colors')}>
               {title}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className={cn(typography.muted, 'mt-1')}>
               {description}
             </p>
           </div>

@@ -38,10 +38,11 @@ development_status:
   # Epic Q1: Foundation & Navigation
   # Database schema, sidebar nav, dashboard card
   # Stories: 3 | FRs: FR39-42
-  epic-Q1-foundation-navigation: contexted
+  # COMPLETED: 2025-12-11 - All 3 stories done, 21 ACs verified
+  epic-Q1-foundation-navigation: done
   Q1-1-database-schema-rls: done
-  Q1-2-sidebar-navigation: backlog
-  Q1-3-dashboard-quick-access: backlog
+  Q1-2-sidebar-navigation: done  # Satisfied by DR.2, nav exists
+  Q1-3-dashboard-quick-access: done  # Reviewed 2025-12-11
 
   # Epic Q2: Quote Session Management
   # Create, view, manage quote sessions

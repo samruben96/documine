@@ -37,6 +37,7 @@ import {
 import { useReportingAnalysis } from '@/hooks/use-reporting-analysis';
 import { useReportGeneration } from '@/hooks/use-report-generation';
 import { cn } from '@/lib/utils';
+import { typography, spacing } from '@/lib/typography';
 
 /**
  * UI Flow States
@@ -184,10 +185,10 @@ export default function ReportingPage() {
         </a>
 
         {/* Header */}
-        {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
+        {/* Story DR.8: AC-DR.8.1 - Page title typography */}
         <div className="border-b border-slate-200 bg-white px-6 py-4">
-          <h1 className="text-2xl font-semibold text-slate-900">Data Reports</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className={typography.pageTitle}>Data Reports</h1>
+          <p className={cn(typography.muted, 'mt-1')}>
             Upload any data file and let AI generate insights and visualizations
           </p>
         </div>
@@ -213,21 +214,22 @@ export default function ReportingPage() {
       </a>
 
       {/* Header */}
-      {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
+      {/* Story DR.8: AC-DR.8.1 - Page title typography */}
       <div className="border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Data Reports</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className={typography.pageTitle}>Data Reports</h1>
+        <p className={cn(typography.muted, 'mt-1')}>
           Upload any data file and let AI generate insights and visualizations
         </p>
       </div>
 
       {/* Content */}
       <main id="main-content" className="flex-1 overflow-auto p-6">
-        <div className="mx-auto max-w-2xl space-y-6">
+        <div className={cn('mx-auto max-w-2xl', spacing.section)}>
           {/* Step 1: Upload Section */}
           <div className="rounded-lg border border-slate-200 bg-white p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-medium text-slate-900">
+              {/* DR.8.3: Card title typography */}
+              <h2 className={typography.cardTitle}>
                 Step 1: Upload Your Data
               </h2>
               {uploadedFilename && (
@@ -387,11 +389,12 @@ export default function ReportingPage() {
               pageState !== 'ready' && pageState !== 'generating' && 'opacity-50'
             )}
           >
-            <h2 className="text-base font-medium text-slate-900 mb-2">
+            {/* DR.8.3: Card title typography */}
+            <h2 className={cn(typography.cardTitle, 'mb-2')}>
               Step 2: What report do you want?{' '}
               <span className="text-slate-400 font-normal">(Optional)</span>
             </h2>
-            <p className="text-sm text-slate-500 mb-4">
+            <p className={cn(typography.muted, 'mb-4')}>
               Describe what you want to see, or leave blank for AI to generate the best
               analysis automatically.
             </p>

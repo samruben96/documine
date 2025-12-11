@@ -10,6 +10,8 @@ import { useConversationAttachments } from '@/hooks/ai-buddy/use-conversation-at
 import { usePreferences } from '@/hooks/ai-buddy/use-preferences';
 import { useAiBuddyContext } from '@/contexts/ai-buddy-context';
 import { generatePersonalizedGreeting } from '@/lib/ai-buddy/personalized-greeting';
+import { typography } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 
 /**
  * AI Buddy Main Page
@@ -182,14 +184,15 @@ export default function AiBuddyPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
                 <Bot className="h-8 w-8 text-emerald-600" />
               </div>
-              <h1 className="text-2xl font-semibold text-slate-900 mb-3" data-testid="welcome-title">
+              {/* DR.8.1: Page title typography */}
+              <h1 className={typography.pageTitle} data-testid="welcome-title">
                 {activeProject
                   ? `Chat with ${activeProject.name}`
                   : preferences?.displayName
                     ? `Hi ${preferences.displayName}!`
                     : 'Welcome to AI Buddy'}
               </h1>
-              <p className="text-slate-600 text-base" data-testid="welcome-message">
+              <p className={cn(typography.body, 'mt-3')} data-testid="welcome-message">
                 {activeProject
                   ? `Ask questions about ${activeProject.name}'s documents and policies. Your conversation will be saved to this project.`
                   : greeting.message}

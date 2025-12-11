@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { typography, spacing } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 import type { ComparisonData, QuoteExtraction, DocumentSummary } from '@/types/compare';
 import { ComparisonTable, type SourceClickHandler } from '@/components/compare/comparison-table';
 import { GapConflictBanner } from '@/components/compare/gap-conflict-banner';
@@ -130,12 +132,12 @@ export default function ComparisonPage() {
             </Link>
           </Button>
           <div className="flex-1">
-            {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            {/* Story DR.8: AC-DR.8.1 - Page title typography */}
+            <h1 className={cn(typography.pageTitle, 'flex items-center gap-2')}>
               <BarChart3 className="h-5 w-5 text-primary" />
               Quote Comparison
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className={typography.muted}>
               Comparing {comparison.documents?.length || 0} documents
             </p>
           </div>
@@ -411,7 +413,7 @@ function ExtractionSummaryView({
   const tableData = buildComparisonRows(extractions, documents);
 
   return (
-    <div className="space-y-6">
+    <div className={spacing.section}>
       {/* Partial warning */}
       {isPartial && (
         <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">

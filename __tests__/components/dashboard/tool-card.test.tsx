@@ -73,4 +73,28 @@ describe('ToolCard', () => {
 
     expect(container.querySelector('[data-testid="tool-card"]')).toBeInTheDocument();
   });
+
+  // Story Q1.3 - Amber color variant for Quoting card
+  it('applies amber color variant', () => {
+    render(<ToolCard {...defaultProps} color="amber" />);
+
+    expect(screen.getByTestId('tool-card')).toBeInTheDocument();
+  });
+
+  it('renders Calculator icon for Quoting card', () => {
+    render(
+      <ToolCard
+        icon="Calculator"
+        title="Quoting"
+        description="Enter client data once, copy for any carrier portal"
+        href="/quoting"
+        color="amber"
+      />
+    );
+
+    expect(screen.getByText('Quoting')).toBeInTheDocument();
+    expect(screen.getByText('Enter client data once, copy for any carrier portal')).toBeInTheDocument();
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/quoting');
+  });
 });

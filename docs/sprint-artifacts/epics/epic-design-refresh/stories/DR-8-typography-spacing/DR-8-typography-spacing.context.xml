@@ -1,0 +1,261 @@
+<story-context id="DR-8-typography-spacing" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.8</storyId>
+    <title>Typography &amp; Spacing Standardization</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-8-typography-spacing/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>consistent typography hierarchy and spacing patterns across all pages</iWant>
+    <soThat>the interface feels visually cohesive and information is easy to scan</soThat>
+    <tasks>
+      <task id="1">Audit current typography patterns across codebase (AC: DR.8.1-DR.8.6)</task>
+      <task id="2">Create Typography utility classes (AC: DR.8.1-DR.8.6)</task>
+      <task id="3">Audit current spacing patterns across codebase (AC: DR.8.7-DR.8.9)</task>
+      <task id="4">Create Spacing utility classes (AC: DR.8.7-DR.8.9)</task>
+      <task id="5">Update Dashboard page typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="6">Update Documents pages typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="7">Update Compare pages typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="8">Update AI Buddy pages typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="9">Update Reporting pages typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="10">Update Settings pages typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="11">Update Admin panels typography and spacing (AC: DR.8.1-DR.8.9)</task>
+      <task id="12">Write unit tests for typography utilities (AC: DR.8.1-DR.8.6)</task>
+      <task id="13">Write E2E tests for typography consistency (AC: DR.8.1-DR.8.9)</task>
+      <task id="14">Build verification and final audit</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="DR.8.1">Page title: text-2xl font-semibold text-slate-900</criterion>
+    <criterion id="DR.8.2">Section title: text-lg font-medium text-slate-900</criterion>
+    <criterion id="DR.8.3">Card title: font-medium text-slate-900</criterion>
+    <criterion id="DR.8.4">Body text: text-sm text-slate-600</criterion>
+    <criterion id="DR.8.5">Muted text: text-sm text-slate-500</criterion>
+    <criterion id="DR.8.6">Labels: text-sm font-medium text-slate-700</criterion>
+    <criterion id="DR.8.7">Section gaps use space-y-6</criterion>
+    <criterion id="DR.8.8">Card content uses p-4 or p-6</criterion>
+    <criterion id="DR.8.9">Form field gaps use space-y-4</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md</path>
+        <title>Design Refresh Epic Tech Spec</title>
+        <section>DR.8 - Typography &amp; Spacing</section>
+        <snippet>Defines typography scale (page title, section title, card title, body, muted, labels) and spacing patterns (section gaps, card padding, form gaps). Part of visual refresh to match Quoting mockup aesthetic.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/mockups/quoting-mockup.html</path>
+        <title>Quoting Feature Mockup</title>
+        <section>Typography patterns (lines 159-161)</section>
+        <snippet>Reference mockup establishing the target visual design for typography and spacing. Shows text-2xl font-semibold for titles, text-sm for body content.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/uiux-architecture.md</path>
+        <title>UI/UX Architecture</title>
+        <section>Design Philosophy</section>
+        <snippet>Core principles: Zero Learning Curve, Trust Through Transparency, Speed You Can Feel, Respect Agent Expertise, Clean Over Clever. All typography changes must maintain these principles.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-7-badge-status-system/story.md</path>
+        <title>Previous Story - Badge System</title>
+        <section>Dev Agent Record - Completion Notes</section>
+        <snippet>Pattern established: Centralized utilities make migration easier. Use explicit colors (text-slate-900 not CSS variables). Add dark: variants from the start. Comprehensive audit before implementation.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/components/ui/card.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Card, CardHeader, CardTitle, CardContent</symbol>
+        <lines>1-139</lines>
+        <reason>Card component already updated for DR.4 with p-6 padding. CardTitle uses font-semibold. Reference for typography pattern integration.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/documents/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DocumentsPage</symbol>
+        <lines>357-360</lines>
+        <reason>Already uses DR.3 typography (text-2xl font-semibold text-slate-900). Reference implementation for page titles.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/settings/page.tsx</path>
+        <kind>page</kind>
+        <symbol>SettingsPage</symbol>
+        <lines>140-141</lines>
+        <reason>Uses text-2xl font-semibold text-slate-900 for page title. Contains forms needing space-y-4 standardization.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/settings/branding-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>BrandingTab</symbol>
+        <lines>1-21</lines>
+        <reason>Already uses space-y-6 for section spacing. Reference for consistent settings panel pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/settings/branding-form.tsx</path>
+        <kind>component</kind>
+        <symbol>BrandingForm</symbol>
+        <reason>Form component with field gaps. Audit and standardize to space-y-4 for form fields.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/settings/usage-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageTab</symbol>
+        <reason>Settings panel with section titles and spacing. Apply typography.sectionTitle pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/ai-buddy/page.tsx</path>
+        <kind>page</kind>
+        <symbol>AIBuddyPage</symbol>
+        <reason>Chat-based page needing typography audit. Apply consistent page title and section styling.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/reporting/page.tsx</path>
+        <kind>page</kind>
+        <symbol>ReportingPage</symbol>
+        <reason>Data-focused page with charts and tables. Audit typography for consistency.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/compare/page.tsx</path>
+        <kind>page</kind>
+        <symbol>ComparePage</symbol>
+        <reason>Comparison interface with tables and cards. Standardize typography and spacing.</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/dashboard/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DashboardPage</symbol>
+        <reason>Dashboard with stat cards and sections. Apply all typography patterns (pageTitle, sectionTitle, cardTitle, body, muted).</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/admin/user-table.tsx</path>
+        <kind>component</kind>
+        <symbol>UserTable</symbol>
+        <reason>Admin table with headers and cell content. Standardize table typography.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/admin/audit-log/</path>
+        <kind>module</kind>
+        <symbol>AuditLog components</symbol>
+        <reason>Audit log UI with section titles and table content. Apply consistent typography.</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/utils.ts</path>
+        <kind>utility</kind>
+        <symbol>cn</symbol>
+        <reason>className merge utility. Will be used alongside typography.ts for combining classes.</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/badge.tsx</path>
+        <kind>ui-component</kind>
+        <symbol>Badge, StatusBadge</symbol>
+        <reason>Reference for utility pattern established in DR-7. Similar approach for typography utilities.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>tailwindcss</package>
+        <version>^4</version>
+        <usage>All typography classes (text-2xl, font-semibold, space-y-6, etc.)</usage>
+      </node>
+      <node>
+        <package>class-variance-authority</package>
+        <version>^0.7.1</version>
+        <usage>Potential use for typography variants if component-based approach chosen</usage>
+      </node>
+      <node>
+        <package>clsx</package>
+        <version>^2.1.1</version>
+        <usage>Class merging via cn() utility</usage>
+      </node>
+      <node>
+        <package>tailwind-merge</package>
+        <version>^3.4.0</version>
+        <usage>Smart Tailwind class merging in cn() utility</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="styling">Use explicit Tailwind colors (text-slate-900 not CSS variables) per DR-7 pattern</constraint>
+    <constraint type="dark-mode">All typography classes must include dark: variants (dark:text-slate-100, dark:text-slate-300, dark:text-slate-400)</constraint>
+    <constraint type="backward-compatibility">No breaking changes to existing functionality - styling only</constraint>
+    <constraint type="testing">Follow DR-7 testing pattern with comprehensive unit tests for utility classes</constraint>
+    <constraint type="architecture">Create centralized typography.ts utility - do not scatter inline classes</constraint>
+    <constraint type="consistency">Typography utility should be exported as const object for type safety</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>typography utility</name>
+      <kind>TypeScript constant object</kind>
+      <signature>
+export const typography = {
+  pageTitle: 'text-2xl font-semibold text-slate-900 dark:text-slate-100',
+  sectionTitle: 'text-lg font-medium text-slate-900 dark:text-slate-100',
+  cardTitle: 'font-medium text-slate-900 dark:text-slate-100',
+  body: 'text-sm text-slate-600 dark:text-slate-300',
+  muted: 'text-sm text-slate-500 dark:text-slate-400',
+  label: 'text-sm font-medium text-slate-700 dark:text-slate-300',
+} as const;
+      </signature>
+      <path>src/lib/typography.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>spacing utility</name>
+      <kind>TypeScript constant object</kind>
+      <signature>
+export const spacing = {
+  section: 'space-y-6',
+  card: 'p-4',
+  cardSpacious: 'p-6',
+  cardCompact: 'p-4',
+  form: 'space-y-4',
+} as const;
+      </signature>
+      <path>src/lib/typography.ts (to be created)</path>
+    </interface>
+    <interface>
+      <name>cn utility</name>
+      <kind>function</kind>
+      <signature>cn(...inputs: ClassValue[]): string</signature>
+      <path>src/lib/utils.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests with Testing Library for React components. Follow DR-7 testing pattern:
+      comprehensive unit tests for utility functions testing each class string, dark mode variants,
+      and type safety. E2E tests with Playwright for visual consistency across pages. Tests location
+      follows __tests__/ directory structure mirroring src/.
+    </standards>
+    <locations>
+      <location>__tests__/lib/typography.test.ts - Unit tests for typography utilities</location>
+      <location>__tests__/e2e/typography-consistency.spec.ts - E2E visual consistency tests</location>
+      <location>__tests__/components/ui/badge.test.tsx - Reference for testing pattern</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.8.1">Test typography.pageTitle includes 'text-2xl', 'font-semibold', 'text-slate-900', 'dark:text-slate-100'</idea>
+      <idea ac="DR.8.2">Test typography.sectionTitle includes 'text-lg', 'font-medium', 'text-slate-900'</idea>
+      <idea ac="DR.8.3">Test typography.cardTitle includes 'font-medium', 'text-slate-900'</idea>
+      <idea ac="DR.8.4">Test typography.body includes 'text-sm', 'text-slate-600', 'dark:text-slate-300'</idea>
+      <idea ac="DR.8.5">Test typography.muted includes 'text-sm', 'text-slate-500', 'dark:text-slate-400'</idea>
+      <idea ac="DR.8.6">Test typography.label includes 'text-sm', 'font-medium', 'text-slate-700'</idea>
+      <idea ac="DR.8.7">Test spacing.section equals 'space-y-6'</idea>
+      <idea ac="DR.8.8">Test spacing.card equals 'p-4' and spacing.cardSpacious equals 'p-6'</idea>
+      <idea ac="DR.8.9">Test spacing.form equals 'space-y-4'</idea>
+      <idea ac="DR.8.1-DR.8.9">E2E: Navigate all pages, verify page titles have consistent sizing</idea>
+      <idea ac="DR.8.7">E2E: Verify section gaps are consistent across settings panels</idea>
+      <idea ac="DR.8.9">E2E: Verify form field gaps in settings forms</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -4,6 +4,8 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, BarChart3, Plus, ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { typography, spacing } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 import { QuoteSelector } from '@/components/compare/quote-selector';
 import { ComparisonHistory } from '@/components/compare/comparison-history';
 import { ExtractionPendingBanner, ExtractionFailedBanner } from '@/components/compare/extraction-pending-banner';
@@ -213,12 +215,12 @@ function ComparePageContent() {
               </Button>
             )}
             <div>
-              {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
-              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              {/* Story DR.8: AC-DR.8.1 - Page title typography */}
+              <h1 className={cn(typography.pageTitle, 'flex items-center gap-2')}>
                 <BarChart3 className="h-5 w-5 text-primary" />
                 {view === 'history' ? 'Compare Quotes' : 'New Comparison'}
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className={cn(typography.muted, 'mt-1')}>
                 {view === 'history'
                   ? 'View past comparisons or create a new one'
                   : 'Select 2-4 documents to compare side-by-side'}
@@ -261,7 +263,7 @@ function ComparePageContent() {
             <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className={spacing.section}>
             {/* Story 11.7: Extraction Pending Banner (AC-11.7.2, AC-11.7.3) */}
             {showPendingBanner && (
               <ExtractionPendingBanner

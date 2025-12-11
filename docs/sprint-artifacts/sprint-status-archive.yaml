@@ -1,9 +1,9 @@
-# ARCHIVED SPRINT STATUS - EPICS 1-13
-# =====================================
+# ARCHIVED SPRINT STATUS - EPICS 1-23 + DESIGN REFRESH
+# =====================================================
 # Completed epics archived to reduce main file size.
 # Main status file: sprint-status.yaml
 # Future epics: sprint-status-future.yaml
-# Last archived: 2025-12-08
+# Last archived: 2025-12-11
 
 # Epic 1: Foundation & Infrastructure - DONE 2025-11-28
 epic-1: done
@@ -158,3 +158,125 @@ epic-13: done
 13-3-remove-document-ai: done
 13-4-testing-validation: done
 epic-13-retrospective: completed
+
+# =====================================================
+# AI BUDDY FEATURE - EPICS 14-21
+# =====================================================
+# Completed 2025-12-09
+# Planning: docs/features/ai-buddy/
+# Total: 8 Epics, ~60 Stories
+
+# Epic 14: AI Buddy Foundation - DONE 2025-12-07
+epic-14-ai-buddy-foundation: done
+14-1-database-schema: done
+14-2-api-route-structure: done
+14-3-navigation-integration: done
+14-4-page-layout-shell: done
+14-5-component-scaffolding: done
+epic-14-retrospective: completed
+
+# Epic 15: AI Buddy Core Chat - DONE 2025-12-07
+epic-15-ai-buddy-core-chat: done
+15-1-chat-input-component: done
+15-2-message-display: done
+15-3-streaming-chat-api: done
+15-4-conversation-persistence: done
+15-5-ai-response-quality-attribution: done
+epic-15-retrospective: completed
+
+# Epic 16: AI Buddy Projects - DONE 2025-12-08
+epic-16-ai-buddy-projects: done
+16-1-project-creation-sidebar: done
+16-2-project-context-switching: done
+16-3-project-management: done
+16-4-conversation-history-general-chat: done
+16-5-conversation-search: done
+16-6-conversation-management: done
+epic-16-retrospective: completed
+
+# Epic 17: AI Buddy Document Intelligence - DONE 2025-12-08
+epic-17-ai-buddy-document-intelligence: done
+17-1-document-upload-conversation-status: done
+17-2-project-document-management: done
+17-3-document-preview-multi-document-context: done
+17-4-document-processing-integration: done
+17-5-chatgpt-style-project-navigation: done
+epic-17-retrospective: completed
+
+# Epic 18: AI Buddy Personalization & Onboarding - DONE 2025-12-08
+epic-18-ai-buddy-personalization-onboarding: done
+18-1-onboarding-flow-guided-start: done
+18-2-preferences-management: done
+18-3-preference-aware-responses: done
+18-4-admin-onboarding-status: done
+epic-18-retrospective: completed
+
+# Epic 19: AI Buddy Guardrails & Compliance - DONE 2025-12-09
+epic-19-ai-buddy-guardrails-compliance: done
+19-1-guardrail-admin-ui: done
+19-2-enforcement-logging: done
+19-3-invisible-guardrail-responses: done
+19-4-ai-disclosure-message: done
+epic-19-retrospective: completed
+
+# Epic 20: AI Buddy Admin & Audit - DONE 2025-12-09
+epic-20-ai-buddy-admin-audit: done
+20-1-audit-log-infrastructure: done
+20-2-admin-user-management: done
+20-3-usage-analytics-dashboard: done
+20-4-audit-log-interface: done
+20-5-owner-management: done
+epic-20-retrospective: completed
+
+# Epic 21: Agency-Wide Admin Platform - DONE 2025-12-09
+epic-21-agency-wide-admin-platform: done
+21-1-database-migration: done
+21-2-api-route-migration: done
+21-3-component-settings-migration: done
+21-4-extend-audit-logging: done
+21-5-extend-usage-tracking: done
+21-2.5-test-consolidation: done
+epic-21-retrospective: completed
+
+# =====================================================
+# UI POLISH & REPORTING - EPICS 22-23
+# =====================================================
+
+# Epic 22: UI Polish Sprint - DONE 2025-12-09
+epic-22-ui-polish: done
+22-1-settings-tab-skeletons: done
+22-2-admin-panel-skeletons: done
+22-3-view-transitions-chart-fix: done
+22-4-spacing-standardization: done
+epic-22-retrospective: completed
+
+# Epic 23: Flexible AI Reports - DONE 2025-12-10
+epic-23-flexible-ai-reports: done
+23-1-file-upload-infrastructure: done
+23-2-data-analysis-pipeline: done
+23-3-prompt-input-ui: done
+23-4-ai-report-generation: done
+23-5-charts-visualization: done
+23-6-interactive-data-table: done
+23-7-pdf-excel-export: done
+23-8-ui-polish-testing: done
+23-9-chart-visualization-polish: done
+epic-23-retrospective: completed
+
+# =====================================================
+# DESIGN REFRESH - EPIC DR
+# =====================================================
+# Completed 2025-12-11
+
+epic-design-refresh: done
+DR-1-header-redesign: done
+DR-2-sidebar-navigation: done
+DR-3-page-layout-background: done
+DR-4-card-border-consistency: done
+DR-5-button-standardization: done
+DR-6-form-input-refinement: done
+DR-7-badge-status-system: done
+DR-8-typography-spacing: done
+DR-9-mobile-navigation: done
+DR-10-existing-pages-update: done
+epic-design-refresh-retrospective: completed

@@ -2,6 +2,55 @@
 
 These patterns ensure consistent implementation across all AI agents:
 
+## UI Component Patterns
+
+**Design System Reference:** All UI components follow the docuMINE Design System documented in `docs/architecture/uiux-architecture.md#design-system`
+
+### Typography and Spacing
+
+Always use centralized utilities from `src/lib/typography.ts`:
+
+```typescript
+import { typography, spacing } from '@/lib/typography';
+
+// Page structure
+<div className="bg-slate-50 min-h-screen">
+  <div className="max-w-5xl mx-auto p-6">
+    <h1 className={typography.pageTitle}>Page Title</h1>
+    <p className={cn(typography.muted, 'mt-1')}>Subtitle</p>
+
+    <div className={spacing.section}>
+      <Card className={spacing.cardSpacious}>
+        <CardHeader>
+          <CardTitle className={typography.cardTitle}>Section</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className={typography.body}>Content</p>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+</div>
+```
+
+### Status Badges
+
+Use `StatusBadge` for consistent status indicators:
+
+```typescript
+import { StatusBadge } from '@/components/ui/badge';
+
+// Status indicators
+<StatusBadge status="success">Complete</StatusBadge>
+<StatusBadge status="progress">Processing</StatusBadge>
+<StatusBadge status="error">Failed</StatusBadge>
+<StatusBadge status="info">Quote</StatusBadge>
+```
+
+**Available statuses:** `default`, `progress`, `success`, `info`, `special`, `error`
+
+**Reference:** Epic Design-Refresh, Stories DR.7-DR.8 (completed 2025-12-11)
+
 ## API Response Format
 
 All API responses follow this structure:

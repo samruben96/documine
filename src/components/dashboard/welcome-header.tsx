@@ -1,8 +1,12 @@
 'use client';
 
+import { typography } from '@/lib/typography';
+import { cn } from '@/lib/utils';
+
 /**
  * Welcome Header Component
  * Story 9.2: AC-9.2.2 - Welcome header with agency name
+ * Story DR.8: Typography standardization
  * Displays "Welcome to [Agency Name] space" with optional user greeting
  */
 
@@ -23,14 +27,15 @@ export function WelcomeHeader({ agencyName, userName }: WelcomeHeaderProps) {
   return (
     <div data-testid="welcome-header">
       {userName && (
-        <p className="text-sm text-muted-foreground mb-1">
+        <p className={cn(typography.muted, 'mb-1')}>
           {getGreeting()}, {userName}
         </p>
       )}
-      <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
+      {/* DR.8.1: Page title uses typography.pageTitle, sm:text-3xl override for larger screens */}
+      <h1 className={cn(typography.pageTitle, 'sm:text-3xl')}>
         Welcome to <span className="text-electric-blue">{agencyName}</span> space
       </h1>
-      <p className="mt-2 text-muted-foreground">
+      <p className={cn(typography.muted, 'mt-2')}>
         Choose a tool below to get started with your insurance documents
       </p>
     </div>

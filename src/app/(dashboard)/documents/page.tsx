@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, Upload, FolderOpen, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { typography } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 import type { DocumentType, ExtractionStatus } from '@/types';
 
 import { Button } from '@/components/ui/button';
@@ -353,11 +355,11 @@ export default function DocumentLibraryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
-              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              {/* Story DR.8: AC-DR.8.1 - Page title typography */}
+              <h1 className={typography.pageTitle}>
                 Document Library
               </h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className={cn(typography.muted, 'mt-1')}>
                 {documents.length} {documents.length === 1 ? 'document' : 'documents'}
               </p>
             </div>
@@ -465,10 +467,11 @@ export default function DocumentLibraryPage() {
             <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
               <FolderOpen className="h-12 w-12 text-slate-400" />
             </div>
-            <h2 className="text-xl font-medium text-slate-700 dark:text-slate-300">
+            {/* DR.8.2: Section title typography */}
+            <h2 className={typography.sectionTitle}>
               No documents yet
             </h2>
-            <p className="mt-2 text-sm text-slate-500 max-w-sm">
+            <p className={cn(typography.muted, 'mt-2 max-w-sm')}>
               Upload your first insurance document to get started with document analysis and comparison.
             </p>
             <Button
@@ -483,7 +486,7 @@ export default function DocumentLibraryPage() {
           // No search results
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Search className="h-12 w-12 text-slate-300" />
-            <p className="mt-4 text-sm text-slate-500">
+            <p className={cn(typography.muted, 'mt-4')}>
               No documents found matching &apos;{debouncedQuery}&apos;
             </p>
             <button

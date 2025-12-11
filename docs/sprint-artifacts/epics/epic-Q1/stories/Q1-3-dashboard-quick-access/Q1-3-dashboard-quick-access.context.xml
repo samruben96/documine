@@ -1,0 +1,203 @@
+<story-context id="Q1-3-dashboard-quick-access" v="1.0">
+  <metadata>
+    <epicId>Q1</epicId>
+    <storyId>3</storyId>
+    <title>Dashboard Quick Access Card</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q1/stories/Q1-3-dashboard-quick-access/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to see a Quoting quick access card on my dashboard</iWant>
+    <soThat>I can quickly start a new quote or view my existing quotes from my home screen</soThat>
+    <tasks>
+      <task id="1" ac="1,2,3">Add Quoting to Dashboard Tools Array
+        <subtask id="1.1">Open src/app/(dashboard)/dashboard/page.tsx</subtask>
+        <subtask id="1.2">Add Calculator to iconMap import in src/components/dashboard/tool-card.tsx</subtask>
+        <subtask id="1.3">Add Quoting tool object to TOOLS array with icon: 'Calculator', title: 'Quoting', description, href: '/quoting'</subtask>
+        <subtask id="1.4">Add 'amber' color variant to ToolCard component</subtask>
+      </task>
+      <task id="2" ac="3,6">Add Amber Color Variant to ToolCard
+        <subtask id="2.1">Open src/components/dashboard/tool-card.tsx</subtask>
+        <subtask id="2.2">Add 'amber' to ToolCardProps color union type</subtask>
+        <subtask id="2.3">Add amber colorVariant with icon: 'text-amber-600', bg: 'bg-amber-50', border: 'group-hover:border-amber-300'</subtask>
+      </task>
+      <task id="3" ac="4,5">Verify Navigation Works
+        <subtask id="3.1">Verify /quoting route exists (placeholder page from Q1-2)</subtask>
+        <subtask id="3.2">Test clicking card navigates to /quoting</subtask>
+        <subtask id="3.3">Verify hover effect shows "Get started" indicator</subtask>
+      </task>
+      <task id="4" ac="1-7">Testing
+        <subtask id="4.1">Build passes with npm run build</subtask>
+        <subtask id="4.2">Visual verification of card in grid layout</subtask>
+        <subtask id="4.3">Test responsive layout (1 col mobile, 2-3 col desktop)</subtask>
+        <subtask id="4.4">Write component test for ToolCard with amber color variant</subtask>
+        <subtask id="4.5">Update E2E test for dashboard to include Quoting card</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">Dashboard displays a "Quoting" tool card in the existing tool cards grid</criterion>
+    <criterion id="2">Card shows: Calculator icon (matching sidebar navigation), Title: "Quoting", Description: "Enter client data once, copy for any carrier portal"</criterion>
+    <criterion id="3">Card color scheme uses amber/orange to distinguish from other tools</criterion>
+    <criterion id="4">Clicking card navigates to /quoting</criterion>
+    <criterion id="5">Card includes "Get started" hover indicator (matching existing ToolCard pattern)</criterion>
+    <criterion id="6">Card styling matches existing dashboard tool cards (same height, padding, hover effects)</criterion>
+    <criterion id="7">Card appears after existing tools in the grid</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q1/tech-spec.md</path>
+        <title>Epic Q1 Technical Specification</title>
+        <section>Story Q1.3: Dashboard Quick Access Card</section>
+        <snippet>Create quoting-card.tsx component, fetch active session count, display card with title/subtitle/count, add New Quote and View All buttons, integrate into dashboard page layout.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q1/epic.md</path>
+        <title>Epic Q1: Foundation and Navigation</title>
+        <section>Story Q1.3</section>
+        <snippet>Quick access card on dashboard showing active quote count with New Quote and View All action buttons.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/prd.md</path>
+        <title>Quoting Helper PRD</title>
+        <section>FR40 - Navigation and Integration</section>
+        <snippet>FR40: Users can access quoting from the docuMINE dashboard. Clear entry point in docuMINE navigation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Helper Architecture</title>
+        <section>Project Structure</section>
+        <snippet>Dashboard integration via existing shadcn/ui Card components. Reuse existing toast notifications, form components.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/app/(dashboard)/dashboard/page.tsx</path>
+        <kind>page</kind>
+        <symbol>DashboardPage, TOOLS</symbol>
+        <lines>15-51</lines>
+        <reason>Main file to modify - add Quoting to TOOLS array. Server component that renders ToolCard grid.</reason>
+      </file>
+      <file>
+        <path>src/components/dashboard/tool-card.tsx</path>
+        <kind>component</kind>
+        <symbol>ToolCard, iconMap, colorVariants, ToolCardProps</symbol>
+        <lines>1-108</lines>
+        <reason>Component to extend - add Calculator icon to iconMap, add 'amber' color variant to colorVariants and ToolCardProps.</reason>
+      </file>
+      <file>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardContent</symbol>
+        <lines>29-50, 106-113</lines>
+        <reason>Base card component used by ToolCard. Has hoverable prop for hover effects. No modifications needed.</reason>
+      </file>
+      <file>
+        <path>src/lib/typography.ts</path>
+        <kind>utility</kind>
+        <symbol>typography, spacing</symbol>
+        <lines>27-66</lines>
+        <reason>Typography constants used by ToolCard for sectionTitle and muted text styles. No modifications needed.</reason>
+      </file>
+      <file>
+        <path>src/app/(dashboard)/quoting/page.tsx</path>
+        <kind>page</kind>
+        <symbol>QuotingPage</symbol>
+        <reason>Target navigation destination. Placeholder page already exists from Q1-2/DR.2. No modifications needed.</reason>
+      </file>
+      <file>
+        <path>__tests__/components/dashboard/tool-card.test.tsx</path>
+        <kind>test</kind>
+        <symbol>ToolCard tests</symbol>
+        <lines>1-76</lines>
+        <reason>Existing test file - add test case for amber color variant.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>lucide-react</package>
+        <version>^0.554.0</version>
+        <note>Import Calculator icon - already available in lucide-react</note>
+      </node>
+      <node>
+        <package>next</package>
+        <version>^16.0.7</version>
+        <note>Next.js App Router for page components and Link navigation</note>
+      </node>
+      <node>
+        <package>tailwindcss</package>
+        <version>^4</version>
+        <note>amber-* color classes available by default in Tailwind</note>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="pattern">ToolCard uses iconMap to resolve string icon names to Lucide components (server/client boundary pattern)</constraint>
+    <constraint type="pattern">Color variants defined in colorVariants object with icon, bg, border properties</constraint>
+    <constraint type="pattern">Dashboard is Server Component, ToolCard is Client Component ('use client')</constraint>
+    <constraint type="styling">Use typography.sectionTitle for card title, typography.muted for description</constraint>
+    <constraint type="styling">Use Card component with hoverable prop for hover effects</constraint>
+    <constraint type="layout">Grid uses responsive classes: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3</constraint>
+    <constraint type="navigation">href must match existing route /quoting</constraint>
+    <constraint type="testing">Component tests use Vitest + Testing Library with happy-dom environment</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>ToolCardProps</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface ToolCardProps { icon: string; title: string; description: string; href: string; color?: 'blue' | 'green' | 'purple' | 'emerald' | 'slate'; }</signature>
+      <path>src/components/dashboard/tool-card.tsx</path>
+      <note>Add 'amber' to color union type</note>
+    </interface>
+    <interface>
+      <name>colorVariants</name>
+      <kind>Object literal</kind>
+      <signature>const colorVariants = { blue: {...}, green: {...}, purple: {...}, emerald: {...}, slate: {...} }</signature>
+      <path>src/components/dashboard/tool-card.tsx</path>
+      <note>Add amber: { icon: 'text-amber-600', bg: 'bg-amber-50', border: 'group-hover:border-amber-300' }</note>
+    </interface>
+    <interface>
+      <name>iconMap</name>
+      <kind>Object literal</kind>
+      <signature>const iconMap: Record&lt;string, LucideIcon&gt; = { MessageSquare, GitCompare, FileText, Bot, FolderOpen }</signature>
+      <path>src/components/dashboard/tool-card.tsx</path>
+      <note>Add Calculator import and entry</note>
+    </interface>
+    <interface>
+      <name>TOOLS</name>
+      <kind>Array constant</kind>
+      <signature>const TOOLS = [{ icon, title, description, href, color }, ...]</signature>
+      <path>src/app/(dashboard)/dashboard/page.tsx</path>
+      <note>Add Quoting tool object at end of array</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Component tests use Vitest with happy-dom environment and Testing Library. Tests verify rendering, props, navigation, and visual elements. Use data-testid="tool-card" for DOM queries. Follow existing patterns in tool-card.test.tsx.
+    </standards>
+    <locations>
+      <location>__tests__/components/dashboard/tool-card.test.tsx</location>
+      <location>__tests__/e2e/</location>
+    </locations>
+    <ideas>
+      <idea ac="1,2">Test ToolCard renders with Calculator icon when icon='Calculator' is passed</idea>
+      <idea ac="3">Test ToolCard renders correctly with color='amber' variant</idea>
+      <idea ac="4">Test card link has href='/quoting'</idea>
+      <idea ac="5">Test "Get started" indicator is rendered</idea>
+      <idea ac="6">Test card uses hoverable Card component</idea>
+      <idea ac="7">E2E test: Dashboard page displays Quoting card after other tools</idea>
+    </ideas>
+  </tests>
+</story-context>

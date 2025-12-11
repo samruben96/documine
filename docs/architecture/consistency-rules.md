@@ -14,6 +14,49 @@
 | Environment variables | SCREAMING_SNAKE_CASE | `OPENAI_API_KEY` |
 | CSS classes | Tailwind utilities | `flex items-center gap-2` |
 
+## UI Component Conventions
+
+**Design System:** All UI components follow the docuMINE Design System (see `docs/architecture/uiux-architecture.md#design-system`)
+
+### Typography
+
+Use centralized typography utilities from `src/lib/typography.ts`:
+
+```typescript
+import { typography, spacing } from '@/lib/typography';
+
+// DO: Use typography constants
+<h1 className={typography.pageTitle}>Page Title</h1>
+<p className={typography.body}>Body text</p>
+
+// DON'T: Hardcode typography classes
+<h1 className="text-2xl font-semibold text-slate-900">Page Title</h1>
+```
+
+### Component Styling
+
+| Component | Required Pattern | Example |
+|-----------|------------------|---------|
+| Cards | Use Card component with explicit variant | `<Card hoverable>` for clickable cards |
+| Buttons | Use Button component with variant | `<Button variant="secondary">` |
+| Badges | Use StatusBadge for status indicators | `<StatusBadge status="success">` |
+| Forms | Use spacing.form for field gaps | `<div className={spacing.form}>` |
+| Page Layout | bg-slate-50, max-w-5xl, p-6 | See Page Layout Pattern |
+
+### Dark Mode
+
+All components must include explicit dark mode variants:
+
+```typescript
+// DO: Explicit dark mode classes
+className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+
+// DON'T: Rely on CSS variable inheritance
+className="bg-card text-foreground"
+```
+
+**Reference:** Epic Design-Refresh (DR.1-DR.10) - Completed 2025-12-11
+
 ## Code Organization
 
 | Type | Location | Pattern |

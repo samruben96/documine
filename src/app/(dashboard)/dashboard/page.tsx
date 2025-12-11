@@ -48,6 +48,13 @@ const TOOLS = [
     href: '/one-pager',
     color: 'purple' as const,
   },
+  {
+    icon: 'Calculator',
+    title: 'Quoting',
+    description: 'Enter client data once, copy for any carrier portal',
+    href: '/quoting',
+    color: 'amber' as const,
+  },
 ];
 
 export default async function DashboardPage() {

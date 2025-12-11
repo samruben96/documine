@@ -15,6 +15,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { type PlanTier } from '@/lib/constants/plans';
 import { getUsageMetrics } from './actions';
+import { typography } from '@/lib/typography';
+import { cn } from '@/lib/utils';
 
 /**
  * Settings Page
@@ -136,9 +138,10 @@ export default async function SettingsPage() {
     <div className="h-full overflow-auto">
       {/* Story 22.3: AC-22.3.2 - Settings content fades in smoothly */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 view-fade-in">
+        {/* Story DR.8: AC-DR.8.1 - Page title typography */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className={typography.pageTitle}>Settings</h1>
+          <p className={cn(typography.muted, 'mt-1')}>
             Manage your account settings and preferences
           </p>
         </div>

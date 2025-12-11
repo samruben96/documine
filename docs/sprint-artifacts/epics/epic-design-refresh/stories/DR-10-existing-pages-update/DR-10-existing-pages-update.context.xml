@@ -1,0 +1,231 @@
+<story-context id="DR-10-existing-pages-update" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.10</storyId>
+    <title>Existing Feature Pages Update</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-10-existing-pages-update/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>all existing pages updated to the new design patterns</iWant>
+    <soThat>the entire app feels cohesive and professional</soThat>
+    <tasks>
+      <task id="1" ac="DR.10.1-DR.10.7">Audit all pages for design consistency gaps</task>
+      <task id="2" ac="DR.10.1">Update Dashboard page</task>
+      <task id="3" ac="DR.10.2">Update Documents list page</task>
+      <task id="4" ac="DR.10.3">Update Document detail page</task>
+      <task id="5" ac="DR.10.4">Update Compare pages</task>
+      <task id="6" ac="DR.10.5">Update AI Buddy page</task>
+      <task id="7" ac="DR.10.6">Update Reporting page</task>
+      <task id="8" ac="DR.10.7">Update Settings page</task>
+      <task id="9" ac="DR.10.8">Dark mode regression testing</task>
+      <task id="10" ac="DR.10.9">Responsive testing across breakpoints</task>
+      <task id="11" ac="DR.10.1-DR.10.7">Write unit tests for updated components</task>
+      <task id="12" ac="DR.10.8,DR.10.9">Write E2E tests for visual consistency</task>
+      <task id="13" ac="all">Build verification and final review</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="DR.10.1">Dashboard page uses new patterns (bg-slate-50, cards, typography)</ac>
+    <ac id="DR.10.2">Documents list uses new card hover states</ac>
+    <ac id="DR.10.3">Document detail uses consistent header/back button styling</ac>
+    <ac id="DR.10.4">Compare page uses new card and button styling</ac>
+    <ac id="DR.10.5">AI Buddy uses consistent chat styling</ac>
+    <ac id="DR.10.6">Reporting uses new card and form styling</ac>
+    <ac id="DR.10.7">Settings uses new section cards and form styling</ac>
+    <ac id="DR.10.8">No visual regressions in dark mode</ac>
+    <ac id="DR.10.9">All pages responsive at all breakpoints</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md" title="Design Refresh Tech Spec" section="DR.10 - Existing Pages Update" snippet="Final sweep to apply patterns from DR.1-DR.9 to all pages. Pages: Dashboard, Documents, Compare, AI Buddy, Reporting, Settings." />
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/epic.md" title="Design Refresh Epic" section="Story DR.10" snippet="Update all existing pages with new patterns so entire app feels cohesive. Prerequisites: DR.1 through DR.8." />
+      <doc path="docs/architecture/uiux-architecture.md" title="UI/UX Architecture" section="Design Philosophy" snippet="Invisible Technology design philosophy - interface should feel like natural extension of workflow. Core principles: Zero Learning Curve, Trust Through Transparency, Clean Over Clever." />
+      <doc path="docs/features/quoting/mockups/quoting-mockup.html" title="Quoting Mockup" section="Full Document" snippet="Design reference for visual patterns: vertical sidebar nav, white cards with slate-200 borders, blue active states, clean typography." />
+    </docs>
+
+    <code>
+      <!-- Design System Components (DR.1-DR.9) -->
+      <file path="src/components/ui/card.tsx" kind="component" symbol="Card, CardHeader, CardContent" reason="Card component with hoverable prop for clickable cards (DR.4)" />
+      <file path="src/components/ui/badge.tsx" kind="component" symbol="Badge, StatusBadge, StatusType" reason="Status badge variants: draft, progress, success, info, special, error (DR.7)" />
+      <file path="src/components/ui/button.tsx" kind="component" symbol="Button" reason="Button variants with rounded-lg styling (DR.5)" />
+      <file path="src/components/ui/input.tsx" kind="component" symbol="Input" reason="Input component with refined focus states (DR.6)" />
+      <file path="src/components/ui/select.tsx" kind="component" symbol="Select" reason="Select component matching input styling (DR.6)" />
+      <file path="src/lib/typography.ts" kind="utility" symbol="typography, spacing" reason="Typography and spacing constants for consistent styling (DR.8)" />
+
+      <!-- Layout Components -->
+      <file path="src/components/layout/app-nav-sidebar.tsx" kind="component" symbol="AppNavSidebar" reason="Main navigation sidebar with active states (DR.2)" />
+      <file path="src/components/layout/sidebar.tsx" kind="component" symbol="MobileBottomNav" reason="Mobile bottom navigation (DR.9)" />
+      <file path="src/components/layout/header.tsx" kind="component" symbol="Header" reason="Redesigned header with logo and avatar dropdown (DR.1)" />
+      <file path="src/app/(dashboard)/layout.tsx" kind="layout" symbol="DashboardLayout" reason="Dashboard layout with bg-slate-50 background (DR.3)" />
+
+      <!-- Dashboard Page -->
+      <file path="src/app/(dashboard)/dashboard/page.tsx" kind="page" symbol="DashboardPage" reason="Dashboard page to audit and update (AC DR.10.1)" />
+      <file path="src/components/dashboard/welcome-header.tsx" kind="component" symbol="WelcomeHeader" reason="Dashboard welcome header - verify typography (AC DR.10.1)" />
+      <file path="src/components/dashboard/tool-card.tsx" kind="component" symbol="ToolCard" reason="Dashboard tool cards - verify hoverable Card usage (AC DR.10.1)" />
+
+      <!-- Documents Pages -->
+      <file path="src/app/(dashboard)/documents/page.tsx" kind="page" symbol="DocumentsPage" reason="Documents list page to audit (AC DR.10.2)" />
+      <file path="src/app/(dashboard)/documents/[id]/page.tsx" kind="page" symbol="DocumentDetailPage" reason="Document detail page to audit (AC DR.10.3)" />
+      <file path="src/components/documents/document-card.tsx" kind="component" symbol="DocumentCard" reason="Document card - verify hoverable variant (AC DR.10.2)" />
+      <file path="src/components/documents/document-table.tsx" kind="component" symbol="DocumentTable" reason="Document table view styling (AC DR.10.2)" />
+      <file path="src/components/documents/document-list-empty.tsx" kind="component" symbol="DocumentListEmpty" reason="Empty state typography (AC DR.10.2)" />
+      <file path="src/components/documents/document-type-toggle.tsx" kind="component" symbol="DocumentTypeToggle" reason="Type toggle button styling (AC DR.10.2)" />
+      <file path="src/components/documents/document-type-badge.tsx" kind="component" symbol="DocumentTypeBadge" reason="Document type badges - verify DR.7 variants (AC DR.10.2)" />
+      <file path="src/components/documents/extraction-status-badge.tsx" kind="component" symbol="ExtractionStatusBadge" reason="Status badges - verify DR.7 variants (AC DR.10.2)" />
+
+      <!-- Compare Pages -->
+      <file path="src/app/(dashboard)/compare/page.tsx" kind="page" symbol="ComparePage" reason="Compare selection page to audit (AC DR.10.4)" />
+      <file path="src/app/(dashboard)/compare/[id]/page.tsx" kind="page" symbol="CompareDetailPage" reason="Comparison detail page to audit (AC DR.10.4)" />
+
+      <!-- AI Buddy Page -->
+      <file path="src/app/(dashboard)/ai-buddy/page.tsx" kind="page" symbol="AIBuddyPage" reason="AI Buddy page to audit (AC DR.10.5)" />
+
+      <!-- Reporting Page -->
+      <file path="src/app/(dashboard)/reporting/page.tsx" kind="page" symbol="ReportingPage" reason="Reporting page to audit (AC DR.10.6)" />
+
+      <!-- Settings Page -->
+      <file path="src/app/(dashboard)/settings/page.tsx" kind="page" symbol="SettingsPage" reason="Settings page to audit (AC DR.10.7)" />
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="next" version="^16.0.7" />
+        <package name="react" version="19.2.0" />
+        <package name="tailwindcss" version="^4" />
+        <package name="lucide-react" version="^0.554.0" />
+        <package name="class-variance-authority" version="^0.7.1" />
+        <package name="clsx" version="^2.1.1" />
+        <package name="tailwind-merge" version="^3.4.0" />
+        <package name="next-themes" version="^0.4.6" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16" />
+        <package name="vitest" version="^4.0.14" devDep="true" />
+        <package name="@playwright/test" version="^1.57.0" devDep="true" />
+        <package name="@testing-library/react" version="^16.3.0" devDep="true" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architectural">No backend changes - this is frontend-only styling work</constraint>
+    <constraint type="architectural">Continue using shadcn/ui components - extend, don't replace</constraint>
+    <constraint type="compatibility">Maintain existing WCAG 2.1 AA accessibility compliance</constraint>
+    <constraint type="compatibility">All new styles must include dark: variants</constraint>
+    <constraint type="responsive">Maintain existing breakpoints: mobile &lt;640px, tablet 640-1024px, desktop &gt;1024px</constraint>
+    <constraint type="performance">No significant LCP/FCP regression (&lt;5KB bundle size increase)</constraint>
+    <constraint type="pattern">Use Card component with hoverable prop for all clickable cards</constraint>
+    <constraint type="pattern">Use StatusBadge component for all status indicators</constraint>
+    <constraint type="pattern">Use typography utility classes from src/lib/typography.ts</constraint>
+    <constraint type="pattern">Page backgrounds: bg-slate-50, content centering: max-w-5xl mx-auto, padding: p-6</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Card" kind="component-props">
+      <signature>Card({ className, hoverable, ...props }: CardProps)</signature>
+      <path>src/components/ui/card.tsx</path>
+      <note>hoverable prop adds hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer</note>
+    </interface>
+    <interface name="Badge" kind="component-props">
+      <signature>Badge({ className, variant, asChild, ...props })</signature>
+      <path>src/components/ui/badge.tsx</path>
+      <note>Variants: default, secondary, destructive, outline, status-default, status-progress, status-success, status-info, status-special, status-error</note>
+    </interface>
+    <interface name="StatusBadge" kind="component-props">
+      <signature>StatusBadge({ status, className, children, ...props }: { status: StatusType })</signature>
+      <path>src/components/ui/badge.tsx</path>
+      <note>StatusType: 'draft' | 'progress' | 'success' | 'info' | 'special' | 'error'</note>
+    </interface>
+    <interface name="typography" kind="utility-constants">
+      <signature>typography.pageTitle | typography.sectionTitle | typography.cardTitle | typography.body | typography.muted | typography.label</signature>
+      <path>src/lib/typography.ts</path>
+      <note>Use for consistent text styling: pageTitle=text-2xl, sectionTitle=text-lg, body=text-sm text-slate-600</note>
+    </interface>
+    <interface name="spacing" kind="utility-constants">
+      <signature>spacing.section | spacing.card | spacing.cardSpacious | spacing.form</signature>
+      <path>src/lib/typography.ts</path>
+      <note>Use for consistent spacing: section=space-y-6, card=p-4, cardSpacious=p-6, form=space-y-4</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, Playwright for E2E tests. All UI components should have unit tests covering
+      rendering, prop variations, and interactions. E2E tests verify navigation flows and responsive
+      behavior. Use @testing-library/react for component testing. Test dark mode variants. Minimum 44px
+      touch targets on mobile. WCAG 2.1 AA color contrast ratios required.
+    </standards>
+    <locations>
+      <location>__tests__/components/ui/*.test.tsx</location>
+      <location>__tests__/components/dashboard/*.test.tsx</location>
+      <location>__tests__/components/documents/*.test.tsx</location>
+      <location>__tests__/e2e/*.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.10.1">Test Dashboard page renders with bg-slate-50 background and correct typography classes</idea>
+      <idea ac="DR.10.1">Test ToolCard uses Card with hoverable prop</idea>
+      <idea ac="DR.10.2">Test document cards have hover states (hover:border-slate-300)</idea>
+      <idea ac="DR.10.2">Test DocumentTypeBadge uses StatusBadge variants</idea>
+      <idea ac="DR.10.3">Test Document detail back button styling</idea>
+      <idea ac="DR.10.4">Test Compare page card and button consistency</idea>
+      <idea ac="DR.10.5">Test AI Buddy chat styling consistency</idea>
+      <idea ac="DR.10.6">Test Reporting page form and card styling</idea>
+      <idea ac="DR.10.7">Test Settings page form inputs and buttons</idea>
+      <idea ac="DR.10.8">E2E: Toggle dark mode on each page, verify no visual breaks</idea>
+      <idea ac="DR.10.9">E2E: Test each page at 375px, 768px, 1024px, 1440px viewports</idea>
+      <idea ac="DR.10.9">E2E: Verify touch targets are minimum 44px on mobile</idea>
+    </ideas>
+    <existingTests>
+      <test path="__tests__/components/ui/card.test.tsx" desc="Card component tests including hoverable variant" />
+      <test path="__tests__/components/ui/badge.test.tsx" desc="Badge and StatusBadge variant tests" />
+      <test path="__tests__/components/ui/button.test.tsx" desc="Button variant tests" />
+      <test path="__tests__/components/ui/input.test.tsx" desc="Input focus state tests" />
+      <test path="__tests__/e2e/page-layout-consistency.spec.ts" desc="Page layout E2E tests" />
+      <test path="__tests__/e2e/card-consistency.spec.ts" desc="Card styling E2E tests" />
+      <test path="__tests__/e2e/button-consistency.spec.ts" desc="Button styling E2E tests" />
+      <test path="__tests__/e2e/form-styling-consistency.spec.ts" desc="Form styling E2E tests" />
+      <test path="__tests__/e2e/badge-styling-consistency.spec.ts" desc="Badge styling E2E tests" />
+      <test path="__tests__/e2e/typography-consistency.spec.ts" desc="Typography E2E tests" />
+      <test path="__tests__/e2e/mobile-navigation.spec.ts" desc="Mobile navigation E2E tests" />
+    </existingTests>
+  </tests>
+
+  <designPatternChecklist>
+    <pattern area="layout" name="DR.3">
+      <check>Main content area has bg-slate-50</check>
+      <check>Content uses max-w-5xl mx-auto or appropriate max-width</check>
+      <check>Page padding is p-6</check>
+      <check>Page titles use text-2xl font-semibold text-slate-900 (or typography.pageTitle)</check>
+    </pattern>
+    <pattern area="cards" name="DR.4">
+      <check>Cards have bg-white border border-slate-200 rounded-lg</check>
+      <check>Clickable cards have hoverable prop for hover states</check>
+      <check>Card padding is p-4 or p-6</check>
+    </pattern>
+    <pattern area="buttons" name="DR.5">
+      <check>Primary buttons: bg-primary text-white rounded-lg</check>
+      <check>Secondary buttons: border border-slate-200 text-slate-700 rounded-lg</check>
+      <check>All buttons have transition-colors</check>
+    </pattern>
+    <pattern area="forms" name="DR.6">
+      <check>Inputs have border-slate-200 rounded-lg</check>
+      <check>Focus state: ring-2 ring-primary/20 border-primary</check>
+      <check>Labels: text-sm font-medium text-slate-700</check>
+    </pattern>
+    <pattern area="badges" name="DR.7">
+      <check>Use Badge or StatusBadge component with appropriate variant</check>
+      <check>Color matches status meaning (success, warning, error, info, etc.)</check>
+    </pattern>
+    <pattern area="typography" name="DR.8">
+      <check>Page title: typography.pageTitle (text-2xl font-semibold text-slate-900)</check>
+      <check>Section title: typography.sectionTitle (text-lg font-medium text-slate-900)</check>
+      <check>Body text: typography.body (text-sm text-slate-600)</check>
+      <check>Muted text: typography.muted (text-sm text-slate-500)</check>
+    </pattern>
+  </designPatternChecklist>
+</story-context>
