@@ -130,7 +130,8 @@ export default function ComparisonPage() {
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
               Quote Comparison
             </h1>

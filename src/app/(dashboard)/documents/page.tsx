@@ -353,7 +353,8 @@ export default function DocumentLibraryPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold text-slate-800 dark:text-slate-100">
+              {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
+              <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
                 Document Library
               </h1>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">

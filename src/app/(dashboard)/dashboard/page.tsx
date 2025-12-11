@@ -83,7 +83,8 @@ export default async function DashboardPage() {
   return (
     <div className="h-full overflow-auto">
       {/* Story 22.3: AC-22.3.2 - Dashboard content fades in smoothly */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 view-fade-in">
+      {/* Story DR.3: AC-DR.3.2 max-w-5xl, AC-DR.3.3 p-6 */}
+      <div className="max-w-5xl mx-auto p-6 view-fade-in">
         {/* Welcome Header (AC-9.2.2) */}
         <WelcomeHeader
           agencyName={agencyName}

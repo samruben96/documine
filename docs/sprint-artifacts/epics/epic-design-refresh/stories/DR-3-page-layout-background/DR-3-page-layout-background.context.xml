@@ -1,0 +1,332 @@
+<story-context id="DR-3-page-layout-background" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.3</storyId>
+    <title>Page Layout &amp; Background Update</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-3-page-layout-background/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>consistent page layouts with slate-50 backgrounds</iWant>
+    <soThat>content cards stand out and the app feels cohesive</soThat>
+    <tasks>
+      <task id="1">Audit current page layouts (AC: DR.3.1, DR.3.2, DR.3.3)</task>
+      <task id="2">Verify layout.tsx base styles (AC: DR.3.1)</task>
+      <task id="3">Create page header component pattern (AC: DR.3.4, DR.3.5)</task>
+      <task id="4">Update Dashboard page (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="5">Update Documents list page (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="6">Update Document detail page (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="7">Update Chat w/ Docs page (AC: DR.3.2, DR.3.3)</task>
+      <task id="8">Update Compare pages (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="9">Update AI Buddy pages (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="10">Update Reporting page (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="11">Update Settings page (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="12">Update Quoting placeholder (AC: DR.3.2, DR.3.3, DR.3.4, DR.3.5)</task>
+      <task id="13">Write unit tests</task>
+      <task id="14">Write E2E tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="DR.3.1">Main content area has bg-slate-50 background</criterion>
+    <criterion id="DR.3.2">Content uses max-w-5xl mx-auto centering (or max-w-4xl where appropriate)</criterion>
+    <criterion id="DR.3.3">Page padding is p-6</criterion>
+    <criterion id="DR.3.4">Page titles use text-2xl font-semibold text-slate-900</criterion>
+    <criterion id="DR.3.5">Subtitles use text-slate-500 text-sm mt-1</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md" relevance="high">
+        Tech spec defines AC DR.3.1-DR.3.5, page layout patterns, and implementation approach.
+        Key excerpts:
+        - DR.3.1: Main content area has bg-slate-50 background
+        - DR.3.2: Content uses max-w-5xl mx-auto centering
+        - DR.3.3: Page padding is p-6
+        - DR.3.4: Page titles use text-2xl font-semibold text-slate-900
+        - DR.3.5: Subtitles use text-slate-500 text-sm mt-1
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/epic.md" relevance="high">
+        Epic overview defining story DR.3 scope and dependencies (depends on DR.2).
+      </doc>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-2-sidebar-navigation/story.md" relevance="high">
+        Previous story (status: done). Established:
+        - Layout.tsx updated with bg-slate-50 dark:bg-slate-950
+        - AppNavSidebar integration complete
+        - Flex layout structure with flex-1 overflow-hidden
+        - Testing patterns: 30 unit tests, E2E tests for navigation
+      </doc>
+      <doc path="docs/features/quoting/mockups/quoting-mockup.html" relevance="medium">
+        Design reference for page layout patterns. Lines 103-104 establish bg-slate-50 pattern.
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Layout and Shell Components -->
+      <file path="src/app/(dashboard)/layout.tsx" relevance="critical">
+        <summary>Dashboard layout wrapper - already has bg-slate-50 dark:bg-slate-950 from DR.2</summary>
+        <currentState>
+          - Main container: flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950
+          - Children rendered with flex layout
+          - MobileBottomNav included in layout
+          - AppNavSidebar integration complete
+        </currentState>
+        <requiredChanges>
+          - Verify background propagates to all child pages (Task 2)
+          - May already satisfy DR.3.1
+        </requiredChanges>
+      </file>
+
+      <!-- PageHeader Component (to be created) -->
+      <file path="src/components/layout/page-header.tsx" relevance="high" exists="false">
+        <summary>Reusable PageHeader component to be created (Task 3)</summary>
+        <proposedInterface>
+          interface PageHeaderProps {
+            title: string;
+            subtitle?: string;
+            actions?: React.ReactNode;
+          }
+        </proposedInterface>
+        <proposedClasses>
+          - Container: flex items-start justify-between mb-6
+          - Title: text-2xl font-semibold text-slate-900 dark:text-slate-100
+          - Subtitle: text-slate-500 text-sm mt-1
+          - Actions: flex items-center gap-2
+        </proposedClasses>
+      </file>
+
+      <!-- Standard Layout Pages (max-w-5xl mx-auto p-6 pattern) -->
+      <file path="src/app/(dashboard)/dashboard/page.tsx" relevance="high">
+        <summary>Dashboard page - welcome header + tool cards grid</summary>
+        <currentState>
+          - Container: h-full overflow-auto
+          - Content: max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 (not standard)
+          - Uses WelcomeHeader and ToolCard components
+        </currentState>
+        <requiredChanges>
+          - Update to max-w-5xl mx-auto p-6 pattern (DR.3.2, DR.3.3)
+          - Verify page title typography matches DR.3.4
+        </requiredChanges>
+      </file>
+
+      <file path="src/app/(dashboard)/settings/page.tsx" relevance="high">
+        <summary>Settings page - tabs interface with admin-only sections</summary>
+        <currentState>
+          - Container: h-full overflow-auto
+          - Content: max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6
+          - Title: text-2xl font-semibold text-slate-900 (ALREADY CORRECT for DR.3.4)
+          - Subtitle: text-sm text-slate-500 mt-1 (ALREADY CORRECT for DR.3.5)
+        </currentState>
+        <requiredChanges>
+          - Already follows most patterns
+          - Verify p-6 padding pattern is consistent
+        </requiredChanges>
+      </file>
+
+      <file path="src/app/(dashboard)/quoting/page.tsx" relevance="high">
+        <summary>Quoting placeholder page - "Coming Soon" card</summary>
+        <currentState>
+          - Container: h-full overflow-auto
+          - Content: max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12
+          - Uses view-fade-in animation class
+          - Dark mode support present
+        </currentState>
+        <requiredChanges>
+          - Update to max-w-5xl mx-auto p-6 or keep max-w-4xl (appropriate for placeholder)
+          - Standardize padding to p-6
+        </requiredChanges>
+      </file>
+
+      <!-- Full-Height / Custom Layout Pages -->
+      <file path="src/app/(dashboard)/reporting/page.tsx" relevance="high">
+        <summary>Reporting page - full-height flex layout with upload workflow</summary>
+        <currentState>
+          - Container: flex flex-col h-full
+          - Header: border-b border-slate-200 bg-white px-6 py-4
+          - Title: text-xl font-semibold text-slate-900 (close but not text-2xl)
+          - Subtitle: text-sm text-slate-500 mt-1 (correct for DR.3.5)
+          - Content: flex-1 overflow-auto p-6 (padding correct)
+          - Inner: mx-auto max-w-2xl (narrower due to form content)
+        </currentState>
+        <requiredChanges>
+          - Update title to text-2xl for DR.3.4
+          - Keep max-w-2xl as appropriate for form-focused UI
+        </requiredChanges>
+      </file>
+
+      <file path="src/app/(dashboard)/compare/page.tsx" relevance="high">
+        <summary>Compare page - history view + new comparison flow</summary>
+        <currentState>
+          - Container: flex flex-col h-full
+          - Header: border-b bg-white dark:bg-slate-900 px-6 py-4
+          - Title: text-xl font-semibold (close but not text-2xl)
+          - Content: flex-1 overflow-auto p-6 (padding correct)
+          - No max-width centering (full width for table/grid layout)
+        </currentState>
+        <requiredChanges>
+          - Update title to text-2xl for DR.3.4
+          - Consider max-w-5xl for content centering or keep full-width for table
+        </requiredChanges>
+      </file>
+
+      <file path="src/app/(dashboard)/ai-buddy/page.tsx" relevance="high">
+        <summary>AI Buddy page - full-height chat interface</summary>
+        <currentState>
+          - Uses DocumentUploadZone wrapper with h-full bg-slate-50
+          - Chat messages area: flex-1 overflow-hidden
+          - Quick actions: max-w-3xl w-full (narrow for chat)
+          - Input area: max-w-3xl mx-auto
+          - Title in welcome: text-2xl font-semibold text-slate-900 (CORRECT for DR.3.4)
+        </currentState>
+        <requiredChanges>
+          - Already has bg-slate-50 (DR.3.1 satisfied)
+          - Chat interface should maintain full-height layout
+          - No max-w-5xl needed (chat has its own centering)
+        </requiredChanges>
+      </file>
+
+      <file path="src/app/(dashboard)/documents/page.tsx" relevance="high">
+        <summary>Document Library page - table view with search/filters</summary>
+        <currentState>
+          - Container: min-h-[calc(100vh-3.5rem)] bg-slate-50 dark:bg-slate-950
+          - Header: bg-white border-b with max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6
+          - Title: text-2xl font-semibold text-slate-800 (close - should be slate-900)
+          - Table area: max-w-7xl mx-auto (wider for table)
+        </currentState>
+        <requiredChanges>
+          - Update title color to text-slate-900 for DR.3.4
+          - Keep max-w-7xl for table layout (appropriate)
+          - Already has bg-slate-50 (DR.3.1 satisfied)
+        </requiredChanges>
+      </file>
+
+      <!-- Existing Layout Components -->
+      <file path="src/components/layout/header.tsx" relevance="medium">
+        <summary>Header component - updated in DR.1 with logo, bell, avatar</summary>
+      </file>
+
+      <file path="src/components/layout/app-nav-sidebar.tsx" relevance="medium">
+        <summary>Sidebar navigation - created in DR.2 with full app navigation</summary>
+      </file>
+
+      <file path="src/components/dashboard/welcome-header.tsx" relevance="medium">
+        <summary>Welcome header for dashboard - may need typography updates</summary>
+      </file>
+
+      <!-- Test Files -->
+      <file path="__tests__/components/layout/app-nav-sidebar.test.tsx" relevance="medium">
+        <summary>30 unit tests for sidebar - pattern reference for DR.3 tests</summary>
+      </file>
+
+      <file path="__tests__/e2e/sidebar-navigation.spec.ts" relevance="medium">
+        <summary>E2E tests for navigation - pattern reference for DR.3 E2E tests</summary>
+      </file>
+    </code>
+
+    <dependencies>
+      <dependency name="tailwindcss" version="^4" usage="All styling via Tailwind classes" />
+      <dependency name="class-variance-authority" version="^0.7.1" usage="Component variants if PageHeader uses cva" />
+      <dependency name="clsx" version="^2.1.1" usage="className utilities" />
+      <dependency name="tailwind-merge" version="^3.4.0" usage="Merging Tailwind classes" />
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architectural">No breaking changes - all existing functionality must work identically</constraint>
+    <constraint type="styling">All new styles must include dark mode variants (dark: prefix)</constraint>
+    <constraint type="responsive">Maintain existing breakpoint behavior (mobile &lt; 640px, tablet 640-1024px, desktop &gt; 1024px)</constraint>
+    <constraint type="accessibility">Maintain existing WCAG 2.1 AA compliance; no regressions</constraint>
+    <constraint type="performance">No additional bundle size beyond CSS class changes</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="PageHeaderProps">
+      <description>Props for the reusable PageHeader component</description>
+      <definition>
+interface PageHeaderProps {
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+}
+      </definition>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      <standard>Unit tests with Vitest + Testing Library</standard>
+      <standard>E2E tests with Playwright</standard>
+      <standard>Test files in __tests__/ mirroring src/ structure</standard>
+      <standard>Visual regression testing with Playwright screenshots (recommended)</standard>
+    </standards>
+    <locations>
+      <location>__tests__/components/layout/page-header.test.tsx (new)</location>
+      <location>__tests__/e2e/page-layout.spec.ts (new)</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.3.1">Visual test: Verify bg-slate-50 background on multiple pages</idea>
+      <idea ac="DR.3.2">Visual test: Verify content centering with max-w-5xl on wide screens</idea>
+      <idea ac="DR.3.3">Visual test: Verify p-6 padding consistency</idea>
+      <idea ac="DR.3.4">Unit test: PageHeader renders title with text-2xl font-semibold text-slate-900 classes</idea>
+      <idea ac="DR.3.5">Unit test: PageHeader renders subtitle with text-slate-500 text-sm mt-1 classes</idea>
+      <idea>Unit test: PageHeader renders actions slot when provided</idea>
+      <idea>Unit test: PageHeader dark mode class variants (dark:text-slate-100, dark:text-slate-400)</idea>
+      <idea>E2E test: Navigate to each page and verify no layout regression</idea>
+      <idea>E2E test: Dark mode toggle preserves layout styling</idea>
+    </ideas>
+  </tests>
+
+  <currentPageAudit>
+    <page route="/dashboard" status="needs-update">
+      <current>max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8</current>
+      <target>max-w-5xl mx-auto p-6</target>
+      <notes>WelcomeHeader component may need title typography check</notes>
+    </page>
+    <page route="/settings" status="mostly-compliant">
+      <current>max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6, title correct</current>
+      <target>Verify padding consistency</target>
+      <notes>Title and subtitle already correct (text-2xl font-semibold, text-sm text-slate-500 mt-1)</notes>
+    </page>
+    <page route="/quoting" status="mostly-compliant">
+      <current>max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12</current>
+      <target>max-w-5xl mx-auto p-6 or keep max-w-4xl</target>
+      <notes>Placeholder page - dark mode support present</notes>
+    </page>
+    <page route="/reporting" status="needs-update">
+      <current>flex flex-col h-full, title text-xl</current>
+      <target>Update title to text-2xl</target>
+      <notes>Keep max-w-2xl for form-focused content; padding p-6 already correct</notes>
+    </page>
+    <page route="/compare" status="needs-update">
+      <current>flex flex-col h-full, title text-xl</current>
+      <target>Update title to text-2xl</target>
+      <notes>Full-width for table layout appropriate; p-6 padding correct</notes>
+    </page>
+    <page route="/ai-buddy" status="compliant">
+      <current>bg-slate-50, text-2xl title in welcome</current>
+      <target>No changes needed</target>
+      <notes>Chat interface has its own layout; already follows patterns</notes>
+    </page>
+    <page route="/documents" status="needs-update">
+      <current>bg-slate-50, max-w-7xl, title text-slate-800</current>
+      <target>Update title color to text-slate-900</target>
+      <notes>Keep max-w-7xl for table; bg-slate-50 already present</notes>
+    </page>
+    <page route="/documents/[id]" status="to-audit">
+      <notes>Uses SplitView - apply padding to content area, not container</notes>
+    </page>
+    <page route="/chat-docs/[id]" status="to-audit">
+      <notes>Full-height chat interface - preserve functionality</notes>
+    </page>
+    <page route="/compare/[id]" status="to-audit">
+      <notes>Comparison detail - full-height layout</notes>
+    </page>
+    <page route="/one-pager" status="to-audit">
+      <notes>One-pager generation page - check layout</notes>
+    </page>
+  </currentPageAudit>
+</story-context>

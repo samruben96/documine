@@ -70,9 +70,9 @@ export function ToolCard({
   return (
     <Link href={href} className="group block">
       <Card
+        hoverable
         className={cn(
-          'h-full cursor-pointer transition-all duration-200',
-          'hover:shadow-lg hover:-translate-y-1',
+          'h-full',
           colors.border
         )}
         data-testid="tool-card"

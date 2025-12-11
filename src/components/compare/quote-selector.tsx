@@ -295,6 +295,7 @@ function QuoteCard({
 
   const card = (
     <Card
+      hoverable={!isDisabled}
       role="checkbox"
       aria-checked={isSelected}
       aria-disabled={isDisabled}
@@ -307,12 +308,10 @@ function QuoteCard({
         }
       }}
       className={cn(
-        'relative cursor-pointer transition-all duration-150',
+        'relative',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         // Selected state - AC-7.1.1
         isSelected && 'border-2 border-primary bg-blue-50 dark:bg-blue-950/30 shadow-sm',
-        // Unselected state
-        !isSelected && !isDisabled && 'border border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600',
         // Disabled state - AC-7.1.5
         isDisabled && !isSelected && 'opacity-50 cursor-not-allowed',
         // Processing state

@@ -1,0 +1,269 @@
+<story-context id="DR-4-card-border-consistency" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.4</storyId>
+    <title>Card &amp; Border Consistency</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-4-card-border-consistency/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>consistent card styling across all features</iWant>
+    <soThat>the interface feels unified and polished</soThat>
+    <tasks>
+      <task id="1" ac="DR.4.1,DR.4.2,DR.4.3">Audit current card component and usages</task>
+      <task id="2" ac="DR.4.1,DR.4.2,DR.4.3,DR.4.5">Update Card component base styles</task>
+      <task id="3" ac="DR.4.4">Add hoverable card variant</task>
+      <task id="4" ac="DR.4.1-DR.4.5">Update Document cards</task>
+      <task id="5" ac="DR.4.1-DR.4.5">Update Dashboard cards</task>
+      <task id="6" ac="DR.4.1-DR.4.5">Update Settings section cards</task>
+      <task id="7" ac="DR.4.1-DR.4.5">Update AI Buddy cards</task>
+      <task id="8" ac="DR.4.1-DR.4.5">Update Comparison cards</task>
+      <task id="9" ac="DR.4.1-DR.4.5">Update Reporting cards</task>
+      <task id="10" ac="DR.4.2">Audit non-Card bordered containers</task>
+      <task id="11" ac="DR.4.1-DR.4.5">Write unit tests for Card component</task>
+      <task id="12" ac="DR.4.1-DR.4.5">Write E2E visual tests</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="DR.4.1">Cards have bg-white background</criterion>
+    <criterion id="DR.4.2">Cards have border border-slate-200</criterion>
+    <criterion id="DR.4.3">Cards have rounded-lg corners</criterion>
+    <criterion id="DR.4.4">Clickable cards have hover:border-slate-300 hover:shadow-sm transition-all</criterion>
+    <criterion id="DR.4.5">Card padding is p-4 or p-6 (context-dependent)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md</path>
+        <title>Epic Technical Specification: docuMINE Design Refresh</title>
+        <section>DR.4 - Card &amp; Border Consistency</section>
+        <snippet>Cards have bg-white background, border border-slate-200, rounded-lg corners. Clickable cards have hover:border-slate-300 hover:shadow-sm transition-all.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/epic.md</path>
+        <title>Epic: docuMINE Design Refresh</title>
+        <section>Story DR.4: Card &amp; Border Consistency</section>
+        <snippet>Update all card styling: bg-white, border-slate-200, rounded-lg, p-4/p-6, hover states for clickable cards.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/mockups/quoting-mockup.html</path>
+        <title>Quoting Mockup</title>
+        <section>Card Styling Patterns</section>
+        <snippet>Reference mockup for card styling: white background, slate-200 borders, rounded-lg, hover transitions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-3-page-layout-background/story.md</path>
+        <title>Story DR.3: Page Layout &amp; Background Update</title>
+        <section>Learnings - Previous Story Context</section>
+        <snippet>Background is bg-slate-50 - cards need bg-white to contrast. PageHeader component created. Testing: 16 unit tests + E2E.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <!-- Core Card Component -->
+      <file>
+        <path>src/components/ui/card.tsx</path>
+        <kind>component</kind>
+        <symbol>Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription, CardAction</symbol>
+        <reason>Primary component to modify - update base styles, add hoverable prop</reason>
+        <currentState>
+          - Uses bg-card (theme variable) instead of explicit bg-white
+          - Uses rounded-xl instead of rounded-lg
+          - Uses py-6 padding instead of p-4/p-6
+          - Always has shadow-sm and hover:shadow-md (should be conditional)
+        </currentState>
+      </file>
+
+      <!-- Document Cards -->
+      <file>
+        <path>src/components/documents/document-card.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentCard</symbol>
+        <lines>90-109</lines>
+        <reason>Uses Card component - clickable, needs hoverable prop. Current hover: hover:border-primary/50 hover:shadow-md</reason>
+      </file>
+
+      <!-- Dashboard Cards -->
+      <file>
+        <path>src/components/dashboard/tool-card.tsx</path>
+        <kind>component</kind>
+        <symbol>ToolCard</symbol>
+        <lines>70-105</lines>
+        <reason>Uses Card component - clickable, needs hoverable prop. Current hover: hover:shadow-lg hover:-translate-y-1</reason>
+      </file>
+
+      <!-- Admin/Stats Cards -->
+      <file>
+        <path>src/components/admin/analytics/usage-stat-card.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageStatCard</symbol>
+        <reason>Uses Card component - non-interactive stats display</reason>
+      </file>
+
+      <!-- Settings Tabs (use Card) -->
+      <file>
+        <path>src/components/settings/branding-form.tsx</path>
+        <kind>component</kind>
+        <symbol>BrandingForm</symbol>
+        <reason>Uses Card for form sections - non-interactive</reason>
+      </file>
+      <file>
+        <path>src/components/settings/usage-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>UsageTab</symbol>
+        <reason>Uses Card for settings sections</reason>
+      </file>
+
+      <!-- AI Buddy Cards -->
+      <file>
+        <path>src/components/ai-buddy/admin/guardrail-admin-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>GuardrailAdminPanel</symbol>
+        <reason>Uses Card for admin sections - non-interactive</reason>
+      </file>
+      <file>
+        <path>src/components/ai-buddy/documents/document-panel.tsx</path>
+        <kind>component</kind>
+        <symbol>DocumentPanel</symbol>
+        <reason>Uses Card for document display</reason>
+      </file>
+
+      <!-- Reporting Cards -->
+      <file>
+        <path>src/components/reporting/report-view.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportView</symbol>
+        <reason>Uses Card for report sections and charts</reason>
+      </file>
+      <file>
+        <path>src/components/reporting/report-chart.tsx</path>
+        <kind>component</kind>
+        <symbol>ReportChart</symbol>
+        <reason>Uses Card for chart containers</reason>
+      </file>
+
+      <!-- Compare Cards -->
+      <file>
+        <path>src/components/compare/quote-selector.tsx</path>
+        <kind>component</kind>
+        <symbol>QuoteSelector</symbol>
+        <reason>Uses Card for quote selection - clickable</reason>
+      </file>
+
+      <!-- One-Pager Cards -->
+      <file>
+        <path>src/components/one-pager/one-pager-preview.tsx</path>
+        <kind>component</kind>
+        <symbol>OnePagerPreview</symbol>
+        <reason>Uses Card for preview sections</reason>
+      </file>
+
+      <!-- Existing Card Tests -->
+      <file>
+        <path>__tests__/components/documents/document-card.test.tsx</path>
+        <kind>test</kind>
+        <symbol>DocumentCard tests</symbol>
+        <reason>Update tests for new hover behavior</reason>
+      </file>
+      <file>
+        <path>__tests__/components/dashboard/tool-card.test.tsx</path>
+        <kind>test</kind>
+        <symbol>ToolCard tests</symbol>
+        <reason>Update tests for new hover behavior</reason>
+      </file>
+      <file>
+        <path>__tests__/components/admin/analytics/usage-stat-card.test.tsx</path>
+        <kind>test</kind>
+        <symbol>UsageStatCard tests</symbol>
+        <reason>Verify Card styling consistency</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>tailwindcss</package>
+        <version>^4</version>
+        <usage>All styling via Tailwind CSS classes</usage>
+      </node>
+      <node>
+        <package>class-variance-authority</package>
+        <version>^0.7.1</version>
+        <usage>CVA for Card component variants (add hoverable variant)</usage>
+      </node>
+      <node>
+        <package>clsx</package>
+        <version>^2.1.1</version>
+        <usage>Conditional class merging in components</usage>
+      </node>
+      <node>
+        <package>tailwind-merge</package>
+        <version>^3.4.0</version>
+        <usage>Merge Tailwind classes without conflicts</usage>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>CardProps</name>
+      <kind>component interface</kind>
+      <signature>
+interface CardProps extends React.ComponentProps&lt;"div"&gt; {
+  hoverable?: boolean;  // NEW: adds hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer
+}
+      </signature>
+      <path>src/components/ui/card.tsx</path>
+    </interface>
+    <interface>
+      <name>cn utility</name>
+      <kind>function</kind>
+      <signature>cn(...inputs: ClassValue[]): string</signature>
+      <path>src/lib/utils.ts</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="pattern">Use explicit bg-white instead of bg-card theme variable for consistency</constraint>
+    <constraint type="pattern">Use border-slate-200 for all card borders (dark mode: dark:border-slate-700)</constraint>
+    <constraint type="pattern">Use rounded-lg for all cards (not rounded-xl)</constraint>
+    <constraint type="pattern">Default cards have no shadow; hoverable cards get shadow on hover only</constraint>
+    <constraint type="backwards-compat">Existing card usages must continue working - hoverable is optional prop</constraint>
+    <constraint type="dark-mode">All new classes must include dark mode variants</constraint>
+    <constraint type="a11y">Maintain existing focus states and keyboard accessibility</constraint>
+    <constraint type="testing">Follow testing pattern from DR-3: unit tests + E2E visual tests</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      - Use Vitest for unit tests, Playwright for E2E
+      - Follow Testing Library best practices (query by role, test behavior not implementation)
+      - Create tests in __tests__/components/ui/card.test.tsx for Card component
+      - E2E visual tests in __tests__/e2e/ for screenshot comparisons
+      - Target: similar coverage to DR-3 (16+ unit tests)
+    </standards>
+    <locations>
+      <location>__tests__/components/ui/card.test.tsx</location>
+      <location>__tests__/components/documents/document-card.test.tsx</location>
+      <location>__tests__/components/dashboard/tool-card.test.tsx</location>
+      <location>__tests__/e2e/card-consistency.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.4.1">Test Card renders with bg-white class</idea>
+      <idea ac="DR.4.2">Test Card renders with border-slate-200 class</idea>
+      <idea ac="DR.4.3">Test Card renders with rounded-lg class (not rounded-xl)</idea>
+      <idea ac="DR.4.4">Test hoverable=true adds hover:border-slate-300 hover:shadow-sm classes</idea>
+      <idea ac="DR.4.4">Test hoverable=false or undefined does NOT add hover classes</idea>
+      <idea ac="DR.4.5">Test CardContent padding is p-4 or p-6</idea>
+      <idea ac="DR.4.1-DR.4.3">Test dark mode classes are present (dark:bg-slate-900, dark:border-slate-700)</idea>
+      <idea ac="DR.4.1-DR.4.5">E2E: Screenshot test card appearance on Documents page</idea>
+      <idea ac="DR.4.1-DR.4.5">E2E: Screenshot test card appearance on Dashboard</idea>
+      <idea ac="DR.4.4">E2E: Test hover state visual change on clickable cards</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -184,8 +184,9 @@ export default function ReportingPage() {
         </a>
 
         {/* Header */}
+        {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
         <div className="border-b border-slate-200 bg-white px-6 py-4">
-          <h1 className="text-xl font-semibold text-slate-900">Data Reports</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Data Reports</h1>
           <p className="mt-1 text-sm text-slate-500">
             Upload any data file and let AI generate insights and visualizations
           </p>
@@ -212,8 +213,9 @@ export default function ReportingPage() {
       </a>
 
       {/* Header */}
+      {/* Story DR.3: AC-DR.3.4 - text-2xl font-semibold text-slate-900 */}
       <div className="border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-xl font-semibold text-slate-900">Data Reports</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Data Reports</h1>
         <p className="mt-1 text-sm text-slate-500">
           Upload any data file and let AI generate insights and visualizations
         </p>

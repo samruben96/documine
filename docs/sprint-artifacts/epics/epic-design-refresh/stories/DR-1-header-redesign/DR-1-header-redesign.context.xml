@@ -1,0 +1,170 @@
+<story-context id="DR-1-header-redesign" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.1</storyId>
+    <title>Header Redesign</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-1-header-redesign/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>a clean, minimal header with the new logo treatment</iWant>
+    <soThat>the app feels more polished and professional</soThat>
+    <tasks>
+      <task id="1" ac="DR.1.1,DR.1.2,DR.1.3">Create logo icon component
+        <subtask>1.1 Add blue square container (w-8 h-8, bg-primary, rounded-lg)</subtask>
+        <subtask>1.2 Add "dM" text inside with white color and bold styling</subtask>
+        <subtask>1.3 Add "docuMINE" text next to logo (font-semibold text-lg)</subtask>
+        <subtask>1.4 Wrap in Link component pointing to /dashboard</subtask>
+      </task>
+      <task id="2" ac="DR.1.4">Add notification bell placeholder
+        <subtask>2.1 Import Bell icon from lucide-react</subtask>
+        <subtask>2.2 Add ghost button with Bell icon on right side of header</subtask>
+        <subtask>2.3 Add aria-label="Notifications (coming soon)" for accessibility</subtask>
+      </task>
+      <task id="3" ac="DR.1.5,DR.1.6">Create user avatar with dropdown
+        <subtask>3.1 Create helper function to derive initials from user email</subtask>
+        <subtask>3.2 Add avatar circle (w-8 h-8, rounded-full, bg-slate-200)</subtask>
+        <subtask>3.3 Display initials inside avatar (text-sm font-medium text-slate-600)</subtask>
+        <subtask>3.4 Import DropdownMenu components from @radix-ui</subtask>
+        <subtask>3.5 Wrap avatar in DropdownMenuTrigger</subtask>
+        <subtask>3.6 Add DropdownMenuContent with Logout option</subtask>
+        <subtask>3.7 Wire up existing handleLogout function to dropdown item</subtask>
+      </task>
+      <task id="4" ac="DR.1.7">Remove horizontal navigation
+        <subtask>4.1 Remove NavLinks component usage from desktop nav</subtask>
+        <subtask>4.2 Remove navItems array (will move to sidebar in DR.2)</subtask>
+        <subtask>4.3 Remove the desktop nav element with navigation links</subtask>
+      </task>
+      <task id="5" ac="DR.1.8,DR.1.9">Update header styling
+        <subtask>5.1 Ensure header height is h-14</subtask>
+        <subtask>5.2 Update border class to border-b border-slate-200</subtask>
+        <subtask>5.3 Ensure white background (bg-white)</subtask>
+        <subtask>5.4 Update dark mode classes for consistency</subtask>
+      </task>
+      <task id="6" ac="DR.1.10">Update mobile menu behavior
+        <subtask>6.1 Remove right-side Sheet menu for mobile navigation</subtask>
+        <subtask>6.2 Keep SidebarToggle for opening left-side sidebar</subtask>
+        <subtask>6.3 Update hamburger to trigger sidebar (prepare for DR.2 integration)</subtask>
+        <subtask>6.4 Remove mobile Sheet trigger button and SheetContent</subtask>
+      </task>
+      <task id="7" ac="all">Write unit tests
+        <subtask>7.1 Test logo renders with correct classes</subtask>
+        <subtask>7.2 Test logo links to /dashboard</subtask>
+        <subtask>7.3 Test bell icon is present with correct aria-label</subtask>
+        <subtask>7.4 Test avatar displays initials from email</subtask>
+        <subtask>7.5 Test dropdown opens on avatar click</subtask>
+        <subtask>7.6 Test logout option is present in dropdown</subtask>
+        <subtask>7.7 Test navigation links are NOT present</subtask>
+      </task>
+      <task id="8" ac="all">Update E2E tests
+        <subtask>8.1 Update any tests that relied on header navigation links</subtask>
+        <subtask>8.2 Add test for avatar dropdown logout flow</subtask>
+        <subtask>8.3 Test header renders correctly at mobile breakpoint</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="DR.1.1">Header displays blue square logo (w-8 h-8, bg-primary, rounded-lg) with "dM" text inside</ac>
+    <ac id="DR.1.2">"docuMINE" text appears next to logo with font-semibold text-lg styling</ac>
+    <ac id="DR.1.3">Logo + text links to /dashboard</ac>
+    <ac id="DR.1.4">Notification bell icon appears on right side of header</ac>
+    <ac id="DR.1.5">User avatar circle displays user initials (derived from email)</ac>
+    <ac id="DR.1.6">Clicking avatar opens dropdown menu with "Logout" option</ac>
+    <ac id="DR.1.7">Horizontal navigation links are removed from header</ac>
+    <ac id="DR.1.8">Header height is h-14 (56px)</ac>
+    <ac id="DR.1.9">Header has white background with slate-200 bottom border</ac>
+    <ac id="DR.1.10">Mobile hamburger menu opens sidebar (not separate Sheet menu)</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md" title="Epic Tech Spec" section="DR.1 - Header Redesign" snippet="Target implementation with logo icon, avatar dropdown, and notification bell. Includes detailed component structure and styling requirements." />
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/epic.md" title="Epic Definition" section="Story DR.1" snippet="Header redesign requirements with acceptance criteria and technical notes for header.tsx refactor." />
+      <doc path="docs/features/quoting/mockups/quoting-mockup.html" title="Design Reference Mockup" section="Header" snippet="Reference design showing blue square logo, minimal header with bell and avatar. Lines 77-102 of mockup." />
+      <doc path="docs/architecture/uiux-architecture.md" title="UI/UX Architecture" section="Layout Architecture" snippet="Defines header as top navigation bar in component hierarchy. Includes responsive breakpoints and accessibility requirements." />
+    </docs>
+    <code>
+      <file path="src/components/layout/header.tsx" kind="component" symbol="Header" reason="Primary file to refactor - current implementation with text logo and horizontal nav links">
+        <current-state>
+          - Text-only "docuMINE" logo
+          - NavLinks component with horizontal navigation
+          - navItems array with 5 navigation items
+          - Mobile Sheet menu (right-side)
+          - SidebarToggle already imported
+          - handleLogout function exists
+        </current-state>
+      </file>
+      <file path="src/components/layout/sidebar.tsx" kind="component" symbol="SidebarToggle, useSidebar" lines="130-148" reason="SidebarToggle already exists - reuse for mobile hamburger. useSidebar hook provides isOpen/setIsOpen state." />
+      <file path="src/components/ui/dropdown-menu.tsx" kind="component" symbol="DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem" reason="shadcn/ui dropdown component - use for avatar menu. Already styled and accessible." />
+      <file path="src/components/ui/button.tsx" kind="component" symbol="Button, buttonVariants" reason="Button component with ghost variant for bell and avatar buttons. Icon size variant (size='icon') available." />
+      <file path="src/app/(auth)/login/actions.ts" kind="action" symbol="logout" reason="Existing logout server action - import and use in avatar dropdown." />
+      <file path="__tests__/components/layout/mobile-document-chat-tabs.test.tsx" kind="test" reason="Existing layout test - reference for testing patterns. May need updates if header changes affect mobile layout." />
+    </code>
+    <dependencies>
+      <node>
+        <package name="lucide-react" version="^0.554.0" use="Bell, LogOut icons for header" />
+        <package name="@radix-ui/react-dropdown-menu" version="^2.1.16" use="Avatar dropdown menu" />
+        <package name="next" version="^16.0.7" use="Link component for logo navigation" />
+        <package name="class-variance-authority" version="^0.7.1" use="Button variants" />
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="styling">All new classes must include dark: variants where applicable (dark:bg-slate-900, dark:border-slate-800, dark:text-slate-400)</constraint>
+    <constraint type="accessibility">Bell icon must have aria-label="Notifications (coming soon)". Avatar button must have aria-label for screen readers.</constraint>
+    <constraint type="responsive">Header must remain h-14 at all breakpoints. SidebarToggle shown only on lg:hidden.</constraint>
+    <constraint type="architecture">Do NOT move navigation to sidebar in this story - that's DR.2. Just remove nav from header and keep SidebarToggle.</constraint>
+    <constraint type="testing">Must not break existing tests. Update any tests that rely on header navigation links.</constraint>
+    <constraint type="performance">No new dependencies required. All icons from lucide-react already bundled.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Header" kind="component" path="src/components/layout/header.tsx">
+      <signature>export function Header(): JSX.Element</signature>
+      <notes>No props required. Uses usePathname for route info, uses logout action, uses useSidebar hook.</notes>
+    </interface>
+    <interface name="getUserInitials" kind="function" path="src/components/layout/header.tsx">
+      <signature>function getUserInitials(email: string): string</signature>
+      <notes>New helper function. Returns 2-char initials from email. Falls back to first 2 chars if no separator found.</notes>
+    </interface>
+    <interface name="DropdownMenu" kind="component" path="src/components/ui/dropdown-menu.tsx">
+      <signature>DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem</signature>
+      <notes>Use asChild on DropdownMenuTrigger to wrap Button. align="end" on DropdownMenuContent.</notes>
+    </interface>
+    <interface name="logout" kind="server-action" path="src/app/(auth)/login/actions.ts">
+      <signature>export async function logout(): Promise&lt;void&gt;</signature>
+      <notes>Existing action. Handles redirect after logout.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest with @testing-library/react for unit tests. Playwright for E2E tests.
+      Component tests use render() with necessary providers.
+      Mock Supabase client and Next.js router as needed.
+      Follow existing patterns in __tests__/components/ directory.
+    </standards>
+    <locations>
+      <location>__tests__/components/layout/header.test.tsx (new file)</location>
+      <location>__tests__/e2e/header.spec.ts (new file)</location>
+    </locations>
+    <ideas>
+      <idea ac="DR.1.1,DR.1.2">Test logo icon container has correct Tailwind classes (w-8, h-8, bg-primary, rounded-lg)</idea>
+      <idea ac="DR.1.3">Test Link wrapping logo has href="/dashboard"</idea>
+      <idea ac="DR.1.4">Test Bell icon is rendered with aria-label containing "Notifications"</idea>
+      <idea ac="DR.1.5">Test getUserInitials("john.doe@example.com") returns "JD"</idea>
+      <idea ac="DR.1.5">Test getUserInitials("johndoe@example.com") returns "JO"</idea>
+      <idea ac="DR.1.6">Test clicking avatar opens dropdown with fireEvent.click / userEvent.click</idea>
+      <idea ac="DR.1.6">Test "Logout" menu item is present in dropdown</idea>
+      <idea ac="DR.1.7">Test queryByRole("navigation") returns null (no nav links in header)</idea>
+      <idea ac="DR.1.8,DR.1.9">Test header element has h-14 and border-b classes</idea>
+      <idea ac="DR.1.10">E2E: Test mobile viewport shows hamburger that opens left sidebar</idea>
+    </ideas>
+  </tests>
+</story-context>

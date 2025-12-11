@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/tooltip';
 import { OnePagerButton } from '@/components/one-pager/one-pager-button';
 
-import { Sidebar, MobileBottomNav } from '@/components/layout/sidebar';
+import { Sidebar } from '@/components/layout/sidebar';
 import { TagEditor } from '@/components/documents/tag-editor';
 import { SplitView, DocumentChatSplitView } from '@/components/layout/split-view';
 import { DocumentList } from '@/components/documents/document-list';
@@ -525,8 +525,6 @@ export default function DocumentDetailPage() {
         </div>
       )}
 
-      {/* Mobile bottom navigation */}
-      <MobileBottomNav />
     </div>
   );
 }

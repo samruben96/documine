@@ -194,11 +194,18 @@ export function AiBuddyProvider({ children }: AiBuddyProviderProps) {
       setSelectedConversationId(id);
       if (id) {
         await conversationsHook.loadConversation(id);
+        // Bug fix: Clear active project if conversation doesn't belong to it
+        // This ensures project highlighting stays in sync with selected conversation
+        // Check conversations list to find the selected conversation's projectId
+        const conversation = conversationsHook.conversations.find(c => c.id === id);
+        if (conversation && conversation.projectId !== activeProjectHook.activeProjectId) {
+          activeProjectHook.clearActiveProject();
+        }
       } else {
         conversationsHook.clearActiveConversation();
       }
     },
-    [conversationsHook]
+    [conversationsHook, activeProjectHook]
   );
 
   // AC-17.5.1: Start new standalone conversation (no project)

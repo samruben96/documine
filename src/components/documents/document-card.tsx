@@ -90,10 +90,9 @@ export function DocumentCard({
   return (
     <Card
       data-testid="document-card"
+      hoverable
       onClick={handleClick}
       className={cn(
-        'cursor-pointer transition-all duration-200',
-        'hover:border-primary/50 hover:shadow-md',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         className
       )}

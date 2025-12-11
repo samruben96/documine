@@ -1,0 +1,206 @@
+<story-context id="DR-2-sidebar-navigation" v="1.0">
+  <metadata>
+    <epicId>design-refresh</epicId>
+    <storyId>DR.2</storyId>
+    <title>Sidebar Navigation Transformation</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-2-sidebar-navigation/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE user</asA>
+    <iWant>a vertical sidebar with icon + text navigation</iWant>
+    <soThat>I can easily navigate between all app features</soThat>
+    <tasks>
+      <task id="1" acs="DR.2.1,DR.2.2,DR.2.3,DR.2.4">
+        Create new navigation sidebar component (AppNavSidebar)
+        <subtask>1.1 Create component in src/components/layout/app-nav-sidebar.tsx</subtask>
+        <subtask>1.2 Define navigation items array with href, label, icon</subtask>
+        <subtask>1.3 Implement sidebar container w-56, bg-white, border-r</subtask>
+        <subtask>1.4 Add Settings nav item at bottom with border-t separator</subtask>
+      </task>
+      <task id="2" acs="DR.2.5,DR.2.6,DR.2.7,DR.2.8">
+        Implement nav item styling
+        <subtask>2.1 Use usePathname() hook for active route detection</subtask>
+        <subtask>2.2 Apply base styles: flex items-center gap-3 px-3 py-2 rounded-lg</subtask>
+        <subtask>2.3 Apply active state: bg-blue-50 text-primary</subtask>
+        <subtask>2.4 Apply hover state: hover:bg-slate-100</subtask>
+        <subtask>2.5 Apply icon styling: w-5 h-5</subtask>
+      </task>
+      <task id="3" acs="DR.2.9">
+        Integrate sidebar into dashboard layout
+        <subtask>3.1 Update src/app/(dashboard)/layout.tsx</subtask>
+        <subtask>3.2 Ensure visible on lg: breakpoint</subtask>
+        <subtask>3.3 Position fixed on left, offset main content</subtask>
+        <subtask>3.4 Maintain SplitView behavior for document pages</subtask>
+      </task>
+      <task id="4" acs="DR.2.10">
+        Update mobile/tablet responsive behavior
+        <subtask>4.1 Keep Sheet component for mobile</subtask>
+        <subtask>4.2 Update Sheet content with new nav items</subtask>
+        <subtask>4.3 Keep SidebarToggle in header</subtask>
+        <subtask>4.4 Ensure slide-in on tablet</subtask>
+      </task>
+      <task id="5">
+        Create Dashboard placeholder page
+        <subtask>5.1 Create /dashboard/page.tsx</subtask>
+        <subtask>5.2 Add welcome content with feature links</subtask>
+      </task>
+      <task id="6">
+        Create Quoting placeholder page
+        <subtask>6.1 Create /quoting/page.tsx with "Coming Soon"</subtask>
+      </task>
+      <task id="7">
+        Preserve existing document sidebar behavior
+        <subtask>7.1 Keep current Sidebar for document list</subtask>
+        <subtask>7.2 Ensure both navs coexist</subtask>
+      </task>
+      <task id="8">
+        Write unit tests (19+ tests following DR-1 pattern)
+      </task>
+      <task id="9">
+        Write E2E tests for navigation and responsive behavior
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <ac id="DR.2.1">Sidebar width is w-56 (224px) on desktop</ac>
+    <ac id="DR.2.2">Sidebar has white background (bg-white) and slate-200 right border</ac>
+    <ac id="DR.2.3">Navigation includes: Dashboard, Documents, Compare, Quoting, AI Buddy, Reporting</ac>
+    <ac id="DR.2.4">Settings appears at bottom with border-t separator</ac>
+    <ac id="DR.2.5">Each nav item displays icon (w-5 h-5) + text label (text-sm font-medium)</ac>
+    <ac id="DR.2.6">Active nav item has bg-blue-50 background and text-primary color</ac>
+    <ac id="DR.2.7">Hover state on nav items shows bg-slate-100</ac>
+    <ac id="DR.2.8">Nav items use: flex items-center gap-3 px-3 py-2 rounded-lg</ac>
+    <ac id="DR.2.9">Sidebar is always visible on desktop (lg: breakpoint)</ac>
+    <ac id="DR.2.10">Sidebar slides in from left on tablet/mobile when triggered</ac>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/tech-spec.md"
+           title="Design Refresh Tech Spec"
+           section="DR.2 - Sidebar Navigation"
+           snippet="Transform sidebar from document list to full app navigation. Target: w-56, bg-white, nav items with icon+text, Settings at bottom with border-t. Implementation code provided in tech spec."/>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/epic.md"
+           title="Design Refresh Epic"
+           section="Story DR.2"
+           snippet="Sidebar Navigation: Navigation moves to sidebar with icon + text links for Dashboard, Documents, Compare, Quoting, AI Buddy, Reporting, Settings"/>
+      <doc path="docs/features/quoting/mockups/quoting-mockup.html"
+           title="Quoting Helper Mockup"
+           section="Sidebar (lines 106-149)"
+           snippet="Reference design with w-56, bg-white sidebar, nav items using flex items-center gap-3 px-3 py-2 rounded-lg, active state bg-blue-50 text-primary"/>
+      <doc path="docs/sprint-artifacts/epics/epic-design-refresh/stories/DR-1-header-redesign/story.md"
+           title="DR-1 Header Redesign Story (Completed)"
+           section="Dev Agent Record"
+           snippet="Header refactored with SidebarToggle preserved, horizontal nav removed. Testing pattern: 19 unit tests + E2E."/>
+    </docs>
+    <code>
+      <file path="src/components/layout/sidebar.tsx"
+            kind="component"
+            symbol="Sidebar, SidebarProvider, SidebarToggle, useSidebar, MobileBottomNav"
+            lines="1-242"
+            reason="Current sidebar implementation to transform - contains SidebarContext, responsive Sheet behavior, MobileBottomNav"/>
+      <file path="src/components/layout/header.tsx"
+            kind="component"
+            symbol="Header, getUserInitials"
+            lines="1-116"
+            reason="Already refactored in DR-1, contains SidebarToggle import and usage"/>
+      <file path="src/app/(dashboard)/layout.tsx"
+            kind="layout"
+            symbol="DashboardLayout"
+            lines="1-32"
+            reason="Dashboard layout to update - add AppNavSidebar alongside Header"/>
+      <file path="src/components/layout/split-view.tsx"
+            kind="component"
+            symbol="SplitView, ChatDockProvider"
+            reason="Document pages use SplitView - must preserve when adding nav sidebar"/>
+      <file path="__tests__/components/layout/header.test.tsx"
+            kind="test"
+            symbol="Header tests"
+            lines="1-80"
+            reason="Testing pattern to follow - mocking, AC references, async waitFor patterns"/>
+    </code>
+    <dependencies>
+      <node>
+        <package name="lucide-react" version="^0.554.0" reason="Icons: Home, FileText, BarChart3, Calculator, Bot, BarChart2, Settings"/>
+        <package name="next" version="^16.0.7" reason="usePathname hook, Link component"/>
+        <package name="clsx" version="^2.1.1" reason="cn utility for conditional classes"/>
+        <package name="vitest" version="devDependency" reason="Unit testing framework"/>
+        <package name="@testing-library/react" version="devDependency" reason="Component testing"/>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="no-breaking-changes">All existing functionality must continue to work - document sidebar, SplitView, mobile Sheet</constraint>
+    <constraint type="responsive-breakpoints">Desktop >1024px (lg:), Tablet 640-1024px (sm: to lg:), Mobile &lt;640px</constraint>
+    <constraint type="dark-mode">Include dark mode variants: dark:bg-slate-900, dark:border-slate-800, dark:text-slate-300</constraint>
+    <constraint type="accessibility">Maintain WCAG 2.1 AA - aria-current for active nav, keyboard navigation</constraint>
+    <constraint type="sidebar-context">AppNavSidebar must use existing SidebarContext from sidebar.tsx for mobile/tablet toggle state</constraint>
+    <constraint type="coexistence">AppNavSidebar (app navigation) and DocumentSidebar (document list in SplitView) must coexist</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="Navigation Items Array" kind="data-structure" path="src/components/layout/app-nav-sidebar.tsx">
+      <signature><![CDATA[
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '/compare', label: 'Compare', icon: BarChart3 },
+  { href: '/quoting', label: 'Quoting', icon: Calculator },
+  { href: '/ai-buddy', label: 'AI Buddy', icon: Bot },
+  { href: '/reporting', label: 'Reporting', icon: BarChart2 },
+];
+      ]]></signature>
+    </interface>
+    <interface name="Active State Logic" kind="function" path="src/components/layout/app-nav-sidebar.tsx">
+      <signature><![CDATA[
+const isActive = (href: string) => {
+  if (href === '/dashboard') return pathname === '/dashboard';
+  return pathname.startsWith(href);
+};
+      ]]></signature>
+    </interface>
+    <interface name="SidebarContext" kind="react-context" path="src/components/layout/sidebar.tsx">
+      <signature><![CDATA[
+interface SidebarContextType {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+// Use useSidebar() hook to access context
+      ]]></signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest with happy-dom environment. Follow DR-1 testing pattern from __tests__/components/layout/header.test.tsx.
+      Mock next/link, next/navigation (usePathname), and external dependencies.
+      Reference ACs in test descriptions (e.g., "AC: DR.2.6").
+      Use waitFor for async state, screen queries for assertions.
+      E2E tests use Playwright - test navigation between routes and responsive behavior.
+    </standards>
+    <locations>
+      __tests__/components/layout/app-nav-sidebar.test.tsx (NEW)
+      __tests__/e2e/sidebar-navigation.spec.ts (NEW)
+    </locations>
+    <ideas>
+      <idea ac="DR.2.1">Test sidebar container has w-56 class</idea>
+      <idea ac="DR.2.2">Test sidebar has bg-white and border-r border-slate-200 classes</idea>
+      <idea ac="DR.2.3">Test all 6 nav items render with correct labels and hrefs</idea>
+      <idea ac="DR.2.4">Test Settings item is in separate container with border-t</idea>
+      <idea ac="DR.2.5">Test each nav item has icon (w-5 h-5) and text (text-sm font-medium)</idea>
+      <idea ac="DR.2.6">Test active route gets bg-blue-50 text-primary classes</idea>
+      <idea ac="DR.2.7">Test hover state class hover:bg-slate-100 is present</idea>
+      <idea ac="DR.2.8">Test nav item base classes: flex items-center gap-3 px-3 py-2 rounded-lg</idea>
+      <idea ac="DR.2.9">Test sidebar visibility based on lg: breakpoint</idea>
+      <idea ac="DR.2.10">Test mobile Sheet contains same nav items as sidebar</idea>
+      <idea e2e="navigation">E2E: Click each nav item, verify route change and active state</idea>
+      <idea e2e="responsive">E2E: Test at 1280px (desktop), 800px (tablet), 400px (mobile)</idea>
+    </ideas>
+  </tests>
+</story-context>
