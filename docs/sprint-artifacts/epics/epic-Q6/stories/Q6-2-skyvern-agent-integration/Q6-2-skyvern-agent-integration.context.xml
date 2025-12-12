@@ -1,0 +1,299 @@
+<story-context id="bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>Q6</epicId>
+    <storyId>2</storyId>
+    <title>Skyvern Agent Integration</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q6/stories/Q6-2-skyvern-agent-integration/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE developer</asA>
+    <iWant>an adapter that integrates with the Skyvern AI agent API for browser automation</iWant>
+    <soThat>the quote execution engine can delegate form-filling tasks to Skyvern with progress tracking, result extraction, and error handling</soThat>
+    <tasks>
+      <task id="1" ac="2">Create Skyvern adapter module structure
+        <subtask>1.1 Create src/lib/quoting/agent/ directory structure</subtask>
+        <subtask>1.2 Create src/lib/quoting/agent/skyvern-adapter.ts file</subtask>
+        <subtask>1.3 Add environment variable validation for SKYVERN_API_KEY and SKYVERN_URL</subtask>
+        <subtask>1.4 Document env vars in .env.example with placeholders</subtask>
+      </task>
+      <task id="2" ac="1,3">Define TypeScript types for Skyvern integration
+        <subtask>2.1 Create src/types/quoting/agent.ts with QuoteAgent interface</subtask>
+        <subtask>2.2 Define QuoteExecutionParams interface with all required fields</subtask>
+        <subtask>2.3 Define QuoteResult and QuoteResultData interfaces</subtask>
+        <subtask>2.4 Define CarrierStatus type with status values</subtask>
+        <subtask>2.5 Define SkyvernTaskRequest and SkyvernResponse types for API communication</subtask>
+      </task>
+      <task id="3" ac="1,2,3">Implement SkyvernAdapter class
+        <subtask>3.1 Implement constructor that initializes Skyvern HTTP client with API key and base URL</subtask>
+        <subtask>3.2 Implement executeQuote() method signature matching QuoteAgent interface</subtask>
+        <subtask>3.3 Implement mapClientDataToPrompt() helper to convert QuoteClientData to Skyvern task format</subtask>
+        <subtask>3.4 Implement task creation request to Skyvern API (POST /tasks)</subtask>
+        <subtask>3.5 Implement cancel() method to abort running task</subtask>
+      </task>
+      <task id="4" ac="4">Implement progress tracking
+        <subtask>4.1 Set up polling mechanism to check task status from Skyvern API</subtask>
+        <subtask>4.2 Parse Skyvern status responses and map to CarrierStatus</subtask>
+        <subtask>4.3 Call onProgress callback with mapped status updates</subtask>
+        <subtask>4.4 Handle progress percentage calculation from Skyvern step count</subtask>
+      </task>
+      <task id="5" ac="5">Implement result extraction
+        <subtask>5.1 Implement extractQuoteResult() to parse Skyvern task completion response</subtask>
+        <subtask>5.2 Map Skyvern extracted data to QuoteResultData structure</subtask>
+        <subtask>5.3 Handle partial results (some fields extracted, some missing)</subtask>
+        <subtask>5.4 Extract and store screenshot URLs from Skyvern response</subtask>
+      </task>
+      <task id="6" ac="6">Implement error handling
+        <subtask>6.1 Create src/lib/quoting/agent/errors.ts with QuoteError structure</subtask>
+        <subtask>6.2 Implement mapSkyvernErrorToQuoteError() function</subtask>
+        <subtask>6.3 Categorize Skyvern error codes to QuoteError codes</subtask>
+        <subtask>6.4 Implement structured error logging for quote errors</subtask>
+        <subtask>6.5 Set recoverable flag correctly for each error type</subtask>
+      </task>
+      <task id="7" ac="7">Implement retry logic with exponential backoff
+        <subtask>7.1 Create retry wrapper with configurable attempts and backoff</subtask>
+        <subtask>7.2 Implement exponential backoff (2s, 4s, 8s) for retries</subtask>
+        <subtask>7.3 Only retry recoverable errors (TIMEOUT, PORTAL_UNAVAILABLE)</subtask>
+        <subtask>7.4 Log retry attempts with attempt number and wait time</subtask>
+        <subtask>7.5 After max retries, return final error with retry history</subtask>
+      </task>
+      <task id="8" ac="1-7">Write unit tests
+        <subtask>8.1 Create __tests__/lib/quoting/agent/skyvern-adapter.test.ts</subtask>
+        <subtask>8.2 Test: SkyvernAdapter implements QuoteAgent interface (AC-Q6.2-1)</subtask>
+        <subtask>8.3 Test: Adapter validates env vars on construction (AC-Q6.2-2)</subtask>
+        <subtask>8.4 Test: Client data mapped correctly to task request (AC-Q6.2-3)</subtask>
+        <subtask>8.5 Test: Progress callbacks invoked with mapped status (AC-Q6.2-4)</subtask>
+        <subtask>8.6 Test: Result extraction parses Skyvern response correctly (AC-Q6.2-5)</subtask>
+        <subtask>8.7 Test: Errors categorized with correct QuoteError codes (AC-Q6.2-6)</subtask>
+        <subtask>8.8 Test: Retry logic uses exponential backoff (AC-Q6.2-7)</subtask>
+        <subtask>8.9 Test: Cancel aborts running task</subtask>
+      </task>
+      <task id="9">Verify build and run tests
+        <subtask>9.1 Run npm run build - verify no TypeScript errors</subtask>
+        <subtask>9.2 Run npm run test - verify all new tests pass</subtask>
+        <subtask>9.3 Run npm run lint - verify no lint errors</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q6.2-1">SkyvernAdapter class implements the QuoteAgent interface with executeQuote() and cancel() methods as defined in the tech spec</criterion>
+    <criterion id="AC-Q6.2-2">Adapter initializes Skyvern client using SKYVERN_API_KEY and SKYVERN_URL environment variables, with validation that these are configured</criterion>
+    <criterion id="AC-Q6.2-3">Adapter creates task execution requests that map QuoteClientData to Skyvern-compatible task prompts (carrier portal URL, login credentials, form data context)</criterion>
+    <criterion id="AC-Q6.2-4">Adapter receives and processes progress callbacks from Skyvern during task execution, calling the provided onProgress callback with CarrierStatus updates (currentStep, progressPct)</criterion>
+    <criterion id="AC-Q6.2-5">Adapter handles task completion by extracting structured quote results (premium, coverages, deductibles) from Skyvern response into QuoteResultData format</criterion>
+    <criterion id="AC-Q6.2-6">Adapter handles task failure with proper error categorization using the QuoteError structure: CREDENTIALS_INVALID, CAPTCHA_FAILED, PORTAL_UNAVAILABLE, FORM_CHANGED, TIMEOUT, UNKNOWN</criterion>
+    <criterion id="AC-Q6.2-7">Retry logic implements exponential backoff (2s, 4s, 8s) for recoverable errors (TIMEOUT, PORTAL_UNAVAILABLE) with maximum 3 attempts</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q6/tech-spec.md</path>
+        <title>Epic Q6 Technical Specification</title>
+        <section>Story Q6.2: Skyvern Agent Integration</section>
+        <snippet>Defines SkyvernAdapter class implementing QuoteAgent interface with executeQuote() and cancel() methods. Specifies API integration, progress callbacks, result extraction, and error handling with retry logic.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/phase-4-architecture.md</path>
+        <title>Phase 4 Architecture</title>
+        <section>AI Agent Service Architecture</section>
+        <snippet>Defines adapter pattern for agent integration, agent factory for selecting between recipe replay and AI agents, and callback patterns for progress tracking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/phase-4-prd.md</path>
+        <title>Phase 4 PRD</title>
+        <section>AI Agent Infrastructure</section>
+        <snippet>Skyvern as primary AI agent with 64.4% form accuracy. MVP uses Skyvern API for browser automation tasks with Claude Computer Use as fallback.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q6/stories/Q6-1-database-schema-ai-quoting/story.md</path>
+        <title>Story Q6.1 - Database Schema (Predecessor)</title>
+        <section>Dev Agent Record</section>
+        <snippet>Database tables quote_jobs, quote_job_carriers, carrier_recipes created. TypeScript types in database.types.ts. Status columns store CarrierStatus values. Use quote_job_carriers.result JSONB for QuoteResultData.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/types/quoting.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteClientData, QuoteType, QuoteSession</symbol>
+        <reason>Core quoting types - QuoteClientData must be mapped to Skyvern task prompts in AC-Q6.2-3</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/carriers/types.ts</path>
+        <kind>types</kind>
+        <symbol>CarrierFormatter, CarrierInfo, CarrierStatus</symbol>
+        <reason>Existing carrier types - note CarrierStatus here is different from AI execution status, may need disambiguation</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/carriers/index.ts</path>
+        <kind>service</kind>
+        <symbol>getCarrierInfo, CARRIERS</symbol>
+        <reason>Carrier registry - provides portal URLs for Skyvern navigation goals</reason>
+      </file>
+      <file>
+        <path>src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Tables&lt;'quote_jobs'&gt;, Tables&lt;'quote_job_carriers'&gt;, Tables&lt;'carrier_recipes'&gt;</symbol>
+        <lines>438-470, 1077-1145, 1146-1212</lines>
+        <reason>Auto-generated database types from Q6.1 migration - use for type-safe DB operations</reason>
+      </file>
+      <file>
+        <path>supabase/migrations/20251212200000_create_ai_quoting_tables.sql</path>
+        <kind>migration</kind>
+        <symbol>quote_jobs, quote_job_carriers, carrier_recipes tables</symbol>
+        <reason>Database schema reference - status columns and JSONB structures for storing adapter results</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/quoting/quote-jobs-rls.test.ts</path>
+        <kind>test</kind>
+        <symbol>RLS integration tests</symbol>
+        <reason>Test pattern reference for integration tests - follow similar structure</reason>
+      </file>
+      <file>
+        <path>.env.example</path>
+        <kind>config</kind>
+        <reason>Environment variable template - add SKYVERN_API_KEY and SKYVERN_URL entries</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <usage>Database operations for quote_job_carriers status updates</usage>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <usage>Runtime validation for Skyvern API responses and QuoteExecutionParams</usage>
+      </node>
+      <node>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <usage>Unit testing framework for adapter tests</usage>
+      </node>
+      <node>
+        <package>@testing-library/react</package>
+        <version>^16.3.0</version>
+        <usage>Testing utilities (for any React components if needed)</usage>
+      </node>
+      <note>No Skyvern SDK package exists in npm - use native fetch() for HTTP API calls. Consider creating a thin client wrapper.</note>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Adapter Pattern: SkyvernAdapter must implement QuoteAgent interface exactly as defined in tech spec to enable factory pattern selection in Q6.4</constraint>
+    <constraint type="architecture">No direct database writes from adapter - return results for orchestrator to persist. Adapter is stateless except for current task tracking.</constraint>
+    <constraint type="security">API keys (SKYVERN_API_KEY) must never be logged or exposed to client. Validate env vars exist on construction, throw clear error if missing.</constraint>
+    <constraint type="security">Credentials passed to adapter must never be logged. Use structured logging with credential fields redacted.</constraint>
+    <constraint type="integration">Environment variables: SKYVERN_API_KEY (required), SKYVERN_URL (default: https://api.skyvern.com/v1)</constraint>
+    <constraint type="error-handling">All errors must be mapped to QuoteError structure with code, message, carrierCode, recoverable flag. Use consistent error codes across all adapters.</constraint>
+    <constraint type="performance">Polling interval for task status: 2 seconds. Progress callbacks should not overwhelm frontend.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>QuoteAgent</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteAgent {
+  executeQuote(params: QuoteExecutionParams): Promise&lt;QuoteResult&gt;;
+  cancel(): Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts (to create)</path>
+    </interface>
+    <interface>
+      <name>QuoteExecutionParams</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteExecutionParams {
+  sessionId: string;
+  carrierCode: string;
+  clientData: QuoteClientData;
+  credentials: DecryptedCredentials;
+  recipe?: CarrierRecipe;
+  onProgress: (status: CarrierStatus) => void;
+  onCaptchaNeeded: (captcha: CaptchaChallenge) => Promise&lt;string&gt;;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts (to create)</path>
+    </interface>
+    <interface>
+      <name>QuoteError</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteError {
+  code: 'CREDENTIALS_INVALID' | 'CAPTCHA_FAILED' | 'PORTAL_UNAVAILABLE' | 'FORM_CHANGED' | 'TIMEOUT' | 'UNKNOWN';
+  message: string;
+  carrierCode: string;
+  recoverable: boolean;
+  suggestedAction?: string;
+}
+      </signature>
+      <path>src/lib/quoting/agent/errors.ts (to create)</path>
+    </interface>
+    <interface>
+      <name>Skyvern API - Create Task</name>
+      <kind>REST endpoint</kind>
+      <signature>
+POST /v1/tasks
+Request: { url, navigation_goal, data_extraction_goal, navigation_payload }
+Response: { task_id, status }
+      </signature>
+      <path>External API: https://api.skyvern.com/v1</path>
+    </interface>
+    <interface>
+      <name>Skyvern API - Get Task Status</name>
+      <kind>REST endpoint</kind>
+      <signature>
+GET /v1/tasks/{task_id}
+Response: { status, steps, extracted_data, screenshots, error }
+      </signature>
+      <path>External API: https://api.skyvern.com/v1</path>
+    </interface>
+    <interface>
+      <name>Skyvern API - Cancel Task</name>
+      <kind>REST endpoint</kind>
+      <signature>
+DELETE /v1/tasks/{task_id}
+Response: { success: boolean }
+      </signature>
+      <path>External API: https://api.skyvern.com/v1</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Unit tests use Vitest with happy-dom for DOM testing. Tests should mock external HTTP calls (Skyvern API) using vi.mock() or msw. Follow existing test patterns in __tests__/lib/quoting/. Integration tests for RLS policies at __tests__/lib/quoting/quote-jobs-rls.test.ts show pattern for database tests. All new code should have corresponding unit tests before PR review.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/agent/skyvern-adapter.test.ts</location>
+      <location>__tests__/lib/quoting/agent/errors.test.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q6.2-1">Test SkyvernAdapter class has executeQuote and cancel methods matching interface signature</idea>
+      <idea ac="AC-Q6.2-2">Test adapter throws descriptive error when SKYVERN_API_KEY is missing</idea>
+      <idea ac="AC-Q6.2-2">Test adapter throws descriptive error when SKYVERN_URL is missing/invalid</idea>
+      <idea ac="AC-Q6.2-3">Test mapClientDataToPrompt correctly formats QuoteClientData into Skyvern task request</idea>
+      <idea ac="AC-Q6.2-3">Test adapter includes carrier portal URL from CARRIERS registry</idea>
+      <idea ac="AC-Q6.2-4">Test onProgress callback is invoked with status updates during polling</idea>
+      <idea ac="AC-Q6.2-4">Test progress percentage correctly calculated from Skyvern step count</idea>
+      <idea ac="AC-Q6.2-5">Test extractQuoteResult parses premium, coverages, deductibles from response</idea>
+      <idea ac="AC-Q6.2-5">Test partial results handled gracefully (some fields null)</idea>
+      <idea ac="AC-Q6.2-6">Test authentication_failed maps to CREDENTIALS_INVALID</idea>
+      <idea ac="AC-Q6.2-6">Test captcha_detected maps to CAPTCHA_FAILED</idea>
+      <idea ac="AC-Q6.2-6">Test timeout maps to TIMEOUT with recoverable=true</idea>
+      <idea ac="AC-Q6.2-7">Test retry waits 2s, 4s, 8s between attempts (exponential backoff)</idea>
+      <idea ac="AC-Q6.2-7">Test retry only happens for recoverable errors (TIMEOUT, PORTAL_UNAVAILABLE)</idea>
+      <idea ac="AC-Q6.2-7">Test max 3 retry attempts before returning final error</idea>
+      <idea>Test cancel() aborts running task via DELETE API call</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,273 @@
+<story-context id="Q6-1-database-schema-ai-quoting" v="1.0">
+  <metadata>
+    <epicId>Q6</epicId>
+    <storyId>1</storyId>
+    <title>Database Schema for AI Quoting</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q6/stories/Q6-1-database-schema-ai-quoting/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>docuMINE developer</asA>
+    <iWant>database tables for tracking quote jobs, per-carrier execution status, and recipe caching</iWant>
+    <soThat>the AI quoting infrastructure has persistent storage with proper security and indexing for job orchestration</soThat>
+    <tasks>
+      <task id="1" title="Create migration file for quote_jobs table" acs="1,2,11">
+        <subtask>1.1 Create migration file YYYYMMDDHHMMSS_create_quote_jobs.sql</subtask>
+        <subtask>1.2 Define quote_jobs table with all columns per tech spec</subtask>
+        <subtask>1.3 Add foreign key constraint to quote_sessions(id) with ON DELETE CASCADE</subtask>
+        <subtask>1.4 Add foreign key constraint to agencies(id)</subtask>
+        <subtask>1.5 Create index idx_quote_jobs_session on session_id</subtask>
+        <subtask>1.6 Create index idx_quote_jobs_status on status</subtask>
+        <subtask>1.7 Create index idx_quote_jobs_agency on agency_id</subtask>
+        <subtask>1.8 Set appropriate defaults: status='pending', priority=5, carriers_completed=0, carriers_total=0, results='{}', errors='[]'</subtask>
+      </task>
+      <task id="2" title="Create migration file for carrier_recipes table" acs="5,6,7">
+        <subtask>2.1 Create migration file YYYYMMDDHHMMSS_create_carrier_recipes.sql</subtask>
+        <subtask>2.2 Define carrier_recipes table with all columns per tech spec</subtask>
+        <subtask>2.3 Add unique constraint on (carrier_code, quote_type)</subtask>
+        <subtask>2.4 Create index idx_carrier_recipes_lookup on (carrier_code, quote_type, status)</subtask>
+        <subtask>2.5 Set defaults: recipe_version=1, success_count=0, failure_count=0, status='active'</subtask>
+      </task>
+      <task id="3" title="Create migration file for quote_job_carriers table" acs="3,4,12">
+        <subtask>3.1 Create migration file YYYYMMDDHHMMSS_create_quote_job_carriers.sql</subtask>
+        <subtask>3.2 Define quote_job_carriers table with all columns per tech spec</subtask>
+        <subtask>3.3 Add foreign key constraint to quote_jobs(id) with ON DELETE CASCADE</subtask>
+        <subtask>3.4 Add foreign key constraint to carrier_recipes(id) (nullable)</subtask>
+        <subtask>3.5 Create index idx_quote_job_carriers_job on job_id</subtask>
+        <subtask>3.6 Create index idx_quote_job_carriers_status on status</subtask>
+        <subtask>3.7 Set defaults: status='pending', progress_pct=0, used_recipe=false</subtask>
+      </task>
+      <task id="4" title="Create RLS policies" acs="8,9,10">
+        <subtask>4.1 Add ALTER TABLE ... ENABLE ROW LEVEL SECURITY for all three tables</subtask>
+        <subtask>4.2 Create RLS policy "Quote jobs scoped to agency" on quote_jobs using agency_id match via get_user_agency_id()</subtask>
+        <subtask>4.3 Create RLS policy "Job carriers via job" on quote_job_carriers using subquery through quote_jobs</subtask>
+        <subtask>4.4 Create RLS policy "Recipes readable by authenticated" on carrier_recipes for SELECT</subtask>
+        <subtask>4.5 Create RLS policy "Recipes writable by service" on carrier_recipes for INSERT (service_role only)</subtask>
+        <subtask>4.6 Create RLS policy "Recipes updatable by service" on carrier_recipes for UPDATE (service_role only)</subtask>
+      </task>
+      <task id="5" title="Apply migrations to Supabase" acs="all">
+        <subtask>5.1 Run migrations via npx supabase migration up or Supabase MCP</subtask>
+        <subtask>5.2 Verify all tables created with correct structure using mcp__supabase__list_tables</subtask>
+        <subtask>5.3 Verify foreign key constraints work correctly (test cascade delete)</subtask>
+        <subtask>5.4 Verify indexes created correctly</subtask>
+      </task>
+      <task id="6" title="Regenerate TypeScript types" acs="13">
+        <subtask>6.1 Run npm run generate-types to regenerate src/types/database.types.ts</subtask>
+        <subtask>6.2 Verify QuoteJob type includes all columns</subtask>
+        <subtask>6.3 Verify QuoteJobCarrier type includes all columns</subtask>
+        <subtask>6.4 Verify CarrierRecipe type includes all columns</subtask>
+      </task>
+      <task id="7" title="Write integration tests for RLS policies" acs="8,9,10">
+        <subtask>7.1 Create __tests__/lib/quoting/quote-jobs-rls.test.ts</subtask>
+        <subtask>7.2 Test: User can only see quote_jobs for their agency</subtask>
+        <subtask>7.3 Test: User cannot see quote_jobs from other agencies</subtask>
+        <subtask>7.4 Test: User can access quote_job_carriers via their jobs</subtask>
+        <subtask>7.5 Test: Authenticated user can SELECT from carrier_recipes</subtask>
+        <subtask>7.6 Test: Regular user CANNOT INSERT/UPDATE carrier_recipes</subtask>
+        <subtask>7.7 Test: Service role CAN INSERT/UPDATE carrier_recipes</subtask>
+      </task>
+      <task id="8" title="Test cascade delete behavior" acs="11,12">
+        <subtask>8.1 Add cascade delete tests to integration test file</subtask>
+        <subtask>8.2 Test: Deleting quote_session cascades to quote_jobs</subtask>
+        <subtask>8.3 Test: Deleting quote_job cascades to quote_job_carriers</subtask>
+        <subtask>8.4 Verify no orphaned records remain</subtask>
+      </task>
+      <task id="9" title="Verify build and run full test suite" acs="all">
+        <subtask>9.1 Run npm run build - verify no TypeScript errors</subtask>
+        <subtask>9.2 Run npm run test - verify all tests pass</subtask>
+        <subtask>9.3 Run npm run lint - verify no lint errors</subtask>
+        <subtask>9.4 Verify database schema via Supabase dashboard</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q6.1-1">Migration creates quote_jobs table with all specified columns: id (uuid PK), session_id (FK to quote_sessions), agency_id (FK to agencies), carriers (jsonb), priority (int), status (text), carriers_completed (int), carriers_total (int), results (jsonb), errors (jsonb), and timestamps (queued_at, started_at, completed_at, created_at, updated_at)</criterion>
+    <criterion id="AC-Q6.1-2">Migration creates indexes on quote_jobs: idx_quote_jobs_session (session_id), idx_quote_jobs_status (status), idx_quote_jobs_agency (agency_id)</criterion>
+    <criterion id="AC-Q6.1-3">Migration creates quote_job_carriers table with all specified columns: id (uuid PK), job_id (FK to quote_jobs with cascade delete), carrier_code (text), status (text), current_step (text), progress_pct (int), screenshot_url (text), result (jsonb), error_message (text), recipe_id (FK to carrier_recipes), used_recipe (boolean), and timestamps</criterion>
+    <criterion id="AC-Q6.1-4">Migration creates indexes on quote_job_carriers: idx_quote_job_carriers_job (job_id), idx_quote_job_carriers_status (status)</criterion>
+    <criterion id="AC-Q6.1-5">Migration creates carrier_recipes table with all specified columns: id (uuid PK), carrier_code (text), quote_type (text), recipe_version (int), steps (jsonb), field_mappings (jsonb), success_count (int), failure_count (int), last_success_at, last_failure_at, status (text), created_at, updated_at</criterion>
+    <criterion id="AC-Q6.1-6">Migration creates unique constraint on carrier_recipes(carrier_code, quote_type)</criterion>
+    <criterion id="AC-Q6.1-7">Migration creates index on carrier_recipes: idx_carrier_recipes_lookup (carrier_code, quote_type, status)</criterion>
+    <criterion id="AC-Q6.1-8">RLS enabled on all three tables with policies that enforce agency-scoped access for quote_jobs based on current user's agency_id</criterion>
+    <criterion id="AC-Q6.1-9">RLS policy on quote_job_carriers allows access via parent quote_jobs relationship (users can access carriers for jobs in their agency)</criterion>
+    <criterion id="AC-Q6.1-10">RLS policy on carrier_recipes allows SELECT for all authenticated users (shared resource) and INSERT/UPDATE only for service_role (system-managed)</criterion>
+    <criterion id="AC-Q6.1-11">Foreign key from quote_jobs.session_id to quote_sessions.id with ON DELETE CASCADE</criterion>
+    <criterion id="AC-Q6.1-12">Foreign key from quote_job_carriers.job_id to quote_jobs.id with ON DELETE CASCADE</criterion>
+    <criterion id="AC-Q6.1-13">TypeScript types regenerated and include QuoteJob, QuoteJobCarrier, and CarrierRecipe types matching database schema</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q6/tech-spec.md</path>
+        <title>Epic Q6 Technical Specification</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Complete SQL definitions for quote_jobs, quote_job_carriers, and carrier_recipes tables with columns, indexes, constraints, and RLS policies. This is the authoritative source for schema implementation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q6/epic.md</path>
+        <title>Epic Q6: AI Infrastructure Foundation</title>
+        <section>Overview and Objectives</section>
+        <snippet>Epic overview establishing database foundation for Phase 4 AI quoting. Stories Q6.1-Q6.4 cover schema, Skyvern integration, Browserbase, and pgmq job queue.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/phase-4-prd.md</path>
+        <title>AI-Powered Quoting Phase 4 PRD</title>
+        <section>Functional Requirements FR3, FR6</section>
+        <snippet>FR3 (System maintains state for each quote request) and FR6 (Job queue infrastructure) are partially addressed by this story's database schema for job tracking.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/data-architecture.md</path>
+        <title>Data Architecture</title>
+        <section>RLS Policies</section>
+        <snippet>Existing RLS policy patterns using agency_id scoping. All tables follow pattern: agency_id = (select agency_id from users where id = auth.uid()). This story must follow same patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>Database Query Pattern, PostgreSQL JSONB Type Casting</section>
+        <snippet>Always include agency_id in queries for clarity. Use 'as unknown as Json' pattern for JSONB columns. RLS Service Client Pattern (Verify-Then-Service) for UPDATE/DELETE operations.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>supabase/migrations/20251211100000_add_quoting_tables.sql</path>
+        <kind>migration</kind>
+        <symbol>quote_sessions, quote_results</symbol>
+        <lines>1-117</lines>
+        <reason>Existing Phase 3 quoting tables (quote_sessions, quote_results) that Q6.1's new tables must reference. quote_jobs.session_id FK points to quote_sessions.id. Follow same migration patterns (trigger for updated_at, index naming, RLS policy structure).</reason>
+      </file>
+      <file>
+        <path>src/types/quoting.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteSession, QuoteResult, QuoteClientData</symbol>
+        <lines>1-200</lines>
+        <reason>Existing quoting types. New QuoteJob, QuoteJobCarrier, CarrierRecipe types should follow same patterns (Row types from database.types.ts, transform functions, status enums).</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/service.ts</path>
+        <kind>service</kind>
+        <symbol>createQuoteSession, listQuoteSessions</symbol>
+        <lines>1-432</lines>
+        <reason>Existing quote session service patterns. Shows transform functions (transformQuoteSession), status calculation, and Supabase client usage patterns. Future Q6 services should follow these patterns.</reason>
+      </file>
+      <file>
+        <path>src/types/database.types.ts</path>
+        <kind>types</kind>
+        <symbol>Database, Tables, Json</symbol>
+        <lines>1-200</lines>
+        <reason>Auto-generated Supabase types. After migrations are applied, run npm run generate-types to regenerate. New tables (quote_jobs, quote_job_carriers, carrier_recipes) will appear here.</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/quoting/service.test.ts</path>
+        <kind>test</kind>
+        <symbol>quoting service tests</symbol>
+        <reason>Existing test patterns for quoting module. Use same patterns for RLS integration tests: mock Supabase client, test agency isolation, verify cascade behavior.</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/quoting/delete-duplicate.test.ts</path>
+        <kind>test</kind>
+        <symbol>delete/duplicate tests</symbol>
+        <reason>Test patterns for cascade delete behavior. Reference for testing quote_jobs cascade to quote_job_carriers.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package>@supabase/supabase-js</package>
+        <version>^2.84.0</version>
+        <purpose>Database client, Realtime, RLS</purpose>
+      </node>
+      <node>
+        <package>@supabase/ssr</package>
+        <version>^0.7.0</version>
+        <purpose>Server-side Supabase client</purpose>
+      </node>
+      <node>
+        <package>vitest</package>
+        <version>^4.0.14</version>
+        <purpose>Test framework</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Runtime validation (for future service layer)</purpose>
+      </node>
+      <supabase>
+        <extension>vector (pgvector)</extension>
+        <note>Already enabled - 00002_enable_pgvector.sql</note>
+      </supabase>
+      <supabase>
+        <extension>pgmq</extension>
+        <note>To be enabled in Q6.4 story, not this story</note>
+      </supabase>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint category="architecture">Follow existing RLS patterns - use get_user_agency_id() helper function for policy conditions</constraint>
+    <constraint category="architecture">All new tables must include agency_id for multi-tenant isolation</constraint>
+    <constraint category="architecture">Use JSONB for flexible schema fields (carriers, results, errors, steps, field_mappings)</constraint>
+    <constraint category="architecture">Cascade delete from parent to child tables (session->jobs, jobs->job_carriers)</constraint>
+    <constraint category="naming">Migration files: YYYYMMDDHHMMSS_descriptive_name.sql</constraint>
+    <constraint category="naming">Indexes: idx_{table}_{column(s)}</constraint>
+    <constraint category="naming">RLS policies: Descriptive names matching existing patterns</constraint>
+    <constraint category="security">carrier_recipes is a shared resource - read-only for users, write-only for service_role</constraint>
+    <constraint category="security">Never store credentials in these tables - deferred to Epic Q7</constraint>
+    <constraint category="testing">Integration tests required for RLS policies - test agency isolation</constraint>
+    <constraint category="testing">Test cascade delete behavior to ensure no orphaned records</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>quote_sessions table (existing)</name>
+      <kind>database table</kind>
+      <signature>FK reference: quote_jobs.session_id -> quote_sessions.id ON DELETE CASCADE</signature>
+      <path>supabase/migrations/20251211100000_add_quoting_tables.sql</path>
+    </interface>
+    <interface>
+      <name>agencies table (existing)</name>
+      <kind>database table</kind>
+      <signature>FK reference: quote_jobs.agency_id -> agencies.id (no cascade - agencies persist)</signature>
+      <path>supabase/migrations/00001_initial_schema.sql</path>
+    </interface>
+    <interface>
+      <name>get_user_agency_id() function</name>
+      <kind>SQL function</kind>
+      <signature>RETURNS uuid - (SELECT agency_id FROM users WHERE id = auth.uid())</signature>
+      <path>supabase/migrations/00003_rls_policies.sql (if exists) or existing RLS migrations</path>
+    </interface>
+    <interface>
+      <name>update_updated_at_column() trigger</name>
+      <kind>SQL trigger function</kind>
+      <signature>Automatically sets updated_at = now() on UPDATE</signature>
+      <path>supabase/migrations/20251211100000_add_quoting_tables.sql:45-51</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for all tests. Integration tests for RLS policies should use Supabase test project or mock client patterns. Follow existing patterns in __tests__/lib/quoting/ directory. Tests should verify agency isolation (user A cannot see user B's data), cascade delete behavior, and proper index usage for query performance.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/quote-jobs-rls.test.ts (new)</location>
+      <location>__tests__/lib/quoting/ (existing patterns)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q6.1-1,AC-Q6.1-2">Verify quote_jobs table structure via Supabase introspection or migration test</idea>
+      <idea ac="AC-Q6.1-3,AC-Q6.1-4">Verify quote_job_carriers table structure and FK constraint to quote_jobs</idea>
+      <idea ac="AC-Q6.1-5,AC-Q6.1-6,AC-Q6.1-7">Verify carrier_recipes table with unique constraint on (carrier_code, quote_type)</idea>
+      <idea ac="AC-Q6.1-8">Test: Insert quote_job with agency_id_A, verify user_A can SELECT, user_B cannot</idea>
+      <idea ac="AC-Q6.1-9">Test: Insert quote_job_carrier linked to quote_job, verify access follows parent job's agency</idea>
+      <idea ac="AC-Q6.1-10">Test: Authenticated user can SELECT carrier_recipes but INSERT/UPDATE fails; service_role can INSERT/UPDATE</idea>
+      <idea ac="AC-Q6.1-11">Test: Delete quote_session, verify cascade deletes quote_jobs</idea>
+      <idea ac="AC-Q6.1-12">Test: Delete quote_job, verify cascade deletes quote_job_carriers</idea>
+      <idea ac="AC-Q6.1-13">Verify database.types.ts includes QuoteJob, QuoteJobCarrier, CarrierRecipe types after npm run generate-types</idea>
+    </ideas>
+  </tests>
+</story-context>
