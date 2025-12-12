@@ -1,19 +1,28 @@
 /**
  * VIN Input Component
  * Story Q3.1: Data Capture Forms
+ * Story Q3.3: Field Validation & Formatting
  *
  * AC-Q3.1-17: Auto-uppercase and validate 17-character format (excluding I, O, Q)
  * AC-Q3.1-18: Decode VIN on blur and auto-populate year/make/model
  * AC-Q3.1-19: Show warning message on decode failure
+ *
+ * AC-Q3.3-1: Green checkmark (✓) for valid VIN format
+ * AC-Q3.3-2: Inline error "Invalid VIN format" on blur
+ * AC-Q3.3-3: Auto-uppercase on input
+ * AC-Q3.3-4: Success message on NHTSA decode success
+ * AC-Q3.3-5: Warning on NHTSA decode failure, manual fields remain editable
  */
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useVINDecode, type VINDecodeResult } from '@/hooks/quoting/use-vin-decode';
 import { formatVIN, isValidVINFormat } from '@/lib/quoting/formatters';
+import { validateVin } from '@/lib/quoting/validation';
+import { FieldError } from '@/components/quoting/field-error';
 import { cn } from '@/lib/utils';
 
 export interface VINInputProps {
@@ -48,13 +57,15 @@ export function VINInput({
   hasError,
   className,
 }: VINInputProps) {
-  const { decodeVIN, isLoading, error, clear } = useVINDecode();
+  const { decodeVIN, isLoading, error: decodeError, clear } = useVINDecode();
   const [decodeStatus, setDecodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | undefined>(undefined);
+  const [isFormatValid, setIsFormatValid] = useState(false);
 
   /**
    * Handle input change - auto-uppercase and format
-   * AC-Q3.1-17: Auto-uppercase and exclude I, O, Q
+   * AC-Q3.3-3: Auto-uppercase on input
    */
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,25 +75,45 @@ export function VINInput({
       // Clear status when user modifies VIN
       setDecodeStatus('idle');
       setSuccessMessage(null);
+      setValidationError(undefined);
+      setIsFormatValid(false);
       clear();
     },
     [onChange, clear]
   );
 
   /**
-   * Handle blur - attempt VIN decode
+   * Handle blur - validate format and attempt VIN decode
+   * AC-Q3.3-1: Green checkmark for valid format
+   * AC-Q3.3-2: Inline error for invalid format
    * AC-Q3.1-18: Decode on blur if valid format
    */
   const handleBlur = useCallback(async () => {
-    if (!value || !isValidVINFormat(value)) {
+    // Skip validation if empty (optional field)
+    if (!value || value.trim() === '') {
+      setValidationError(undefined);
+      setIsFormatValid(false);
       return;
     }
 
+    // Validate format first
+    const validation = validateVin(value);
+    if (!validation.valid) {
+      setValidationError(validation.error);
+      setIsFormatValid(false);
+      return;
+    }
+
+    // Format is valid - show checkmark
+    setValidationError(undefined);
+    setIsFormatValid(true);
+
+    // Attempt decode
     const result = await decodeVIN(value);
 
     if (result) {
       setDecodeStatus('success');
-      // Create success message
+      // Create success message - AC-Q3.3-4
       const parts = [result.year, result.make, result.model].filter(Boolean);
       if (parts.length > 0) {
         setSuccessMessage(`Vehicle identified: ${parts.join(' ')}`);
@@ -91,12 +122,18 @@ export function VINInput({
         onDecode(result);
       }
     } else {
+      // AC-Q3.3-5: Warning on decode failure, manual fields remain editable
       setDecodeStatus('error');
-      if (onDecodeError && error) {
-        onDecodeError(error);
+      if (onDecodeError && decodeError) {
+        onDecodeError(decodeError);
       }
     }
-  }, [value, decodeVIN, error, onDecode, onDecodeError]);
+  }, [value, decodeVIN, decodeError, onDecode, onDecodeError]);
+
+  // Determine which icon to show
+  const showValidIcon = !isLoading && isFormatValid && !validationError;
+  const showDecodeSuccess = !isLoading && decodeStatus === 'success';
+  const showDecodeWarning = !isLoading && decodeStatus === 'error' && !validationError;
 
   return (
     <div className="space-y-1">
@@ -110,9 +147,9 @@ export function VINInput({
           disabled={disabled || isLoading}
           placeholder="Enter 17-character VIN"
           maxLength={17}
+          aria-invalid={!!validationError || hasError}
           className={cn(
             'pr-8 font-mono uppercase',
-            hasError && 'border-destructive',
             className
           )}
           data-testid="vin-input"
@@ -121,35 +158,40 @@ export function VINInput({
           {isLoading && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           )}
-          {!isLoading && decodeStatus === 'success' && (
+          {/* AC-Q3.3-1: Green checkmark for valid format or successful decode */}
+          {(showValidIcon || showDecodeSuccess) && (
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           )}
-          {!isLoading && decodeStatus === 'error' && (
+          {/* Decode warning (yellow) - format is valid but decode failed */}
+          {showDecodeWarning && (
             <AlertCircle className="h-4 w-4 text-yellow-600" />
           )}
         </div>
       </div>
 
-      {/* Character count */}
-      {value && value.length > 0 && value.length < 17 && (
+      {/* Character count - show while typing */}
+      {value && value.length > 0 && value.length < 17 && !validationError && (
         <p className="text-xs text-muted-foreground">
           {value.length}/17 characters
         </p>
       )}
 
-      {/* Success message - AC-Q3.1-18 */}
-      {decodeStatus === 'success' && successMessage && (
+      {/* AC-Q3.3-2: Inline validation error */}
+      <FieldError error={validationError} />
+
+      {/* Success message - AC-Q3.3-4 */}
+      {decodeStatus === 'success' && successMessage && !validationError && (
         <p className="text-xs text-green-600 flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
           {successMessage}
         </p>
       )}
 
-      {/* Error message - AC-Q3.1-19 */}
-      {decodeStatus === 'error' && error && (
+      {/* Decode warning - AC-Q3.3-5 */}
+      {decodeStatus === 'error' && decodeError && !validationError && (
         <p className="text-xs text-yellow-600 flex items-center gap-1">
           <AlertCircle className="h-3 w-3" />
-          {error}
+          {decodeError}
         </p>
       )}
     </div>

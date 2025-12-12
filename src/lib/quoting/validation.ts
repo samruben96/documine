@@ -1,12 +1,171 @@
 /**
  * Quoting Validation Schemas
  * Story Q3.1: Data Capture Forms
+ * Story Q3.3: Field Validation & Formatting
  *
  * Zod schemas for form validation
  * Used with react-hook-form via @hookform/resolvers/zod
+ *
+ * Validation Functions (Q3.3):
+ * - validateVin: VIN format validation (17 chars, no I/O/Q)
+ * - validateZipCode: ZIP code format (5-digit or ZIP+4)
+ * - validateEmail: Email format validation
+ * - validatePhone: Phone number validation (10 digits)
  */
 
 import { z } from 'zod';
+
+// ============================================================================
+// VALIDATION RESULT INTERFACE (AC-Q3.3: Task 1.6)
+// ============================================================================
+
+/**
+ * Result of field validation
+ * AC-Q3.3-11: Used to provide inline error messages
+ */
+export interface ValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+// ============================================================================
+// VALIDATION FUNCTIONS (AC-Q3.3: Tasks 1.1-1.5)
+// ============================================================================
+
+/**
+ * VIN Validation Regex
+ * AC-Q3.3-1, AC-Q3.3-2: 17 alphanumeric characters, excluding I, O, Q
+ */
+const VIN_REGEX = /^[A-HJ-NPR-Z0-9]{17}$/;
+
+/**
+ * ZIP Code Validation Regex
+ * AC-Q3.3-6, AC-Q3.3-7: 5 digits or ZIP+4 format
+ */
+const ZIP_REGEX = /^\d{5}(-\d{4})?$/;
+
+/**
+ * Email Validation Regex (RFC 5322 simplified)
+ * AC-Q3.3-9, AC-Q3.3-10: Standard email format
+ */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validate VIN format
+ * AC-Q3.3-1: Valid VIN shows green checkmark
+ * AC-Q3.3-2: Invalid VIN shows inline error
+ * AC-Q3.3-3: Auto-uppercase handled by formatVIN in formatters.ts
+ *
+ * @param vin - VIN string to validate
+ * @returns ValidationResult with valid status and optional error message
+ */
+export function validateVin(vin: string): ValidationResult {
+  if (!vin || vin.trim() === '') {
+    return { valid: true }; // Empty is valid (optional field)
+  }
+
+  const upperVin = vin.toUpperCase();
+
+  if (upperVin.length !== 17) {
+    return {
+      valid: false,
+      error: 'VIN must be exactly 17 characters',
+    };
+  }
+
+  // Check for invalid characters (I, O, Q)
+  if (/[IOQ]/i.test(vin)) {
+    return {
+      valid: false,
+      error: 'VIN cannot contain letters I, O, or Q',
+    };
+  }
+
+  if (!VIN_REGEX.test(upperVin)) {
+    return {
+      valid: false,
+      error: 'Invalid VIN format',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate ZIP code format
+ * AC-Q3.3-6: 5-digit or ZIP+4 format is valid
+ * AC-Q3.3-7: Invalid format shows inline error
+ *
+ * @param zipCode - ZIP code string to validate
+ * @returns ValidationResult with valid status and optional error message
+ */
+export function validateZipCode(zipCode: string): ValidationResult {
+  if (!zipCode || zipCode.trim() === '') {
+    return { valid: true }; // Empty handled by required validation
+  }
+
+  if (!ZIP_REGEX.test(zipCode)) {
+    return {
+      valid: false,
+      error: 'Invalid ZIP code',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate email format
+ * AC-Q3.3-9: Valid email shows no error
+ * AC-Q3.3-10: Invalid email shows inline error
+ *
+ * @param email - Email string to validate
+ * @returns ValidationResult with valid status and optional error message
+ */
+export function validateEmail(email: string): ValidationResult {
+  if (!email || email.trim() === '') {
+    return { valid: true }; // Empty handled by required validation
+  }
+
+  if (!EMAIL_REGEX.test(email)) {
+    return {
+      valid: false,
+      error: 'Invalid email address',
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate phone number (10 digits)
+ * AC-Q3.3-17, AC-Q3.3-18: Phone auto-formats as (XXX) XXX-XXXX
+ * AC-Q3.3-19: Fewer than 10 digits shows inline error
+ *
+ * @param phone - Phone string to validate (formatted or raw)
+ * @returns ValidationResult with valid status and optional error message
+ */
+export function validatePhone(phone: string): ValidationResult {
+  if (!phone || phone.trim() === '') {
+    return { valid: true }; // Empty handled by required validation
+  }
+
+  // Extract only digits
+  const digits = phone.replace(/\D/g, '');
+
+  if (digits.length === 0) {
+    return { valid: true }; // Empty handled by required validation
+  }
+
+  if (digits.length !== 10) {
+    return {
+      valid: false,
+      error: 'Phone must be 10 digits',
+    };
+  }
+
+  return { valid: true };
+}
 import {
   US_STATES,
   CONSTRUCTION_TYPES,

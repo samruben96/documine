@@ -82,6 +82,54 @@ export function formatCurrency(value: number | string | undefined | null): strin
 }
 
 /**
+ * Format currency for display with optional decimal support
+ * AC-Q3.3-14: Display with $ prefix and thousands separators
+ * AC-Q3.3-16: Preserve decimals when present
+ *
+ * @param value - Number or string value
+ * @param preserveDecimals - If true, always show 2 decimal places
+ * @returns Formatted string like "$350,000" or "$1,234.56"
+ */
+export function formatCurrencyDisplay(
+  value: number | string | undefined | null,
+  preserveDecimals = false
+): string {
+  if (value === undefined || value === null || value === '') {
+    return '';
+  }
+
+  const numValue = typeof value === 'string' ? parseFloat(value.replace(/[^\d.-]/g, '')) : value;
+
+  if (isNaN(numValue)) {
+    return '';
+  }
+
+  // Check if original value had decimals
+  const hasDecimals = preserveDecimals || (typeof value === 'string' && value.includes('.'));
+  const decimalPlaces = hasDecimals ? 2 : 0;
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  }).format(numValue);
+}
+
+/**
+ * Parse currency input for editing (strip formatting)
+ * AC-Q3.3-15: Convert back to digits-only for editing on focus
+ *
+ * @param formattedValue - Formatted currency string like "$350,000"
+ * @returns Raw numeric string like "350000" for editing
+ */
+export function parseCurrencyForEdit(formattedValue: string): string {
+  if (!formattedValue) return '';
+  // Remove $ and commas, keep digits and decimal point
+  return formattedValue.replace(/[^\d.]/g, '');
+}
+
+/**
  * Parse currency string to number
  *
  * @param value - Currency string like "$250,000"
@@ -117,6 +165,17 @@ export function formatCurrencyInput(value: string): string {
  */
 export function formatDate(date: Date | string | undefined | null): string {
   if (!date) return '';
+
+  // Handle ISO date strings (YYYY-MM-DD) directly to avoid timezone issues
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+    const parts = date.split('T')[0]?.split('-');
+    if (parts && parts.length >= 3) {
+      const [year, month, day] = parts;
+      if (year && month && day) {
+        return `${month}/${day}/${year}`;
+      }
+    }
+  }
 
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
@@ -229,4 +288,39 @@ export function isValidVINFormat(vin: string): boolean {
   if (!vin || vin.length !== 17) return false;
   // VINs only contain A-H, J-N, P-R, S-Z, and 0-9 (no I, O, Q)
   return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin);
+}
+
+/**
+ * Format ZIP code with auto-hyphen for ZIP+4
+ * AC-Q3.3-8: Auto-insert hyphen after 5th digit for ZIP+4
+ *
+ * @param value - Raw ZIP code input
+ * @returns Formatted ZIP code (XXXXX or XXXXX-XXXX)
+ */
+export function formatZipCode(value: string): string {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+
+  // Limit to 9 digits (5 + 4)
+  const truncated = digits.slice(0, 9);
+
+  // Format based on length
+  if (truncated.length <= 5) {
+    return truncated;
+  } else {
+    // Insert hyphen after 5th digit
+    return `${truncated.slice(0, 5)}-${truncated.slice(5)}`;
+  }
+}
+
+/**
+ * Validate ZIP code format
+ * AC-Q3.3-6: 5 digits (XXXXX) or ZIP+4 (XXXXX-XXXX)
+ *
+ * @param zipCode - ZIP code string
+ * @returns True if valid format
+ */
+export function isValidZipCode(zipCode: string): boolean {
+  if (!zipCode) return false;
+  return /^\d{5}(-\d{4})?$/.test(zipCode);
 }

@@ -1,0 +1,158 @@
+<story-context id="Q4-2-carriers-tab-ui-actions" v="1.0">
+  <metadata>
+    <epicId>Q4</epicId>
+    <storyId>2</storyId>
+    <title>Carriers Tab UI &amp; Actions</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q4/stories/Q4-2-carriers-tab-ui-actions/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>a polished carriers tab with carrier logos, status badges, and clear action buttons</iWant>
+    <soThat>I can quickly see which carriers I've copied data for and easily access their portals</soThat>
+    <tasks>
+      <task id="1" ac="2">Add carrier logo assets - Create public/images/carriers/ directory, add Progressive and Travelers SVG logos (24x24)</task>
+      <task id="2" ac="2-5">Create CarrierActionRow component - Per-carrier row with logo, name, status badge, Copy Data button, Open Portal button</task>
+      <task id="3" ac="6-9">Implement status badge system - Not Started (gray), Copied (blue), Quote Entered (green) with persistence</task>
+      <task id="4" ac="11">Add ready indicator - Show data completeness status for copying</task>
+      <task id="5" ac="1,10">Refactor CarriersTab to use CarrierActionRow - Maintain filtering, add header with ready indicator</task>
+      <task id="6" ac="2-5">Write unit tests for CarrierActionRow component</task>
+      <task id="7" ac="6-9">Write unit tests for status badge system</task>
+      <task id="8" ac="1,5,6,7">Write E2E tests for carriers tab</task>
+      <task id="9" ac="all">Verify build and test suite passes</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q4.2-1" fr="FR21">Carriers tab shows list of supported carriers (Progressive, Travelers)</criterion>
+    <criterion id="AC-Q4.2-2" fr="FR21">Each carrier row displays: logo (24x24), name, status badge</criterion>
+    <criterion id="AC-Q4.2-3" fr="FR21">Each carrier row has "Copy Data" button (primary style)</criterion>
+    <criterion id="AC-Q4.2-4" fr="FR21">Each carrier row has "Open Portal" button (ghost style, external icon)</criterion>
+    <criterion id="AC-Q4.2-5" fr="FR35">"Open Portal" opens carrier URL in new browser tab</criterion>
+    <criterion id="AC-Q4.2-6" fr="FR36">Status badge shows "Not Started" initially (gray)</criterion>
+    <criterion id="AC-Q4.2-7" fr="FR36">Status badge shows "Copied" after data is copied (blue)</criterion>
+    <criterion id="AC-Q4.2-8" fr="FR36">Status badge shows "Quote Entered" when result saved (green)</criterion>
+    <criterion id="AC-Q4.2-9" fr="FR36">Copy status persists during session (local state)</criterion>
+    <criterion id="AC-Q4.2-10">Carriers filtered by quote type (home carriers for home-only, etc.)</criterion>
+    <criterion id="AC-Q4.2-11">Ready indicator shows when all required data is entered</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-Q4/tech-spec.md" title="Epic Q4 Tech Spec" section="Story Q4.2: Carriers Tab UI &amp; Actions" snippet="AC-Q4.2-1 through AC-Q4.2-11 define carrier list display, status badges (Not Started/Copied/Quote Entered), portal links, and ready indicator requirements." />
+      <doc path="docs/features/quoting/architecture.md" title="Quoting Architecture" section="Project Structure" snippet="Defines carrier-action-row.tsx component location in src/components/quoting/. Carrier registry pattern with CarrierInfo including logoPath field." />
+      <doc path="docs/features/quoting/ux-design.md" title="Quoting UX Design" section="6.1.1 CarrierActionRow" snippet="Carrier row anatomy: logo (24x24), name, status badge (not started/copied/quote entered), copy button (primary), open portal (ghost with external icon). States: Default, Copied, Quote Entered." />
+      <doc path="docs/sprint-artifacts/epics/epic-Q4/epic.md" title="Epic Q4 Overview" section="Acceptance Summary - Carriers Tab (Q4.2)" snippet="Progressive and Travelers display, each row with logo/name/status/copy/portal buttons. Status tracks Not Started to Copied to Quote Entered. Filtering by quote type." />
+      <doc path="docs/sprint-artifacts/epics/epic-Q4/stories/Q4-1-copy-button-carrier-formatters/story.md" title="Story Q4.1 (Previous)" section="Code Review" snippet="CopyButton component at src/components/quoting/copy-button.tsx (161 lines). useClipboardCopy hook at src/hooks/quoting/use-clipboard-copy.ts (157 lines). CarriersTab partial implementation at src/components/quoting/tabs/carriers-tab.tsx (175 lines)." />
+    </docs>
+
+    <code>
+      <file path="src/components/quoting/tabs/carriers-tab.tsx" kind="component" symbol="CarriersTab, CarrierCard" lines="1-175" reason="Main component to refactor - already has CarrierCard inline, needs extraction to CarrierActionRow and full status badge system" />
+      <file path="src/components/quoting/copy-button.tsx" kind="component" symbol="CopyButton" lines="1-161" reason="Existing copy button with states - REUSE in CarrierActionRow" />
+      <file path="src/hooks/quoting/use-clipboard-copy.ts" kind="hook" symbol="useClipboardCopy" lines="1-157" reason="Clipboard hook with copy feedback - REUSE in carriers tab" />
+      <file path="src/lib/quoting/carriers/index.ts" kind="registry" symbol="CARRIERS, getCarrier, getSupportedCarriers, getCarriersForQuoteType" lines="1-72" reason="Carrier registry - has logoPath field, already supports filtering by quote type" />
+      <file path="src/lib/quoting/carriers/types.ts" kind="types" symbol="CarrierStatus, CarrierInfo" lines="1-119" reason="CarrierStatus type already defined: 'not_started' | 'copied' | 'quote_entered'" />
+      <file path="src/components/ui/badge.tsx" kind="component" symbol="Badge, StatusBadge, badgeVariants" lines="1-111" reason="Badge component with status variants - status-default (gray), status-info (blue), status-success (green)" />
+      <file path="src/components/quoting/status-badge.tsx" kind="component" symbol="StatusBadge" lines="1-78" reason="Existing session status badge pattern - reference for carrier status badge implementation" />
+      <file path="src/contexts/quote-session-context.tsx" kind="context" symbol="QuoteSessionContext, useQuoteSessionContext" reason="Session context providing clientData for validation and copy operations" />
+      <file path="__tests__/components/quoting/copy-button.test.tsx" kind="test" symbol="CopyButton tests" reason="Test patterns for component testing with RTL - follow for CarrierActionRow tests" />
+      <file path="__tests__/e2e/quoting/carrier-copy.spec.ts" kind="e2e" symbol="carrier copy e2e tests" reason="E2E test patterns for Playwright - extend for status badge and portal link tests" />
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="react" version="19.2.0" />
+        <package name="lucide-react" version="0.554.0" usage="Icons: Clipboard, Check, ExternalLink, Building2, CheckCircle" />
+        <package name="sonner" version="2.0.7" usage="Toast notifications for copy feedback" />
+        <package name="class-variance-authority" version="0.7.1" usage="Badge variants" />
+        <package name="next" version="16.0.9" usage="Image component for carrier logos" />
+        <package name="vitest" version="4.0.14" devDependency="true" usage="Unit testing" />
+        <package name="@testing-library/react" version="16.3.0" devDependency="true" usage="Component testing" />
+        <package name="@playwright/test" version="1.57.0" devDependency="true" usage="E2E testing" />
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface name="CarrierInfo" kind="type" path="src/lib/quoting/carriers/types.ts">
+      <![CDATA[
+interface CarrierInfo {
+  code: string;
+  name: string;
+  portalUrl: string;
+  logoPath: string;
+  formatter: CarrierFormatter;
+  linesOfBusiness: Array<'home' | 'auto' | 'bundle'>;
+}
+      ]]>
+    </interface>
+    <interface name="CarrierStatus" kind="type" path="src/lib/quoting/carriers/types.ts">
+      <![CDATA[
+type CarrierStatus = 'not_started' | 'copied' | 'quote_entered';
+      ]]>
+    </interface>
+    <interface name="CarrierActionRowProps" kind="component-props" path="src/components/quoting/carrier-action-row.tsx (NEW)">
+      <![CDATA[
+interface CarrierActionRowProps {
+  carrier: CarrierInfo;
+  status: CarrierStatus;
+  onCopy: () => void;
+  onStatusChange?: (status: CarrierStatus) => void;
+  clientData: QuoteClientData;
+  disabled?: boolean;
+}
+      ]]>
+    </interface>
+    <interface name="Badge variants" kind="css-variants" path="src/components/ui/badge.tsx">
+      <![CDATA[
+// Use these for carrier status badges:
+- status-default: gray (Not Started)
+- status-info: blue (Copied)
+- status-success: green (Quote Entered)
+      ]]>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="architecture">CarrierActionRow must be a separate component file at src/components/quoting/carrier-action-row.tsx</constraint>
+    <constraint type="architecture">Use existing CopyButton component from Q4.1 - do NOT recreate copy functionality</constraint>
+    <constraint type="architecture">Use existing Badge component with status variants - do NOT create new badge component</constraint>
+    <constraint type="architecture">Carrier logos stored in public/images/carriers/ as SVG files (24x24)</constraint>
+    <constraint type="state">Status persistence uses React useState in CarriersTab - no database storage needed for MVP</constraint>
+    <constraint type="ux">Status badge colors: gray (Not Started), blue (Copied), green (Quote Entered) per UX spec</constraint>
+    <constraint type="ux">Portal links must open in new tab with rel="noopener noreferrer"</constraint>
+    <constraint type="ux">Ready indicator shows when firstName + lastName are present (minimum data)</constraint>
+    <constraint type="a11y">All interactive elements keyboard accessible, proper ARIA labels</constraint>
+    <constraint type="testing">Unit tests for CarrierActionRow, status badge system. E2E tests for full flow.</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit tests, React Testing Library for component tests, Playwright for E2E.
+      Follow existing test patterns from Q4.1 (copy-button.test.tsx, carrier-copy.spec.ts).
+      Test file naming: __tests__/components/quoting/carrier-action-row.test.tsx
+      E2E tests in __tests__/e2e/quoting/carriers-tab.spec.ts
+    </standards>
+    <locations>
+      <location>__tests__/components/quoting/</location>
+      <location>__tests__/e2e/quoting/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q4.2-2">Test CarrierActionRow renders logo, name, and status badge</idea>
+      <idea ac="AC-Q4.2-3">Test Copy Data button has primary styling</idea>
+      <idea ac="AC-Q4.2-4">Test Open Portal button has ghost styling with ExternalLink icon</idea>
+      <idea ac="AC-Q4.2-5">Test portal link has correct href and target="_blank"</idea>
+      <idea ac="AC-Q4.2-6">Test initial status badge shows "Not Started" with gray styling</idea>
+      <idea ac="AC-Q4.2-7">Test status badge updates to "Copied" (blue) after copy action</idea>
+      <idea ac="AC-Q4.2-8">Test status badge shows "Quote Entered" (green) when quote result saved</idea>
+      <idea ac="AC-Q4.2-9">Test status persists when switching tabs</idea>
+      <idea ac="AC-Q4.2-10">Test carriers filtered by quote type (home shows home carriers only)</idea>
+      <idea ac="AC-Q4.2-11">Test ready indicator appears when required data present</idea>
+      <idea ac="E2E">E2E: Navigate to carriers tab, verify carrier list, click copy, verify status change</idea>
+      <idea ac="E2E">E2E: Click portal link, verify new tab opens (can check window.open was called)</idea>
+    </ideas>
+  </tests>
+</story-context>

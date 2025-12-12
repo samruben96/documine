@@ -1,8 +1,9 @@
 /**
  * Data Capture Forms E2E Tests
  * Story Q3.1: Data Capture Forms
+ * Story Q3.3: Field Validation & Formatting
  *
- * E2E tests for form tabs and data entry flows.
+ * E2E tests for form tabs, data entry flows, and field validation.
  * These tests require authenticated users and test data.
  */
 
@@ -242,6 +243,231 @@ test.describe('Data Capture Forms', () => {
 
       // Note: Count badges only appear when items exist
       // The actual count text would be like "2 vehicles" or "1 driver"
+    });
+  });
+
+  // ===========================================================================
+  // Q3.3: Field Validation & Formatting Tests
+  // ===========================================================================
+
+  test.describe('Q3.3: VIN Validation', () => {
+    test('AC-Q3.3-1: shows green checkmark for valid VIN format', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await page.click('[data-tab="auto"]');
+
+      // Add a vehicle if none exist
+      const addVehicleBtn = page.locator('button:has-text("Add Vehicle")');
+      if (await addVehicleBtn.isVisible() && !(await addVehicleBtn.isDisabled())) {
+        await addVehicleBtn.click();
+        await page.waitForTimeout(200);
+      }
+
+      // Look for VIN input in edit mode
+      const vinInput = page.locator('[data-testid="vin-input"]').first();
+      if (await vinInput.isVisible()) {
+        // Enter valid VIN
+        await vinInput.fill('1HGBH41JXMN109186');
+        await vinInput.blur();
+
+        // Wait for validation
+        await page.waitForTimeout(500);
+
+        // Check for green checkmark icon
+        const checkIcon = page.locator('svg[class*="text-green"]').first();
+        await expect(checkIcon).toBeVisible({ timeout: 3000 });
+      }
+    });
+
+    test('AC-Q3.3-2: shows inline error for invalid VIN format on blur', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await page.click('[data-tab="auto"]');
+
+      // Add a vehicle if none exist
+      const addVehicleBtn = page.locator('button:has-text("Add Vehicle")');
+      if (await addVehicleBtn.isVisible() && !(await addVehicleBtn.isDisabled())) {
+        await addVehicleBtn.click();
+        await page.waitForTimeout(200);
+      }
+
+      // Look for VIN input
+      const vinInput = page.locator('[data-testid="vin-input"]').first();
+      if (await vinInput.isVisible()) {
+        // Enter invalid VIN (too short)
+        await vinInput.fill('1HGBH41J');
+        await vinInput.blur();
+
+        // Wait for validation
+        await page.waitForTimeout(200);
+
+        // Check for error message
+        const errorMsg = page.locator('text=VIN must be exactly 17 characters');
+        await expect(errorMsg).toBeVisible({ timeout: 3000 });
+      }
+    });
+
+    test('AC-Q3.3-3: VIN auto-uppercases on input', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await page.click('[data-tab="auto"]');
+
+      // Add a vehicle if none exist
+      const addVehicleBtn = page.locator('button:has-text("Add Vehicle")');
+      if (await addVehicleBtn.isVisible() && !(await addVehicleBtn.isDisabled())) {
+        await addVehicleBtn.click();
+        await page.waitForTimeout(200);
+      }
+
+      // Look for VIN input
+      const vinInput = page.locator('[data-testid="vin-input"]').first();
+      if (await vinInput.isVisible()) {
+        // Enter lowercase VIN
+        await vinInput.fill('1hgbh41jxmn109186');
+
+        // Verify it's uppercase
+        await expect(vinInput).toHaveValue('1HGBH41JXMN109186');
+      }
+    });
+  });
+
+  test.describe('Q3.3: ZIP Code Formatting', () => {
+    test('AC-Q3.3-8: ZIP auto-inserts hyphen for ZIP+4', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+
+      // Client Info tab should be active by default
+      const zipInput = page.locator('[data-testid="mailingAddress.zipCode"]').first();
+      if (await zipInput.isVisible()) {
+        // Clear and enter ZIP+4 without hyphen
+        await zipInput.fill('787011234');
+
+        // Verify hyphen is inserted
+        await expect(zipInput).toHaveValue('78701-1234');
+      }
+    });
+  });
+
+  test.describe('Q3.3: Currency Formatting', () => {
+    test('AC-Q3.3-14: currency displays with $ and thousands separator on blur', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await page.click('[data-tab="property"]');
+
+      // Find dwelling coverage input
+      const dwellingInput = page.locator('[data-testid="dwellingCoverage"]').first();
+      if (await dwellingInput.isVisible()) {
+        // Enter plain number
+        await dwellingInput.fill('350000');
+        await dwellingInput.blur();
+
+        // Wait for formatting
+        await page.waitForTimeout(200);
+
+        // Verify formatted with $ and commas
+        await expect(dwellingInput).toHaveValue('$350,000');
+      }
+    });
+
+    test('AC-Q3.3-15: currency strips formatting on focus', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await page.click('[data-tab="property"]');
+
+      // Find dwelling coverage input
+      const dwellingInput = page.locator('[data-testid="dwellingCoverage"]').first();
+      if (await dwellingInput.isVisible()) {
+        // First set a formatted value
+        await dwellingInput.fill('250000');
+        await dwellingInput.blur();
+        await page.waitForTimeout(200);
+
+        // Now focus - should strip formatting
+        await dwellingInput.focus();
+        await page.waitForTimeout(100);
+
+        // Should have plain digits (may still have $250,000 or 250000)
+        const value = await dwellingInput.inputValue();
+        // After stripping, should be digits only
+        expect(value).toMatch(/^[\d.]+$/);
+      }
+    });
+  });
+
+  test.describe('Q3.3: Tab Completion with Validation', () => {
+    test('AC-Q3.3-24: can navigate between tabs regardless of validation errors', async ({ page }) => {
+      await page.goto('/quoting');
+      const firstCard = page.locator('[data-testid="quote-session-card"]').first();
+
+      if (!(await firstCard.isVisible())) {
+        test.skip(true, 'No quote sessions available');
+        return;
+      }
+
+      await firstCard.click();
+      await expect(page).toHaveURL(/\/quoting\/[a-f0-9-]+/);
+
+      // Enter invalid email to trigger validation error
+      const emailInput = page.locator('[data-testid="email"]').first();
+      if (await emailInput.isVisible()) {
+        await emailInput.fill('invalid-email');
+        await emailInput.blur();
+        await page.waitForTimeout(200);
+      }
+
+      // Should still be able to navigate to Property tab
+      await page.click('[data-tab="property"]');
+      await expect(page.locator('[data-tab="property"][data-state="active"]')).toBeVisible();
+
+      // Should still be able to navigate to Auto tab
+      await page.click('[data-tab="auto"]');
+      await expect(page.locator('[data-tab="auto"][data-state="active"]')).toBeVisible();
+
+      // Should be able to go back to Client Info
+      await page.click('[data-tab="client-info"]');
+      await expect(page.locator('[data-tab="client-info"][data-state="active"]')).toBeVisible();
     });
   });
 });

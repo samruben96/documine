@@ -62,23 +62,26 @@ development_status:
   # Enter client info with smart forms + address autocomplete + VIN decode
   # Stories: 3 (consolidated) | FRs: FR6-14, FR16-18
   # Location: docs/sprint-artifacts/epics/epic-Q3/
-  epic-Q3-client-data-capture: contexted
+  # COMPLETED: 2025-12-11 - All 3 stories done
+  epic-Q3-client-data-capture: done
   Q3-1-data-capture-forms: done    # Consolidated: Client Info, Property, Auto, Drivers tabs
-  Q3-2-auto-save-implementation: backlog
-  Q3-3-field-validation-formatting: backlog
-
+  Q3-2-auto-save-implementation: done  # Completed 2025-12-11, code review passed, all fixes applied
+  Q3-3-field-validation-formatting: done  # Completed 2025-12-11, all 11 tasks done
+  epic-Q3-retrospective: done  # Completed 2025-12-11
+  
   # Epic Q4: Carrier Copy System
   # Copy formatted data for carriers
-  # Stories: 4 | FRs: FR19-24, FR35-36
-  epic-Q4-carrier-copy-system: backlog
-  Q4-1-copy-button-feedback: backlog
-  Q4-2-carrier-format-functions: backlog
-  Q4-3-carriers-tab-action-rows: backlog
-  Q4-4-data-preview-before-copy: backlog
+  # Stories: 3 (consolidated) | FRs: FR19-24, FR35-36
+  # Location: docs/sprint-artifacts/epics/epic-Q4/
+  epic-Q4-carrier-copy-system: contexted
+  Q4-1-copy-button-carrier-formatters: done  # Combined: copy button + Progressive/Travelers formatters - Code review APPROVED 2025-12-12
+  Q4-2-carriers-tab-ui-actions: done            # Carriers tab full implementation - Code review APPROVED 2025-12-12
+  Q4-3-data-preview-before-copy: backlog        # Preview modal before copy
 
   # Epic Q5: Quote Results & Comparison
   # Enter results, generate comparison
   # Stories: 5 | FRs: FR25-34, FR37-38
+  #note from sam, we already have a quote comparison, so lets just use that?
   epic-Q5-quote-results-comparison: backlog
   Q5-1-quote-result-entry-form: backlog
   Q5-2-results-tab-summary: backlog

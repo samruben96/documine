@@ -2,13 +2,26 @@
  * Tab Completion Status Utility
  * Story Q2.3: Quote Session Detail Page
  * Story Q3.1: Data Capture Forms
+ * Story Q3.3: Field Validation & Formatting
  *
  * AC-Q2.3-2: Calculate completion status for each tab
  * AC-Q3.1-30: Show ✓ checkmark when all required fields filled with valid data
  * AC-Q3.1-31: Show item counts (vehicles, drivers)
+ * AC-Q3.3-23: Tab does NOT show checkmark if required fields have validation errors
+ * AC-Q3.3-24: Navigation is NOT blocked by validation errors
  */
 
 import type { QuoteClientData, Vehicle, Driver } from '@/types/quoting';
+import { validateEmail, validatePhone, validateZipCode, validateVin } from './validation';
+
+/**
+ * Check if a value passes validation
+ * Empty values are considered valid (handled by required checks)
+ */
+function isFieldValid(value: string | undefined | null, validator: (v: string) => { valid: boolean }): boolean {
+  if (!value || value.trim() === '') return true; // Empty handled by required check
+  return validator(value).valid;
+}
 
 export interface TabCompletionStatus {
   /** Tab is considered complete */
@@ -81,9 +94,19 @@ export function getTabCompletionStatus(
   const completeVehicleCount = vehicles.filter(isVehicleComplete).length;
   const completeDriverCount = drivers.filter(isDriverComplete).length;
 
+  // AC-Q3.3-23: Check validation in addition to required fields
+  const clientInfoFieldsValid =
+    isFieldValid(personal?.email, validateEmail) &&
+    isFieldValid(personal?.phone, validatePhone) &&
+    isFieldValid(personal?.mailingAddress?.zipCode, validateZipCode);
+
+  const propertyFieldsValid =
+    isFieldValid(property?.address?.zipCode, validateZipCode);
+
   return {
     'client-info': {
       // AC-Q3.1-30: All required fields filled
+      // AC-Q3.3-23: No validation errors on validated fields
       isComplete: Boolean(
         personal?.firstName?.trim() &&
         personal?.lastName?.trim() &&
@@ -93,17 +116,20 @@ export function getTabCompletionStatus(
         personal?.mailingAddress?.street?.trim() &&
         personal?.mailingAddress?.city?.trim() &&
         personal?.mailingAddress?.state &&
-        personal?.mailingAddress?.zipCode?.trim()
+        personal?.mailingAddress?.zipCode?.trim() &&
+        clientInfoFieldsValid // AC-Q3.3-23: Must also pass validation
       ),
     },
     property: {
       // AC-Q3.1-30: Property address and required fields
+      // AC-Q3.3-23: No validation errors on validated fields
       isComplete: Boolean(
         property?.address?.street?.trim() &&
         property?.address?.city?.trim() &&
         property?.address?.state &&
         property?.address?.zipCode?.trim() &&
-        property?.yearBuilt
+        property?.yearBuilt &&
+        propertyFieldsValid // AC-Q3.3-23: Must also pass validation
       ),
     },
     auto: {

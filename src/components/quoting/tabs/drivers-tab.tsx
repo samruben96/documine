@@ -14,8 +14,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
-import { Users, Plus, Loader2 } from 'lucide-react';
+import { Users, Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +35,7 @@ import type { Driver } from '@/types/quoting';
  * Drivers Tab Component
  */
 export function DriversTab() {
-  const { session, isSaving, updateAutoInfo } = useQuoteSessionContext();
+  const { session, updateAutoInfo } = useQuoteSessionContext();
 
   // Local state for drivers
   const [drivers, setDrivers] = useState<Driver[]>(
@@ -52,20 +51,14 @@ export function DriversTab() {
   }, [session?.id]);
 
   /**
-   * Save drivers (debounced)
+   * Save drivers - context handles debouncing via auto-save hook
    */
   const saveData = useCallback(
-    async (updatedDrivers: Driver[]) => {
-      try {
-        await updateAutoInfo({ drivers: updatedDrivers });
-      } catch {
-        // Error handled by context
-      }
+    (updatedDrivers: Driver[]) => {
+      updateAutoInfo({ drivers: updatedDrivers });
     },
     [updateAutoInfo]
   );
-
-  const debouncedSave = useDebouncedCallback(saveData, 500);
 
   /**
    * Add new driver
@@ -92,8 +85,8 @@ export function DriversTab() {
     const updatedDrivers = [...drivers, newDriver];
     setDrivers(updatedDrivers);
     setEditingIndex(updatedDrivers.length - 1); // Open new driver in edit mode
-    debouncedSave(updatedDrivers);
-  }, [drivers, debouncedSave]);
+    saveData(updatedDrivers);
+  }, [drivers, saveData]);
 
   /**
    * Update driver
@@ -104,9 +97,9 @@ export function DriversTab() {
       updatedDrivers[index] = updatedDriver;
       setDrivers(updatedDrivers);
       setEditingIndex(null);
-      debouncedSave(updatedDrivers);
+      saveData(updatedDrivers);
     },
-    [drivers, debouncedSave]
+    [drivers, saveData]
   );
 
   /**
@@ -122,9 +115,9 @@ export function DriversTab() {
       } else if (editingIndex !== null && editingIndex > index) {
         setEditingIndex(editingIndex - 1);
       }
-      debouncedSave(updatedDrivers);
+      saveData(updatedDrivers);
     },
-    [drivers, editingIndex, debouncedSave]
+    [drivers, editingIndex, saveData]
   );
 
   /**
@@ -142,17 +135,9 @@ export function DriversTab() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Drivers</CardTitle>
-          </div>
-          {isSaving && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Saving...
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Drivers</CardTitle>
         </div>
         <CardDescription>
           Drivers to be included in the auto insurance quote

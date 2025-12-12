@@ -15,14 +15,18 @@
 
 import { use } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { QuoteTypeBadge } from '@/components/quoting/quote-type-badge';
 import { StatusBadge } from '@/components/quoting/status-badge';
+import { SaveIndicator } from '@/components/quoting/save-indicator';
 import { useQuoteSession } from '@/hooks/quoting/use-quote-session';
-import { QuoteSessionProvider } from '@/contexts/quote-session-context';
+import {
+  QuoteSessionProvider,
+  useQuoteSessionContext,
+} from '@/contexts/quote-session-context';
 import {
   getTabCompletionStatus,
   getVisibleTabs,
@@ -50,6 +54,26 @@ const TAB_CONTENT: Record<TabId, React.ComponentType> = {
   carriers: CarriersTab,
   results: ResultsTab,
 };
+
+/**
+ * Save Status Header Component
+ * Story Q3.2: Auto-Save Implementation
+ * AC-Q3.2-2: Position indicator in quote session header area
+ *
+ * Must be used within QuoteSessionProvider
+ */
+function SaveStatusHeader() {
+  const { saveState, isOffline, retry } = useQuoteSessionContext();
+
+  return (
+    <SaveIndicator
+      state={saveState}
+      isOffline={isOffline}
+      onRetry={retry}
+      className="ml-auto"
+    />
+  );
+}
 
 /**
  * Tab Trigger with Completion Indicator
@@ -161,24 +185,25 @@ export default function QuoteSessionDetailPage({
           Back to Quotes
         </Link>
 
-        {/* Header - AC-Q2.3-1 */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <h1
-            className="text-2xl font-semibold text-slate-900 dark:text-slate-100"
-            data-testid="prospect-name"
-          >
-            {session.prospectName}
-          </h1>
-          <QuoteTypeBadge type={session.quoteType} />
-          <StatusBadge status={session.status} />
-        </div>
-
-        {/* Q3.1: Wrap tabs in QuoteSessionProvider for context access */}
+        {/* Q3.1/Q3.2: Wrap content in QuoteSessionProvider for context access */}
         <QuoteSessionProvider
           session={session}
           isLoading={isLoading}
           onRefresh={refresh}
         >
+          {/* Header - AC-Q2.3-1, AC-Q3.2-2 (save indicator in header) */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <h1
+              className="text-2xl font-semibold text-slate-900 dark:text-slate-100"
+              data-testid="prospect-name"
+            >
+              {session.prospectName}
+            </h1>
+            <QuoteTypeBadge type={session.quoteType} />
+            <StatusBadge status={session.status} />
+            <SaveStatusHeader />
+          </div>
+
           {/* Tabs - AC-Q2.3-1, AC-Q2.3-5 */}
           <Tabs defaultValue="client-info" className="space-y-6">
             <TabsList className="w-full justify-start overflow-x-auto">

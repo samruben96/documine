@@ -18,12 +18,16 @@ import {
   formatCurrency,
   parseCurrency,
   formatCurrencyInput,
+  formatCurrencyDisplay,
+  parseCurrencyForEdit,
   formatDate,
   parseDate,
   toISODateString,
   maskLicenseNumber,
   formatVIN,
   isValidVINFormat,
+  formatZipCode,
+  isValidZipCode,
 } from '@/lib/quoting/formatters';
 
 describe('Phone Number Formatting', () => {
@@ -251,6 +255,105 @@ describe('VIN Formatting', () => {
 
     it('returns false for VIN longer than 17 characters', () => {
       expect(isValidVINFormat('1HGBH41JXMN1091861')).toBe(false);
+    });
+  });
+});
+
+// =============================================================================
+// Q3.3 New Formatting Functions
+// =============================================================================
+
+describe('ZIP Code Formatting - Q3.3', () => {
+  describe('formatZipCode', () => {
+    it('returns empty string for empty input', () => {
+      expect(formatZipCode('')).toBe('');
+    });
+
+    it('allows 5 digits as-is', () => {
+      expect(formatZipCode('78701')).toBe('78701');
+    });
+
+    it('auto-inserts hyphen after 5th digit', () => {
+      expect(formatZipCode('787011234')).toBe('78701-1234');
+    });
+
+    it('truncates to 9 digits max', () => {
+      expect(formatZipCode('7870112345678')).toBe('78701-1234');
+    });
+
+    it('removes non-digit characters', () => {
+      expect(formatZipCode('787-01')).toBe('78701');
+      expect(formatZipCode('78701-abc')).toBe('78701');
+    });
+
+    it('handles partial ZIP+4', () => {
+      expect(formatZipCode('7870112')).toBe('78701-12');
+    });
+  });
+
+  describe('isValidZipCode', () => {
+    it('returns true for 5-digit ZIP', () => {
+      expect(isValidZipCode('78701')).toBe(true);
+    });
+
+    it('returns true for ZIP+4', () => {
+      expect(isValidZipCode('78701-1234')).toBe(true);
+    });
+
+    it('returns false for empty', () => {
+      expect(isValidZipCode('')).toBe(false);
+    });
+
+    it('returns false for incomplete ZIP', () => {
+      expect(isValidZipCode('7870')).toBe(false);
+    });
+
+    it('returns false for incomplete ZIP+4', () => {
+      expect(isValidZipCode('78701-12')).toBe(false);
+    });
+  });
+});
+
+describe('Currency Display Formatting - Q3.3', () => {
+  describe('formatCurrencyDisplay', () => {
+    it('returns empty string for null/undefined', () => {
+      expect(formatCurrencyDisplay(null)).toBe('');
+      expect(formatCurrencyDisplay(undefined)).toBe('');
+      expect(formatCurrencyDisplay('')).toBe('');
+    });
+
+    it('formats number without decimals by default', () => {
+      expect(formatCurrencyDisplay(250000)).toBe('$250,000');
+    });
+
+    it('preserves decimals when specified', () => {
+      expect(formatCurrencyDisplay(1234.56, true)).toBe('$1,234.56');
+    });
+
+    it('formats string with decimals if present', () => {
+      expect(formatCurrencyDisplay('1234.50')).toBe('$1,234.50');
+    });
+
+    it('formats integer string without decimals', () => {
+      expect(formatCurrencyDisplay('250000')).toBe('$250,000');
+    });
+  });
+
+  describe('parseCurrencyForEdit', () => {
+    it('returns empty string for empty input', () => {
+      expect(parseCurrencyForEdit('')).toBe('');
+    });
+
+    it('strips $ and commas', () => {
+      expect(parseCurrencyForEdit('$250,000')).toBe('250000');
+    });
+
+    it('preserves decimal point', () => {
+      expect(parseCurrencyForEdit('$1,234.56')).toBe('1234.56');
+    });
+
+    it('handles plain number', () => {
+      expect(parseCurrencyForEdit('250000')).toBe('250000');
     });
   });
 });

@@ -16,8 +16,7 @@
 import { useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useDebouncedCallback } from 'use-debounce';
-import { CalendarIcon, User, Loader2 } from 'lucide-react';
+import { CalendarIcon, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import {
@@ -48,7 +47,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AddressAutocomplete } from '@/components/quoting/address-autocomplete';
 import { useQuoteSessionContext } from '@/contexts/quote-session-context';
 import { personalInfoSchema, type PersonalInfoFormData } from '@/lib/quoting/validation';
-import { formatPhoneNumber, formatDate, toISODateString, parseDate } from '@/lib/quoting/formatters';
+import { formatPhoneNumber, formatDate, toISODateString, parseDate, formatZipCode } from '@/lib/quoting/formatters';
 import { US_STATES } from '@/lib/quoting/constants';
 import type { Address } from '@/types/quoting';
 
@@ -69,7 +68,7 @@ function RequiredLabel({ children }: { children: React.ReactNode }) {
  * Client Info Tab Component
  */
 export function ClientInfoTab() {
-  const { session, isSaving, updatePersonalInfo } = useQuoteSessionContext();
+  const { session, updatePersonalInfo } = useQuoteSessionContext();
 
   // Initialize form with session data
   const form = useForm<PersonalInfoFormData>({
@@ -113,27 +112,23 @@ export function ClientInfoTab() {
   }, [session?.id]); // Only reset when session ID changes, not on every update
 
   /**
-   * Save form data (debounced)
+   * Save form data - context handles debouncing via auto-save hook
+   * AC-Q3.2-8: Phone saved as digits-only
    */
   const saveData = useCallback(
-    async (data: Partial<PersonalInfoFormData>) => {
-      try {
-        // Convert phone back to raw digits for storage
-        if (data.phone) {
-          data.phone = data.phone.replace(/\D/g, '');
-        }
-        await updatePersonalInfo(data);
-      } catch {
-        // Error handled by context
+    (data: Partial<PersonalInfoFormData>) => {
+      // Convert phone back to raw digits for storage
+      if (data.phone) {
+        data.phone = data.phone.replace(/\D/g, '');
       }
+      updatePersonalInfo(data);
     },
     [updatePersonalInfo]
   );
 
-  const debouncedSave = useDebouncedCallback(saveData, 500);
-
   /**
    * Handle field blur - save individual field
+   * AC-Q3.2-1: Auto-save on field blur (debouncing handled by context)
    */
   const handleFieldBlur = useCallback(
     (fieldName: keyof PersonalInfoFormData) => {
@@ -142,10 +137,10 @@ export function ClientInfoTab() {
 
       // Only save if field is valid
       if (!fieldError && value !== undefined) {
-        debouncedSave({ [fieldName]: value });
+        saveData({ [fieldName]: value });
       }
     },
-    [form, debouncedSave]
+    [form, saveData]
   );
 
   /**
@@ -160,9 +155,9 @@ export function ClientInfoTab() {
       form.setValue('mailingAddress.zipCode', address.zipCode);
 
       // Save full address
-      debouncedSave({ mailingAddress: address });
+      saveData({ mailingAddress: address });
     },
-    [form, debouncedSave]
+    [form, saveData]
   );
 
   /**
@@ -178,6 +173,18 @@ export function ClientInfoTab() {
   );
 
   /**
+   * Handle ZIP input with auto-formatting
+   * AC-Q3.3-8: Auto-insert hyphen for ZIP+4
+   */
+  const handleZipChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = formatZipCode(e.target.value);
+      form.setValue('mailingAddress.zipCode', formatted);
+    },
+    [form]
+  );
+
+  /**
    * Handle DOB selection from calendar
    * AC-Q3.1-7: Date picker with MM/DD/YYYY format
    */
@@ -186,10 +193,10 @@ export function ClientInfoTab() {
       if (date) {
         const isoDate = toISODateString(date);
         form.setValue('dateOfBirth', isoDate);
-        debouncedSave({ dateOfBirth: isoDate });
+        saveData({ dateOfBirth: isoDate });
       }
     },
-    [form, debouncedSave]
+    [form, saveData]
   );
 
   // Parse DOB for calendar display
@@ -199,17 +206,9 @@ export function ClientInfoTab() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Client Information</CardTitle>
-          </div>
-          {isSaving && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Saving...
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <User className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Client Information</CardTitle>
         </div>
         <CardDescription>
           Personal and contact information for the prospect
@@ -416,7 +415,7 @@ export function ClientInfoTab() {
                           onBlur={() => {
                             field.onBlur();
                             const address = form.getValues('mailingAddress');
-                            debouncedSave({ mailingAddress: address });
+                            saveData({ mailingAddress: address });
                           }}
                           placeholder="Austin"
                           data-testid="mailingAddress.city"
@@ -441,7 +440,7 @@ export function ClientInfoTab() {
                         onValueChange={(value) => {
                           field.onChange(value);
                           const address = form.getValues('mailingAddress');
-                          debouncedSave({
+                          saveData({
                             mailingAddress: { ...address, state: value },
                           });
                         }}
@@ -464,7 +463,7 @@ export function ClientInfoTab() {
                   )}
                 />
 
-                {/* ZIP Code */}
+                {/* ZIP Code - AC-Q3.3-8: Auto-format ZIP+4 */}
                 <FormField
                   control={form.control}
                   name="mailingAddress.zipCode"
@@ -476,10 +475,14 @@ export function ClientInfoTab() {
                       <FormControl>
                         <Input
                           {...field}
+                          onChange={(e) => {
+                            handleZipChange(e);
+                            field.onChange(e);
+                          }}
                           onBlur={() => {
                             field.onBlur();
                             const address = form.getValues('mailingAddress');
-                            debouncedSave({ mailingAddress: address });
+                            saveData({ mailingAddress: address });
                           }}
                           placeholder="78701"
                           maxLength={10}

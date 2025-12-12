@@ -14,8 +14,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
-import { Car, Plus, Loader2 } from 'lucide-react';
+import { Car, Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +49,7 @@ import type { Vehicle, AutoCoverage } from '@/types/quoting';
  * Auto Tab Component
  */
 export function AutoTab() {
-  const { session, isSaving, updateAutoInfo } = useQuoteSessionContext();
+  const { session, updateAutoInfo } = useQuoteSessionContext();
 
   // Local state for vehicles
   const [vehicles, setVehicles] = useState<Vehicle[]>(
@@ -72,20 +71,14 @@ export function AutoTab() {
   }, [session?.id]);
 
   /**
-   * Save auto info (debounced)
+   * Save auto info - context handles debouncing via auto-save hook
    */
   const saveData = useCallback(
-    async (data: { vehicles?: Vehicle[]; coverage?: AutoCoverage }) => {
-      try {
-        await updateAutoInfo(data);
-      } catch {
-        // Error handled by context
-      }
+    (data: { vehicles?: Vehicle[]; coverage?: AutoCoverage }) => {
+      updateAutoInfo(data);
     },
     [updateAutoInfo]
   );
-
-  const debouncedSave = useDebouncedCallback(saveData, 500);
 
   /**
    * Add new vehicle
@@ -107,8 +100,8 @@ export function AutoTab() {
     const updatedVehicles = [...vehicles, newVehicle];
     setVehicles(updatedVehicles);
     setEditingIndex(updatedVehicles.length - 1); // Open new vehicle in edit mode
-    debouncedSave({ vehicles: updatedVehicles });
-  }, [vehicles, debouncedSave]);
+    saveData({ vehicles: updatedVehicles });
+  }, [vehicles, saveData]);
 
   /**
    * Update vehicle
@@ -119,9 +112,9 @@ export function AutoTab() {
       updatedVehicles[index] = updatedVehicle;
       setVehicles(updatedVehicles);
       setEditingIndex(null);
-      debouncedSave({ vehicles: updatedVehicles });
+      saveData({ vehicles: updatedVehicles });
     },
-    [vehicles, debouncedSave]
+    [vehicles, saveData]
   );
 
   /**
@@ -137,9 +130,9 @@ export function AutoTab() {
       } else if (editingIndex !== null && editingIndex > index) {
         setEditingIndex(editingIndex - 1);
       }
-      debouncedSave({ vehicles: updatedVehicles });
+      saveData({ vehicles: updatedVehicles });
     },
-    [vehicles, editingIndex, debouncedSave]
+    [vehicles, editingIndex, saveData]
   );
 
   /**
@@ -159,9 +152,9 @@ export function AutoTab() {
     (field: keyof AutoCoverage, value: string | boolean) => {
       const updatedCoverage = { ...coverage, [field]: value };
       setCoverage(updatedCoverage);
-      debouncedSave({ coverage: updatedCoverage });
+      saveData({ coverage: updatedCoverage });
     },
-    [coverage, debouncedSave]
+    [coverage, saveData]
   );
 
   const canAddVehicle = vehicles.length < MAX_VEHICLES;
@@ -169,17 +162,9 @@ export function AutoTab() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Car className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Vehicles</CardTitle>
-          </div>
-          {isSaving && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Saving...
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <Car className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Vehicles</CardTitle>
         </div>
         <CardDescription>
           Vehicles to be included in the auto insurance quote

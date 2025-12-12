@@ -46,7 +46,7 @@ describe('getTabCompletionStatus', () => {
           firstName: 'John',
           lastName: 'Smith',
           email: 'john@example.com',
-          phone: '555-1234',
+          phone: '(555) 123-4567', // AC-Q3.3-23: Must be valid 10-digit phone
           dateOfBirth: '1990-01-15',
           mailingAddress: {
             street: '123 Main St',

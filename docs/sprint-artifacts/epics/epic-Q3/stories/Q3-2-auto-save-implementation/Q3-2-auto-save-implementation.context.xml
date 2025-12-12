@@ -1,0 +1,238 @@
+<story-context id="Q3-2-auto-save-implementation" v="1.0">
+  <metadata>
+    <epicId>Q3</epicId>
+    <storyId>2</storyId>
+    <title>Auto-Save Implementation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q3/stories/Q3-2-auto-save-implementation/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>form data to automatically save as I enter it without losing my work</iWant>
+    <soThat>I can confidently enter client information knowing it persists even if I navigate away or experience interruptions</soThat>
+    <tasks>
+      <task id="1" ac="1-7">Create auto-save hook with debounced save logic, 500ms/2s timing, pending changes queue, state management, retry logic</task>
+      <task id="2" ac="2-4">Create save indicator component - Saving.../Saved/Error states in header area</task>
+      <task id="3" ac="11-13">Implement client-data API endpoint with deep merge of partial JSONB data</task>
+      <task id="4" ac="1,6,8-10">Integrate auto-save with form tabs - wire onBlur handlers and field formatting</task>
+      <task id="5" ac="14-15">Add error recovery UI - persistent error banner, manual save, offline queue</task>
+      <task id="6" ac="all">Write unit tests for use-auto-save hook</task>
+      <task id="7" ac="11-13">Write integration tests for client-data API</task>
+      <task id="8" ac="1-4,11-12">Write E2E tests for auto-save flow</task>
+      <task id="9" ac="all">Verify build and run full test suite</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <group name="Auto-Save Behavior (FR6)">
+      <ac id="AC-Q3.2-1">Given field blur, auto-save within 500ms (debounced)</ac>
+      <ac id="AC-Q3.2-2">Given save in progress, show "Saving..." indicator in header</ac>
+      <ac id="AC-Q3.2-3">Given save completes, show "Saved" indicator for 2 seconds</ac>
+      <ac id="AC-Q3.2-4">Given save fails, show toast with "Save failed - click to retry"</ac>
+      <ac id="AC-Q3.2-5">Given rapid typing, debounce 500ms with 2s maxWait</ac>
+      <ac id="AC-Q3.2-6">Given save in progress, user can continue editing (non-blocking)</ac>
+      <ac id="AC-Q3.2-7">Given failed save with queued changes, retry merges and sends single request</ac>
+    </group>
+    <group name="Field Formatting on Save (FR18)">
+      <ac id="AC-Q3.2-8">Phone formatted as (XXX) XXX-XXXX, saved as digits-only</ac>
+      <ac id="AC-Q3.2-9">Dates displayed MM/DD/YYYY, stored as ISO YYYY-MM-DD</ac>
+      <ac id="AC-Q3.2-10">Currency fields format with $ and thousands separators on blur</ac>
+    </group>
+    <group name="Data Persistence (FR6)">
+      <ac id="AC-Q3.2-11">Data persists when navigating away and returning</ac>
+      <ac id="AC-Q3.2-12">Data persists after browser refresh</ac>
+      <ac id="AC-Q3.2-13">Partial updates only send changed data, preserve unchanged fields</ac>
+    </group>
+    <group name="Error Recovery">
+      <ac id="AC-Q3.2-14">After 3 failed retries, show persistent error banner with manual save</ac>
+      <ac id="AC-Q3.2-15">Offline changes queued in local state, saved on reconnect</ac>
+    </group>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/features/quoting/architecture.md</path>
+        <title>Quoting Architecture</title>
+        <section>Implementation Patterns - Auto-Save Pattern</section>
+        <snippet>Auto-save pattern: debounce 500ms with 2s maxWait, server-side deep merge, visual feedback indicators</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q3/tech-spec.md</path>
+        <title>Epic Q3 Tech Spec</title>
+        <section>Story Q3.2 - Auto-Save Implementation</section>
+        <snippet>Detailed ACs for debounced auto-save, PATCH endpoint with partial update, save indicators, error recovery</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/prd.md</path>
+        <title>Quoting PRD</title>
+        <section>FR6 - Auto-Save, FR18 - Field Formatting</section>
+        <snippet>Auto-save on blur, phone/date/currency formatting requirements</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/quoting/formatters.ts</path>
+        <kind>utility</kind>
+        <symbol>formatPhoneNumber, formatCurrency, formatDate, toISODateString, unformatPhoneNumber, parseCurrency, parseDate</symbol>
+        <lines>1-233</lines>
+        <reason>REUSE: All field formatting functions already implemented in Q3.1 - use for auto-save format-on-blur</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/validation.ts</path>
+        <kind>schema</kind>
+        <symbol>clientDataSchema, personalInfoSchema, propertyInfoSchema, vehicleSchema, driverSchema</symbol>
+        <lines>1-254</lines>
+        <reason>REUSE: Zod validation schemas for API request validation</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/service.ts</path>
+        <kind>service</kind>
+        <symbol>updateQuoteSessionClientData, deepMergeClientData</symbol>
+        <lines>337-431</lines>
+        <reason>EXISTING: Deep merge function exists - extend for PATCH endpoint</reason>
+      </file>
+      <file>
+        <path>src/hooks/quoting/use-quote-session.ts</path>
+        <kind>hook</kind>
+        <symbol>useQuoteSession</symbol>
+        <lines>1-127</lines>
+        <reason>PATTERN: useState/useCallback pattern to follow for use-auto-save hook</reason>
+      </file>
+      <file>
+        <path>src/contexts/quote-session-context.tsx</path>
+        <kind>context</kind>
+        <symbol>QuoteSessionProvider, useQuoteSessionContext, patchClientData</symbol>
+        <lines>1-250</lines>
+        <reason>EXISTING: Context with isSaving state and PATCH call - enhance with auto-save indicator states</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/tabs/client-info-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>ClientInfoTab, handleFieldBlur, debouncedSave</symbol>
+        <lines>1-501</lines>
+        <reason>MODIFY: Already has debounced save pattern - wire up auto-save hook, already uses use-debounce</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/tabs/property-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>PropertyTab</symbol>
+        <reason>MODIFY: Wire up auto-save hook on field blur</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/tabs/auto-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AutoTab</symbol>
+        <reason>MODIFY: Wire up auto-save hook for vehicle changes</reason>
+      </file>
+      <file>
+        <path>src/components/quoting/tabs/drivers-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>DriversTab</symbol>
+        <reason>MODIFY: Wire up auto-save hook for driver changes</reason>
+      </file>
+      <file>
+        <path>src/app/api/quoting/[id]/route.ts</path>
+        <kind>api-route</kind>
+        <symbol>GET, DELETE</symbol>
+        <lines>1-142</lines>
+        <reason>REFERENCE: Existing session API - create sibling client-data/route.ts for PATCH</reason>
+      </file>
+      <file>
+        <path>src/types/quoting.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteSession, QuoteClientData, PersonalInfo, PropertyInfo, AutoInfo</symbol>
+        <lines>1-200</lines>
+        <reason>REFERENCE: Type definitions for client data structures</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <npm>
+        <package name="use-debounce" version="^10.0.6">CRITICAL: Debounce hook for auto-save timing - already installed</package>
+        <package name="react-hook-form" version="^7.68.0">Form state management in tabs</package>
+        <package name="@hookform/resolvers" version="^5.2.2">Zod resolver for form validation</package>
+        <package name="zod" version="^4.1.13">Schema validation for API requests</package>
+        <package name="sonner" version="^2.0.7">Toast notifications for errors</package>
+        <package name="lucide-react" version="^0.554.0">Icons for save indicator (Loader2, Check, AlertCircle)</package>
+        <package name="@supabase/supabase-js" version="^2.84.0">Database operations</package>
+      </npm>
+      <devDependencies>
+        <package name="vitest" version="^4.0.14">Unit and integration tests</package>
+        <package name="@playwright/test" version="^1.57.0">E2E tests</package>
+        <package name="@testing-library/react" version="^16.3.0">Component testing</package>
+      </devDependencies>
+    </dependencies>
+  </artifacts>
+
+  <interfaces>
+    <interface>
+      <name>PATCH /api/quoting/[id]/client-data</name>
+      <kind>REST endpoint</kind>
+      <signature>PATCH body: Partial&lt;QuoteClientData&gt; → { data: { updatedAt: string }, error: null }</signature>
+      <path>src/app/api/quoting/[id]/client-data/route.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>useAutoSave</name>
+      <kind>React hook</kind>
+      <signature>useAutoSave(sessionId: string, options?: UseAutoSaveOptions) → { saveState, pendingChanges, save, retry }</signature>
+      <path>src/hooks/quoting/use-auto-save.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>SaveIndicator</name>
+      <kind>React component</kind>
+      <signature>&lt;SaveIndicator state="idle" | "saving" | "saved" | "error" onRetry?: () =&gt; void /&gt;</signature>
+      <path>src/components/quoting/save-indicator.tsx (NEW)</path>
+    </interface>
+    <interface>
+      <name>useDebouncedCallback</name>
+      <kind>hook (from use-debounce)</kind>
+      <signature>useDebouncedCallback(callback, wait, { maxWait }) → debouncedFn</signature>
+      <path>node_modules/use-debounce</path>
+    </interface>
+  </interfaces>
+
+  <constraints>
+    <constraint type="timing">Debounce: 500ms wait, 2000ms maxWait per architecture spec</constraint>
+    <constraint type="retry">Exponential backoff: 3 max attempts before showing persistent error</constraint>
+    <constraint type="merge">Server-side deep merge into JSONB - server is source of truth</constraint>
+    <constraint type="format">Phone: store digits-only, display (XXX) XXX-XXXX</constraint>
+    <constraint type="format">Dates: store ISO YYYY-MM-DD, display MM/DD/YYYY</constraint>
+    <constraint type="format">Currency: store number, display with $ and commas</constraint>
+    <constraint type="rls">All Supabase operations scoped by agency_id via RLS policies</constraint>
+    <constraint type="ux">Save operation must be non-blocking - user can continue editing</constraint>
+    <constraint type="offline">Queue changes in local state when offline, sync on reconnect</constraint>
+    <constraint type="pattern">Follow existing hook patterns from use-quote-session.ts</constraint>
+    <constraint type="testing">Unit tests for hook, integration tests for API, E2E for full flow</constraint>
+  </constraints>
+
+  <tests>
+    <standards>
+      Vitest for unit and integration tests. Playwright for E2E. React Testing Library for components.
+      Test files in __tests__/ mirroring src/ structure. Use vitest mock for API calls.
+      E2E tests in __tests__/e2e/quoting/. Run npm run test and npm run build before marking complete.
+    </standards>
+    <locations>
+      <location>__tests__/hooks/quoting/use-auto-save.test.ts (NEW)</location>
+      <location>__tests__/components/quoting/save-indicator.test.tsx (NEW)</location>
+      <location>__tests__/app/api/quoting/client-data.test.ts (NEW)</location>
+      <location>__tests__/e2e/quoting/auto-save.spec.ts (NEW)</location>
+      <location>__tests__/e2e/quoting-sessions.spec.ts (EXISTING)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q3.2-1,5">Test debounce timing - verify 500ms delay, verify maxWait 2s fires even during continuous input</idea>
+      <idea ac="AC-Q3.2-2,3,4">Test save indicator state transitions: idle→saving→saved→idle, idle→saving→error</idea>
+      <idea ac="AC-Q3.2-6">Test non-blocking: user can edit while save in progress</idea>
+      <idea ac="AC-Q3.2-7">Test pending changes queue - multiple edits merge into single request on retry</idea>
+      <idea ac="AC-Q3.2-8,9,10">Test field formatting: phone digits→formatted, date ISO→display, currency number→$formatted</idea>
+      <idea ac="AC-Q3.2-11,12">E2E: Enter data, navigate away, return - data persists. Refresh page - data persists</idea>
+      <idea ac="AC-Q3.2-13">Test partial update: only changed fields sent in request, unchanged fields preserved</idea>
+      <idea ac="AC-Q3.2-14">Test 3 retry exhaustion: persistent error banner appears with manual save button</idea>
+      <idea ac="AC-Q3.2-15">Test offline queue: changes queued when offline, sent when online restored</idea>
+    </ideas>
+  </tests>
+</story-context>

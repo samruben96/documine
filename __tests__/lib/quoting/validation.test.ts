@@ -1,8 +1,9 @@
 /**
  * Validation Schema Tests
  * Story Q3.1: Data Capture Forms
+ * Story Q3.3: Field Validation & Formatting
  *
- * Tests for Zod schemas used in form validation
+ * Tests for Zod schemas and validation functions used in form validation
  */
 
 import { describe, it, expect } from 'vitest';
@@ -13,6 +14,10 @@ import {
   vehicleSchema,
   driverSchema,
   autoCoverageSchema,
+  validateVin,
+  validateZipCode,
+  validateEmail,
+  validatePhone,
 } from '@/lib/quoting/validation';
 
 describe('addressSchema', () => {
@@ -300,5 +305,184 @@ describe('autoCoverageSchema', () => {
     if (result.success) {
       expect(result.data.uninsuredMotorist).toBe(false);
     }
+  });
+});
+
+// =============================================================================
+// Q3.3 Validation Function Tests
+// =============================================================================
+
+describe('validateVin - Q3.3', () => {
+  describe('valid VINs', () => {
+    it('should accept valid 17-character VIN', () => {
+      const result = validateVin('1HGBH41JXMN109186');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept lowercase VIN (auto-uppercase)', () => {
+      const result = validateVin('1hgbh41jxmn109186');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept empty string as valid (optional field)', () => {
+      const result = validateVin('');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept whitespace-only as valid (optional field)', () => {
+      const result = validateVin('   ');
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('invalid VINs', () => {
+    it('should reject VIN shorter than 17 characters', () => {
+      const result = validateVin('1HGBH41JX');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('VIN must be exactly 17 characters');
+    });
+
+    it('should reject VIN containing letter I', () => {
+      const result = validateVin('1HGBH41IXMN109186');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('VIN cannot contain letters I, O, or Q');
+    });
+
+    it('should reject VIN containing letter O', () => {
+      const result = validateVin('1HGBH41OXMN109186');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('VIN cannot contain letters I, O, or Q');
+    });
+
+    it('should reject VIN containing letter Q', () => {
+      const result = validateVin('1HGBH41QXMN109186');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('VIN cannot contain letters I, O, or Q');
+    });
+  });
+});
+
+describe('validateZipCode - Q3.3', () => {
+  describe('valid ZIP codes', () => {
+    it('should accept 5-digit ZIP code', () => {
+      const result = validateZipCode('78701');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept ZIP+4 format', () => {
+      const result = validateZipCode('78701-1234');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept empty string as valid', () => {
+      const result = validateZipCode('');
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('invalid ZIP codes', () => {
+    it('should reject ZIP with fewer than 5 digits', () => {
+      const result = validateZipCode('7870');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid ZIP code');
+    });
+
+    it('should reject incomplete ZIP+4', () => {
+      const result = validateZipCode('78701-12');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid ZIP code');
+    });
+
+    it('should reject ZIP with letters', () => {
+      const result = validateZipCode('7870A');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid ZIP code');
+    });
+  });
+});
+
+describe('validateEmail - Q3.3', () => {
+  describe('valid emails', () => {
+    it('should accept standard email format', () => {
+      const result = validateEmail('test@example.com');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept email with subdomain', () => {
+      const result = validateEmail('user@mail.example.com');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept email with plus sign', () => {
+      const result = validateEmail('user+tag@example.com');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept empty string as valid', () => {
+      const result = validateEmail('');
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('invalid emails', () => {
+    it('should reject email without @', () => {
+      const result = validateEmail('testexample.com');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid email address');
+    });
+
+    it('should reject email without domain', () => {
+      const result = validateEmail('test@');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid email address');
+    });
+
+    it('should reject email without TLD', () => {
+      const result = validateEmail('test@example');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Invalid email address');
+    });
+  });
+});
+
+describe('validatePhone - Q3.3', () => {
+  describe('valid phone numbers', () => {
+    it('should accept 10-digit phone number', () => {
+      const result = validatePhone('5551234567');
+      expect(result.valid).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept formatted phone (XXX) XXX-XXXX', () => {
+      const result = validatePhone('(555) 123-4567');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept phone with dashes', () => {
+      const result = validatePhone('555-123-4567');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept empty string as valid', () => {
+      const result = validatePhone('');
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('invalid phone numbers', () => {
+    it('should reject phone with fewer than 10 digits', () => {
+      const result = validatePhone('55512345');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Phone must be 10 digits');
+    });
+
+    it('should reject phone with more than 10 digits', () => {
+      const result = validatePhone('555123456789');
+      expect(result.valid).toBe(false);
+      expect(result.error).toBe('Phone must be 10 digits');
+    });
   });
 });

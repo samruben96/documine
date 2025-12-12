@@ -15,8 +15,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useDebouncedCallback } from 'use-debounce';
-import { Home, Loader2 } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 import {
   Form,
@@ -39,7 +38,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import { useQuoteSessionContext } from '@/contexts/quote-session-context';
 import { propertyInfoSchema, type PropertyInfoFormData, type PropertyInfoFormInput } from '@/lib/quoting/validation';
-import { formatCurrency, parseCurrency, formatCurrencyInput } from '@/lib/quoting/formatters';
+import { formatCurrency, parseCurrency, formatCurrencyInput, formatZipCode, formatCurrencyDisplay, parseCurrencyForEdit } from '@/lib/quoting/formatters';
 import {
   US_STATES,
   CONSTRUCTION_TYPES,
@@ -64,7 +63,7 @@ function RequiredLabel({ children }: { children: React.ReactNode }) {
  * Property Tab Component
  */
 export function PropertyTab() {
-  const { session, isSaving, updatePropertyInfo } = useQuoteSessionContext();
+  const { session, updatePropertyInfo } = useQuoteSessionContext();
   const [dwellingDisplay, setDwellingDisplay] = useState('');
 
   // Initialize form with session data
@@ -87,20 +86,14 @@ export function PropertyTab() {
   }, [session?.id]);
 
   /**
-   * Save form data (debounced)
+   * Save form data - context handles debouncing via auto-save hook
    */
   const saveData = useCallback(
-    async (data: Partial<PropertyInfoFormData>) => {
-      try {
-        await updatePropertyInfo(data);
-      } catch {
-        // Error handled by context
-      }
+    (data: Partial<PropertyInfoFormData>) => {
+      updatePropertyInfo(data);
     },
     [updatePropertyInfo]
   );
-
-  const debouncedSave = useDebouncedCallback(saveData, 500);
 
   /**
    * Handle "Same as Mailing Address" checkbox
@@ -118,20 +111,23 @@ export function PropertyTab() {
         form.setValue('address.zipCode', mailingAddress.zipCode ?? '');
 
         // Save the updated address
-        debouncedSave({
+        saveData({
           sameAsMailingAddress: true,
           address: mailingAddress,
         });
       } else {
-        debouncedSave({ sameAsMailingAddress: checked });
+        saveData({ sameAsMailingAddress: checked });
       }
     },
-    [form, session?.clientData?.personal?.mailingAddress, debouncedSave]
+    [form, session?.clientData?.personal?.mailingAddress, saveData]
   );
 
   /**
    * Handle currency input
    * AC-Q3.1-12: Format on blur with $ and commas
+   * AC-Q3.3-14: Display with $ prefix and thousands separators
+   * AC-Q3.3-15: Strip formatting on focus for editing
+   * AC-Q3.3-16: Preserve decimals
    */
   const handleDwellingChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,14 +137,32 @@ export function PropertyTab() {
     []
   );
 
+  const handleDwellingFocus = useCallback(() => {
+    // AC-Q3.3-15: Strip formatting on focus
+    setDwellingDisplay(parseCurrencyForEdit(dwellingDisplay));
+  }, [dwellingDisplay]);
+
   const handleDwellingBlur = useCallback(() => {
     const numValue = parseCurrency(dwellingDisplay);
     if (numValue !== undefined) {
       form.setValue('dwellingCoverage', numValue);
-      setDwellingDisplay(formatCurrency(numValue));
-      debouncedSave({ dwellingCoverage: numValue });
+      // AC-Q3.3-14, AC-Q3.3-16: Format with $ and preserve decimals
+      setDwellingDisplay(formatCurrencyDisplay(numValue));
+      saveData({ dwellingCoverage: numValue });
     }
-  }, [dwellingDisplay, form, debouncedSave]);
+  }, [dwellingDisplay, form, saveData]);
+
+  /**
+   * Handle ZIP input with auto-formatting
+   * AC-Q3.3-8: Auto-insert hyphen for ZIP+4
+   */
+  const handleZipChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const formatted = formatZipCode(e.target.value);
+      form.setValue('address.zipCode', formatted);
+    },
+    [form]
+  );
 
   /**
    * Handle number field blur
@@ -158,10 +172,10 @@ export function PropertyTab() {
       const value = form.getValues(fieldName);
       const fieldError = form.formState.errors[fieldName];
       if (!fieldError && value !== undefined) {
-        debouncedSave({ [fieldName]: value });
+        saveData({ [fieldName]: value });
       }
     },
-    [form, debouncedSave]
+    [form, saveData]
   );
 
   /**
@@ -172,9 +186,9 @@ export function PropertyTab() {
       fieldName: 'constructionType' | 'roofType' | 'liabilityCoverage' | 'deductible',
       value: string
     ) => {
-      debouncedSave({ [fieldName]: value });
+      saveData({ [fieldName]: value });
     },
-    [debouncedSave]
+    [saveData]
   );
 
   /**
@@ -183,9 +197,9 @@ export function PropertyTab() {
   const handleCheckboxChange = useCallback(
     (fieldName: 'hasPool' | 'hasTrampoline', checked: boolean) => {
       form.setValue(fieldName, checked);
-      debouncedSave({ [fieldName]: checked });
+      saveData({ [fieldName]: checked });
     },
-    [form, debouncedSave]
+    [form, saveData]
   );
 
   /**
@@ -193,23 +207,15 @@ export function PropertyTab() {
    */
   const handleAddressBlur = useCallback(() => {
     const address = form.getValues('address');
-    debouncedSave({ address });
-  }, [form, debouncedSave]);
+    saveData({ address });
+  }, [form, saveData]);
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Home className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Property Information</CardTitle>
-          </div>
-          {isSaving && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Saving...
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <Home className="h-5 w-5 text-muted-foreground" />
+          <CardTitle>Property Information</CardTitle>
         </div>
         <CardDescription>
           Address and details about the insured property
@@ -333,7 +339,7 @@ export function PropertyTab() {
                   )}
                 />
 
-                {/* ZIP Code */}
+                {/* ZIP Code - AC-Q3.3-8: Auto-format ZIP+4 */}
                 <FormField
                   control={form.control}
                   name="address.zipCode"
@@ -345,6 +351,10 @@ export function PropertyTab() {
                       <FormControl>
                         <Input
                           {...field}
+                          onChange={(e) => {
+                            handleZipChange(e);
+                            field.onChange(e);
+                          }}
                           onBlur={() => {
                             field.onBlur();
                             handleAddressBlur();
@@ -542,7 +552,7 @@ export function PropertyTab() {
               </h3>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {/* Dwelling Coverage - AC-Q3.1-12 */}
+                {/* Dwelling Coverage - AC-Q3.1-12, AC-Q3.3-14/15/16 */}
                 <FormField
                   control={form.control}
                   name="dwellingCoverage"
@@ -555,6 +565,7 @@ export function PropertyTab() {
                         <Input
                           value={dwellingDisplay}
                           onChange={handleDwellingChange}
+                          onFocus={handleDwellingFocus}
                           onBlur={handleDwellingBlur}
                           placeholder="$250,000"
                           data-testid="dwellingCoverage"

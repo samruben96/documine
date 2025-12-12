@@ -1,0 +1,196 @@
+<story-context id="Q4-1-copy-button-carrier-formatters" v="1.0">
+  <metadata>
+    <epicId>Q4</epicId>
+    <storyId>Q4.1</storyId>
+    <title>Copy Button and Carrier Formatters</title>
+    <status>ready-for-dev</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q4/stories/Q4-1-copy-button-carrier-formatters/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to copy client data formatted specifically for each carrier's portal with a single click</iWant>
+    <soThat>I can quickly paste pre-formatted data into carrier websites without re-entering information</soThat>
+    <tasks>
+      <task id="1" title="Create carrier types and interfaces">
+        <subtask>1.1 Create src/lib/quoting/carriers/types.ts with CarrierFormatter, CarrierInfo, FormattedPreview, ValidationResult interfaces</subtask>
+        <subtask>1.2 Define CopyState type ('idle' | 'copying' | 'copied' | 'error')</subtask>
+        <subtask>1.3 Define CarrierStatus type ('not_started' | 'copied' | 'quote_entered')</subtask>
+      </task>
+      <task id="2" title="Create carrier registry">
+        <subtask>2.1 Create src/lib/quoting/carriers/index.ts with CARRIERS record</subtask>
+        <subtask>2.2 Add Progressive carrier info (portalUrl, logoPath, linesOfBusiness)</subtask>
+        <subtask>2.3 Add Travelers carrier info</subtask>
+        <subtask>2.4 Export getCarrier() and getSupportedCarriers() functions</subtask>
+        <subtask>2.5 Export getCarriersForQuoteType() for filtering by quote type</subtask>
+      </task>
+      <task id="3" title="Implement Progressive formatter">
+        <subtask>3.1 Create src/lib/quoting/carriers/progressive.ts implementing CarrierFormatter</subtask>
+        <subtask>3.2 Implement formatForClipboard() with tab-delimited output</subtask>
+        <subtask>3.3 Add property section formatting</subtask>
+        <subtask>3.4 Add auto/drivers section formatting</subtask>
+        <subtask>3.5 Implement generatePreview() for UI display</subtask>
+        <subtask>3.6 Implement validateRequiredFields() for missing field detection</subtask>
+        <subtask>3.7 Reuse formatDate, formatPhoneNumber from existing formatters.ts</subtask>
+      </task>
+      <task id="4" title="Implement Travelers formatter">
+        <subtask>4.1 Create src/lib/quoting/carriers/travelers.ts implementing CarrierFormatter</subtask>
+        <subtask>4.2-4.4 Same pattern as Progressive with carrier-specific field order</subtask>
+      </task>
+      <task id="5" title="Create use-clipboard-copy hook">
+        <subtask>5.1 Create src/hooks/quoting/use-clipboard-copy.ts</subtask>
+        <subtask>5.2 Implement copyToClipboard(carrier, text) using navigator.clipboard.writeText</subtask>
+        <subtask>5.3 Add fallback using document.execCommand('copy')</subtask>
+        <subtask>5.4 Track copiedCarrier state for UI feedback</subtask>
+        <subtask>5.5 Implement 2-second timeout to reset state</subtask>
+        <subtask>5.6 Track error state and expose retry capability</subtask>
+      </task>
+      <task id="6" title="Create CopyButton component">
+        <subtask>6.1 Create src/components/quoting/copy-button.tsx</subtask>
+        <subtask>6.2 Accept props: carrier, clientData, onCopy callback</subtask>
+        <subtask>6.3-6.5 Implement loading, success, error states</subtask>
+        <subtask>6.6 Add aria-live for screen reader announcement</subtask>
+        <subtask>6.7 Ensure keyboard accessibility (Enter/Space)</subtask>
+        <subtask>6.8 Use shadcn/ui Button with variant prop</subtask>
+      </task>
+      <task id="7" title="Wire up copy flow in carriers-tab">
+        <subtask>7.1-7.5 Integrate CopyButton with QuoteSessionContext and carrier formatters</subtask>
+      </task>
+      <task id="8-10" title="Write tests">
+        <subtask>Unit tests for formatters (progressive.test.ts, travelers.test.ts)</subtask>
+        <subtask>Hook tests (use-clipboard-copy.test.ts)</subtask>
+        <subtask>Component tests (copy-button.test.tsx)</subtask>
+        <subtask>E2E tests (carrier-copy.spec.ts)</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q4.1-1">Clicking "Copy for Progressive" copies formatted client data to clipboard</criterion>
+    <criterion id="AC-Q4.1-2">Clicking "Copy for Travelers" copies formatted client data to clipboard</criterion>
+    <criterion id="AC-Q4.1-3">Copy button shows "Copied" with green check icon for 2 seconds after success</criterion>
+    <criterion id="AC-Q4.1-4">Button resets to default state after 2 seconds</criterion>
+    <criterion id="AC-Q4.1-5">Screen reader announces "Copied to clipboard" via aria-live="polite"</criterion>
+    <criterion id="AC-Q4.1-6">Copy fails gracefully with "Failed - Click to retry" on error</criterion>
+    <criterion id="AC-Q4.1-7">Keyboard users can trigger copy with Enter or Space</criterion>
+    <criterion id="AC-Q4.1-8">Dates formatted as MM/DD/YYYY in clipboard output</criterion>
+    <criterion id="AC-Q4.1-9">Phone numbers formatted as (XXX) XXX-XXXX in clipboard output</criterion>
+    <criterion id="AC-Q4.1-10">Tab-delimited format used for multi-field sections</criterion>
+    <criterion id="AC-Q4.1-11">Blank/missing fields handled gracefully (empty or omitted)</criterion>
+    <criterion id="AC-Q4.1-12">Progressive formatter includes personal, property, and auto sections</criterion>
+    <criterion id="AC-Q4.1-13">Travelers formatter includes personal, property, and auto sections</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/sprint-artifacts/epics/epic-Q4/tech-spec.md" title="Epic Q4 Technical Specification" section="Story Q4.1: Copy Button &amp; Carrier Formatters" snippet="Defines CarrierFormatter interface, clipboard hook pattern, copy button states, and formatter implementation details with acceptance criteria mapping." />
+      <doc path="docs/sprint-artifacts/epics/epic-Q4/epic.md" title="Epic Q4: Carrier Copy System" section="Overview" snippet="Epic Q4 delivers the core 'magic moment' - click 'Copy for Progressive' and get perfectly formatted client data ready to paste into the carrier portal." />
+      <doc path="docs/features/quoting/architecture.md" title="Quoting Architecture" section="Carrier Format System" snippet="Carrier formats implemented as TypeScript functions transforming QuoteClientData into carrier-specific clipboard text. Registry pattern for carrier lookup." />
+      <doc path="docs/features/quoting/architecture.md" title="Quoting Architecture" section="Copy to Clipboard Pattern" snippet="useClipboardCopy hook with navigator.clipboard.writeText primary, document.execCommand fallback, copiedCarrier state tracking with 2-second timeout." />
+    </docs>
+    <code>
+      <file path="src/lib/quoting/formatters.ts" kind="utility" symbol="formatDate, formatPhoneNumber, maskLicenseNumber" lines="166-252" reason="REUSE these formatters in carrier formatters - already implement MM/DD/YYYY and (XXX) XXX-XXXX formats per AC-Q4.1-8, AC-Q4.1-9" />
+      <file path="src/types/quoting.ts" kind="types" symbol="QuoteClientData, PersonalInfo, PropertyInfo, AutoInfo, Vehicle, Driver" lines="132-154" reason="Input data structure for carrier formatters - formatForClipboard(data: QuoteClientData)" />
+      <file path="src/components/quoting/tabs/carriers-tab.tsx" kind="component" symbol="CarriersTab" lines="1-35" reason="REPLACE placeholder implementation with full carriers UI including CopyButton integration" />
+      <file path="src/contexts/quote-session-context.tsx" kind="context" symbol="useQuoteSessionContext" lines="248-256" reason="Access session.clientData for carrier formatters via context hook" />
+      <file path="src/hooks/quoting/use-auto-save.ts" kind="hook" symbol="SaveState, useAutoSave" lines="all" reason="Reference pattern for state management hook with timeout reset - similar 2-second feedback pattern" />
+      <file path="src/components/ui/button.tsx" kind="ui" symbol="Button" reason="Base component for CopyButton - use variant prop for styling states" />
+      <file path="src/lib/quoting/validation.ts" kind="utility" symbol="ValidationResult" lines="all" reason="Reference interface pattern for validateRequiredFields return type" />
+    </code>
+    <dependencies>
+      <npm>
+        <package name="react" version="19.2.0" usage="Component framework" />
+        <package name="lucide-react" version="0.554.0" usage="Icons: Clipboard, Check, AlertCircle, ExternalLink" />
+        <package name="sonner" version="2.0.7" usage="Toast notifications for copy feedback" />
+        <package name="class-variance-authority" version="0.7.1" usage="Button variants for copy states" />
+        <package name="@radix-ui/react-dialog" version="1.1.15" usage="Preview modal in Q4.3 (future)" />
+      </npm>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="performance">Clipboard copy must complete in &lt;200ms - formatters are pure functions, client-side execution</constraint>
+    <constraint type="performance">Format generation must complete in &lt;100ms - no network requests for copy action</constraint>
+    <constraint type="architecture">Formatters must implement CarrierFormatter interface for type safety</constraint>
+    <constraint type="architecture">Client-side formatting only - no server-side API required for copy</constraint>
+    <constraint type="architecture">Use existing formatters (formatDate, formatPhoneNumber) - do not recreate</constraint>
+    <constraint type="security">Clipboard text is plain text, not HTML - prevents XSS</constraint>
+    <constraint type="security">Portal URLs hardcoded in carrier registry - no user input</constraint>
+    <constraint type="accessibility">aria-live="polite" required for screen reader announcement</constraint>
+    <constraint type="accessibility">Keyboard accessible - Enter/Space must trigger copy</constraint>
+    <constraint type="ux">Button shows "Copied" state for exactly 2 seconds before reset</constraint>
+    <constraint type="ux">Error state must show "Failed - Click to retry" and allow retry</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface name="CarrierFormatter" kind="interface" path="src/lib/quoting/carriers/types.ts">
+      <signature><![CDATA[interface CarrierFormatter {
+  formatForClipboard(data: QuoteClientData): string;
+  generatePreview(data: QuoteClientData): FormattedPreview;
+  validateRequiredFields(data: QuoteClientData): ValidationResult;
+}]]></signature>
+    </interface>
+    <interface name="CarrierInfo" kind="interface" path="src/lib/quoting/carriers/types.ts">
+      <signature><![CDATA[interface CarrierInfo {
+  code: string;
+  name: string;
+  portalUrl: string;
+  logoPath: string;
+  formatter: CarrierFormatter;
+  linesOfBusiness: Array<'home' | 'auto' | 'bundle'>;
+}]]></signature>
+    </interface>
+    <interface name="useClipboardCopy" kind="hook" path="src/hooks/quoting/use-clipboard-copy.ts">
+      <signature><![CDATA[function useClipboardCopy(): {
+  copyToClipboard: (carrier: string, text: string) => Promise<boolean>;
+  copiedCarrier: string | null;
+  error: Error | null;
+  isLoading: boolean;
+}]]></signature>
+    </interface>
+    <interface name="CopyButton" kind="component" path="src/components/quoting/copy-button.tsx">
+      <signature><![CDATA[interface CopyButtonProps {
+  carrier: string;
+  clientData: QuoteClientData;
+  onCopy?: () => void;
+}]]></signature>
+    </interface>
+    <interface name="CARRIERS" kind="registry" path="src/lib/quoting/carriers/index.ts">
+      <signature><![CDATA[const CARRIERS: Record<string, CarrierInfo>;
+function getCarrier(code: string): CarrierInfo | undefined;
+function getSupportedCarriers(): CarrierInfo[];
+function getCarriersForQuoteType(quoteType: QuoteType): CarrierInfo[];]]></signature>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing framework: Vitest with React Testing Library for components, happy-dom for environment.
+      Pattern: Describe blocks per function/component, test each acceptance criterion explicitly.
+      Coverage: All public functions, edge cases (empty data, partial data), error scenarios.
+      Naming: test files mirror source files (__tests__/lib/quoting/carriers/progressive.test.ts).
+      E2E: Playwright for user flows - note clipboard cannot be directly verified, verify UI feedback instead.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/carriers/*.test.ts</location>
+      <location>__tests__/hooks/quoting/use-clipboard-copy.test.ts</location>
+      <location>__tests__/components/quoting/copy-button.test.tsx</location>
+      <location>__tests__/e2e/quoting/carrier-copy.spec.ts</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q4.1-1">Test Progressive formatForClipboard returns non-empty string with expected sections</idea>
+      <idea ac="AC-Q4.1-2">Test Travelers formatForClipboard returns non-empty string with expected sections</idea>
+      <idea ac="AC-Q4.1-3,4">Test CopyButton state transitions: idle → copying → copied → idle after 2s</idea>
+      <idea ac="AC-Q4.1-5">Test aria-live region contains "Copied to clipboard" text when copied</idea>
+      <idea ac="AC-Q4.1-6">Test hook error state and retry capability</idea>
+      <idea ac="AC-Q4.1-7">Test keyboard Enter/Space triggers onClick</idea>
+      <idea ac="AC-Q4.1-8">Test formatForClipboard output contains MM/DD/YYYY formatted dates</idea>
+      <idea ac="AC-Q4.1-9">Test formatForClipboard output contains (XXX) XXX-XXXX formatted phones</idea>
+      <idea ac="AC-Q4.1-10">Test output contains tab characters between related fields</idea>
+      <idea ac="AC-Q4.1-11">Test with partial data - no errors thrown, graceful empty strings</idea>
+      <idea ac="AC-Q4.1-12,13">Test formatForClipboard includes all data sections when present</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,9 +1,16 @@
 /**
  * Quote Session Context
  * Story Q3.1: Data Capture Forms
+ * Story Q3.2: Auto-Save Implementation
  *
- * Provides quote session data and update functions to tab components.
+ * Provides quote session data and auto-save functions to tab components.
  * Tab components consume this context to read and update client data.
+ *
+ * AC-Q3.2-1: Auto-save on field blur with 500ms debounce
+ * AC-Q3.2-2: "Saving..." indicator when save in progress
+ * AC-Q3.2-3: "Saved" indicator that auto-dismisses after 2 seconds
+ * AC-Q3.2-4: Error state with retry button
+ * AC-Q3.2-6: Non-blocking saves - user can continue editing
  */
 
 'use client';
@@ -13,7 +20,7 @@ import {
   useContext,
   useCallback,
   useState,
-  useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import { toast } from 'sonner';
@@ -24,24 +31,35 @@ import type {
   PropertyInfo,
   AutoInfo,
 } from '@/types/quoting';
+import { useAutoSave, type SaveState } from '@/hooks/quoting/use-auto-save';
 
 export interface QuoteSessionContextValue {
   /** The current session */
   session: QuoteSession | null;
   /** Loading state */
   isLoading: boolean;
-  /** Saving state */
+  /** Current save state (idle, saving, saved, error) */
+  saveState: SaveState;
+  /** Legacy isSaving for backwards compatibility */
   isSaving: boolean;
+  /** Whether currently offline */
+  isOffline: boolean;
+  /** Consecutive failure count */
+  failureCount: number;
   /** Error state */
   error: Error | null;
-  /** Update personal info */
-  updatePersonalInfo: (data: Partial<PersonalInfo>) => Promise<void>;
-  /** Update property info */
-  updatePropertyInfo: (data: Partial<PropertyInfo>) => Promise<void>;
+  /** Update personal info (auto-saves via debounce) */
+  updatePersonalInfo: (data: Partial<PersonalInfo>) => void;
+  /** Update property info (auto-saves via debounce) */
+  updatePropertyInfo: (data: Partial<PropertyInfo>) => void;
   /** Update auto info (vehicles, drivers, coverage) */
-  updateAutoInfo: (data: Partial<AutoInfo>) => Promise<void>;
+  updateAutoInfo: (data: Partial<AutoInfo>) => void;
   /** Update full client data (batch) */
-  updateClientData: (data: Partial<QuoteClientData>) => Promise<void>;
+  updateClientData: (data: Partial<QuoteClientData>) => void;
+  /** Force immediate save of pending changes */
+  saveNow: () => Promise<void>;
+  /** Retry failed save */
+  retry: () => Promise<void>;
   /** Refresh session from server */
   refresh: () => Promise<void>;
 }
@@ -61,7 +79,8 @@ export interface QuoteSessionProviderProps {
 /**
  * Quote Session Provider
  *
- * Wraps tab components to provide session data and update functions.
+ * Wraps tab components to provide session data and auto-save functions.
+ * Integrates with useAutoSave hook for debounced saving with visual feedback.
  */
 export function QuoteSessionProvider({
   children,
@@ -71,101 +90,123 @@ export function QuoteSessionProvider({
 }: QuoteSessionProviderProps) {
   const [session, setSession] = useState<QuoteSession | null>(initialSession);
   const [isLoading] = useState(initialLoading);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // Sync session state when prop changes
-  useEffect(() => {
+  // Track previous session ID to detect when parent provides a new session
+  // Using ref-based tracking to avoid useEffect setState lint warning
+  const prevSessionIdRef = useRef<string | undefined>(initialSession?.id);
+
+  // Sync session when parent provides a genuinely new session (different ID)
+  // This is the React-recommended pattern for adjusting state based on props
+  // See: https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  if (initialSession?.id !== prevSessionIdRef.current) {
+    prevSessionIdRef.current = initialSession?.id;
     if (initialSession !== null) {
       setSession(initialSession);
     }
-  }, [initialSession]);
+  }
 
   /**
-   * Send PATCH request to update client data
+   * Handle successful save - update local session state with new timestamp
    */
-  const patchClientData = useCallback(
-    async (data: Partial<QuoteClientData>): Promise<void> => {
-      if (!session?.id) {
-        throw new Error('No session to update');
-      }
+  const handleSaveSuccess = useCallback((updatedAt: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        updatedAt,
+      };
+    });
+  }, []);
 
-      setIsSaving(true);
-      setError(null);
+  /**
+   * Handle save error - show toast notification
+   * AC-Q3.2-4: Error toast with "Save failed - click to retry"
+   */
+  const handleSaveError = useCallback((err: Error) => {
+    setError(err);
+    toast.error('Save failed - changes could not be saved', {
+      description: 'Click retry to try again',
+    });
+  }, []);
 
-      try {
-        const response = await fetch(`/api/quoting/${session.id}/client-data`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
+  // Initialize auto-save hook
+  // AC-Q3.2-1, AC-Q3.2-5: 500ms debounce with 2s maxWait
+  const {
+    saveState,
+    isOffline,
+    failureCount,
+    queueSave,
+    saveNow,
+    retry,
+  } = useAutoSave(session?.id, {
+    debounceMs: 500,
+    maxWaitMs: 2000,
+    savedDurationMs: 2000,
+    maxRetries: 3,
+    onSaveSuccess: handleSaveSuccess,
+    onSaveError: handleSaveError,
+  });
 
-        const result = await response.json();
+  /**
+   * Queue save with optimistic update
+   * AC-Q3.2-6: Non-blocking - user can continue editing
+   */
+  const queueSaveWithOptimisticUpdate = useCallback(
+    (data: Partial<QuoteClientData>) => {
+      // Optimistically update local state
+      setSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          clientData: deepMerge(prev.clientData, data),
+        };
+      });
 
-        if (!response.ok || result.error) {
-          throw new Error(result.error?.message ?? 'Failed to save changes');
-        }
-
-        // Optimistically update local state
-        setSession((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            clientData: deepMerge(prev.clientData, data),
-            updatedAt: result.data?.updatedAt ?? new Date().toISOString(),
-          };
-        });
-      } catch (err) {
-        const error =
-          err instanceof Error ? err : new Error('Failed to save changes');
-        setError(error);
-        toast.error(error.message);
-        throw error;
-      } finally {
-        setIsSaving(false);
-      }
+      // Queue for debounced save
+      queueSave(data);
     },
-    [session?.id]
+    [queueSave]
   );
 
   /**
    * Update personal info section
    */
   const updatePersonalInfo = useCallback(
-    async (data: Partial<PersonalInfo>): Promise<void> => {
-      await patchClientData({ personal: data });
+    (data: Partial<PersonalInfo>): void => {
+      queueSaveWithOptimisticUpdate({ personal: data });
     },
-    [patchClientData]
+    [queueSaveWithOptimisticUpdate]
   );
 
   /**
    * Update property info section
    */
   const updatePropertyInfo = useCallback(
-    async (data: Partial<PropertyInfo>): Promise<void> => {
-      await patchClientData({ property: data });
+    (data: Partial<PropertyInfo>): void => {
+      queueSaveWithOptimisticUpdate({ property: data });
     },
-    [patchClientData]
+    [queueSaveWithOptimisticUpdate]
   );
 
   /**
    * Update auto info section
    */
   const updateAutoInfo = useCallback(
-    async (data: Partial<AutoInfo>): Promise<void> => {
-      await patchClientData({ auto: data });
+    (data: Partial<AutoInfo>): void => {
+      queueSaveWithOptimisticUpdate({ auto: data });
     },
-    [patchClientData]
+    [queueSaveWithOptimisticUpdate]
   );
 
   /**
    * Update full client data
    */
   const updateClientData = useCallback(
-    async (data: Partial<QuoteClientData>): Promise<void> => {
-      await patchClientData(data);
+    (data: Partial<QuoteClientData>): void => {
+      queueSaveWithOptimisticUpdate(data);
     },
-    [patchClientData]
+    [queueSaveWithOptimisticUpdate]
   );
 
   /**
@@ -182,12 +223,17 @@ export function QuoteSessionProvider({
       value={{
         session,
         isLoading,
-        isSaving,
+        saveState,
+        isSaving: saveState === 'saving', // Backwards compatibility
+        isOffline,
+        failureCount,
         error,
         updatePersonalInfo,
         updatePropertyInfo,
         updateAutoInfo,
         updateClientData,
+        saveNow,
+        retry,
         refresh,
       }}
     >
@@ -210,7 +256,26 @@ export function useQuoteSessionContext(): QuoteSessionContextValue {
 }
 
 /**
- * Deep merge utility for JSONB updates
+ * Type guard to check if value is a non-null, non-array object
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    value !== null &&
+    value !== undefined &&
+    typeof value === 'object' &&
+    !Array.isArray(value)
+  );
+}
+
+/**
+ * Deep merge utility for JSONB updates (optimistic updates)
+ *
+ * Merges source into target for QuoteClientData structure:
+ * - personal: PersonalInfo object
+ * - property: PropertyInfo object
+ * - auto: AutoInfo object
+ *
+ * Each section is shallowly merged when both have values.
  */
 function deepMerge(
   target: QuoteClientData | undefined,
@@ -218,30 +283,26 @@ function deepMerge(
 ): QuoteClientData {
   const result: QuoteClientData = { ...target };
 
-  for (const key of Object.keys(source) as (keyof QuoteClientData)[]) {
+  // Type-safe iteration over known keys
+  const keys: (keyof QuoteClientData)[] = ['personal', 'property', 'auto'];
+
+  for (const key of keys) {
     const sourceValue = source[key];
     const targetValue = result[key];
 
-    if (
-      sourceValue !== undefined &&
-      sourceValue !== null &&
-      typeof sourceValue === 'object' &&
-      !Array.isArray(sourceValue) &&
-      targetValue !== undefined &&
-      targetValue !== null &&
-      typeof targetValue === 'object' &&
-      !Array.isArray(targetValue)
-    ) {
-      // Recursively merge nested objects (personal, property, auto)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (result as any)[key] = {
+    if (sourceValue === undefined) {
+      continue;
+    }
+
+    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+      // Both are objects - shallow merge the section
+      result[key] = {
         ...targetValue,
         ...sourceValue,
-      };
-    } else if (sourceValue !== undefined) {
-      // Direct assignment for arrays, primitives, and nulls
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (result as any)[key] = sourceValue;
+      } as QuoteClientData[typeof key];
+    } else {
+      // Direct assignment for arrays, primitives, and null
+      result[key] = sourceValue;
     }
   }
 
