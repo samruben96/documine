@@ -56,17 +56,16 @@ development_status:
   Q2-3-quote-session-detail-page: done
   Q2-4-quote-session-status: done
   Q2-5-delete-duplicate-sessions: done
+  epic-Q2-retrospective: done  # Completed 2025-12-11
 
   # Epic Q3: Client Data Capture
-  # Enter client info with smart forms
-  # Stories: 6 | FRs: FR7-18
-  epic-Q3-client-data-capture: backlog
-  Q3-1-client-info-tab: backlog
+  # Enter client info with smart forms + address autocomplete + VIN decode
+  # Stories: 3 (consolidated) | FRs: FR6-14, FR16-18
+  # Location: docs/sprint-artifacts/epics/epic-Q3/
+  epic-Q3-client-data-capture: contexted
+  Q3-1-data-capture-forms: done    # Consolidated: Client Info, Property, Auto, Drivers tabs
   Q3-2-auto-save-implementation: backlog
-  Q3-3-property-tab: backlog
-  Q3-4-auto-tab-vehicles: backlog
-  Q3-5-drivers-tab: backlog
-  Q3-6-field-validation-formatting: backlog
+  Q3-3-field-validation-formatting: backlog
 
   # Epic Q4: Carrier Copy System
   # Copy formatted data for carriers

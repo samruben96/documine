@@ -322,3 +322,110 @@ export async function duplicateQuoteSession(
   // Return new session (carrier count = 0 since no quote_results copied)
   return transformQuoteSession(newSession as QuoteSessionRow, 0);
 }
+
+/**
+ * Update quote session client data (partial update with deep merge)
+ * Story Q3.1: Data Capture Forms
+ *
+ * AC-Q3.1 (all): Partial update merging on server (deep merge into client_data)
+ *
+ * @param supabase - Supabase client instance
+ * @param sessionId - Session ID to update
+ * @param clientDataPatch - Partial client data to merge
+ * @returns Updated quote session or null if not found
+ */
+export async function updateQuoteSessionClientData(
+  supabase: SupabaseClient<Database>,
+  sessionId: string,
+  clientDataPatch: Partial<QuoteClientData>
+): Promise<QuoteSession | null> {
+  // Fetch existing session to get current client_data
+  const { data: existing, error: fetchError } = await supabase
+    .from('quote_sessions')
+    .select(`
+      *,
+      quote_results(count)
+    `)
+    .eq('id', sessionId)
+    .single();
+
+  if (fetchError || !existing) {
+    if (fetchError?.code !== 'PGRST116') {
+      console.error('Failed to fetch session for update:', { sessionId, error: fetchError?.message });
+    }
+    return null;
+  }
+
+  // Deep merge existing client_data with patch
+  const existingClientData = (existing.client_data as QuoteClientData) ?? {};
+  const mergedClientData = deepMergeClientData(existingClientData, clientDataPatch);
+
+  // Update session with merged client_data
+  const { data: updated, error: updateError } = await supabase
+    .from('quote_sessions')
+    .update({
+      // Cast to satisfy Supabase Json type (structurally compatible but lacks index signature)
+      client_data: mergedClientData as unknown as Database['public']['Tables']['quote_sessions']['Update']['client_data'],
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sessionId)
+    .select(`
+      *,
+      quote_results(count)
+    `)
+    .single();
+
+  if (updateError || !updated) {
+    console.error('Failed to update quote session:', { sessionId, error: updateError?.message });
+    throw new Error(`Failed to update quote session: ${updateError?.message}`);
+  }
+
+  const carrierCount = Array.isArray(updated.quote_results)
+    ? updated.quote_results.length
+    : (updated.quote_results as { count: number } | null)?.count ?? 0;
+
+  return transformQuoteSession(updated as QuoteSessionRow, carrierCount);
+}
+
+/**
+ * Deep merge utility for JSONB client data updates
+ *
+ * Merges nested objects recursively while replacing arrays (not merging them).
+ * This allows partial updates like { personal: { firstName: "John" } } to
+ * merge with existing personal data while replacing vehicles/drivers arrays.
+ */
+function deepMergeClientData(
+  target: QuoteClientData,
+  source: Partial<QuoteClientData>
+): QuoteClientData {
+  const result: QuoteClientData = { ...target };
+
+  for (const key of Object.keys(source) as (keyof QuoteClientData)[]) {
+    const sourceValue = source[key];
+    const targetValue = result[key];
+
+    if (
+      sourceValue !== undefined &&
+      sourceValue !== null &&
+      typeof sourceValue === 'object' &&
+      !Array.isArray(sourceValue) &&
+      targetValue !== undefined &&
+      targetValue !== null &&
+      typeof targetValue === 'object' &&
+      !Array.isArray(targetValue)
+    ) {
+      // Recursively merge objects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result as any)[key] = deepMergeClientData(
+        targetValue as QuoteClientData,
+        sourceValue as Partial<QuoteClientData>
+      );
+    } else if (sourceValue !== undefined) {
+      // Direct assignment for arrays, primitives, and nulls
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result as any)[key] = sourceValue;
+    }
+  }
+
+  return result;
+}

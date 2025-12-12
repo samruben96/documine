@@ -47,6 +47,13 @@ describe('getTabCompletionStatus', () => {
           lastName: 'Smith',
           email: 'john@example.com',
           phone: '555-1234',
+          dateOfBirth: '1990-01-15',
+          mailingAddress: {
+            street: '123 Main St',
+            city: 'Anytown',
+            state: 'CA',
+            zipCode: '12345',
+          },
         },
       };
       const result = getTabCompletionStatus(clientData, 0);
@@ -105,12 +112,25 @@ describe('getTabCompletionStatus', () => {
       expect(result.auto.count).toBeUndefined();
     });
 
-    it('returns isComplete: true and count when has vehicles', () => {
+    it('returns isComplete: false when vehicles are incomplete', () => {
       const clientData: QuoteClientData = {
         auto: {
           vehicles: [
-            { year: 2020, make: 'Toyota', model: 'Camry' },
-            { year: 2018, make: 'Honda', model: 'Civic' },
+            { year: 2020, make: 'Toyota', model: 'Camry' }, // missing usage and annualMileage
+          ],
+        },
+      };
+      const result = getTabCompletionStatus(clientData, 0);
+      expect(result.auto.isComplete).toBe(false);
+      expect(result.auto.count).toBe(1); // Count still shows total
+    });
+
+    it('returns isComplete: true and count when has complete vehicles', () => {
+      const clientData: QuoteClientData = {
+        auto: {
+          vehicles: [
+            { year: 2020, make: 'Toyota', model: 'Camry', usage: 'commute', annualMileage: 12000 },
+            { year: 2018, make: 'Honda', model: 'Civic', usage: 'pleasure', annualMileage: 8000 },
           ],
         },
       };
@@ -127,11 +147,30 @@ describe('getTabCompletionStatus', () => {
       expect(result.drivers.count).toBeUndefined();
     });
 
-    it('returns isComplete: true and count when has drivers', () => {
+    it('returns isComplete: false when drivers are incomplete', () => {
       const clientData: QuoteClientData = {
         auto: {
           drivers: [
-            { firstName: 'John', lastName: 'Smith' },
+            { firstName: 'John', lastName: 'Smith' }, // missing required fields
+          ],
+        },
+      };
+      const result = getTabCompletionStatus(clientData, 0);
+      expect(result.drivers.isComplete).toBe(false);
+      expect(result.drivers.count).toBe(1); // Count still shows total
+    });
+
+    it('returns isComplete: true and count when has complete drivers', () => {
+      const clientData: QuoteClientData = {
+        auto: {
+          drivers: [
+            {
+              firstName: 'John',
+              lastName: 'Smith',
+              dateOfBirth: '1990-01-01',
+              licenseNumber: 'DL123456',
+              licenseState: 'CA',
+            },
           ],
         },
       };

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { QuoteTypeBadge } from '@/components/quoting/quote-type-badge';
 import { StatusBadge } from '@/components/quoting/status-badge';
 import { useQuoteSession } from '@/hooks/quoting/use-quote-session';
+import { QuoteSessionProvider } from '@/contexts/quote-session-context';
 import {
   getTabCompletionStatus,
   getVisibleTabs,
@@ -127,7 +128,7 @@ export default function QuoteSessionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const { session, isLoading } = useQuoteSession(resolvedParams.id);
+  const { session, isLoading, refresh } = useQuoteSession(resolvedParams.id);
 
   // AC-Q2.3-7: Show loading skeleton during fetch
   if (isLoading || !session) {
@@ -172,31 +173,38 @@ export default function QuoteSessionDetailPage({
           <StatusBadge status={session.status} />
         </div>
 
-        {/* Tabs - AC-Q2.3-1, AC-Q2.3-5 */}
-        <Tabs defaultValue="client-info" className="space-y-6">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            {tabConfigs.map((tab) => (
-              <TabTriggerWithIndicator
-                key={tab.id}
-                tabId={tab.id}
-                label={tab.label}
-                status={completionStatus[tab.id]}
-                countLabel={tab.countLabel}
-                countLabelPlural={tab.countLabelPlural}
-              />
-            ))}
-          </TabsList>
+        {/* Q3.1: Wrap tabs in QuoteSessionProvider for context access */}
+        <QuoteSessionProvider
+          session={session}
+          isLoading={isLoading}
+          onRefresh={refresh}
+        >
+          {/* Tabs - AC-Q2.3-1, AC-Q2.3-5 */}
+          <Tabs defaultValue="client-info" className="space-y-6">
+            <TabsList className="w-full justify-start overflow-x-auto">
+              {tabConfigs.map((tab) => (
+                <TabTriggerWithIndicator
+                  key={tab.id}
+                  tabId={tab.id}
+                  label={tab.label}
+                  status={completionStatus[tab.id]}
+                  countLabel={tab.countLabel}
+                  countLabelPlural={tab.countLabelPlural}
+                />
+              ))}
+            </TabsList>
 
-          {/* Tab Content */}
-          {tabConfigs.map((tab) => {
-            const ContentComponent = TAB_CONTENT[tab.id];
-            return (
-              <TabsContent key={tab.id} value={tab.id}>
-                <ContentComponent />
-              </TabsContent>
-            );
-          })}
-        </Tabs>
+            {/* Tab Content */}
+            {tabConfigs.map((tab) => {
+              const ContentComponent = TAB_CONTENT[tab.id];
+              return (
+                <TabsContent key={tab.id} value={tab.id}>
+                  <ContentComponent />
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </QuoteSessionProvider>
       </div>
     </div>
   );

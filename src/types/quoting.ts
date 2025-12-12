@@ -42,10 +42,11 @@ export interface Address {
 
 /**
  * Personal information section
+ * All fields optional since data is stored incrementally in JSONB
  */
 export interface PersonalInfo {
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
   dateOfBirth?: string;
   email?: string;
   phone?: string;
@@ -53,31 +54,67 @@ export interface PersonalInfo {
 }
 
 /**
- * Property information (expanded in Q3)
+ * Property information
+ * Story Q3.1: AC-Q3.1-10, AC-Q3.1-11, AC-Q3.1-13
  */
 export interface PropertyInfo {
+  sameAsMailingAddress?: boolean;
   address?: Address;
   yearBuilt?: number;
+  squareFootage?: number;
+  constructionType?: string; // 'frame' | 'masonry' | 'superior'
+  roofType?: string; // 'asphalt' | 'tile' | 'metal' | 'slate' | 'other'
+  roofYear?: number;
+  // Coverage preferences (AC-Q3.1-11)
+  dwellingCoverage?: number;
+  liabilityCoverage?: string; // "100000" | "300000" | "500000" | "1000000"
+  deductible?: string; // "500" | "1000" | "2500" | "5000"
+  // Risk factors (AC-Q3.1-13)
+  hasPool?: boolean;
+  hasTrampoline?: boolean;
 }
 
 /**
- * Vehicle information (expanded in Q3)
+ * Vehicle information
+ * Story Q3.1: AC-Q3.1-16, AC-Q3.1-17, AC-Q3.1-18
  */
 export interface Vehicle {
+  id?: string;
   year?: number;
   make?: string;
   model?: string;
   vin?: string;
+  usage?: string; // 'commute' | 'pleasure' | 'business'
+  annualMileage?: number;
 }
 
 /**
- * Driver information (expanded in Q3)
+ * Driver information
+ * Story Q3.1: AC-Q3.1-25, AC-Q3.1-26, AC-Q3.1-27
  */
 export interface Driver {
+  id?: string;
   firstName?: string;
   lastName?: string;
   dateOfBirth?: string;
   licenseNumber?: string;
+  licenseState?: string;
+  yearsLicensed?: number;
+  relationship?: string; // 'self' | 'spouse' | 'child' | 'other'
+  accidentsPast5Years?: number;
+  violationsPast5Years?: number;
+}
+
+/**
+ * Auto coverage preferences
+ * Story Q3.1: AC-Q3.1-22
+ */
+export interface AutoCoverage {
+  bodilyInjuryLiability?: string; // "50/100" | "100/300" | "250/500"
+  propertyDamageLiability?: string; // "50000" | "100000" | "250000"
+  comprehensiveDeductible?: string; // "250" | "500" | "1000"
+  collisionDeductible?: string; // "250" | "500" | "1000"
+  uninsuredMotorist?: boolean;
 }
 
 /**
@@ -86,6 +123,7 @@ export interface Driver {
 export interface AutoInfo {
   vehicles?: Vehicle[];
   drivers?: Driver[];
+  coverage?: AutoCoverage;
 }
 
 /**

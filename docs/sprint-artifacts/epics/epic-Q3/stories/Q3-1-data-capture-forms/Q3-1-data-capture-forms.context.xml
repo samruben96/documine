@@ -1,0 +1,395 @@
+<story-context id="Q3-1-data-capture-forms" v="1.0">
+  <metadata>
+    <epicId>Q3</epicId>
+    <storyId>Q3.1</storyId>
+    <title>Data Capture Forms (Consolidated)</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q3/stories/Q3-1-data-capture-forms/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>insurance agent</asA>
+    <iWant>to enter prospect personal information, property details, vehicles, and drivers through structured form tabs</iWant>
+    <soThat>I can capture all client data once and use it across multiple carrier quotes</soThat>
+    <tasks>
+      <task id="1" title="Set up form infrastructure and shared utilities">
+        <subtask>1.1 Install required packages: use-debounce (already installed), @react-google-maps/api</subtask>
+        <subtask>1.2 Create src/lib/quoting/formatters.ts with phone, currency, date formatting utilities</subtask>
+        <subtask>1.3 Create src/lib/quoting/validation.ts with Zod schemas for address, vehicle, driver</subtask>
+        <subtask>1.4 Create src/lib/quoting/constants.ts with US_STATES array, coverage options, dropdown values</subtask>
+        <subtask>1.5 Expand src/types/quoting.ts type definitions for full client data interfaces</subtask>
+      </task>
+      <task id="2" title="Implement Client Info Tab (AC: 1-7)">
+        <subtask>2.1 Create src/components/quoting/tabs/client-info-tab.tsx with all personal info fields</subtask>
+        <subtask>2.2 Implement phone number auto-formatting on input</subtask>
+        <subtask>2.3 Create src/components/quoting/address-autocomplete.tsx for Google Places integration</subtask>
+        <subtask>2.4 Create src/hooks/quoting/use-address-autocomplete.ts hook</subtask>
+        <subtask>2.5 Create server proxy src/app/api/quoting/places/autocomplete/route.ts to protect API key</subtask>
+        <subtask>2.6 Create server proxy src/app/api/quoting/places/details/route.ts for place details</subtask>
+        <subtask>2.7 Implement address field auto-population from selected suggestion</subtask>
+        <subtask>2.8 Add date picker component for DOB field</subtask>
+        <subtask>2.9 Style required field asterisks</subtask>
+      </task>
+      <task id="3" title="Implement Property Tab (AC: 8-13)">
+        <subtask>3.1 Create src/components/quoting/tabs/property-tab.tsx</subtask>
+        <subtask>3.2 Implement conditional visibility based on quote_type</subtask>
+        <subtask>3.3 Implement "Same as Mailing Address" checkbox logic</subtask>
+        <subtask>3.4 Add property details fields with validation</subtask>
+        <subtask>3.5 Add coverage preference dropdowns</subtask>
+        <subtask>3.6 Implement currency input formatting with $ and commas</subtask>
+        <subtask>3.7 Add risk factor checkboxes</subtask>
+      </task>
+      <task id="4" title="Implement Auto Tab with Vehicle Management (AC: 14-22)">
+        <subtask>4.1 Create src/components/quoting/tabs/auto-tab.tsx</subtask>
+        <subtask>4.2 Create src/components/quoting/vehicle-card.tsx for vehicle display</subtask>
+        <subtask>4.3 Implement "Add Vehicle" functionality with max 6 limit</subtask>
+        <subtask>4.4 Create src/components/quoting/vin-input.tsx with auto-uppercase and validation</subtask>
+        <subtask>4.5 Create src/hooks/quoting/use-vin-decode.ts for NHTSA API integration</subtask>
+        <subtask>4.6 Implement VIN decode auto-populate for year/make/model</subtask>
+        <subtask>4.7 Handle VIN decode failures with fallback to manual entry</subtask>
+        <subtask>4.8 Implement vehicle Edit mode toggle</subtask>
+        <subtask>4.9 Implement vehicle Remove with confirmation/undo</subtask>
+        <subtask>4.10 Add auto coverage preferences section (once per quote)</subtask>
+      </task>
+      <task id="5" title="Implement Drivers Tab with Driver Management (AC: 23-29)">
+        <subtask>5.1 Create src/components/quoting/tabs/drivers-tab.tsx</subtask>
+        <subtask>5.2 Create src/components/quoting/driver-card.tsx for driver display</subtask>
+        <subtask>5.3 Implement "Add Driver" functionality with max 8 limit</subtask>
+        <subtask>5.4 Implement first driver "Self" relationship default</subtask>
+        <subtask>5.5 Implement license number masking (show last 4 only)</subtask>
+        <subtask>5.6 Implement driver Edit mode toggle</subtask>
+        <subtask>5.7 Implement driver Remove with confirmation dialog</subtask>
+      </task>
+      <task id="6" title="Implement Tab Completion Indicators (AC: 30-31)">
+        <subtask>6.1 Update src/lib/quoting/tab-completion.ts with full completion calculation logic</subtask>
+        <subtask>6.2 Update tab navigation to show checkmark for complete sections</subtask>
+        <subtask>6.3 Update tab labels to show item counts (vehicles, drivers)</subtask>
+        <subtask>6.4 Integrate completion logic with existing tab structure from Q2.3</subtask>
+      </task>
+      <task id="7" title="Wire up data persistence (AC: all)">
+        <subtask>7.1 Create/update src/app/api/quoting/[id]/client-data/route.ts PATCH endpoint</subtask>
+        <subtask>7.2 Integrate all tabs with session data loading from use-quote-session hook</subtask>
+        <subtask>7.3 Wire up form fields to update client_data JSONB structure</subtask>
+        <subtask>7.4 Implement partial update merging on server (deep merge into client_data)</subtask>
+      </task>
+      <task id="8" title="Write unit tests for utilities (AC: all validation)">
+        <subtask>8.1 Create __tests__/lib/quoting/formatters.test.ts - phone, currency, date formatting</subtask>
+        <subtask>8.2 Create __tests__/lib/quoting/validation.test.ts - Zod schema tests</subtask>
+        <subtask>8.3 Create __tests__/lib/quoting/tab-completion.test.ts - completion logic tests</subtask>
+      </task>
+      <task id="9" title="Write component tests (AC: all tabs)">
+        <subtask>9.1 Create __tests__/components/quoting/tabs/client-info-tab.test.tsx</subtask>
+        <subtask>9.2 Create __tests__/components/quoting/tabs/property-tab.test.tsx</subtask>
+        <subtask>9.3 Create __tests__/components/quoting/tabs/auto-tab.test.tsx</subtask>
+        <subtask>9.4 Create __tests__/components/quoting/tabs/drivers-tab.test.tsx</subtask>
+        <subtask>9.5 Create __tests__/components/quoting/vehicle-card.test.tsx</subtask>
+        <subtask>9.6 Create __tests__/components/quoting/driver-card.test.tsx</subtask>
+        <subtask>9.7 Create __tests__/components/quoting/vin-input.test.tsx</subtask>
+        <subtask>9.8 Create __tests__/components/quoting/address-autocomplete.test.tsx</subtask>
+      </task>
+      <task id="10" title="Write integration and E2E tests (AC: all)">
+        <subtask>10.1 Create __tests__/hooks/quoting/use-vin-decode.test.ts with NHTSA API mock</subtask>
+        <subtask>10.2 Create __tests__/hooks/quoting/use-address-autocomplete.test.ts with Places API mock</subtask>
+        <subtask>10.3 Create __tests__/e2e/quoting/data-capture.spec.ts - full form flow tests</subtask>
+        <subtask>10.4 Test bundle quote type (all tabs visible)</subtask>
+        <subtask>10.5 Test auto-only quote type (Property tab hidden)</subtask>
+        <subtask>10.6 Test home-only quote type (Auto/Drivers tabs hidden)</subtask>
+      </task>
+      <task id="11" title="Verify build and run full test suite (AC: all)">
+        <subtask>11.1 Run npm run build - verify no type errors</subtask>
+        <subtask>11.2 Run npm run test - verify all quoting tests pass</subtask>
+        <subtask>11.3 Manual testing of all tabs and interactions</subtask>
+        <subtask>11.4 Verify Google Places API integration works in dev environment</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <section title="Client Info Tab (FR7)">
+      <ac id="AC-Q3.1-1">Given the user is on the Client Info tab, when the form loads, then the following fields are displayed: First Name*, Last Name*, Date of Birth*, Email*, Phone*, and Mailing Address (Street, City, State dropdown, ZIP)*</ac>
+      <ac id="AC-Q3.1-2">Given required fields, when displayed, then they are marked with a red asterisk (*)</ac>
+      <ac id="AC-Q3.1-3">Given the user types in the Phone field, when digits are entered, then the input auto-formats as (XXX) XXX-XXXX while typing</ac>
+      <ac id="AC-Q3.1-4">Given the user types in the address Street field, when at least 3 characters are entered, then autocomplete suggestions from Google Places API appear</ac>
+      <ac id="AC-Q3.1-5">Given autocomplete suggestions are displayed, when the user selects a suggestion, then all address fields (street, city, state, ZIP) are populated automatically</ac>
+      <ac id="AC-Q3.1-6">Given the State dropdown, when opened, then it contains all 50 US states plus DC (51 options)</ac>
+      <ac id="AC-Q3.1-7">Given the DOB field, when clicked, then a date picker component opens with MM/DD/YYYY display format</ac>
+    </section>
+    <section title="Property Tab (FR8, FR9)">
+      <ac id="AC-Q3.1-8">Given a quote session, when the quote_type is "home" or "bundle", then the Property tab is visible; when "auto", then the Property tab is hidden</ac>
+      <ac id="AC-Q3.1-9">Given the Property tab, when the "Same as Mailing Address" checkbox is checked, then the property address fields are populated with values from Client Info mailing address</ac>
+      <ac id="AC-Q3.1-10">Given the Property tab, when displayed, then the following fields are shown: Property Address, Year Built (number), Square Footage (number), Construction Type (dropdown), Roof Type (dropdown), Roof Year (number)</ac>
+      <ac id="AC-Q3.1-11">Given the Property tab Coverage section, when displayed, then the following fields are shown: Dwelling Coverage (currency input), Liability Coverage (dropdown: $100K/$300K/$500K/$1M), Deductible (dropdown: $500/$1,000/$2,500/$5,000)</ac>
+      <ac id="AC-Q3.1-12">Given currency input fields, when the user enters a number and blurs, then the value displays with $ prefix and thousands separators</ac>
+      <ac id="AC-Q3.1-13">Given the Property tab Risk Factors section, when displayed, then checkboxes for "Has Pool" and "Has Trampoline" are shown</ac>
+    </section>
+    <section title="Auto Tab - Vehicles (FR10, FR11, FR14)">
+      <ac id="AC-Q3.1-14">Given a quote session, when the quote_type is "auto" or "bundle", then the Auto tab is visible; when "home", then the Auto tab is hidden</ac>
+      <ac id="AC-Q3.1-15">Given the Auto tab, when the user clicks "Add Vehicle" and fewer than 6 vehicles exist, then a new vehicle entry form is created; when 6 vehicles exist, the button is disabled with tooltip "Maximum 6 vehicles"</ac>
+      <ac id="AC-Q3.1-16">Given a vehicle entry form, when displayed, then the following fields are shown: Year (dropdown: 1990 to current year + 1), Make, Model, VIN, Usage (dropdown), Annual Mileage (number)</ac>
+      <ac id="AC-Q3.1-17">Given the VIN input field, when the user types, then the input auto-uppercases and validates the 17-character format (alphanumeric excluding I, O, Q)</ac>
+      <ac id="AC-Q3.1-18">Given a valid 17-character VIN is entered, when the field loses focus, then the NHTSA VIN decode API is called and Year, Make, Model fields auto-populate on success</ac>
+      <ac id="AC-Q3.1-19">Given the VIN decode API call fails, when an error occurs, then a warning message is shown and manual entry is allowed</ac>
+      <ac id="AC-Q3.1-20">Given vehicles have been added, when displayed in the list, then each vehicle shows as a card with format "[Year] [Make] [Model]" with Edit and Remove action buttons</ac>
+      <ac id="AC-Q3.1-21">Given the user clicks Remove on a vehicle, when clicked, then either a confirmation dialog appears OR an undo toast is shown for 5 seconds before deletion</ac>
+      <ac id="AC-Q3.1-22">Given the Auto tab Coverage Preferences section, when displayed, then the following fields are shown: Bodily Injury Liability, Property Damage Liability, Comprehensive Deductible, Collision Deductible, Uninsured Motorist checkbox</ac>
+    </section>
+    <section title="Drivers Tab (FR12, FR13)">
+      <ac id="AC-Q3.1-23">Given a quote session, when the quote_type is "auto" or "bundle", then the Drivers tab is visible; when "home", then the Drivers tab is hidden</ac>
+      <ac id="AC-Q3.1-24">Given the Drivers tab, when the user clicks "Add Driver" and fewer than 8 drivers exist, then a new driver entry form is created; when 8 drivers exist, the button is disabled with tooltip "Maximum 8 drivers"</ac>
+      <ac id="AC-Q3.1-25">Given a driver entry form, when displayed, then the following fields are shown: First Name*, Last Name*, Date of Birth*, License Number*, License State* (dropdown), Years Licensed (number: 0-70), Relationship (dropdown), Accidents past 5 years, Violations past 5 years</ac>
+      <ac id="AC-Q3.1-26">Given a new driver is added and it's the first driver, when the relationship field loads, then it defaults to "Self"</ac>
+      <ac id="AC-Q3.1-27">Given a license number has been entered, when the field loses focus, then the value displays masked (e.g., "••••••1234" showing only last 4 characters)</ac>
+      <ac id="AC-Q3.1-28">Given drivers have been added, when displayed in the list, then each driver shows as a card with format "[First] [Last] ([Relationship]) - [X] years licensed"</ac>
+      <ac id="AC-Q3.1-29">Given the user clicks Remove on a driver, when clicked, then a confirmation dialog appears asking "Remove this driver?"</ac>
+    </section>
+    <section title="Tab Completion Indicators">
+      <ac id="AC-Q3.1-30">Given form tabs, when all required fields in a section are filled with valid data, then the tab shows a checkmark completion indicator</ac>
+      <ac id="AC-Q3.1-31">Given the Auto or Drivers tab, when items have been added, then the tab label shows count (e.g., "Auto (2 vehicles)", "Drivers (3 drivers)")</ac>
+    </section>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/features/quoting/prd.md</path>
+        <title>Quoting Helper PRD</title>
+        <section>Functional Requirements FR6-FR18</section>
+        <snippet>FR7: Enter prospect personal information (name, DOB, contact info). FR8-9: Property information and coverage preferences. FR10-14: Vehicle and driver information, coverage preferences. FR16-17: VIN and address validation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q3/tech-spec.md</path>
+        <title>Epic Q3 Technical Specification</title>
+        <section>Data Models, APIs, Workflows</section>
+        <snippet>Defines QuoteClientData JSONB structure with PersonalInfo, PropertyInfo, AutoInfo nested interfaces. Specifies Zod validation schemas, auto-save pattern (500ms debounce, 2s max wait), and NHTSA/Google Places API integrations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q3/epic.md</path>
+        <title>Epic Q3 Overview</title>
+        <section>Objectives, Stories, Dependencies</section>
+        <snippet>Epic Q3 delivers client data capture with structured form tabs. Depends on Epic Q1 (database schema) and Epic Q2 (session detail page with tab structure). Address autocomplete via Google Places API, VIN decode via NHTSA API.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture/implementation-patterns.md</path>
+        <title>Implementation Patterns</title>
+        <section>UI Component Patterns, API Response Format, PostgreSQL JSONB Type Casting</section>
+        <snippet>Use typography/spacing utilities from src/lib/typography.ts. API responses follow {data, error} structure. JSONB columns use "as unknown as Json" pattern for type casting. Use StatusBadge for status indicators.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/types/quoting.ts</path>
+        <kind>type definitions</kind>
+        <symbol>QuoteClientData, PersonalInfo, PropertyInfo, AutoInfo, Vehicle, Driver, Address</symbol>
+        <reason>Core type definitions for client data - needs expansion for full field coverage per tech spec</reason>
+      </artifact>
+      <artifact>
+        <path>src/hooks/quoting/use-quote-session.ts</path>
+        <kind>hook</kind>
+        <symbol>useQuoteSession</symbol>
+        <reason>Fetches single quote session - tab components will receive session data from this hook</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/tab-completion.ts</path>
+        <kind>utility</kind>
+        <symbol>getTabCompletionStatus, getVisibleTabs, TAB_CONFIG</symbol>
+        <reason>Tab completion logic - needs update to check new required fields for full completion</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/service.ts</path>
+        <kind>service</kind>
+        <symbol>listQuoteSessions, createQuoteSession, getQuoteSession, transformQuoteSession, calculateSessionStatus</symbol>
+        <reason>Business logic for CRUD operations - follow this pattern for client-data PATCH endpoint</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/quoting/tabs/client-info-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>ClientInfoTab</symbol>
+        <reason>Placeholder tab component - replace with full form implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/quoting/tabs/property-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>PropertyTab</symbol>
+        <reason>Placeholder tab component - replace with full form implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/quoting/tabs/auto-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>AutoTab</symbol>
+        <reason>Placeholder tab component - replace with vehicle management implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/quoting/tabs/drivers-tab.tsx</path>
+        <kind>component</kind>
+        <symbol>DriversTab</symbol>
+        <lines>existing placeholder</lines>
+        <reason>Placeholder tab component - replace with driver management implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/(dashboard)/quoting/[id]/page.tsx</path>
+        <kind>page</kind>
+        <symbol>QuoteSessionDetailPage</symbol>
+        <reason>Parent page with tabs - need to pass session data to tab components via props or context</reason>
+      </artifact>
+      <artifact>
+        <path>src/app/api/quoting/[id]/route.ts</path>
+        <kind>api route</kind>
+        <symbol>GET handler</symbol>
+        <reason>Pattern for API routes - follow for client-data PATCH endpoint</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/input.tsx</path>
+        <kind>component</kind>
+        <symbol>Input</symbol>
+        <reason>shadcn/ui Input component - use for form fields</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/select.tsx</path>
+        <kind>component</kind>
+        <symbol>Select, SelectTrigger, SelectContent, SelectItem</symbol>
+        <reason>shadcn/ui Select component - use for dropdowns</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/calendar.tsx</path>
+        <kind>component</kind>
+        <symbol>Calendar</symbol>
+        <reason>shadcn/ui Calendar component - use for date picker</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/checkbox.tsx</path>
+        <kind>component</kind>
+        <symbol>Checkbox</symbol>
+        <reason>shadcn/ui Checkbox component - use for boolean fields</reason>
+      </artifact>
+      <artifact>
+        <path>src/components/ui/form.tsx</path>
+        <kind>component</kind>
+        <symbol>Form, FormField, FormItem, FormLabel, FormControl, FormMessage</symbol>
+        <reason>shadcn/ui Form components with react-hook-form integration</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <node>
+        <package>react-hook-form</package>
+        <version>^7.68.0</version>
+        <purpose>Form state management and validation</purpose>
+      </node>
+      <node>
+        <package>@hookform/resolvers</package>
+        <version>^5.2.2</version>
+        <purpose>Zod resolver for react-hook-form</purpose>
+      </node>
+      <node>
+        <package>zod</package>
+        <version>^4.1.13</version>
+        <purpose>Schema validation for form fields</purpose>
+      </node>
+      <node>
+        <package>use-debounce</package>
+        <version>^10.0.6</version>
+        <purpose>Debounced auto-save callbacks</purpose>
+      </node>
+      <node>
+        <package>react-day-picker</package>
+        <version>^9.12.0</version>
+        <purpose>Date picker component (already installed)</purpose>
+      </node>
+      <node>
+        <package>date-fns</package>
+        <version>^4.1.0</version>
+        <purpose>Date formatting utilities</purpose>
+      </node>
+      <node>
+        <package>sonner</package>
+        <version>^2.0.7</version>
+        <purpose>Toast notifications for save feedback</purpose>
+      </node>
+      <node>
+        <package>@react-google-maps/api</package>
+        <version>NEW - TO INSTALL</version>
+        <purpose>Google Places Autocomplete component (requires installation)</purpose>
+      </node>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Store all client data in quote_sessions.client_data JSONB column</constraint>
+    <constraint type="architecture">Use Zod schemas for client-side validation, react-hook-form for state management</constraint>
+    <constraint type="architecture">Follow existing shadcn/ui component patterns from src/components/ui/</constraint>
+    <constraint type="architecture">API routes follow {data, error} response format per implementation-patterns.md</constraint>
+    <constraint type="security">Google Places API key must be server-side only (use proxy routes)</constraint>
+    <constraint type="cost">Google Places API has generous free tier: 10,000 Autocomplete + 10,000 Place Details requests/month FREE. Beyond free tier: Autocomplete $2.83/1,000, Place Details $5.00/1,000</constraint>
+    <constraint type="security">License numbers masked in UI (show last 4 only) - full encryption deferred to Phase 4</constraint>
+    <constraint type="performance">Form field response under 100ms - no blocking operations on input</constraint>
+    <constraint type="performance">Auto-save latency under 1 second - background PATCH, non-blocking UI</constraint>
+    <constraint type="ux">Maximum 6 vehicles per quote session</constraint>
+    <constraint type="ux">Maximum 8 drivers per quote session</constraint>
+    <constraint type="ux">Tab completion indicators update dynamically as fields are filled</constraint>
+    <constraint type="testing">Maintain existing test patterns - Vitest for unit/integration, Playwright for E2E</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>PATCH /api/quoting/[id]/client-data</name>
+      <kind>REST endpoint</kind>
+      <signature>PATCH /api/quoting/[id]/client-data - Request: { personal?: Partial&lt;PersonalInfo&gt;, property?: Partial&lt;PropertyInfo&gt;, auto?: Partial&lt;AutoInfo&gt; } - Response: { data: { updatedAt: string }, error: null }</signature>
+      <path>src/app/api/quoting/[id]/client-data/route.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>POST /api/quoting/places/autocomplete</name>
+      <kind>REST endpoint (proxy)</kind>
+      <signature>POST /api/quoting/places/autocomplete - Request: { input: string, sessionToken: string } - Response: { predictions: Array&lt;{placeId, description, mainText, secondaryText}&gt; }</signature>
+      <path>src/app/api/quoting/places/autocomplete/route.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>POST /api/quoting/places/details</name>
+      <kind>REST endpoint (proxy)</kind>
+      <signature>POST /api/quoting/places/details - Request: { placeId: string, sessionToken: string } - Response: { address: Address }</signature>
+      <path>src/app/api/quoting/places/details/route.ts (NEW)</path>
+    </interface>
+    <interface>
+      <name>NHTSA VIN Decode API</name>
+      <kind>External API (direct client call)</kind>
+      <signature>GET https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/{vin}?format=json - Returns: { Results: Array&lt;{Variable, Value}&gt; }</signature>
+      <path>Direct client-side call from use-vin-decode.ts hook</path>
+    </interface>
+    <interface>
+      <name>useQuoteSession hook</name>
+      <kind>React hook</kind>
+      <signature>useQuoteSession(sessionId: string, options?: { autoFetch?: boolean, redirectOnNotFound?: boolean }): { session, isLoading, error, fetchSession, refresh }</signature>
+      <path>src/hooks/quoting/use-quote-session.ts</path>
+    </interface>
+    <interface>
+      <name>QuoteClientData</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface QuoteClientData { personal?: PersonalInfo; property?: PropertyInfo; auto?: AutoInfo; }</signature>
+      <path>src/types/quoting.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use Vitest for unit and integration tests. Use Playwright for E2E tests. Follow existing test patterns in __tests__/ directory. Mock external APIs (Google Places, NHTSA) using vi.mock or fetch mocks. Test components with @testing-library/react. Achieve 90%+ coverage for validation.ts and formatters.ts utilities.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/ - unit tests for utilities (formatters, validation, tab-completion)</location>
+      <location>__tests__/components/quoting/ - component tests for tabs and cards</location>
+      <location>__tests__/hooks/quoting/ - hook tests for use-vin-decode, use-address-autocomplete</location>
+      <location>__tests__/e2e/quoting/ - E2E tests for full form flow</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q3.1-1">Test that ClientInfoTab renders all required fields (firstName, lastName, DOB, email, phone, address fields)</idea>
+      <idea ac="AC-Q3.1-3">Test phone formatting: input "1234567890" displays as "(123) 456-7890"</idea>
+      <idea ac="AC-Q3.1-4,5">Test address autocomplete: mock Google Places API, verify suggestions appear and selection populates fields</idea>
+      <idea ac="AC-Q3.1-6">Test US_STATES constant contains exactly 51 items (50 states + DC)</idea>
+      <idea ac="AC-Q3.1-8,14,23">Test tab visibility based on quote_type: bundle shows all, home hides auto/drivers, auto hides property</idea>
+      <idea ac="AC-Q3.1-15,24">Test max vehicle/driver limits: Add 6 vehicles, verify "Add Vehicle" button is disabled</idea>
+      <idea ac="AC-Q3.1-17,18">Test VIN validation and decode: valid VIN triggers API call and auto-populates year/make/model</idea>
+      <idea ac="AC-Q3.1-19">Test VIN decode failure: mock failed API response, verify warning shown and manual entry enabled</idea>
+      <idea ac="AC-Q3.1-27">Test license masking: input "DL123456789" displays as "••••••6789"</idea>
+      <idea ac="AC-Q3.1-30,31">Test tab completion: fill required fields, verify checkmark appears; add vehicles, verify count badge shows</idea>
+    </ideas>
+  </tests>
+</story-context>
