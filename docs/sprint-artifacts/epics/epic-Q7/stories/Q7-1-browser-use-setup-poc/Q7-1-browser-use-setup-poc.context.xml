@@ -1,0 +1,198 @@
+<story-context id="Q7-1-browser-use-setup-poc" v="1.0">
+  <metadata>
+    <epicId>Q7</epicId>
+    <storyId>1</storyId>
+    <title>Browser Use Local Setup &amp; POC</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q7/stories/Q7-1-browser-use-setup-poc/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>Browser Use set up locally with a working proof-of-concept</iWant>
+    <soThat>I can validate it works for insurance quote automation before full integration</soThat>
+    <tasks>
+      <task id="1" ac="1-3">Environment Setup
+        <subtask>1.1: Verify Python 3.11+ is installed (python3 --version)</subtask>
+        <subtask>1.2: Install Browser Use library (pip install browser-use)</subtask>
+        <subtask>1.3: Install Playwright and browsers (playwright install chromium)</subtask>
+        <subtask>1.4: Verify installation (python -c "from browser_use import Agent; print('OK')")</subtask>
+      </task>
+      <task id="2" ac="4">Claude API Integration
+        <subtask>2.1: Configure ANTHROPIC_API_KEY in .env.local</subtask>
+        <subtask>2.2: Test API connection with a simple Claude call</subtask>
+        <subtask>2.3: Configure Browser Use to use claude-3-5-sonnet-20241022</subtask>
+      </task>
+      <task id="3" ac="5">Create POC Script
+        <subtask>3.1: Create scripts/browser-use-poc.py with basic structure</subtask>
+        <subtask>3.2: Implement navigation to a public website (google.com)</subtask>
+        <subtask>3.3: Implement form fill (search box)</subtask>
+        <subtask>3.4: Implement data extraction from results</subtask>
+        <subtask>3.5: Test end-to-end execution with headless=false</subtask>
+        <subtask>3.6: Test with headless=true for production readiness</subtask>
+      </task>
+      <task id="4" ac="6-7">Documentation
+        <subtask>4.1: Create docs/features/quoting/browser-use-setup.md</subtask>
+        <subtask>4.2: Document installation steps</subtask>
+        <subtask>4.3: Document environment variables</subtask>
+        <subtask>4.4: Document common issues and troubleshooting</subtask>
+        <subtask>4.5: Update .env.example with Browser Use variables</subtask>
+        <subtask>4.6: Create requirements.txt for Python dependencies</subtask>
+      </task>
+      <task id="5" ac="all">Testing &amp; Verification
+        <subtask>5.1: Run POC script successfully 3+ times</subtask>
+        <subtask>5.2: Verify another team member can follow setup guide</subtask>
+        <subtask>5.3: Document any issues encountered and solutions</subtask>
+      </task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q7.1.1" testable="manual">Python 3.11+ installed and verified</criterion>
+    <criterion id="AC-Q7.1.2" testable="manual">pip install browser-use playwright completes without errors</criterion>
+    <criterion id="AC-Q7.1.3" testable="manual">playwright install installs required browser binaries (chromium)</criterion>
+    <criterion id="AC-Q7.1.4" testable="manual">ANTHROPIC_API_KEY integration works with Claude 3.5 Sonnet</criterion>
+    <criterion id="AC-Q7.1.5" testable="manual">Simple POC script navigates to website and extracts data</criterion>
+    <criterion id="AC-Q7.1.6" testable="file-exists">Setup documentation created at docs/features/quoting/browser-use-setup.md</criterion>
+    <criterion id="AC-Q7.1.7" testable="file-updated">Environment variables documented in .env.example</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q7/tech-spec.md</path>
+        <title>Epic Q7 Technical Specification</title>
+        <section>Q7.1: Browser Use Local Setup &amp; POC</section>
+        <snippet>Browser Use achieves 89% accuracy on WebVoyager benchmark. POC validates setup with pip install browser-use, playwright install, and Claude integration via ANTHROPIC_API_KEY.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/research/ai-browser-automation-tools-2025.md</path>
+        <title>AI Browser Automation Tools Research</title>
+        <section>Option 1: Browser Use</section>
+        <snippet>Browser Use is an open-source Python framework wrapping Playwright in an LLM-driven control loop. 72,895 GitHub stars, $17M seed funding, 89% WebVoyager benchmark score. Fully self-hostable via pip install browser-use.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q7/epic.md</path>
+        <title>Epic Q7: Browser Use Agent Integration</title>
+        <section>Overview</section>
+        <snippet>Integrate Browser Use as alternative AI browser automation agent alongside Skyvern. Enables A/B testing between agents with fallback strategy. RAM Mutual as first carrier with live credentials.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q6/stories/Q6-4-job-queue-pgmq/story.md</path>
+        <title>Story Q6.4: Job Queue with pgmq</title>
+        <section>Dev Agent Record</section>
+        <snippet>Infrastructure foundation complete: QuoteAgent interface established, pgmq queues ready (quote_jobs, quote_jobs_dlq), JobQueueService patterns at src/lib/quoting/orchestrator/job-queue.ts. agent_type column tracks which agent processed each job.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/types/quoting/agent.ts</path>
+        <kind>type-definitions</kind>
+        <symbol>QuoteAgent interface</symbol>
+        <lines>25-38</lines>
+        <reason>Core interface that BrowserUseAdapter will implement in Q7.2. Defines executeQuote() and cancel() methods.</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/agent/skyvern-adapter.ts</path>
+        <kind>adapter</kind>
+        <symbol>SkyvernAdapter class</symbol>
+        <lines>137-607</lines>
+        <reason>Reference implementation of QuoteAgent. Shows patterns for progress callbacks, error handling, retry logic, and env var configuration.</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/agent/index.ts</path>
+        <kind>module-exports</kind>
+        <symbol>agent module</symbol>
+        <lines>1-28</lines>
+        <reason>Module entry point. BrowserUseAdapter will be added here after Q7.2.</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/agent/errors.ts</path>
+        <kind>utility</kind>
+        <symbol>QuoteAgentError, mapSkyvernErrorToQuoteError</symbol>
+        <reason>Error handling patterns. Browser Use adapter will need similar error mapping.</reason>
+      </file>
+      <file>
+        <path>.env.example</path>
+        <kind>config</kind>
+        <symbol>environment variables</symbol>
+        <lines>67-78</lines>
+        <reason>Existing Skyvern env vars section. Browser Use variables (ANTHROPIC_API_KEY, BROWSER_USE_*) will be added here.</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <ecosystem name="node">
+        <package name="next" version="^16.0.9" />
+        <package name="typescript" version="^5" />
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="vitest" version="^4.0.14" />
+        <package name="@playwright/test" version="^1.57.0" />
+      </ecosystem>
+      <ecosystem name="python" note="To be created for Browser Use">
+        <package name="browser-use" version="latest" purpose="AI browser automation" />
+        <package name="playwright" version="latest" purpose="Browser control" />
+        <package name="langchain-anthropic" version="latest" purpose="Claude LLM integration" />
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="environment">
+      Python 3.11+ required for Browser Use. Verify with python3 --version before installation.
+    </constraint>
+    <constraint type="api-key">
+      ANTHROPIC_API_KEY required for Claude integration. Same key used by OpenRouter is acceptable.
+    </constraint>
+    <constraint type="browser">
+      Playwright browsers must be installed separately via playwright install chromium. This downloads Chromium binary.
+    </constraint>
+    <constraint type="pattern">
+      Follow .env.local pattern established for SKYVERN_* variables when adding BROWSER_USE_* variables.
+    </constraint>
+    <constraint type="documentation">
+      Setup documentation must be comprehensive enough for another team member to replicate without assistance.
+    </constraint>
+    <constraint type="scope">
+      This is POC only - no production code, no TypeScript adapter, no integration with job queue. Those are Q7.2+.
+    </constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>QuoteAgent</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface QuoteAgent { executeQuote(params: QuoteExecutionParams): Promise&lt;QuoteAgentResult&gt;; cancel(): Promise&lt;void&gt;; }</signature>
+      <path>src/types/quoting/agent.ts</path>
+      <note>BrowserUseAdapter will implement this in Q7.2. POC validates Browser Use capabilities before adapter implementation.</note>
+    </interface>
+    <interface>
+      <name>Browser Use Agent API</name>
+      <kind>Python API</kind>
+      <signature>from browser_use import Agent; agent = Agent(task="...", llm=ChatAnthropic(...)); result = await agent.run()</signature>
+      <path>External: browser-use library</path>
+      <note>Primary API for POC script. Uses async/await pattern.</note>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      This story is primarily manual verification (environment setup, POC execution). No automated tests required for this story.
+      However, document test execution steps so Q7.2 can build on them. Follow existing test patterns in __tests__/lib/quoting/agent/skyvern-adapter.test.ts for future adapter tests.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/agent/ (for future Q7.2 adapter tests)</location>
+      <location>scripts/ (POC script location)</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q7.1.1-3">Manual: Run installation commands, verify no errors in terminal output</idea>
+      <idea ac="AC-Q7.1.4">Manual: Test Claude API connection with simple script before Browser Use integration</idea>
+      <idea ac="AC-Q7.1.5">Manual: Execute POC script 3+ times, observe browser automation, verify data extraction output</idea>
+      <idea ac="AC-Q7.1.6">Manual: Have another team member follow documentation to replicate setup</idea>
+      <idea ac="AC-Q7.1.7">Manual: Verify .env.example contains all Browser Use variables with documentation</idea>
+    </ideas>
+  </tests>
+</story-context>

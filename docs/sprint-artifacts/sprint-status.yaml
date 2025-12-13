@@ -1,7 +1,7 @@
-# Sprint Status - docuMINE
+  # Sprint Status - docuMINE
 # ========================
 # Generated: 2025-11-28
-# Last Updated: 2025-12-12 (Epic Q6 contexted - AI Infrastructure Foundation)
+# Last Updated: 2025-12-12 (Epic Q7 tech spec generated)
 # Project: docuMINE
 # Tracking: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
@@ -91,104 +91,122 @@ development_status:
   Q5-5-user-carrier-preferences: backlog
 
   # =====================================================
-  # AI-POWERED QUOTING (PHASE 4) - EPICS Q6-Q13
+  # AI-POWERED QUOTING (PHASE 4) - EPICS Q6-Q14
   # =====================================================
   # "Click Get Quotes, AI fills carrier forms automatically"
   # Planning: docs/features/quoting/phase-4-*.md
-  # Epics: docs/sprint-artifacts/epics/epic-Q{6-13}/
-  # Total: 8 Epics, 43 Stories, 46 FRs
-  # MVP Carriers: Progressive, Travelers
-  # Key Tech: Skyvern AI, Browserbase, pgmq, Supabase Vault
+  # Epics: docs/sprint-artifacts/epics/epic-Q{6-14}/
+  # Total: 9 Epics, 48 Stories, 46 FRs
+  # MVP Carriers: Progressive, Travelers, RAM Mutual (test)
+  # Key Tech: Browser Use + Skyvern (dual-agent), pgmq, Supabase Vault
 
   # Epic Q6: AI Infrastructure Foundation
-  # Database schema, Skyvern integration, Browserbase, job queue
+  # Database schema, Skyvern integration, job queue
   # Stories: 4 | FRs: FR3, FR6 (partial)
   # Location: docs/sprint-artifacts/epics/epic-Q6/
   # Tech Spec: docs/sprint-artifacts/epics/epic-Q6/tech-spec.md
   # Contexted: 2025-12-12
-  epic-Q6-ai-infrastructure-foundation: contexted
+  # Note: Browserbase skipped - self-hosted Skyvern includes browsers
+  epic-Q6-ai-infrastructure-foundation: done  # Completed 2025-12-12 - All 4 stories done
   Q6-1-database-schema-ai-quoting: done  # Code review APPROVED 2025-12-12
   Q6-2-skyvern-agent-integration: done  # Code review APPROVED 2025-12-12
-  Q6-3-browserbase-integration: backlog
-  Q6-4-job-queue-pgmq: backlog
+  Q6-3-self-hosted-skyvern-setup: done  # Completed 2025-12-12 - pip install method for local dev, prod options documented
+  Q6-4-job-queue-pgmq: done  # Completed 2025-12-12 - All 7 ACs verified, 33 unit tests passing
+  epic-Q6-retrospective: done  # Completed 2025-12-12
 
-  # Epic Q7: Credential Management
+  # Epic Q7: Browser Use Agent Integration (NEW 2025-12-12)
+  # Alternative AI agent + RAM Mutual testing
+  # Stories: 5 | Research: docs/features/research/ai-browser-automation-tools-2025.md
+  # Location: docs/sprint-artifacts/epics/epic-Q7/
+  # Tech Spec: docs/sprint-artifacts/epics/epic-Q7/tech-spec.md
+  # Created: 2025-12-12 - Dual-agent architecture for better reliability
+  # Contexted: 2025-12-12
+  epic-Q7-browser-use-agent-integration: contexted
+  Q7-1-browser-use-setup-poc: done
+  Q7-2-browser-use-adapter: backlog
+  Q7-3-ram-mutual-carrier: backlog
+  Q7-4-agent-factory-routing: backlog
+  Q7-5-ab-testing-comparison: backlog
+
+  # Epic Q8: Credential Management (was Q7)
   # Secure credential storage with Supabase Vault
   # Stories: 5 | FRs: FR14-19
-  # Location: docs/sprint-artifacts/epics/epic-Q7/
-  epic-Q7-credential-management: backlog
-  Q7-1-credential-vault-schema: backlog
-  Q7-2-credential-crud-operations: backlog
-  Q7-3-credential-validation: backlog
-  Q7-4-credential-encryption-service: backlog
-  Q7-5-credential-audit-logging: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q8/
+  # Tech Spec: docs/sprint-artifacts/epics/epic-Q8/tech-spec.md
+  # Contexted: 2025-12-12
+  epic-Q8-credential-management: contexted
+  Q8-1-credential-vault-schema: backlog
+  Q8-2-credential-crud-operations: backlog
+  Q8-3-credential-validation: backlog
+  Q8-4-credential-encryption-service: backlog
+  Q8-5-credential-audit-logging: backlog
 
-  # Epic Q8: Quote Execution Engine (CORE MAGIC)
+  # Epic Q9: Quote Execution Engine (CORE MAGIC) (was Q8)
   # AI fills carrier forms automatically
   # Stories: 6 | FRs: FR1-8
-  # Location: docs/sprint-artifacts/epics/epic-Q8/
-  epic-Q8-quote-execution-engine: backlog
-  Q8-1-carrier-selection-automation: backlog
-  Q8-2-get-quotes-execution-trigger: backlog
-  Q8-3-ai-form-filling-execution: backlog
-  Q8-4-multi-page-flow-navigation: backlog
-  Q8-5-quote-result-extraction: backlog
-  Q8-6-screenshot-evidence-capture: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q9/
+  epic-Q9-quote-execution-engine: backlog
+  Q9-1-carrier-selection-automation: backlog
+  Q9-2-get-quotes-execution-trigger: backlog
+  Q9-3-ai-form-filling-execution: backlog
+  Q9-4-multi-page-flow-navigation: backlog
+  Q9-5-quote-result-extraction: backlog
+  Q9-6-screenshot-evidence-capture: backlog
 
-  # Epic Q9: Real-Time Progress & Status
+  # Epic Q10: Real-Time Progress & Status (was Q9)
   # Watch automation progress live
   # Stories: 5 | FRs: FR9-13
-  # Location: docs/sprint-artifacts/epics/epic-Q9/
-  epic-Q9-realtime-progress-status: backlog
-  Q9-1-quote-progress-view: backlog
-  Q9-2-live-step-updates-realtime: backlog
-  Q9-3-estimated-time-display: backlog
-  Q9-4-completion-notifications: backlog
-  Q9-5-job-history-timeline: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q10/
+  epic-Q10-realtime-progress-status: backlog
+  Q10-1-quote-progress-view: backlog
+  Q10-2-live-step-updates-realtime: backlog
+  Q10-3-estimated-time-display: backlog
+  Q10-4-completion-notifications: backlog
+  Q10-5-job-history-timeline: backlog
 
-  # Epic Q10: Recipe Caching System
+  # Epic Q11: Recipe Caching System (was Q10)
   # Fast, cost-effective execution (80% cost reduction)
   # Stories: 5 | FRs: FR20-24
-  # Location: docs/sprint-artifacts/epics/epic-Q10/
-  epic-Q10-recipe-caching-system: backlog
-  Q10-1-recipe-database-schema: backlog
-  Q10-2-recipe-replay-engine: backlog
-  Q10-3-ai-fallback-recipe-failure: backlog
-  Q10-4-recipe-auto-update: backlog
-  Q10-5-recipe-health-monitoring: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q11/
+  epic-Q11-recipe-caching-system: backlog
+  Q11-1-recipe-database-schema: backlog
+  Q11-2-recipe-replay-engine: backlog
+  Q11-3-ai-fallback-recipe-failure: backlog
+  Q11-4-recipe-auto-update: backlog
+  Q11-5-recipe-health-monitoring: backlog
 
-  # Epic Q11: Human-in-the-Loop & Error Handling
+  # Epic Q12: Human-in-the-Loop & Error Handling (was Q11)
   # Handle CAPTCHAs and failures gracefully
   # Stories: 6 | FRs: FR25-30
-  # Location: docs/sprint-artifacts/epics/epic-Q11/
-  epic-Q11-human-in-the-loop-errors: backlog
-  Q11-1-captcha-detection: backlog
-  Q11-2-inline-captcha-solver-ui: backlog
-  Q11-3-retry-alternative-strategies: backlog
-  Q11-4-manual-intervention-mode: backlog
-  Q11-5-clear-error-messages: backlog
-  Q11-6-partial-success-handling: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q12/
+  epic-Q12-human-in-the-loop-errors: backlog
+  Q12-1-captcha-detection: backlog
+  Q12-2-inline-captcha-solver-ui: backlog
+  Q12-3-retry-alternative-strategies: backlog
+  Q12-4-manual-intervention-mode: backlog
+  Q12-5-clear-error-messages: backlog
+  Q12-6-partial-success-handling: backlog
 
-  # Epic Q12: Carrier Management & Growth
+  # Epic Q13: Carrier Management & Growth (was Q12)
   # Pre-configured + user-added carriers
   # Stories: 8 (4 MVP + 4 Growth) | FRs: FR31-38
-  # Location: docs/sprint-artifacts/epics/epic-Q12/
-  epic-Q12-carrier-management-growth: backlog
-  Q12-1-pre-configured-carrier-registry: backlog  # MVP
-  Q12-2-carrier-list-status-display: backlog      # MVP
-  Q12-3-enable-disable-carriers: backlog          # MVP
-  Q12-4-carrier-success-rate-tracking: backlog    # MVP
-  Q12-5-user-added-carrier-entry: backlog         # Growth
-  Q12-6-ai-learning-new-carriers: backlog         # Growth
-  Q12-7-test-new-carrier: backlog                 # Growth
-  Q12-8-share-learned-carriers: backlog           # Growth (Future)
+  # Location: docs/sprint-artifacts/epics/epic-Q13/
+  epic-Q13-carrier-management-growth: backlog
+  Q13-1-pre-configured-carrier-registry: backlog  # MVP
+  Q13-2-carrier-list-status-display: backlog      # MVP
+  Q13-3-enable-disable-carriers: backlog          # MVP
+  Q13-4-carrier-success-rate-tracking: backlog    # MVP
+  Q13-5-user-added-carrier-entry: backlog         # Growth
+  Q13-6-ai-learning-new-carriers: backlog         # Growth
+  Q13-7-test-new-carrier: backlog                 # Growth
+  Q13-8-share-learned-carriers: backlog           # Growth (Future)
 
-  # Epic Q13: Integration & Session Management
+  # Epic Q14: Integration & Session Management (was Q13)
   # Connect to Phase 3 infrastructure
   # Stories: 4 | FRs: FR39-46
-  # Location: docs/sprint-artifacts/epics/epic-Q13/
-  epic-Q13-integration-session-management: backlog
-  Q13-1-phase3-client-data-integration: backlog
-  Q13-2-comparison-document-integration: backlog
-  Q13-3-quote-job-tracking-history: backlog
-  Q13-4-rerun-duplicate-prevention: backlog
+  # Location: docs/sprint-artifacts/epics/epic-Q14/
+  epic-Q14-integration-session-management: backlog
+  Q14-1-phase3-client-data-integration: backlog
+  Q14-2-comparison-document-integration: backlog
+  Q14-3-quote-job-tracking-history: backlog
+  Q14-4-rerun-duplicate-prevention: backlog
