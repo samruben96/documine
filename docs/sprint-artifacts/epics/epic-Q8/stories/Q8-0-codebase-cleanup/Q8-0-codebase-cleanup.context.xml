@@ -1,0 +1,209 @@
+<story-context id="Q8-0-codebase-cleanup" v="1.0">
+  <metadata>
+    <epicId>Q8</epicId>
+    <storyId>0</storyId>
+    <title>Codebase Cleanup - Remove Legacy Automation Code</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-14</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q8/stories/Q8-0-codebase-cleanup/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to remove unused automation code from previous attempts</iWant>
+    <soThat>the codebase is clean and we don't carry forward technical debt</soThat>
+    <tasks>
+      <task id="AC1">Identify Code to Remove - List all automation-related files from Q6/Q7, categorize as Keep/Remove/Review</task>
+      <task id="AC2">Remove Unused Adapters - skyvern-adapter.ts, browser-use-adapter.ts, browser_use_runner.py, related tests</task>
+      <task id="AC3">Clean Up Dependencies - Remove browser-use from Python deps, keep CapSolver and carrier registry</task>
+      <task id="AC4">Remove POC/Test Scripts - test-ram-mutual.py, har/, temp/, log/, videos/ directories</task>
+      <task id="AC5">Update Imports and References - Fix broken imports, update docs, ensure build/tests pass</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC1">Identify all automation files from Q6/Q7, categorize as Keep (interfaces, types) / Remove (adapters) / Review (job queue)</criterion>
+    <criterion id="AC2">Remove skyvern-adapter.ts, browser-use-adapter.ts, browser_use_runner.py and their test files. Keep QuoteAgent interface.</criterion>
+    <criterion id="AC3">Remove browser-use Python deps. Keep CapSolver integration and carrier registry.</criterion>
+    <criterion id="AC4">Clean har/, temp/, log/, videos/ directories. Review/remove POC scripts.</criterion>
+    <criterion id="AC5">No broken imports, build passes (npm run build), tests pass (npm run test).</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q8/tech-spec.md</path>
+        <title>Q8 Tech Spec - Stagehand POC</title>
+        <section>Component Architecture</section>
+        <snippet>StagehandAdapter will replace SkyvernAdapter and BrowserUseAdapter. Keep QuoteAgent interface - StagehandAdapter will implement it.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/phase-4-architecture.md</path>
+        <title>Phase 4 Architecture</title>
+        <section>AI Agent Service Architecture</section>
+        <snippet>Original dual-agent architecture (Skyvern + Browser Use) is being replaced by recipe-based Stagehand approach per Q7 retrospective.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/retrospectives/epic-Q7-retro-2025-12-14.md</path>
+        <title>Q7 Retrospective</title>
+        <section>Strategic Pivot</section>
+        <snippet>Pure AI automation too slow (20-30s per action). New approach: Recipe-based - AI discovers once, Playwright replays fast. Tool: Stagehand replaces Browser Use.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/recipe-format-specification.md</path>
+        <title>Recipe Format Specification</title>
+        <section>Full Document</section>
+        <snippet>Defines the JSON structure for recorded automation recipes - will be used by StagehandAdapter in Q8-1+.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>src/lib/quoting/agent/index.ts</path>
+        <kind>module index</kind>
+        <symbol>agent module exports</symbol>
+        <reason>MODIFY - Update exports to remove SkyvernAdapter and BrowserUseAdapter</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/agent/skyvern-adapter.ts</path>
+        <kind>adapter</kind>
+        <symbol>SkyvernAdapter</symbol>
+        <reason>REMOVE - Replaced by Stagehand approach</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/agent/browser-use-adapter.ts</path>
+        <kind>adapter</kind>
+        <symbol>BrowserUseAdapter</symbol>
+        <reason>REMOVE - Replaced by Stagehand approach</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/agent/browser_use_runner.py</path>
+        <kind>python script</kind>
+        <symbol>browser_use_runner</symbol>
+        <reason>REMOVE - Python subprocess no longer needed</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/agent/errors.ts</path>
+        <kind>error handling</kind>
+        <symbol>QuoteAgentError, mapSkyvernErrorToQuoteError</symbol>
+        <reason>KEEP - Error handling is generic, rename mapSkyvernErrorToQuoteError to mapErrorToQuoteError</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/lib/quoting/agent/skyvern-adapter.test.ts</path>
+        <kind>test</kind>
+        <symbol>SkyvernAdapter tests</symbol>
+        <reason>REMOVE - Test file for removed adapter</reason>
+      </artifact>
+      <artifact>
+        <path>__tests__/lib/quoting/agent/browser-use-adapter.test.ts</path>
+        <kind>test</kind>
+        <symbol>BrowserUseAdapter tests</symbol>
+        <reason>REMOVE - Test file for removed adapter</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/browser-use-poc.py</path>
+        <kind>script</kind>
+        <symbol>POC script</symbol>
+        <reason>REMOVE - No longer needed</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test-ram-mutual.py</path>
+        <kind>script</kind>
+        <symbol>Test script</symbol>
+        <reason>REVIEW - May have useful patterns for Stagehand implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/types/quoting/agent.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteAgent, QuoteExecutionParams, QuoteAgentResult</symbol>
+        <reason>KEEP - Interface types will be reused by StagehandAdapter</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/carriers/index.ts</path>
+        <kind>registry</kind>
+        <symbol>CARRIERS, getCarrier</symbol>
+        <reason>KEEP - Carrier registry is independent of agent implementation</reason>
+      </artifact>
+      <artifact>
+        <path>src/lib/quoting/carriers/ram-mutual.ts</path>
+        <kind>carrier</kind>
+        <symbol>ramMutualFormatter</symbol>
+        <reason>KEEP - Formatter is for clipboard copy, independent of automation</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <dependency>
+        <ecosystem>node</ecosystem>
+        <package>@supabase/supabase-js</package>
+        <status>KEEP - Core infrastructure</status>
+      </dependency>
+      <dependency>
+        <ecosystem>node</ecosystem>
+        <package>playwright</package>
+        <status>KEEP - Will be used by Stagehand</status>
+      </dependency>
+      <dependency>
+        <ecosystem>python</ecosystem>
+        <package>browser-use</package>
+        <status>REMOVE - No longer using Browser Use</status>
+      </dependency>
+      <dependency>
+        <ecosystem>python</ecosystem>
+        <package>langchain-anthropic</package>
+        <status>REMOVE - Was used by Browser Use</status>
+      </dependency>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Keep QuoteAgent interface - StagehandAdapter will implement it in Q8-1</constraint>
+    <constraint>Keep error handling utilities (QuoteAgentError class) - they are generic</constraint>
+    <constraint>Keep carrier registry and formatters - independent of agent implementation</constraint>
+    <constraint>Keep job queue (pgmq) infrastructure - will be reused</constraint>
+    <constraint>Keep CapSolver integration - will be reused for CAPTCHA solving</constraint>
+    <constraint>Ensure no broken imports after removal</constraint>
+    <constraint>Build must pass: npm run build</constraint>
+    <constraint>Tests must pass: npm run test</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>QuoteAgent</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface QuoteAgent { executeQuote(params: QuoteExecutionParams): Promise&lt;QuoteAgentResult&gt;; cancel(): Promise&lt;void&gt;; }</signature>
+      <path>src/types/quoting/agent.ts</path>
+    </interface>
+    <interface>
+      <name>QuoteExecutionParams</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface QuoteExecutionParams { sessionId: string; carrierCode: string; clientData: QuoteClientData; credentials: DecryptedCredentials; recipe?: Recipe; onProgress: (status: ProgressUpdate) =&gt; void; onCaptchaNeeded: (captcha: CaptchaChallenge) =&gt; Promise&lt;string&gt;; }</signature>
+      <path>src/types/quoting/agent.ts</path>
+    </interface>
+    <interface>
+      <name>QuoteAgentResult</name>
+      <kind>TypeScript interface</kind>
+      <signature>interface QuoteAgentResult { success: boolean; data?: QuoteResultData; error?: QuoteError; duration_ms?: number; mode?: 'discovery' | 'replay'; }</signature>
+      <path>src/types/quoting/agent.ts</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Vitest for unit tests. Tests should be in __tests__/ mirroring src/ structure.
+      Component tests use React Testing Library. E2E tests use Playwright.
+      Mocking via vi.mock() for external dependencies.
+      Test file naming: *.test.ts or *.test.tsx.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/agent/</location>
+      <location>__tests__/lib/quoting/carriers/</location>
+      <location>__tests__/e2e/quoting/</location>
+    </locations>
+    <ideas>
+      <idea acRef="AC2">After removal, verify agent/index.ts exports compile without errors</idea>
+      <idea acRef="AC5">Run full test suite to catch any broken imports or dependencies</idea>
+      <idea acRef="AC5">Run npm run build to ensure TypeScript compiles cleanly</idea>
+      <idea acRef="AC3">Verify no Python import errors if any Python files remain</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,22 +1,22 @@
 /**
  * Quote Agent Types
- * Story Q6.2: Skyvern Agent Integration
+ * Epic Q8: Stagehand POC & Recipe Foundation
  *
  * Type definitions for AI-powered quote automation agents.
  * These types define the contract between orchestrators and agent adapters.
  *
- * AC-Q6.2-1: QuoteAgent interface definition
- * AC-Q6.2-3: QuoteExecutionParams for task requests
- * AC-Q6.2-4: ProgressUpdate for status callbacks
- * AC-Q6.2-5: QuoteResultData for extracted results
- * AC-Q6.2-6: QuoteError for error categorization
+ * - QuoteAgent interface definition
+ * - QuoteExecutionParams for task requests
+ * - ProgressUpdate for status callbacks
+ * - QuoteResultData for extracted results
+ * - QuoteError for error categorization
  */
 
 import type { QuoteClientData } from '@/types/quoting';
 
 /**
  * QuoteAgent interface
- * AC-Q6.2-1: Contract for all agent adapters (Skyvern, Claude Computer Use, etc.)
+ * Contract for all agent adapters (Stagehand, etc.)
  *
  * Adapters must implement:
  * - executeQuote(): Execute automation and return results
@@ -260,32 +260,3 @@ export interface QuoteError {
   suggestedAction?: string;
 }
 
-/**
- * Skyvern-specific request type
- * Used internally by SkyvernAdapter
- */
-export interface SkyvernTaskRequest {
-  url: string;
-  navigation_goal: string;
-  data_extraction_goal: string;
-  navigation_payload: Record<string, unknown>;
-  max_steps_override?: number;
-}
-
-/**
- * Skyvern-specific response type
- * Used internally by SkyvernAdapter
- */
-export interface SkyvernTaskResponse {
-  task_id: string;
-  status: string;
-  steps?: Array<{
-    step_id: string;
-    status: string;
-    output?: string;
-  }>;
-  extracted_data?: Record<string, unknown>;
-  screenshots?: string[];
-  failure_reason?: string;
-  error_code?: string;
-}

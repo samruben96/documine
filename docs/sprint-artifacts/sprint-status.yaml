@@ -1,7 +1,7 @@
   # Sprint Status - docuMINE
 # ========================
 # Generated: 2025-11-28
-# Last Updated: 2025-12-12 (Epic Q7 tech spec generated)
+# Last Updated: 2025-12-14 (Q8 Stagehand POC epic created, Q7 retro strategic pivot)
 # Project: docuMINE
 # Tracking: file-system
 # Story Location: {project-root}/docs/sprint-artifacts
@@ -91,14 +91,20 @@ development_status:
   Q5-5-user-carrier-preferences: backlog
 
   # =====================================================
-  # AI-POWERED QUOTING (PHASE 4) - EPICS Q6-Q14
+  # AI-POWERED QUOTING (PHASE 4) - EPICS Q6-Q15
   # =====================================================
   # "Click Get Quotes, AI fills carrier forms automatically"
   # Planning: docs/features/quoting/phase-4-*.md
-  # Epics: docs/sprint-artifacts/epics/epic-Q{6-14}/
-  # Total: 9 Epics, 48 Stories, 46 FRs
-  # MVP Carriers: Progressive, Travelers, RAM Mutual (test)
-  # Key Tech: Browser Use + Skyvern (dual-agent), pgmq, Supabase Vault
+  # Epics: docs/sprint-artifacts/epics/epic-Q{6-15}/
+  # Total: 10 Epics, 54 Stories, 46 FRs
+  # MVP Carriers: RAM Mutual (POC), Progressive, Travelers
+  # Key Tech: Stagehand (recipe-based), pgmq, Supabase Vault
+  #
+  # STRATEGIC PIVOT (Q7 Retro 2025-12-14):
+  # - Pure AI automation too slow (20-30s per action)
+  # - New approach: Recipe-based (AI discovers once, Playwright replays fast)
+  # - Tool: Stagehand (native caching) replaces Browser Use
+  # - Credential Management deferred to Q15
 
   # Epic Q6: AI Infrastructure Foundation
   # Database schema, Skyvern integration, job queue
@@ -121,25 +127,33 @@ development_status:
   # Tech Spec: docs/sprint-artifacts/epics/epic-Q7/tech-spec.md
   # Created: 2025-12-12 - Dual-agent architecture for better reliability
   # Contexted: 2025-12-12
-  epic-Q7-browser-use-agent-integration: contexted
+  epic-Q7-browser-use-agent-integration: done
   Q7-1-browser-use-setup-poc: done
   Q7-2-browser-use-adapter: done  # Code review APPROVED 2025-12-12
-  Q7-3-ram-mutual-carrier: done  # Implemented 2025-12-14 with CapSolver CAPTCHA solving
-  Q7-4-agent-factory-routing: backlog
-  Q7-5-ab-testing-comparison: backlog
+  Q7-3-ram-mutual-carrier: done  # Implemented 2025-12-14 with CapSolver CAPTCHA solving, hardcoded Playwright login
+  Q7-4-agent-factory-routing: deferred  # 2025-12-14: Deferred - need to solidify core quoting flow first
+  Q7-5-ab-testing-comparison: deferred  # 2025-12-14: Deferred - need to solidify core quoting flow first
+  epic-Q7-retrospective: done  # 2025-12-14: Key insight - recipe-based automation (AI discovers, Playwright replays)
+  # Q7 RETRO ACTION ITEMS COMPLETED 2025-12-14:
+  # - Action #1: Research AI automation alternatives - DONE (Stagehand recommended)
+  #   → Updated: docs/features/research/ai-browser-automation-tools-2025.md
+  # - Action #3: Recipe format specification - DONE
+  #   → Created: docs/features/quoting/recipe-format-specification.md
 
-  # Epic Q8: Credential Management (was Q7)
-  # Secure credential storage with Supabase Vault
-  # Stories: 5 | FRs: FR14-19
+  # Epic Q8: Stagehand POC & Recipe Foundation (NEW 2025-12-14)
+  # Validate recipe-based automation with Stagehand
+  # Stories: 6 | FRs: FR3, FR20-22
   # Location: docs/sprint-artifacts/epics/epic-Q8/
   # Tech Spec: docs/sprint-artifacts/epics/epic-Q8/tech-spec.md
-  # Contexted: 2025-12-12
-  epic-Q8-credential-management: contexted
-  Q8-1-credential-vault-schema: backlog
-  Q8-2-credential-crud-operations: backlog
-  Q8-3-credential-validation: backlog
-  Q8-4-credential-encryption-service: backlog
-  Q8-5-credential-audit-logging: backlog
+  # Created: 2025-12-14 - Strategic pivot from Q7 retrospective
+  # Key: Prove "AI discovers once, Playwright replays fast" pattern
+  epic-Q8-stagehand-poc-recipe-foundation: contexted
+  Q8-0-codebase-cleanup: done  # Remove legacy Browser Use/Skyvern adapter code - APPROVED 2025-12-14
+  Q8-1-stagehand-setup: drafted   # Install and configure Stagehand locally
+  Q8-2-login-caching-test: drafted  # RAM Mutual login + verify 5x+ speedup on replay
+  Q8-3-captcha-integration: drafted  # CapSolver integration with Stagehand
+  Q8-4-recipe-schema: drafted     # Supabase quoting_recipes table
+  Q8-5-e2e-quote-flow: drafted    # Full RAM Mutual: login → form → quote → extract
 
   # Epic Q9: Quote Execution Engine (CORE MAGIC) (was Q8)
   # AI fills carrier forms automatically
@@ -210,3 +224,16 @@ development_status:
   Q14-2-comparison-document-integration: backlog
   Q14-3-quote-job-tracking-history: backlog
   Q14-4-rerun-duplicate-prevention: backlog
+
+  # Epic Q15: Credential Management (DEFERRED from Q8)
+  # Secure credential storage with Supabase Vault
+  # Stories: 5 | FRs: FR14-19
+  # Location: docs/sprint-artifacts/epics/epic-Q15/
+  # Status: Deferred until core recipe-based quoting works
+  # Note: Using env vars for credentials during Q8-Q14 development
+  epic-Q15-credential-management: deferred
+  Q15-1-credential-vault-schema: backlog
+  Q15-2-credential-crud-operations: backlog
+  Q15-3-credential-validation: backlog
+  Q15-4-credential-encryption-service: backlog
+  Q15-5-credential-audit-logging: backlog

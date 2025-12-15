@@ -1,11 +1,9 @@
 /**
  * Quote Agent Error Handling
- * Story Q6.2: Skyvern Agent Integration
+ * Epic Q8: Stagehand POC & Recipe Foundation
  *
  * Error categorization and mapping for AI agent adapters.
- *
- * AC-Q6.2-6: QuoteError structure with categorized codes
- * AC-Q6.2-7: recoverable flag for retry logic
+ * This module is adapter-agnostic and will be reused by StagehandAdapter.
  */
 
 import type { QuoteError } from '@/types/quoting/agent';
@@ -85,10 +83,10 @@ export function getSuggestedAction(code: QuoteError['code']): string {
 }
 
 /**
- * Map Skyvern error to QuoteError
- * AC-Q6.2-6: Categorize various error conditions
+ * Map error string to QuoteError
+ * Categorizes various error conditions from any agent adapter
  */
-export function mapSkyvernErrorToQuoteError(
+export function mapErrorToQuoteError(
   error: string,
   carrierCode: string
 ): QuoteError {

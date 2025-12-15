@@ -1,22 +1,18 @@
 /**
  * Quote Agent Module
- * Epic Q6: AI Infrastructure Foundation
- * Story Q6.2: Skyvern Agent Integration
- * Story Q7.2: Browser Use Agent Integration
+ * Epic Q8: Stagehand POC & Recipe Foundation
  *
- * This module provides adapters for AI-powered browser automation agents
- * that execute quote requests on carrier portals.
+ * This module provides the QuoteAgent interface and error handling utilities
+ * for AI-powered browser automation agents that execute quote requests on
+ * carrier portals.
  *
  * Architecture:
  * - QuoteAgent interface defines the contract for all agent adapters
- * - SkyvernAdapter implements QuoteAgent for Skyvern AI agent API
- * - BrowserUseAdapter implements QuoteAgent via Python subprocess
- * - AgentFactory (Q7.4) will select appropriate adapter based on carrier config
+ * - StagehandAdapter (Q8-1) will implement QuoteAgent for recipe-based automation
+ * - Error utilities provide standardized error handling across adapters
  */
 
-export { SkyvernAdapter } from './skyvern-adapter';
-export { BrowserUseAdapter, type BrowserUseAdapterOptions } from './browser-use-adapter';
-export { QuoteAgentError, mapSkyvernErrorToQuoteError } from './errors';
+export { QuoteAgentError, mapErrorToQuoteError } from './errors';
 export type {
   QuoteAgent,
   QuoteExecutionParams,
