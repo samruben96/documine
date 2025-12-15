@@ -118,7 +118,7 @@ videos/ # REVIEW
 - [x] Build passes
 - [x] Tests pass (remaining tests) - pre-existing failures only
 - [x] Temporary directories cleaned
-- [ ] PR created with clear commit message
+- [x] PR created with clear commit message (committed directly to main: 0b310fa)
 
 ## Notes
 
