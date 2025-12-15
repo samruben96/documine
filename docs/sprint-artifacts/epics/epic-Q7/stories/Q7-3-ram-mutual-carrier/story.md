@@ -58,7 +58,7 @@ Status: done
 ### RAM Mutual Portal Info
 
 - **Company:** RAM Mutual Insurance Company
-- **Portal URL:** https://www.rfrm.com/agents
+- **Portal URL:** https://www.rammutual.com/
 - **Headquarters:** Evansville, Wisconsin
 - **Lines:** Auto, Home, Farm, Umbrella
 - **Focus:** Personal lines in Wisconsin/Illinois

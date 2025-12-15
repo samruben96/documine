@@ -38,7 +38,7 @@ export const CARRIERS: Record<string, CarrierInfo> = {
   'ram-mutual': {
     code: 'ram-mutual',
     name: 'RAM Mutual',
-    portalUrl: 'https://www.rfrm.com/agents',
+    portalUrl: 'https://www.rammutual.com/',
     logoPath: '/carriers/ram-mutual.svg',
     formatter: ramMutualFormatter,
     linesOfBusiness: ['home', 'auto'],

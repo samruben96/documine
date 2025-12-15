@@ -100,7 +100,7 @@ describe('RAM Mutual Carrier Registry', () => {
     });
 
     it('should have correct portal URL', () => {
-      expect(CARRIERS['ram-mutual'].portalUrl).toBe('https://www.rfrm.com/agents');
+      expect(CARRIERS['ram-mutual'].portalUrl).toBe('https://www.rammutual.com/');
     });
 
     it('should have logo path configured', () => {
