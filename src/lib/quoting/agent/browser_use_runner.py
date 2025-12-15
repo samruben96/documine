@@ -2,6 +2,7 @@
 """
 Browser Use Runner Script
 Story Q7.2: BrowserUseAdapter Implementation
+Story Q7.3: RAM Mutual Carrier + CAPTCHA Solving
 
 Python subprocess runner for Browser Use AI agent.
 Communicates with TypeScript BrowserUseAdapter via JSON over stdin/stdout.
@@ -15,9 +16,10 @@ Usage:
 
 Requirements:
     - Python 3.11+
-    - pip install browser-use
+    - pip install browser-use requests
     - playwright install chromium
     - ANTHROPIC_API_KEY in environment
+    - CAPSOLVER_API_KEY in environment (for CAPTCHA solving)
 """
 
 import asyncio
@@ -25,9 +27,12 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TypedDict
+
+import requests
 
 # Load environment from .env.local in project root
 from dotenv import load_dotenv
@@ -39,7 +44,7 @@ if env_path.exists():
 
 # Import Browser Use - AC-Q7.2.6: Use browser_use.ChatAnthropic per Q7.1 learnings
 try:
-    from browser_use import Agent, ChatAnthropic
+    from browser_use import Agent, ChatAnthropic, Controller, ActionResult
 except ImportError as e:
     print(json.dumps({
         "type": "result",
@@ -48,6 +53,350 @@ except ImportError as e:
     }))
     sys.exit(1)
 
+
+# ============================================================================
+# CAPTCHA Solving Integration (Story Q7.3)
+# AC-Q7.3.5: CapSolver integration with Controller action
+# AC-Q7.3.6: Support reCAPTCHA v2/v3 and Cloudflare Turnstile
+# ============================================================================
+
+CAPSOLVER_API_KEY = os.getenv('CAPSOLVER_API_KEY')
+CAPSOLVER_API_URL = "https://api.capsolver.com"
+
+# Create global controller for Browser Use
+controller = Controller()
+
+
+async def solve_recaptcha_v2(page_url: str, site_key: str) -> str | None:
+    """
+    Solve reCAPTCHA v2 via CapSolver API.
+
+    Args:
+        page_url: The URL where the CAPTCHA appears
+        site_key: The reCAPTCHA site key
+
+    Returns:
+        The solved CAPTCHA token or None if failed
+    """
+    if not CAPSOLVER_API_KEY:
+        emit_progress("CAPTCHA detected but CAPSOLVER_API_KEY not set", 40)
+        return None
+
+    emit_progress("Solving reCAPTCHA v2...", 42)
+
+    try:
+        # Create task
+        create_payload = {
+            "clientKey": CAPSOLVER_API_KEY,
+            "task": {
+                "type": "ReCaptchaV2TaskProxyLess",
+                "websiteURL": page_url,
+                "websiteKey": site_key,
+            }
+        }
+
+        create_resp = requests.post(
+            f"{CAPSOLVER_API_URL}/createTask",
+            json=create_payload,
+            timeout=30
+        )
+        create_data = create_resp.json()
+
+        if create_data.get("errorId", 0) != 0:
+            emit_progress(f"CapSolver error: {create_data.get('errorDescription', 'Unknown')}", 42)
+            return None
+
+        task_id = create_data.get("taskId")
+        if not task_id:
+            return None
+
+        # Poll for result (max 120 seconds)
+        for i in range(60):
+            await asyncio.sleep(2)
+
+            result_payload = {
+                "clientKey": CAPSOLVER_API_KEY,
+                "taskId": task_id
+            }
+
+            result_resp = requests.post(
+                f"{CAPSOLVER_API_URL}/getTaskResult",
+                json=result_payload,
+                timeout=30
+            )
+            result_data = result_resp.json()
+
+            status = result_data.get("status")
+            if status == "ready":
+                token = result_data.get("solution", {}).get("gRecaptchaResponse")
+                if token:
+                    emit_progress("reCAPTCHA v2 solved successfully", 45)
+                    return token
+            elif status == "failed":
+                emit_progress("reCAPTCHA solving failed", 42)
+                return None
+
+            # Progress update during solve
+            if i % 5 == 0:
+                emit_progress(f"Solving reCAPTCHA... ({i*2}s)", 42 + (i // 10))
+
+        emit_progress("reCAPTCHA solving timed out", 42)
+        return None
+
+    except Exception as e:
+        emit_progress(f"CAPTCHA solve error: {str(e)}", 42)
+        return None
+
+
+async def solve_recaptcha_v3(page_url: str, site_key: str, action: str = "submit") -> str | None:
+    """
+    Solve reCAPTCHA v3 via CapSolver API.
+
+    Args:
+        page_url: The URL where the CAPTCHA appears
+        site_key: The reCAPTCHA site key
+        action: The reCAPTCHA action (default: "submit")
+
+    Returns:
+        The solved CAPTCHA token or None if failed
+    """
+    if not CAPSOLVER_API_KEY:
+        return None
+
+    emit_progress("Solving reCAPTCHA v3...", 42)
+
+    try:
+        create_payload = {
+            "clientKey": CAPSOLVER_API_KEY,
+            "task": {
+                "type": "ReCaptchaV3TaskProxyLess",
+                "websiteURL": page_url,
+                "websiteKey": site_key,
+                "pageAction": action,
+                "minScore": 0.7,
+            }
+        }
+
+        create_resp = requests.post(
+            f"{CAPSOLVER_API_URL}/createTask",
+            json=create_payload,
+            timeout=30
+        )
+        create_data = create_resp.json()
+
+        if create_data.get("errorId", 0) != 0:
+            return None
+
+        task_id = create_data.get("taskId")
+        if not task_id:
+            return None
+
+        # Poll for result
+        for _ in range(30):
+            await asyncio.sleep(2)
+
+            result_resp = requests.post(
+                f"{CAPSOLVER_API_URL}/getTaskResult",
+                json={"clientKey": CAPSOLVER_API_KEY, "taskId": task_id},
+                timeout=30
+            )
+            result_data = result_resp.json()
+
+            if result_data.get("status") == "ready":
+                token = result_data.get("solution", {}).get("gRecaptchaResponse")
+                if token:
+                    emit_progress("reCAPTCHA v3 solved successfully", 45)
+                    return token
+            elif result_data.get("status") == "failed":
+                return None
+
+        return None
+
+    except Exception:
+        return None
+
+
+async def solve_turnstile(page_url: str, site_key: str) -> str | None:
+    """
+    Solve Cloudflare Turnstile via CapSolver API.
+
+    Args:
+        page_url: The URL where the CAPTCHA appears
+        site_key: The Turnstile site key
+
+    Returns:
+        The solved CAPTCHA token or None if failed
+    """
+    if not CAPSOLVER_API_KEY:
+        return None
+
+    emit_progress("Solving Cloudflare Turnstile...", 42)
+
+    try:
+        create_payload = {
+            "clientKey": CAPSOLVER_API_KEY,
+            "task": {
+                "type": "AntiTurnstileTaskProxyLess",
+                "websiteURL": page_url,
+                "websiteKey": site_key,
+            }
+        }
+
+        create_resp = requests.post(
+            f"{CAPSOLVER_API_URL}/createTask",
+            json=create_payload,
+            timeout=30
+        )
+        create_data = create_resp.json()
+
+        if create_data.get("errorId", 0) != 0:
+            return None
+
+        task_id = create_data.get("taskId")
+        if not task_id:
+            return None
+
+        # Poll for result
+        for _ in range(60):
+            await asyncio.sleep(2)
+
+            result_resp = requests.post(
+                f"{CAPSOLVER_API_URL}/getTaskResult",
+                json={"clientKey": CAPSOLVER_API_KEY, "taskId": task_id},
+                timeout=30
+            )
+            result_data = result_resp.json()
+
+            if result_data.get("status") == "ready":
+                token = result_data.get("solution", {}).get("token")
+                if token:
+                    emit_progress("Turnstile solved successfully", 45)
+                    return token
+            elif result_data.get("status") == "failed":
+                return None
+
+        return None
+
+    except Exception:
+        return None
+
+
+@controller.action('Solve any CAPTCHA on the page', domains=['*'])
+async def solve_captcha(page) -> ActionResult:
+    """
+    Detect and solve CAPTCHAs on the current page.
+    AC-Q7.3.5: Controller action for CAPTCHA solving.
+    AC-Q7.3.6: Supports reCAPTCHA v2/v3 and Cloudflare Turnstile.
+
+    This action is automatically available to the Browser Use agent
+    and will be called when the agent detects a CAPTCHA challenge.
+    """
+    url = page.url
+    emit_progress("Checking for CAPTCHA...", 40)
+
+    try:
+        # Check for reCAPTCHA v2 (visible checkbox or invisible)
+        recaptcha_v2 = await page.query_selector('.g-recaptcha, [data-sitekey]:not(.cf-turnstile)')
+        if recaptcha_v2:
+            site_key = await recaptcha_v2.get_attribute('data-sitekey')
+            if site_key:
+                emit_progress("reCAPTCHA v2 detected, solving...", 41)
+                token = await solve_recaptcha_v2(url, site_key)
+                if token:
+                    # Inject the token into the page
+                    await page.evaluate(f"""
+                        (function() {{
+                            var response = document.getElementById('g-recaptcha-response');
+                            if (response) {{
+                                response.value = '{token}';
+                            }}
+                            // Also try textarea (invisible reCAPTCHA)
+                            var textareas = document.querySelectorAll('textarea[name="g-recaptcha-response"]');
+                            textareas.forEach(function(ta) {{
+                                ta.value = '{token}';
+                            }});
+                        }})();
+                    """)
+                    return ActionResult(
+                        success=True,
+                        extracted_content='reCAPTCHA v2 solved and token injected'
+                    )
+                else:
+                    return ActionResult(
+                        success=False,
+                        error='Failed to solve reCAPTCHA v2'
+                    )
+
+        # Check for reCAPTCHA v3 (usually invisible, look for grecaptcha script)
+        recaptcha_v3_script = await page.query_selector('script[src*="recaptcha/api.js?render="]')
+        if recaptcha_v3_script:
+            src = await recaptcha_v3_script.get_attribute('src')
+            if src and 'render=' in src:
+                site_key = src.split('render=')[1].split('&')[0]
+                emit_progress("reCAPTCHA v3 detected, solving...", 41)
+                token = await solve_recaptcha_v3(url, site_key)
+                if token:
+                    # For v3, we typically need to call a callback
+                    await page.evaluate(f"""
+                        window.captchaToken = '{token}';
+                    """)
+                    return ActionResult(
+                        success=True,
+                        extracted_content='reCAPTCHA v3 solved, token stored in window.captchaToken'
+                    )
+
+        # Check for Cloudflare Turnstile
+        turnstile = await page.query_selector('.cf-turnstile, [data-sitekey][class*="turnstile"]')
+        if turnstile:
+            site_key = await turnstile.get_attribute('data-sitekey')
+            if site_key:
+                emit_progress("Cloudflare Turnstile detected, solving...", 41)
+                token = await solve_turnstile(url, site_key)
+                if token:
+                    # Inject Turnstile token
+                    await page.evaluate(f"""
+                        (function() {{
+                            var input = document.querySelector('input[name="cf-turnstile-response"]');
+                            if (input) {{
+                                input.value = '{token}';
+                            }}
+                        }})();
+                    """)
+                    return ActionResult(
+                        success=True,
+                        extracted_content='Cloudflare Turnstile solved and token injected'
+                    )
+                else:
+                    return ActionResult(
+                        success=False,
+                        error='Failed to solve Turnstile'
+                    )
+
+        # Check for hCaptcha
+        hcaptcha = await page.query_selector('.h-captcha, [data-sitekey][class*="hcaptcha"]')
+        if hcaptcha:
+            emit_progress("hCaptcha detected - not yet supported", 41)
+            return ActionResult(
+                success=False,
+                error='hCaptcha detected but not yet supported. Manual intervention may be needed.'
+            )
+
+        # No CAPTCHA detected
+        return ActionResult(
+            success=True,
+            extracted_content='No CAPTCHA detected on this page'
+        )
+
+    except Exception as e:
+        return ActionResult(
+            success=False,
+            error=f'Error checking for CAPTCHA: {str(e)}'
+        )
+
+
+# ============================================================================
+# Type Definitions
+# ============================================================================
 
 class Credentials(TypedDict):
     """Carrier portal credentials."""
@@ -80,6 +429,10 @@ class InputData(TypedDict):
     sessionId: str
     carrierCode: str
 
+
+# ============================================================================
+# Progress and Result Emission
+# ============================================================================
 
 def emit_progress(step: str, progress: int) -> None:
     """
@@ -122,6 +475,10 @@ def emit_result(success: bool, data: dict[str, Any] | None = None, error: str | 
     print(json.dumps(output), flush=True)
 
 
+# ============================================================================
+# LLM and Task Building
+# ============================================================================
+
 def get_llm() -> ChatAnthropic:
     """
     Initialize Claude LLM for Browser Use.
@@ -160,11 +517,14 @@ def build_navigation_task(carrier: str, portal_url: str, client_data: ClientData
         "",
         "IMPORTANT: Do not share or display credentials in any output.",
         "",
+        "CAPTCHA HANDLING: If you encounter a CAPTCHA, use the 'Solve any CAPTCHA on the page' action.",
+        "",
         "STEPS:",
         f"1. Navigate to {portal_url}",
         f"2. Login with username '{credentials['username']}' and password (provided)",
-        "3. Navigate to the new quote or get a quote section",
-        f"4. Fill out the insurance quote form for client: {client_name}",
+        "3. If CAPTCHA appears, use the solve_captcha action",
+        "4. Navigate to the new quote or get a quote section",
+        f"5. Fill out the insurance quote form for client: {client_name}",
         "",
         "CLIENT INFORMATION TO USE:",
     ]
@@ -209,9 +569,9 @@ def build_navigation_task(carrier: str, portal_url: str, client_data: ClientData
     task_lines.extend([
         "",
         "FINAL STEPS:",
-        "5. Complete all required form pages",
-        "6. Navigate through to the quote results page",
-        "7. Extract and report the premium amount, coverages, and deductibles",
+        "6. Complete all required form pages",
+        "7. Navigate through to the quote results page",
+        "8. Extract and report the premium amount, coverages, and deductibles",
         "",
         "When you reach the quote results, report the following:",
         "- Annual premium amount",
@@ -222,6 +582,10 @@ def build_navigation_task(carrier: str, portal_url: str, client_data: ClientData
 
     return "\n".join(task_lines)
 
+
+# ============================================================================
+# Quote Data Extraction
+# ============================================================================
 
 def extract_quote_data(result: Any, carrier: str) -> dict[str, Any]:
     """
@@ -306,6 +670,10 @@ def extract_quote_data(result: Any, carrier: str) -> dict[str, Any]:
     }
 
 
+# ============================================================================
+# Main Runner
+# ============================================================================
+
 async def run_browser_use(
     carrier: str,
     portal_url: str,
@@ -341,10 +709,12 @@ async def run_browser_use(
 
     emit_progress("Starting browser automation", 15)
 
-    # Create and run agent
+    # Create and run agent with CAPTCHA-solving controller
+    # AC-Q7.3.5: Pass controller to Agent
     agent = Agent(
         task=task,
         llm=llm,
+        controller=controller,  # Enable CAPTCHA solving actions
         headless=headless,
     )
 
@@ -429,7 +799,7 @@ def main() -> int:
     parser.add_argument(
         '--carrier',
         required=True,
-        help='Carrier code (e.g., progressive, travelers)'
+        help='Carrier code (e.g., progressive, travelers, ram-mutual)'
     )
 
     parser.add_argument(
@@ -455,6 +825,22 @@ def main() -> int:
 
     # Handle headless vs visible
     headless = not args.visible
+
+    # Log CAPTCHA solver status
+    if CAPSOLVER_API_KEY:
+        print(json.dumps({
+            "type": "progress",
+            "step": "CAPTCHA solver enabled (CapSolver)",
+            "progress": 0,
+            "timestamp": datetime.now().isoformat()
+        }), flush=True)
+    else:
+        print(json.dumps({
+            "type": "progress",
+            "step": "CAPTCHA solver not configured (set CAPSOLVER_API_KEY)",
+            "progress": 0,
+            "timestamp": datetime.now().isoformat()
+        }), flush=True)
 
     # Read input from stdin
     input_data = read_input_from_stdin()

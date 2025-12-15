@@ -12,6 +12,7 @@ import type { QuoteType } from '@/types/quoting';
 import type { CarrierInfo } from './types';
 import { progressiveFormatter } from './progressive';
 import { travelersFormatter } from './travelers';
+import { ramMutualFormatter } from './ram-mutual';
 
 /**
  * Carrier registry
@@ -33,6 +34,14 @@ export const CARRIERS: Record<string, CarrierInfo> = {
     logoPath: '/carriers/travelers.svg',
     formatter: travelersFormatter,
     linesOfBusiness: ['home', 'auto', 'bundle'],
+  },
+  'ram-mutual': {
+    code: 'ram-mutual',
+    name: 'RAM Mutual',
+    portalUrl: 'https://www.rfrm.com/agents',
+    logoPath: '/carriers/ram-mutual.svg',
+    formatter: ramMutualFormatter,
+    linesOfBusiness: ['home', 'auto'],
   },
 };
 
