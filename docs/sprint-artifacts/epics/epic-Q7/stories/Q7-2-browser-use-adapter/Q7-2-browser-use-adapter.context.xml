@@ -1,0 +1,237 @@
+<story-context id="Q7-2-browser-use-adapter" v="1.0">
+  <metadata>
+    <epicId>Q7</epicId>
+    <storyId>2</storyId>
+    <title>BrowserUseAdapter Implementation</title>
+    <status>drafted</status>
+    <generatedAt>2025-12-12</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/sprint-artifacts/epics/epic-Q7/stories/Q7-2-browser-use-adapter/story.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>a BrowserUseAdapter class that implements the QuoteAgent interface via Python subprocess communication</iWant>
+    <soThat>Browser Use can be used interchangeably with SkyvernAdapter for quote automation</soThat>
+    <tasks>
+      <task id="1">Create Python Runner Script (browser_use_runner.py) - argument parsing, stdin JSON, progress emission, Browser Use integration</task>
+      <task id="2">Create BrowserUseAdapter TypeScript class - QuoteAgent interface, subprocess spawning, env vars</task>
+      <task id="3">Implement Progress Parsing - stdout line parsing, JSON handling, onProgress callback routing</task>
+      <task id="4">Implement Result Handling - QuoteResult creation, agentType, executionTimeMs</task>
+      <task id="5">Implement Cancellation - SIGTERM subprocess termination</task>
+      <task id="6">Implement Error Mapping - regex patterns, QuoteError codes, recoverable flags</task>
+      <task id="7">Implement Timeout Handler - 5-minute timeout, process cleanup</task>
+      <task id="8">Export and Integration - update index.ts exports</task>
+      <task id="9">Unit Tests - mock subprocess, ≥90% coverage</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="AC-Q7.2.1">BrowserUseAdapter implements QuoteAgent interface with executeQuote() and cancel() methods</criterion>
+    <criterion id="AC-Q7.2.2">Python subprocess spawned with correct arguments (--carrier, --portal-url)</criterion>
+    <criterion id="AC-Q7.2.3">JSON input sent via stdin with credentials and clientData</criterion>
+    <criterion id="AC-Q7.2.4">Progress updates parsed from stdout JSON lines and passed to onProgress callback</criterion>
+    <criterion id="AC-Q7.2.5">Final result parsed and returned as QuoteResult with agentType='browser-use'</criterion>
+    <criterion id="AC-Q7.2.6">cancel() terminates subprocess with SIGTERM and clears process reference</criterion>
+    <criterion id="AC-Q7.2.7">Error mapping converts Python errors to QuoteError codes (CREDENTIALS_INVALID, TIMEOUT, etc.)</criterion>
+    <criterion id="AC-Q7.2.8">5-minute timeout terminates stuck processes with TIMEOUT error</criterion>
+    <criterion id="AC-Q7.2.9">Unit test coverage ≥ 90% for adapter module</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q7/tech-spec.md</path>
+        <title>Epic Q7 Tech Spec - Browser Use Agent Integration</title>
+        <section>Q7.2: BrowserUseAdapter Implementation</section>
+        <snippet>Technical design for TypeScript adapter implementing QuoteAgent interface with Python subprocess communication via JSON lines protocol.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/phase-4-architecture.md</path>
+        <title>Phase 4 AI-Powered Quoting Architecture</title>
+        <section>Browser Use Adapter</section>
+        <snippet>Dual-agent architecture with Browser Use as primary agent (89% accuracy) and Skyvern as fallback. Subprocess communication pattern defined.</snippet>
+      </doc>
+      <doc>
+        <path>docs/features/quoting/browser-use-setup.md</path>
+        <title>Browser Use Setup Guide</title>
+        <section>Installation and Configuration</section>
+        <snippet>Browser Use 0.11.1 setup with claude-sonnet-4-5 model. Use from browser_use import Agent, ChatAnthropic pattern.</snippet>
+      </doc>
+      <doc>
+        <path>docs/sprint-artifacts/epics/epic-Q7/stories/Q7-1-browser-use-setup-poc/story.md</path>
+        <title>Story Q7.1: Browser Use Setup POC</title>
+        <section>Completion Notes</section>
+        <snippet>Model update required: use claude-sonnet-4-5. Browser Use 0.11.1 has own ChatAnthropic wrapper. Performance: 20-30 seconds per task.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <file>
+        <path>src/lib/quoting/agent/index.ts</path>
+        <kind>module-export</kind>
+        <symbol>QuoteAgent interface exports</symbol>
+        <lines>1-28</lines>
+        <reason>Main export file for agent module - must add BrowserUseAdapter export here</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/agent/skyvern-adapter.ts</path>
+        <kind>adapter</kind>
+        <symbol>SkyvernAdapter</symbol>
+        <lines>1-607</lines>
+        <reason>Reference implementation of QuoteAgent interface - BrowserUseAdapter must match this interface exactly</reason>
+      </file>
+      <file>
+        <path>src/lib/quoting/agent/errors.ts</path>
+        <kind>error-handling</kind>
+        <symbol>QuoteAgentError, mapSkyvernErrorToQuoteError</symbol>
+        <lines>1-213</lines>
+        <reason>Error mapping patterns to replicate for Browser Use errors - use same QuoteError codes</reason>
+      </file>
+      <file>
+        <path>src/types/quoting/agent.ts</path>
+        <kind>types</kind>
+        <symbol>QuoteAgent, QuoteExecutionParams, QuoteAgentResult, QuoteError, ProgressUpdate</symbol>
+        <lines>1-292</lines>
+        <reason>Core interface definitions that BrowserUseAdapter must implement</reason>
+      </file>
+      <file>
+        <path>scripts/browser-use-poc.py</path>
+        <kind>reference</kind>
+        <symbol>Browser Use POC patterns</symbol>
+        <lines>43-67</lines>
+        <reason>Working Python implementation to reference for browser_use_runner.py - shows ChatAnthropic usage and Agent initialization</reason>
+      </file>
+      <file>
+        <path>__tests__/lib/quoting/agent/skyvern-adapter.test.ts</path>
+        <kind>test</kind>
+        <symbol>SkyvernAdapter tests</symbol>
+        <reason>Test patterns to follow for browser-use-adapter.test.ts</reason>
+      </file>
+    </code>
+
+    <dependencies>
+      <node>
+        <package name="@supabase/supabase-js" version="^2.84.0" />
+        <package name="next" version="^16.0.9" />
+        <package name="react" version="19.2.0" />
+        <package name="zod" version="^4.1.13" />
+        <package name="vitest" version="^4.0.14" dev="true" />
+        <package name="@testing-library/react" version="^16.3.0" dev="true" />
+      </node>
+      <python>
+        <package name="browser-use" version=">=0.11.0" />
+        <package name="langchain-anthropic" version=">=1.3.0" />
+        <package name="playwright" version=">=1.40.0" />
+        <package name="python-dotenv" version=">=1.0.0" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="interface">BrowserUseAdapter MUST implement exact same QuoteAgent interface as SkyvernAdapter - executeQuote(params) and cancel()</constraint>
+    <constraint type="stateless">Adapter must be stateless between executions - orchestrator manages state</constraint>
+    <constraint type="model">Use claude-sonnet-4-5 model (not deprecated claude-3-5-sonnet-20241022)</constraint>
+    <constraint type="import">Use from browser_use import ChatAnthropic (not langchain_anthropic) per Q7.1 learnings</constraint>
+    <constraint type="security">Credentials passed via stdin only - never logged, never in command line args</constraint>
+    <constraint type="timeout">5-minute hard timeout with SIGTERM cleanup</constraint>
+    <constraint type="error-codes">Error mapping must use same codes as errors.ts: CREDENTIALS_INVALID, CAPTCHA_FAILED, FORM_CHANGED, TIMEOUT, PORTAL_UNAVAILABLE, UNKNOWN</constraint>
+    <constraint type="recoverable">Only TIMEOUT and PORTAL_UNAVAILABLE are recoverable (true), all others are non-recoverable (false)</constraint>
+    <constraint type="path">Python script location: src/lib/quoting/agent/browser_use_runner.py</constraint>
+    <constraint type="coverage">Unit test coverage must be ≥90%</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>QuoteAgent</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteAgent {
+  executeQuote(params: QuoteExecutionParams): Promise&lt;QuoteAgentResult&gt;;
+  cancel(): Promise&lt;void&gt;;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts:25-38</path>
+    </interface>
+    <interface>
+      <name>QuoteExecutionParams</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteExecutionParams {
+  sessionId: string;
+  carrierCode: string;
+  clientData: QuoteClientData;
+  credentials: DecryptedCredentials;
+  recipe?: CarrierRecipe;
+  onProgress: (update: ProgressUpdate) =&gt; void;
+  onCaptchaNeeded: (challenge: CaptchaChallenge) =&gt; Promise&lt;string&gt;;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts:44-71</path>
+    </interface>
+    <interface>
+      <name>QuoteAgentResult</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface QuoteAgentResult {
+  success: boolean;
+  data?: QuoteResultData;
+  error?: QuoteError;
+  screenshots?: string[];
+  retryHistory?: string;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts:180-195</path>
+    </interface>
+    <interface>
+      <name>ProgressUpdate</name>
+      <kind>TypeScript interface</kind>
+      <signature>
+interface ProgressUpdate {
+  status: AgentExecutionStatus;
+  currentStep: string;
+  progressPct: number;
+  carrierCode?: string;
+}
+      </signature>
+      <path>src/types/quoting/agent.ts:133-145</path>
+    </interface>
+    <interface>
+      <name>Python JSON Line Protocol</name>
+      <kind>stdin/stdout communication</kind>
+      <signature>
+// Input via stdin:
+{ credentials: { username, password }, clientData: QuoteClientData }
+
+// Output via stdout (JSON lines):
+{ "type": "progress", "step": string, "progress": number }
+{ "type": "result", "success": boolean, "data": object, "error": string }
+      </signature>
+      <path>docs/sprint-artifacts/epics/epic-Q7/tech-spec.md</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Tests use Vitest with happy-dom environment. Mock child_process.spawn for subprocess tests.
+      Follow patterns established in __tests__/lib/quoting/agent/skyvern-adapter.test.ts.
+      Test all error mapping scenarios with regex pattern coverage.
+      Integration tests for timeout behavior should use fake timers.
+    </standards>
+    <locations>
+      <location>__tests__/lib/quoting/agent/browser-use-adapter.test.ts</location>
+      <location>__tests__/lib/quoting/agent/</location>
+    </locations>
+    <ideas>
+      <idea ac="AC-Q7.2.1">Test executeQuote returns QuoteAgentResult, test cancel calls process.kill</idea>
+      <idea ac="AC-Q7.2.2">Test spawn called with correct python path and args array</idea>
+      <idea ac="AC-Q7.2.3">Test stdin.write called with JSON.stringify of credentials and clientData</idea>
+      <idea ac="AC-Q7.2.4">Test onProgress callback invoked for each progress JSON line from stdout</idea>
+      <idea ac="AC-Q7.2.5">Test result has agentType='browser-use' and executionTimeMs calculated</idea>
+      <idea ac="AC-Q7.2.6">Test cancel sends SIGTERM, sets process to null</idea>
+      <idea ac="AC-Q7.2.7">Test mapError for all patterns: login/credentials, captcha, element not found, timeout, connection</idea>
+      <idea ac="AC-Q7.2.8">Test timeout kills process after 5 minutes, rejects with TIMEOUT error</idea>
+      <idea ac="AC-Q7.2.9">Run coverage report, verify ≥90%</idea>
+    </ideas>
+  </tests>
+</story-context>
