@@ -8,11 +8,16 @@
  *
  * Architecture:
  * - QuoteAgent interface defines the contract for all agent adapters
- * - StagehandAdapter (Q8-1) will implement QuoteAgent for recipe-based automation
+ * - StagehandAdapter (Q8-1) implements QuoteAgent for recipe-based automation
  * - Error utilities provide standardized error handling across adapters
  */
 
 export { QuoteAgentError, mapErrorToQuoteError } from './errors';
+export {
+  StagehandAdapter,
+  createStagehandAdapter,
+  type StagehandAdapterConfig,
+} from './stagehand-adapter';
 export type {
   QuoteAgent,
   QuoteExecutionParams,

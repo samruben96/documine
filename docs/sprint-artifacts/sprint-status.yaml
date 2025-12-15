@@ -149,7 +149,7 @@ development_status:
   # Key: Prove "AI discovers once, Playwright replays fast" pattern
   epic-Q8-stagehand-poc-recipe-foundation: contexted
   Q8-0-codebase-cleanup: done  # Remove legacy Browser Use/Skyvern adapter code - APPROVED 2025-12-14
-  Q8-1-stagehand-setup: drafted   # Install and configure Stagehand locally
+  Q8-1-stagehand-setup: done  # Install and configure Stagehand locally - APPROVED 2025-12-14
   Q8-2-login-caching-test: drafted  # RAM Mutual login + verify 5x+ speedup on replay
   Q8-3-captcha-integration: drafted  # CapSolver integration with Stagehand
   Q8-4-recipe-schema: drafted     # Supabase quoting_recipes table
